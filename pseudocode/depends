@@ -1,1 +1,81 @@
-# Insert pseudocode for the depends function here
+declare proc(T)
+
+global_read
+global_write
+
+sem_init
+sem_wait
+sem_post
+sem_getvalue
+
+pthread_mutex_init
+pthread_mutex_lock
+pthread_mutex_unlock
+
+pthread_create
+pthread_join
+
+def depends(tr1, tr2):
+	if proc(tr1) == proc(tr2):
+		return True
+
+	if tr1 && tr2 are pthread operations:
+		return depends_thread(tr1, tr2)
+
+	if tr1 && tr2 are semaphore operations on the same semaphore:
+		return depends_semaphore(tr1, tr2)
+
+	if tr1 && tr2 are lock operations on the same lock:
+		return depends_lock(tr1, tr2)
+	
+	if tr1 && tr2 are both global operations on the same variable:
+		return depends_global(tr1, tr2)
+
+	return False
+
+# Assume different threads, same pthread created/waited on
+def depends_thread(tr1, tr2):
+	if tr1 == pthread_join && tr2 == pthread_join:
+		return False
+	elif tr1 == pthread_join || tr2 == pthread_join:
+		return True
+	
+	# The case of two pthread_create s is probably undefined,
+	# but possibly also impossible if we assume they can't
+	# actually create the "same" thread
+	return False
+
+# Assume different threads, same semaphore
+def depends_semaphore(tr1, tr2):
+	
+	if tr1 == sem_init && tr2 == sem_init:
+		return False
+	elif tr1 == sem_init || tr2 == sem_init:
+		return True
+
+	if tr1 == sem_getvalue && tr2 == sem_getvalue:
+		return False
+	elif tr1 == sem_getvalue || tr2 == sem_getvalue:
+		return True
+	
+	if tr1 == sem_wait && tr2 == sem_wait:
+		return True
+
+	return False
+
+# Assume different threads, same lock
+def depends_lock(tr1, tr2):
+	if tr1 == pthread_init && tr2 == pthread_init:
+		return False
+	elif tr1 == pthread_init || tr2 == pthread_init:
+		return True
+
+	if tr1 == pthread_lock && tr2 == pthread_lock:
+		return True
+
+	return False
+
+# Assume different threads, same global variable
+def depends_global(tr1, tr2):
+	return tr1 == global_write || t2 == global_write
+
