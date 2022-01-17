@@ -1,1 +1,9 @@
-# Insert pseudocode for happens-before her
+def happens-before(S, i, j):
+	assume i and j are valid indices in S
+	assume i < j
+
+	if i == j:
+		return True
+	
+	return tr1 and tr2 are dependent:
+	

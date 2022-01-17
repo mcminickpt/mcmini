@@ -1,0 +1,11 @@
+
+def proc(S, i):
+	return thread executing ith step in sequence S
+
+def last(S):
+	return the last state after executing all of S
+
+def co-enabled(tr1, tr2):
+	if tr1 and tr2 are mutex operations on the same mutex:
+		return no unlock/lock pair
+
