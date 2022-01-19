@@ -4,6 +4,14 @@ def happens-before(S, i, j):
 
 	if i == j:
 		return True
-	
-	return tr1 and tr2 are dependent:
+		
+	bool depends_arr[i:j] = {false}	
+	depends_arr[i] = true
+	foreach k in [i, j]:
+		if (depends_arr[k]):
+			foreach l in [k + 1, j]:
+				if (depends_arr[l] == false && depends(S_k,S_l)):
+					depends_arr[l] = true
+					
+	return depends_arr[j]
 	
