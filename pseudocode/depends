@@ -8,9 +8,9 @@ sem_wait
 sem_post
 sem_getvalue
 
-pthread_mutex_init
-pthread_mutex_lock
-pthread_mutex_unlock
+mutex_init
+mutex_lock
+mutex_unlock
 
 pthread_create
 pthread_join
@@ -58,19 +58,19 @@ def depends_semaphore(tr1, tr2):
 	elif tr1 == sem_getvalue || tr2 == sem_getvalue:
 		return True
 	
-	if tr1 == sem_wait && tr2 == sem_wait:
+	if tr1 == sem_wait || tr2 == sem_wait:
 		return True
 
 	return False
 
 # Assume different threads, same lock
 def depends_lock(tr1, tr2):
-	if tr1 == pthread_init && tr2 == pthread_init:
+	if tr1 == mutex_init && tr2 == mutex_init:
 		return False
-	elif tr1 == pthread_init || tr2 == pthread_init:
+	elif tr1 == mutex_init || tr2 == mutex_init:
 		return True
 
-	if tr1 == pthread_lock && tr2 == pthread_lock:
+	if tr1 == mutex_lock || tr2 == mutex_lock:
 		return True
 
 	return False
