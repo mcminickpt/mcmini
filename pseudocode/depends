@@ -15,21 +15,64 @@ mutex_unlock
 pthread_create
 pthread_join
 
+enum visible_operation_type { 
+	SEMAPHORE,
+	MUTEX,
+	GLOBAL_ACCESS,
+	THREAD_SPAWN
+}
+
+Sequence of transitions -> some sort of list
+
+struct transition { 
+	mc_thread executor;
+	visible_operation_type type;
+	union { 
+		mc_semaphore_op semaphore_op;
+		mc_mutex mutex;
+		mc_global global;
+	}
+};
+
+enum mc_semaphore_op_code {SEM_INIT, SEM_WAIT, SEM_POST, ...};
+struct mc_semaphore_op { 
+	mc_semaphore semaphore;
+};
+
+enum global_state {GLOBAL_WRITE, GLOBAL_READ};
+struct mc_global {
+  void *raw_addr;
+  enum global_state state;
+};
+
+enum mutex_state {MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN};
+struct mc_mutex {
+  pthread_mutex_t *mutex_addr;
+  enum mutex_state state;
+};
+
+enum semaphore_state {SEMAPHORE_LOCKED, SEMAPHORE_UNLOCKED, SEMAPHORE_UNKNOWN};
+struct mc_semaphore {
+  int init_time;
+  sem_t *semaphore_addr;
+  int count; // negative is # of blocked threads; positive is # of free passes
+};
+
 def depends(tr1, tr2):
 	if proc(tr1) == proc(tr2):
 		return True
-
+	
 	if tr1 && tr2 are pthread operations:
 		return depends_thread(tr1, tr2)
 
-	if tr1 && tr2 are semaphore operations on the same semaphore:
-		return depends_semaphore(tr1, tr2)
+	if tr1.type == SEMAPHORE && tr2.type == SEMAPHORE:
+		return depends_semaphore(tr1.semaphore_op, tr2.semaphore_op)
 
-	if tr1 && tr2 are lock operations on the same lock:
-		return depends_lock(tr1, tr2)
+	if tr1.type == MUTEX && tr2.type == MUTEX:
+		return depends_lock(tr1.mutex, tr2.mutex)
 	
-	if tr1 && tr2 are both global operations on the same variable:
-		return depends_global(tr1, tr2)
+	if tr1.type == GLOBAL_ACCESS && tr2.type == GLOBAL_ACCESS:
+		return depends_global(tr1.global, tr2.global)
 
 	return False
 
