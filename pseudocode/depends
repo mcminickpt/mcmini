@@ -31,6 +31,7 @@ struct transition {
 		mc_semaphore_op semaphore_op;
 		mc_mutex_op mutex_op;
 		mc_global_op global_op;
+		mc_thread_spawn_op spawn_op
 	}
 };
 
@@ -74,12 +75,26 @@ struct mc_mutex {
 };
 \\ -- END -- //
 
+// -- THREAD CREATION -- \\
+enum mc_thread_state { MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN };
+struct mc_thread_spawn {
+  mc_thread thread;
+  enum mc_thread_state state;
+};
+
+enum mc_thread_spawn_op_code { PTHREAD_CREATE, PTHREAD_JOIN };
+struct mc_thread_spawn_op {
+  mc_thread_spawn spawn;
+  enum mc_thread_spawn_op_code code;
+};
+\\ -- END -- //
+
 
 def depends(tr1, tr2):
 	if proc(tr1) == proc(tr2):
 		return True
 	
-	if tr1 && tr2 are pthread operations:
+	if tr1.type == THREAD_SPAWN && tr2.type == THREAD_SPAWN:
 		return depends_thread(tr1, tr2)
 
 	if tr1.type == SEMAPHORE && tr2.type == SEMAPHORE:
@@ -94,10 +109,10 @@ def depends(tr1, tr2):
 	return False
 
 # Assume different threads, same pthread created/waited on
-def depends_thread(tr1, tr2):
-	if tr1 == pthread_join && tr2 == pthread_join:
+def depends_thread(op1, op2):
+	if op1.code == PTHREAD_JOIN && op2.code == PTHREAD_JOIN:
 		return False
-	elif tr1 == pthread_join || tr2 == pthread_join:
+	elif op1.code == PTHREAD_JOIN || op2.code == PTHREAD_JOIN:
 		return True
 	return False
 
@@ -120,7 +135,7 @@ def depends_semaphore(op1, op2):
 	return False
 
 # Assume different threads, same lock
-def depends_lock(tr1, tr2):
+def depends_lock(op1, op2):
 	if op1.code == MUTEX_INIT && op2.code == MUTEX_INIT:
 		return False
 	elif op1.code == MUTEX_INIT || op2.code == MUTEX_INIT:
