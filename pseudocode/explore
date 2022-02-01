@@ -1,0 +1,102 @@
+#include "depends"
+#include "happens-before"
+
+struct thread_identity {
+    // Indirect identifier of a thread
+    // across exec() system calls to run
+    // the target program
+};
+
+struct thread_descriptor {
+    thread_identity identity;
+    // Other state of a thread, e.g.
+    // if it is alive at this point
+    bool is_alive;
+};
+
+struct visible_operation {
+    one of
+        sem_operation
+        mutex_operation
+        read/write operation
+        // ...
+}
+
+struct transition {
+    thread_identity owner;
+    visible_operation op;
+};
+
+struct total_state {
+    Collection<semaphore_state> sem_states;
+    Collection<mutex_state> mutex_states;
+    // ...
+
+    Collection<transition> transitions; // Threads that are alive or dead at this point
+
+};
+
+// DPOR structs
+struct transition_stack_item {
+    transition transition;
+    // Possibly the state that is transitions FROM
+    // Possibly the index in the state stack that
+    // the transition moves from
+    stack_stack_ref ref;
+}
+
+struct state_stack_item {
+    struct total_state ts;
+    Set<thread_identity> backtrack_set;
+    // Eventually
+    // sleep_set
+    // enabled_set
+    // lock_set
+    // etc.
+};
+
+template<typename Item>
+struct stack<Item> {
+    void push(Item);
+    Item pop();
+    Item peek();
+    Item get(int i);
+};
+
+struct state_stack : stack<state_stack_item>;
+struct transition_stack : stack<transition>;
+
+
+struct thread_table: hash_table<thread_identity>
+
+state_stack S; // N items
+transition_stack T; // N - 1 items -> one less
+thread_table thread_table; // All threads ever discovered
+
+
+def explore():
+
+
+// Essence of DPOR
+def dynamically_update_backtrack_sets(ss_item: state_stack_item):
+    for each *thread* from map(ss_item.ts.transitions, owner):
+        let enabled = ss_item.ts.enabled()
+        ensure find *transitionN* in enabled where *transitionN*.owner == *thread* else continue;
+        ensure find *transitionD* in T
+            where coenabled(*transitionD*, *transitionN*) && depends(*transitionD*, *transitionN*) else continue;
+
+        let fromState = *transitionD*.state_ref
+        let E = fromState.ts.enabled().filter { transition in
+            transition.owner == *thread*
+            OR
+
+        }
+
+        if !E.isEmpty:
+            fromState.backtrack_set.insert(any element of E) // Optimize to choose a good one!
+        else:
+            fromState.backtrack_set.union()
+
+
+
+

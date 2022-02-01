@@ -19,7 +19,7 @@ enum visible_operation_type {
 	SEMAPHORE,
 	MUTEX,
 	GLOBAL_ACCESS,
-	THREAD_SPAWN
+	THREAD_SPAWN // Ignored for now
 }
 
 Sequence of transitions -> some sort of list
