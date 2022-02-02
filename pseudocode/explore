@@ -1,102 +1,123 @@
-#include "depends"
-#include "happens-before"
-
-struct thread_identity {
+struct thread_identity: Equatable {
     // Indirect identifier of a thread
     // across exec() system calls to run
     // the target program
-};
+}
 
 struct thread_descriptor {
-    thread_identity identity;
+    let identity: thread_identity
     // Other state of a thread, e.g.
     // if it is alive at this point
-    bool is_alive;
-};
+    var is_alive: Bool
+}
 
 struct visible_operation {
-    one of
-        sem_operation
-        mutex_operation
-        read/write operation
-        // ...
+    // one of
+    // sem_operation
+    // mutex_operation
+    // read/write operation
+    // ...
 }
 
 struct transition {
-    thread_identity owner;
-    visible_operation op;
-};
+    let owner: thread_identity
+    let operation: visible_operation
+}
 
 struct total_state {
-    Collection<semaphore_state> sem_states;
-    Collection<mutex_state> mutex_states;
+    // Collection<semaphore_state> sem_states;
+    // Collection<mutex_state> mutex_states;
     // ...
 
-    Collection<transition> transitions; // Threads that are alive or dead at this point
+    // Collection<transition> transitions; // Threads that are alive or dead at this point
+    var transitions: [transition]
 
-};
+}
 
 // DPOR structs
 struct transition_stack_item {
-    transition transition;
+    let transition: transition
     // Possibly the state that is transitions FROM
     // Possibly the index in the state stack that
     // the transition moves from
-    stack_stack_ref ref;
+    // Index in the statestack
 }
 
 struct state_stack_item {
-    struct total_state ts;
-    Set<thread_identity> backtrack_set;
+    let wrappedState: total_state
+    var backtrack_set: Set<thread_identity>
     // Eventually
     // sleep_set
     // enabled_set
     // lock_set
     // etc.
-};
+}
 
-template<typename Item>
 struct stack<Item> {
-    void push(Item);
-    Item pop();
-    Item peek();
-    Item get(int i);
+//    void push(Item);
+//    Item pop();
+//    Item peek();
+//    Item get(int i);
 };
 
-struct state_stack : stack<state_stack_item>;
-struct transition_stack : stack<transition>;
-
-
+struct state_stack : stack<state_stack_item>
+struct transition_stack : stack<transition_stack_item>
 struct thread_table: hash_table<thread_identity>
 
+// We say a state stack, but it's more like a deque since we need
+// to be able to remove from both ends of the deque
 state_stack S; // N items
 transition_stack T; // N - 1 items -> one less
 thread_table thread_table; // All threads ever discovered
 
+func happens_before_relation(_ i: Int, _ j: Int, tstack: transition_stack) -> Bool {
+    i < j && depends(tstack.get(i), tstack.get(j))
+}
 
-def explore():
+func happens_before_relation(_ i: Int, p: thread_identity, tstack: transition_stack) {
 
+    let N = tstack.count
+    // (i + 1)...N and i case can be combined into a single for-loop
+    for k in i...N where happens_before_relation(i, k, tstack: tstack)  {
+        if tstack.get(k).transition.owner == p { return true }
+    }
 
-// Essence of DPOR
-def dynamically_update_backtrack_sets(ss_item: state_stack_item):
-    for each *thread* from map(ss_item.ts.transitions, owner):
-        let enabled = ss_item.ts.enabled()
-        ensure find *transitionN* in enabled where *transitionN*.owner == *thread* else continue;
-        ensure find *transitionD* in T
-            where coenabled(*transitionD*, *transitionN*) && depends(*transitionD*, *transitionN*) else continue;
+    return false
+}
 
-        let fromState = *transitionD*.state_ref
-        let E = fromState.ts.enabled().filter { transition in
-            transition.owner == *thread*
-            OR
+//  DPOR algorithm
+func DPOR() {
+    while !S.isEmpty {
+        let s = S.pop()
+        let transition_to_s = T.pop()
 
+    }
+}
+
+func backtrack_checking()
+
+// Essence of DPOR backfilling
+func dynamically_update_backtrack_sets(item: state_stack_item) {
+    let wrappedState = item.wrappedState
+    let enabledTransitions = wrappedState.transitions.filter { transition_enabled($0) } // enabled_transitions(...)
+    let threads = wrappedState.transitions.map { $0.owner }
+
+    for thread in threads {
+        guard let transitionN = enabledTransitions.first { $0.owner == thread } else { continue }
+        guard let (transitionD, i) = T.enumerated().first { coenabled($0.transition, transitionN) && depends($0.transition, transitionN) } else { continue }
+
+        // Reference to the state the transition came from
+        let fromState = transitionD.state_ref
+        let E = fromState.totalState.enabled_transitions().map { $0.owner }.filter { owner in
+            guard let j = find_transition_in_state_stack(with) else { return false }
+            return owner == thread || happens_before_relation(j, p: owner, tstack: T)
         }
 
-        if !E.isEmpty:
+        if !E.isEmpty {
             fromState.backtrack_set.insert(any element of E) // Optimize to choose a good one!
-        else:
-            fromState.backtrack_set.union()
-
-
-
-
+        }
+        else {
+            fromState.backtrack_set.formUnion(E)
+        }
+    }
+}
