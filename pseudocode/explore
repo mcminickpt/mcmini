@@ -32,6 +32,9 @@ struct total_state {
     // Collection<transition> transitions; // Threads that are alive or dead at this point
     var transitions: [transition]
 
+    func enabled_transitions() -> [transition] {
+        return transitions.filter { enabled($0) }
+    }
 }
 
 // DPOR structs
@@ -46,6 +49,8 @@ struct transition_stack_item {
 struct state_stack_item {
     let wrappedState: total_state
     var backtrack_set: Set<thread_identity>
+    var done_set: Set<thread_identity>
+
     // Eventually
     // sleep_set
     // enabled_set
@@ -68,7 +73,25 @@ struct thread_table: hash_table<thread_identity>
 // to be able to remove from both ends of the deque
 state_stack S; // N items
 transition_stack T; // N - 1 items -> one less
+transition_stack U;
 thread_table thread_table; // All threads ever discovered
+
+// Invariant: t is a transition
+func next(s: state_stack_item, t: transition) -> state_stack_item {
+    let wrappedState = s.wrappedState
+
+    guard wrappedState.enabled_transitions().contains(t) else {
+        // Invalid! Transition from this state undefined
+        fatalError()
+    }
+
+    update_global_states(for: wrappedState, withTransition: t)
+    update_transitions(for: wrappedState, withTransition: t)
+
+    return state_stack_item(wrappedState: wrappedState,
+                            backtrack_set: [],
+                            done_set: [])
+}
 
 func happens_before_relation(_ i: Int, _ j: Int, tstack: transition_stack) -> Bool {
     i < j && depends(tstack.get(i), tstack.get(j))
@@ -94,7 +117,42 @@ func DPOR() {
     }
 }
 
-func backtrack_checking()
+func DPOR() {
+    // Run the source program for a fixed number ($K$) of iterations
+    let s = state_stack_item(wrappedState:
+                                initial_state_of_source_program,
+                             backtrack_set: [],
+                             done_set: [])
+    while (!S.isEmpty) {
+        let s = S.pop_top()
+        T.pop_top()
+        if (!s.backtracking_set.isEmpty) {
+            //
+            explore(s)
+            T = U
+        }
+    }
+}
+
+func explore(state: state_stack_item, max_depth: Int) {
+    let depth = S.get_index(state)
+    let V = T[depth]
+    var s = S[depth]
+    var t = select_transition_and_remove_from_backtrack_set(s)
+    s.done_set.insert(t)
+
+    repeat {
+        S.push(s)
+        V.append(t)
+        s = next(s, t)
+            // sleep set?
+        dynamically_update_backtrack_sets(item: s)
+        t = one of s.wrappedState.enabled_transitions()
+        depth += 1
+    } while !s.wrappedState.enabled_transitions().isEmpty && depth < max_depth
+
+    U = V
+}
 
 // Essence of DPOR backfilling
 func dynamically_update_backtrack_sets(item: state_stack_item) {
