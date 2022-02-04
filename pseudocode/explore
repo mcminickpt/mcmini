@@ -110,14 +110,6 @@ func happens_before_relation(_ i: Int, p: thread_identity, tstack: transition_st
 
 //  DPOR algorithm
 func DPOR() {
-    while !S.isEmpty {
-        let s = S.pop()
-        let transition_to_s = T.pop()
-
-    }
-}
-
-func DPOR() {
     // Run the source program for a fixed number ($K$) of iterations
     let s = state_stack_item(wrappedState:
                                 initial_state_of_source_program,
