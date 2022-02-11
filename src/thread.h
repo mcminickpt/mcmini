@@ -12,6 +12,14 @@ struct thread {
     void *arg;
 };
 
+enum thread_operation_type { THREAD_CREATE, THREAD_JOIN };
+struct thread_operation {
+    enum thread_operation_type type;
+    struct thread thread;
+};
+
 int threads_equal(struct thread, struct thread);
+int thread_operation_spawns_thread(struct thread, struct thread_operation);
+int thread_operation_joins_thread(struct thread, struct thread_operation);
 
 #endif

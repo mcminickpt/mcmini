@@ -2,6 +2,7 @@
 #define DPOR_DPOR_METHODS_H
 
 #include "transition.h"
+#include "common.h"
 
 void dpor_init(void);
 

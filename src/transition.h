@@ -9,4 +9,12 @@ struct transition {
     struct visible_operation operation;
 };
 
+/// Whether or not the given transition is directly
+/// responsible for the creation of the given thread
+///
+/// \return A nonzero value to signify that the transition
+/// is directly responsible for the creation of the given
+/// thread, and 0 otherwise
+int transition_creates(struct transition, struct thread);
+
 #endif //DPOR_TRANSITION_H
