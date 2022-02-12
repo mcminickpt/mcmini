@@ -21,6 +21,8 @@ struct mutex_operation {
     enum mutex_operation_type type;
 };
 
+typedef struct mutex_array mutex_array;
+
 /// Determines whether two threads each executing one
 /// of the two provided mutex operations could produce
 /// a "meaningful" race condition, i.e. one in which

@@ -108,13 +108,47 @@ func happens_before_relation(_ i: Int, p: thread_identity, tstack: transition_st
     return false
 }
 
-//  DPOR algorithm
-func DPOR() {
-    while !S.isEmpty {
-        let s = S.pop()
-        let transition_to_s = T.pop()
+// KEY IDEA:  We are implementing cooperative multi-threading,
+//      instead of parallel multi-threading.  Only one thread
+//      has control at a time, and they must yield to the
+//      next thread by doing sem_post() to the next thread's semaphore
+//      and then sem_wait() on their own semaphore.
+// DPOR thread will be an independent thread
+const int NUM_THREADS  /* Keep it simple; initialize the number of threads and ignore when target creates threads *
+DPOR_new(state_stack_item[], 0);
+func DPOR_new(state_stack_item[], level, cur_thread) {
+   // Initialize new level with cur_thread
+    ...
+   // We have to separately determine if enabled;
+   //  For example, if cur_op == mutex_lock, we check if it's already locked.
+   if not is_enabled(cur_thread):
+     return
+   // PRINCIPLE:  Only one thread active at a time.
+   sem_post(semaphores[cur_thread])
+   sem_wait(semaphores[this_thread])
+   if level < MAX_LEVEL:
+     for thread in THREADS:
+        DPOR_new(state_stack_item[], level+1, thread)
+   return;
+}
 
-    }
+// We can use thread-local variables, so that we know about ourselves.
+// Target apps call mutex_lock_wrapper() directyly for now.
+//  Later, we can use dlsym() for a transparent wrapper.
+__thread this_thread = XXX
+mutex_lock_wrapper(...) {
+   sem_post(semaphores[DPOR_thread])
+   sem_wait(semaphores[this_thread])
+  // DPOR is keeping a 'shadow struct' of the mutex so that we can track what libpthread.so has
+   ... /* Update state of the shadow struct for this mutex */
+   real_mutex_lock(...) // Let libpthread do its stuff in target app
+   return;  // this_thread continues to be active, but we
+             // now execute the remaining code of this transition
+            // which is normal sequential code
+  // NOTE: After 'this_thread' finishes the sequential code,
+  //    it will enter another wrapper (mutex_lock/unlock or other)
+  //     and the beginning of every wrapper says to
+  //     sem_post() to the DPOR_thread and wait.
 }
 
 func DPOR() {
@@ -179,3 +213,4 @@ func dynamically_update_backtrack_sets(item: state_stack_item) {
         }
     }
 }
+

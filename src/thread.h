@@ -2,6 +2,7 @@
 #define DPOR_THREAD_H
 
 #include <pthread.h>
+#include "common.h"
 
 typedef void*(*thread_routine)(void*);
 
@@ -18,6 +19,9 @@ struct thread_operation {
     struct thread thread;
 };
 
+typedef struct thread_array thread_array;
+
+uint64_t hash_thread(struct thread);
 int threads_equal(struct thread, struct thread);
 int thread_operation_spawns_thread(struct thread, struct thread_operation);
 int thread_operation_joins_thread(struct thread, struct thread_operation);

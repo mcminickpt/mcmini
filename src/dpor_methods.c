@@ -27,3 +27,22 @@ transitions_dependent(struct transition t1, struct transition t2)
 
     return false;
 }
+
+void
+dynamically_update_backtrack_sets(struct state_stack_item ss_item)
+{
+    struct shared_state wrapped = ss_item.state;
+
+    // 1.
+
+    // Iterate through the threads to get
+    // the set of transitions and threads
+    // that are enabled
+    //
+    // wrapped.threads;
+    // wrapped.transition_map -> to be able to get the next transition
+    // for each thread
+
+    // 2.
+
+}

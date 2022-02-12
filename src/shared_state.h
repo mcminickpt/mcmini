@@ -5,16 +5,20 @@
 #include "mutex.h"
 
 struct shared_state {
-    // All mutexes
-    // All threads that are alive at this point
+    mutex_array mutexes;
 
-    // Collection of stuff...
-    //
+    // Map threads to their next transition
+
+    // Map threads to transitions (thread to int to transition)
+    // Get a hash value from a thread
+    // hash_table
+    thread_array threads;
+
+    // What each thread does next
+    //? transition_mapping;
 };
 
-typedef struct shared_state *shared_state_ref;
-
-shared_state_ref shared_state_create();///
-
+//typedef struct shared_state *shared_state_ref;
+//shared_state_ref shared_state_create();///
 
 #endif //DPOR_SHARED_STATE_H
