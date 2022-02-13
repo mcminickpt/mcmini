@@ -5,11 +5,9 @@
 #include "state_stack_item.h"
 #include "common.h"
 
-int transition_happens_before(struct transition, struct transition);
-int transition_happens_after(struct transition, struct transition);
-int transitions_dependent(struct transition, struct transition);
-int transitions_independent(struct transition, struct transition);
+extern state_stack_ref global_stack;
+extern transtion_stack_ref global_transition_stack;
 
-void dynamically_update_backtrack_sets(struct state_stack_item);
+
 
 #endif //DPOR_DPOR_METHODS_H

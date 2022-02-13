@@ -13,6 +13,7 @@ struct state_stack_item {
 
 };
 typedef array_ref state_stack_ref;
+typedef array_ref transtion_stack_ref;
 MEMORY_API_DECL(state_stack_item);
 
 #endif //DPOR_STATE_STACK_ITEM_H

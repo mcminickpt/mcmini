@@ -15,8 +15,9 @@ typedef enum type##_state { __VA_ARGS__ } type##_state; \
 
 #define MEMORY_API_DECL(type) \
 type##_ref type##_create(void); \
-type##_ref type##_copy(type##_ref); \
+type##_ref type##_copy(type##_refc); \
 void type##_destroy(type##_ref);
 
+#define thread_local __thread
 
 #endif //DPOR_DECL_H

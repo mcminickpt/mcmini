@@ -306,7 +306,6 @@ array_remove(array_ref _Nonnull ref, int index) {
     // Mark as invalid
     ref->count--;
     ref->len -= sizeof(void*);
-
     return removed;
 }
 
@@ -320,7 +319,6 @@ array_remove_last(array_ref _Nonnull ref) {
     return array_remove(ref, (int)ref->count - 1);
 }
 
-
 array_ref
 array_shallow_cpy(array_refc ref) {
     array_ref cpy = array_create();
@@ -333,21 +331,17 @@ array_deep_cpy(array_refc ref, void*(*cpy)(void*)) {
     return array_map(ref, cpy);
 }
 
-
 array_ref
 array_filter(array_refc ref, bool(*filter)(void*)) {
     if (!ref || !filter) {
         errno = EINVAL;
         return NULL;
     }
-
     array_ref cpy = array_create();
-
     for (int i = 0; i < array_count(ref); i++) {
         void *elem = array_get(ref, i);
         filter(elem) ? array_append(cpy, elem) : (void)0;
     }
-
     return cpy;
 }
 
@@ -357,22 +351,17 @@ array_map(array_refc ref, void*(*map)(void*)) {
         errno = EINVAL;
         return NULL;
     }
-
     array_ref cpy = array_create();
-
     for (int i = 0; i < array_count(ref); i++)
         array_append(cpy, map(array_get(ref, i)));
-
     return cpy;
 }
 
 void*
 array_reduce(array_refc ref, void*(*reduce)(void*, void*)) {
     void *result = NULL;
-
     for (int i = 0; i < array_count(ref); i++)
         result = reduce(result, array_get(ref, i));
-
     return result;
 }
 
@@ -382,9 +371,7 @@ array_for_each(array_refc ref, void(*each)(void*)) {
         errno = EINVAL;
         return;
     }
-
     uint32_t count = array_count(ref);
-
     for (int i = 0; i < count; i++)
         each(array_get(ref, i));
 }
