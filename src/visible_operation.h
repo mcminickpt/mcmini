@@ -5,20 +5,29 @@
 #include "thread.h"
 #include "mutex.h"
 
-enum visible_operation_type {
-    SEMAPHORE, MUTEX, GLOBAL_ACCESS, THREAD_LIFECYCLE
-};
+STRUCT_DECL(visible_operation);
+TYPES_DECL(visible_operation, SEMAPHORE, MUTEX, GLOBAL_ACCESS, THREAD_LIFECYCLE);
 
 struct visible_operation {
-    enum visible_operation_type type;
+    visible_operation_type type;
     union {
-        struct mutex_operation mutex_operation;
-        struct thread_operation thread_operation;
+        mutex_operation_ref mutex_operation;
+        thread_operation_ref thread_operation;
     };
 };
 
-int visible_operation_is_mutex_operation(struct visible_operation);
-int visible_operation_is_thread_operation(struct visible_operation);
+/*
+ * Memory API
+ */
+MEMORY_API_DECL(visible_operation);
 
+/*
+ * Operations
+ */
+int visible_operation_is_mutex_operation(visible_operation_ref);
+int visible_operation_is_thread_operation(visible_operation_ref);
+
+mutex_operation_ref visible_operation_unsafely_as_mutex_operation(visible_operation_ref);
+thread_operation_ref visible_operation_unsafely_as_thread_operation(visible_operation_ref);
 
 #endif //DPOR_VISIBLE_OPERATION_H

@@ -5,8 +5,6 @@
 #include "state_stack_item.h"
 #include "common.h"
 
-void dpor_init(void);
-
 int transition_happens_before(struct transition, struct transition);
 int transition_happens_after(struct transition, struct transition);
 int transitions_dependent(struct transition, struct transition);

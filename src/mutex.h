@@ -2,34 +2,48 @@
 #define DPOR_MUTEX_H
 
 #include <pthread.h>
+#include <stdbool.h>
 #include "thread.h"
+#include "array.h"
+#include "decl.h"
 
-enum mutex_state { MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN };
+STRUCT_DECL(mutex);
+STATES_DECL(mutex, MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN);
+
+STRUCT_DECL(mutex_operation);
+TYPES_DECL(mutex_operation, MUTEX_INIT, MUTEX_UNLOCK, MUTEX_DESTROY);
+
 struct mutex {
-    enum mutex_state state;
+    mutex_state state;
+    thread_ref owner;
     pthread_mutex_t *mutex;
-    union {
-        struct thread owner; // Only defined if the lock is currently held
-    };
 };
+typedef array_ref mutex_array_ref;
 
-int mutexes_equal(struct mutex, struct mutex);
+/*
+ * Memory API
+ */
+mutex_ref mutex_create();
+mutex_ref mutex_copy(mutex_ref);
+void mutex_destroy(mutex_ref);
 
-enum mutex_operation_type { MUTEX_INIT, MUTEX_LOCK, MUTEX_UNLOCK, MUTEX_DESTROY };
-struct mutex_operation {
-    struct mutex mutex;
-    enum mutex_operation_type type;
-};
+/*
+ * Operations
+ */
+bool mutexes_equal(mutex_ref, mutex_ref);
 
-typedef struct mutex_array mutex_array;
+// --- MUTEX OPERATION ---
 
-/// Determines whether two threads each executing one
-/// of the two provided mutex operations could produce
-/// a "meaningful" race condition, i.e. one in which
-/// the order of their execution matters
+
+/**
+ * Determines whether two threads each executing one
+ * of the two provided mutex operations could produce
+ * a "meaningful" race condition, i.e. one in which
+ * the order of their execution matters
+ */
 int mutex_operations_race(struct mutex_operation, struct mutex_operation);
-int mutex_operation_is_undefined_behavior(struct mutex_operation);
 
+int mutex_operation_is_undefined_behavior(struct mutex_operation);
 
 int thread_owns_mutex(struct thread, struct mutex);
 int mutex_owned(struct mutex);

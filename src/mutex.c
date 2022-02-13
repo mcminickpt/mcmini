@@ -1,9 +1,18 @@
 #include "mutex.h"
 
-int
-mutexes_equal(struct mutex m1, struct mutex m2)
+
+
+struct mutex_operation {
+    mutex_ref mutex;
+    enum mutex_operation_type type;
+};
+
+bool
+mutexes_equal(mutex_ref m1, mutex_ref m2)
 {
-    return m1.mutex == m2.mutex;
+    if (!m1) return m2 == NULL;
+    if (!m2) return m1 == NULL;
+    return m1->mutex == m2->mutex;
 }
 
 int

@@ -2,28 +2,37 @@
 #define DPOR_THREAD_H
 
 #include <pthread.h>
+#include "array.h"
 #include "common.h"
+#include "decl.h"
 
 typedef void*(*thread_routine)(void*);
 
+STRUCT_DECL(thread);
 struct thread {
     pthread_t owner;
     thread_routine start_routine;
     volatile int is_alive;
     void *arg;
 };
+typedef array_ref thread_array_ref;
+MEMORY_API_DECL(thread);
 
-enum thread_operation_type { THREAD_CREATE, THREAD_JOIN };
+STRUCT_DECL(thread_operation);
+TYPES_DECL(thread_operation, THREAD_CREATE, THREAD_JOIN);
 struct thread_operation {
-    enum thread_operation_type type;
-    struct thread thread;
+    thread_operation_type type;
+    thread_ref thread;
 };
+MEMORY_API_DECL(thread_operation);
 
-typedef struct thread_array thread_array;
+/*
+ * Operations
+ */
+uint64_t hash_thread(thread_refc);
+bool threads_equal(thread_refc, thread_refc);
+bool thread_operation_spawns_thread(thread_refc, thread_operation_refc);
+bool thread_operation_joins_thread(thread_refc, thread_operation_refc);
 
-uint64_t hash_thread(struct thread);
-int threads_equal(struct thread, struct thread);
-int thread_operation_spawns_thread(struct thread, struct thread_operation);
-int thread_operation_joins_thread(struct thread, struct thread_operation);
 
 #endif

@@ -1,5 +1,5 @@
 #include "pthread_wrappers.h"
-#include "dpor_methods.h"
+#include "dpor.h"
 
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;

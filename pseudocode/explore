@@ -133,7 +133,7 @@ func DPOR_new(state_stack_item[], level, cur_thread) {
 }
 
 // We can use thread-local variables, so that we know about ourselves.
-// Target apps call mutex_lock_wrapper() directyly for now.
+// Target apps call mutex_lock_wrapper() directly for now.
 //  Later, we can use dlsym() for a transparent wrapper.
 __thread this_thread = XXX
 mutex_lock_wrapper(...) {
