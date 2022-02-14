@@ -29,6 +29,7 @@ MEMORY_API_DECL(thread_operation);
 /*
  * Other Memory Functions
  */
+thread_ref thread_self(void);
 thread_ref thread_wrap(pthread_t);
 
 /*

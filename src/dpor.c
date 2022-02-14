@@ -81,8 +81,57 @@ dpor_register_thread(dpor_context_ref context, pthread_t pthread)
 
 void
 dpor_run(dpor_context_ref context, thread_ref thread) {
-    if (!thread) return; // ERROR // FIXME: ERROR
+    if (!thread) return; // ERROR // FIXME: how should this error be handled
+    othread_ref othread = NULL; // TODO: Find the appropriate othread for the thread passed in
+    sem_post(&othread->pthread_sem);
+    sem_wait(&othread->dpor_scheduler_sem);
+}
 
+void
+thread_await_dpor_scheduler(dpor_context_ref context) {
+    if (!context) abort(); // TODO: How should we respond to an error here
 
-    // FIXME: What should happen if the thread doesn't exist
+    othread_ref othread = NULL;
+    {
+        thread_ref new_thread = thread_wrap(pthread_self());
+        othread = NULL; // TODO: Fetch the appropriate thread entry for the new_thread
+        thread_destroy(new_thread);
+    }
+    sem_post(&othread->dpor_scheduler_sem);
+    sem_wait(&othread->pthread_sem);
+}
+
+static int
+latest_dependent_coenabled_transition_index(dpor_context_ref context, transition_ref transition)
+{
+    if (!context || !transition) return -1;
+    uint32_t transition_stack_size = array_count(context->transition_stack);
+    for (uint32_t i = transition_stack_size - 1; i >= 0; i--) {
+        transition_ref transition_i = array_get(context->transition_stack, i);
+        if (transitions_dependent(transition_i, transition) && transitions_coenabled(transition_i, transition)) {
+            return (int)i;
+        }
+    }
+    return -1;
+}
+
+void
+dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref ref)
+{
+    if (!ref || !context) return;
+
+    uint32_t thread_count = array_count(ref->state->threads);
+    for (uint32_t i = 0; i < thread_count; i++) {
+        thread_ref thread = array_get(ref->state->threads, i);
+        transition_ref enabled = shared_state_first_enabled_transition_by_thread(ref->state, thread);
+        if (enabled != NULL) {
+            int i = latest_dependent_coenabled_transition_index(context, enabled);
+            if (i < 0) continue;
+
+            // The state from which the transition moves from
+            state_stack_item_ref from_state = array_get(context->state_stack, i);
+
+            // TODO: Add computation for the set E
+        }
+    }
 }

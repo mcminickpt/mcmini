@@ -31,9 +31,7 @@ void dpor_register_thread(dpor_context_ref, pthread_t);
 void dpor_register_main_thread(dpor_context_ref, pthread_t);
 
 void thread_await_dpor_scheduler(dpor_context_ref);
-
-
-void dynamically_update_backtrack_sets(state_stack_item_ref);
+void dynamically_update_backtrack_sets(dpor_context_ref, state_stack_item_ref);
 
 
 #endif //DPOR_DPOR_H

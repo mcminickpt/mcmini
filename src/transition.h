@@ -50,6 +50,8 @@ bool transition_enabled(transition_ref);
  */
 bool transition_blocked(transition_ref);
 
+bool transitions_coenabled(transition_ref, transition_ref);
+
 bool transition_happens_before(transition_ref, transition_ref);
 bool transition_happens_after(transition_ref, transition_ref);
 bool transitions_dependent(transition_ref, transition_ref);

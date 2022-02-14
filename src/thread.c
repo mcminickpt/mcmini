@@ -1,6 +1,12 @@
 #include "thread.h"
 
 thread_ref
+thread_self(void)
+{
+    return thread_wrap(pthread_self());
+}
+
+thread_ref
 thread_create(void) {
     thread_ref thread = malloc(sizeof(*thread));
     if (!thread) return NULL;

@@ -2,9 +2,9 @@
 #define DPOR_PTHREAD_WRAPPERS_H
 
 #include <pthread.h>
+#include "dpor.h"
 
-
-int dpor_pthread_mutex_init(pthread_mutex_t*, pthread_attr_t*);
+int dpor_pthread_mutex_init(pthread_mutex_t*, pthread_mutexattr_t*);
 int dpor_pthread_mutex_lock(pthread_mutex_t*);
 int dpor_pthread_mutex_unlock(pthread_mutex_t*);
 int dpor_pthread_mutex_lock(pthread_mutex_t*);
