@@ -1,6 +1,7 @@
 #ifndef DPOR_SHARED_STATE_H
 #define DPOR_SHARED_STATE_H
 
+#include "array.h"
 #include "thread.h"
 #include "transition.h"
 #include "mutex.h"

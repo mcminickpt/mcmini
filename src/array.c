@@ -275,7 +275,7 @@ array_insert(array_ref ref, int index, const void *data) {
 }
 
 void*
-array_remove(array_ref _Nonnull ref, int index) {
+array_remove(array_ref ref, int index) {
     if (!ref || array_invalid_index(ref, index)) {
         errno = EINVAL;
         return NULL;
@@ -310,12 +310,12 @@ array_remove(array_ref _Nonnull ref, int index) {
 }
 
 void*
-array_remove_first(array_ref _Nonnull ref) {
+array_remove_first(array_ref ref) {
     return array_remove(ref, 0);
 }
 
 void*
-array_remove_last(array_ref _Nonnull ref) {
+array_remove_last(array_ref ref) {
     return array_remove(ref, (int)ref->count - 1);
 }
 

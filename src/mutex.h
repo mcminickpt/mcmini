@@ -31,8 +31,15 @@ void mutex_destroy(mutex_ref);
  * Operations
  */
 bool mutexes_equal(mutex_ref, mutex_ref);
+int thread_owns_mutex(thread_ref, mutex_ref);
+int mutex_owned(mutex_ref);
 
 // --- MUTEX OPERATION ---
+struct mutex_operation {
+    mutex_ref mutex;
+    enum mutex_operation_type type;
+};
+
 
 
 /**
@@ -41,12 +48,9 @@ bool mutexes_equal(mutex_ref, mutex_ref);
  * a "meaningful" race condition, i.e. one in which
  * the order of their execution matters
  */
-int mutex_operations_race(struct mutex_operation, struct mutex_operation);
+bool mutex_operations_race(mutex_operation_refc, mutex_operation_refc);
+bool mutex_operation_is_undefined_behavior(mutex_operation_refc);
 
-int mutex_operation_is_undefined_behavior(struct mutex_operation);
-
-int thread_owns_mutex(struct thread, struct mutex);
-int mutex_owned(struct mutex);
 
 
 #endif //DPOR_MUTEX_H

@@ -15,10 +15,8 @@ dpor_scheduler_main(void *unused)
     if (!initial_stack_item)
         goto dpor_exit;
 
-    {
-        transition_ref main_thread_transition = create_thread_start_transition(dpor_shared->main_thread->thread);
-        array_append(initial_stack_item->state->transitions, main_thread_transition);
-    }
+    transition_ref main_thread_transition = create_thread_start_transition(dpor_shared->main_thread->thread);
+    array_append(initial_stack_item->state->transitions, main_thread_transition);
 
     int depth = 0;
     state_stack_item_ref s = initial_stack_item;
@@ -32,12 +30,14 @@ dpor_scheduler_main(void *unused)
         dpor_run(dpor_shared, t->thread);
 
         // Pop the next state off of the stack (pushed onto
-        // the stack by the appropriate pthread wrapper call
+        // the stack by the appropriate pthread wrapper call)
         s = array_remove_last(dpor_shared->state_stack);
 
         // Update the backtrack sets
-        dynamically_update_backtrack_sets(s);
+        dynamically_update_backtrack_sets(dpor_shared, s);
     }
+
+    // Do actual backtracking
 
 dpor_exit:
     dpor_context_destroy(dpor_shared);

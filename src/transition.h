@@ -21,12 +21,11 @@ MEMORY_API_DECL(transition);
 transition_ref create_thread_start_transition(thread_ref);
 transition_ref create_thread_finish_transition(thread_ref);
 
-
-/**
+/*
  * Whether or not the given transition is directly
  * responsible for the creation of the given thread
  *
- * \return A nonzero value to signify that the transition
+ * @return A nonzero value to signify that the transition
  * is directly responsible for the creation of the given
  * thread, and 0 otherwise
  */

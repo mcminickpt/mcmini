@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD 11)
 include_directories(src)
 
 add_executable(DPOR
+        src/array.c
+        src/array.h
         src/mutex.c
         src/mutex.h
         src/philosphers-deadlock.c

@@ -1,4 +1,5 @@
 #include "shared_state.h"
+#include "common.h"
 
 shared_state_ref
 shared_state_create(void) {
@@ -35,9 +36,10 @@ shared_state_copy(shared_state_refc other) {
 void
 shared_state_destroy(shared_state_ref ref) {
     if (!ref) return;
-    array_destroy(ref->transitions, transition_destroy);
-    array_destroy(ref->mutexes, mutex_destroy);
-    array_destroy(ref->threads, thread_destroy);
+    array_destroy(ref->transitions, (free_function)transition_destroy);
+    array_destroy(ref->mutexes, (free_function)mutex_destroy);
+    array_destroy(ref->threads, (free_function)thread_destroy);
+    free(ref);
 }
 
 transition_ref
