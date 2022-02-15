@@ -1,0 +1,1 @@
+// How we should format stuff -> C linting extension for CLion
