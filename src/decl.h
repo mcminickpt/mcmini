@@ -1,6 +1,8 @@
 #ifndef DPOR_DECL_H
 #define DPOR_DECL_H
 
+#define thread_local __thread
+
 #define STRUCT_DECL(type)             \
 typedef struct type type;           \
 typedef struct type *type##_t;      \
@@ -14,10 +16,18 @@ typedef enum state##_type { __VA_ARGS__ } state##_type; \
 typedef enum type##_state { __VA_ARGS__ } type##_state; \
 
 #define MEMORY_API_DECL(type) \
+type##_ref type##_alloc(void); \
 type##_ref type##_create(void); \
 type##_ref type##_copy(type##_refc); \
 void type##_destroy(type##_ref);
 
-#define thread_local __thread
+#define MEMORY_ALLOC_DEF_DECL(type) \
+type##_ref type##_alloc(void) {     \
+    return malloc(sizeof(type));    \
+}
+
+
+#define PRETTY_PRINT_DECL(type) \
+void type##_pretty(type##_refc);
 
 #endif //DPOR_DECL_H

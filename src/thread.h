@@ -38,6 +38,6 @@ thread_ref thread_wrap(pthread_t);
 bool threads_equal(thread_refc, thread_refc);
 bool thread_operation_spawns_thread(thread_refc, thread_operation_refc);
 bool thread_operation_joins_thread(thread_refc, thread_operation_refc);
-
+bool thread_operation_enabled(thread_operation_refc, thread_refc);
 
 #endif

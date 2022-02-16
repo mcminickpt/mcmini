@@ -1,4 +1,79 @@
 #include "transition.h"
+#include "mutex.h"
+
+MEMORY_ALLOC_DEF_DECL(transition)
+
+transition_ref
+transition_create(thread_ref thread, visible_operation_ref visible_op)
+{
+    if (!thread || !visible_op) return NULL;
+
+    transition_ref ref = malloc(sizeof(*ref));
+    if (ref) {
+        ref->thread = thread_copy(thread);
+        ref->operation = visible_operation_copy(visible_op);
+    }
+    return ref;
+}
+
+transition_ref
+transition_copy(transition_refc other)
+{
+    if (!other) return NULL;
+    return transition_create(other->thread, other->operation);
+}
+
+void
+transition_destroy(transition_ref ref)
+{
+    if (!ref) return;
+    thread_destroy(ref->thread);
+    visible_operation_destroy(ref->operation);
+    free(ref);
+}
+
+transition_ref
+create_thread_start_transition(thread_ref thread)
+{
+    thread_operation top = thread_operation_alloc();
+    top->type = THREAD_START;
+    top->thread = thread_copy(thread);
+
+    visible_operation_ref vop = visible_operation_alloc();
+    vop->type = THREAD_LIFECYCLE;
+    vop->thread_operation = top;
+
+    transition_ref trans = transition_alloc();
+    trans->operation = vop;
+    trans->thread = thread_copy(thread);
+
+    return trans;
+}
+
+transition_ref
+create_thread_finish_transition(thread_ref thread)
+{
+    thread_operation top = thread_operation_alloc();
+    top->type = THREAD_FINISH;
+    top->thread = thread_copy(thread);
+
+    visible_operation_ref vop = visible_operation_alloc();
+    vop->type = THREAD_LIFECYCLE;
+    vop->thread_operation = top;
+
+    transition_ref trans = transition_alloc();
+    trans->operation = vop;
+    trans->thread = thread_copy(thread);
+
+    return trans;
+}
+
+bool
+transition_creates(transition_ref tref, thread_ref thread)
+{
+    if (!tref || !thread) return false;
+    return tref->operation->type == THREAD_LIFECYCLE && threads_equal(tref->operation->thread_operation->thread, thread);
+}
 
 bool
 transitions_dependent(transition_ref t1, transition_ref t2)
@@ -28,4 +103,20 @@ transitions_dependent(transition_ref t1, transition_ref t2)
         return mutex_operations_race(t1->operation->mutex_operation, t2->operation->mutex_operation);
 
     return false;
+}
+
+bool
+transition_enabled(transition_ref transition)
+{
+    if (!transition) return false;
+    switch (transition->operation->type) {
+        case MUTEX:
+            mutex_operation_ref mop = visible_operation_unsafely_as_mutex_operation(transition->operation);
+            return mutex_operation_enabled(mop, transition->thread);
+        case THREAD_LIFECYCLE:
+            thread_operation_ref top = visible_operation_unsafely_as_thread_operation(transition->operation);
+            return thread_operation_enabled(top, transition->thread);
+        default:
+            return false; // TODO: Semaphore and others here
+    }
 }

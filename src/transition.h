@@ -5,6 +5,7 @@
 #include "thread.h"
 #include "visible_operation.h"
 #include <stdbool.h>
+#include <stdio.h>
 
 STRUCT_DECL(transition);
 struct transition {
@@ -13,7 +14,11 @@ struct transition {
 };
 typedef array_ref transition_array_ref;
 typedef transition_array_ref transition_stack_ref;
-MEMORY_API_DECL(transition);
+PRETTY_PRINT_DECL(transition);
+
+transition_ref transition_create(thread_ref, visible_operation_ref);
+transition_ref transition_copy(transition_refc);
+void transition_destroy(transition_ref);
 
 /*
  * Operations
@@ -47,7 +52,10 @@ bool transition_enabled(transition_ref);
  * @return whether or not the provided transition would
  * block if executed in a real program
  */
-bool transition_blocked(transition_ref);
+inline bool transition_blocked(transition_ref transition)
+{
+    return !transition_enabled(transition);
+}
 
 bool transitions_coenabled(transition_ref, transition_ref);
 

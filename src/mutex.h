@@ -11,7 +11,7 @@ STRUCT_DECL(mutex);
 STATES_DECL(mutex, MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN);
 
 STRUCT_DECL(mutex_operation);
-TYPES_DECL(mutex_operation, MUTEX_INIT, MUTEX_UNLOCK, MUTEX_DESTROY);
+TYPES_DECL(mutex_operation, MUTEX_INIT, MUTEX_LOCK, MUTEX_UNLOCK, MUTEX_DESTROY);
 
 struct mutex {
     mutex_state state;
@@ -23,8 +23,8 @@ typedef array_ref mutex_array_ref;
 /*
  * Memory API
  */
-mutex_ref mutex_create();
-mutex_ref mutex_copy(mutex_ref);
+mutex_ref mutex_create(pthread_mutex_t *);
+mutex_ref mutex_copy(mutex_refc);
 void mutex_destroy(mutex_ref);
 
 /*
@@ -35,12 +35,15 @@ int thread_owns_mutex(thread_ref, mutex_ref);
 int mutex_owned(mutex_ref);
 
 // --- MUTEX OPERATION ---
+STRUCT_DECL(mutex_operation)
 struct mutex_operation {
     mutex_ref mutex;
     enum mutex_operation_type type;
 };
+MEMORY_API_DECL(mutex_operation);
 
 
+bool mutex_operation_enabled(mutex_operation_refc, thread_ref);
 
 /**
  * Determines whether two threads each executing one

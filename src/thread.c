@@ -32,7 +32,8 @@ thread_copy(thread_refc other)
 void
 thread_destroy(thread_ref thread)
 {
-
+    if (!thread) return;
+    free(thread);
 }
 
 bool
@@ -41,4 +42,16 @@ threads_equal(thread_refc t1, thread_refc t2)
     if (t1 == NULL) return t2 == NULL;
     if (t2 == NULL) return t1 == NULL;
     return pthread_equal(t1->owner, t2->owner);
+}
+
+bool
+thread_operation_enabled(thread_operation_refc top, thread_refc thread)
+{
+    if (!top || !thread) return false;
+    switch (top->type) {
+        case THREAD_JOIN:
+            return !top->thread->is_alive;
+        default:
+            return true
+    }
 }

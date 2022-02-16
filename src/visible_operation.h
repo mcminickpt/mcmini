@@ -16,14 +16,14 @@ struct visible_operation {
     };
 };
 
-/*
- * Memory API
- */
-MEMORY_API_DECL(visible_operation);
+visible_operation_ref visible_operation_alloc(void);
+visible_operation_ref visible_operation_copy(visible_operation_refc);
+void visible_operation_destroy(visible_operation_ref);
 
 /*
  * Operations
  */
+int visible_operation_set_mutex_operation(mutex_operation_ref);
 int visible_operation_is_mutex_operation(visible_operation_ref);
 int visible_operation_is_thread_operation(visible_operation_ref);
 
