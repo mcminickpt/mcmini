@@ -2,6 +2,7 @@
 #define DPOR_DECL_H
 
 #define thread_local __thread
+#define id void*
 
 #define STRUCT_DECL(type)             \
 typedef struct type type;           \
@@ -22,12 +23,18 @@ type##_ref type##_copy(type##_refc); \
 void type##_destroy(type##_ref);
 
 #define MEMORY_ALLOC_DEF_DECL(type) \
-type##_ref type##_alloc(void) {     \
+inline type##_ref type##_alloc(void) {\
     return malloc(sizeof(type));    \
 }
 
-
 #define PRETTY_PRINT_DECL(type) \
-void type##_pretty(type##_refc);
+void type##_pretty(type##_refc); \
+void type##_pretty_off(type##_refc, unsigned int off);
+
+#define PRETTY_PRINT_DEF_DECL(type) \
+inline void type##_pretty(type##_refc ref) {   \
+    type##_pretty_off(ref, 0u);          \
+}
+
 
 #endif //DPOR_DECL_H

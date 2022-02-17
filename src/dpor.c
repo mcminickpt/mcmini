@@ -102,6 +102,8 @@ static int
 latest_dependent_coenabled_transition_index(dpor_context_ref context, transition_ref transition)
 {
     if (!context || !transition) return -1;
+    if (array_is_empty(context->transition_stack)) return -1;
+
     uint32_t transition_stack_size = array_count(context->transition_stack);
     for (uint32_t i = transition_stack_size - 1; i >= 0; i--) {
         transition_ref transition_i = array_get(context->transition_stack, i);
@@ -120,7 +122,7 @@ dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref
     uint32_t thread_count = array_count(ref->state->threads);
     for (uint32_t i = 0; i < thread_count; i++) {
         thread_ref thread = array_get(ref->state->threads, i);
-        transition_ref enabled = shared_state_first_enabled_transition_by_thread(ref->state, thread);
+        transition_ref enabled = shared_state_first_enabled_transition_by_thread_get(ref->state, thread);
         if (enabled != NULL) {
             int i = latest_dependent_coenabled_transition_index(context, enabled);
             if (i < 0) continue;

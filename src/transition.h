@@ -5,7 +5,6 @@
 #include "thread.h"
 #include "visible_operation.h"
 #include <stdbool.h>
-#include <stdio.h>
 
 STRUCT_DECL(transition);
 struct transition {

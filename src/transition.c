@@ -1,8 +1,9 @@
 #include "transition.h"
+#include "common.h"
 #include "mutex.h"
+#include <stdio.h>
 
 MEMORY_ALLOC_DEF_DECL(transition)
-
 transition_ref
 transition_create(thread_ref thread, visible_operation_ref visible_op)
 {
@@ -14,6 +15,17 @@ transition_create(thread_ref thread, visible_operation_ref visible_op)
         ref->operation = visible_operation_copy(visible_op);
     }
     return ref;
+}
+
+PRETTY_PRINT_DEF_DECL(transition)
+void
+transition_pretty_off(transition_refc t, unsigned int off)
+{
+    if (!t) return;
+    space(off); printf("****** TRANSITION (addr %p) ******", t);
+    space(off); puts("  *** THREAD ***");
+    thread_pretty_off(t->thread, off + 2);
+    space(off); puts("*************")
 }
 
 transition_ref

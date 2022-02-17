@@ -43,7 +43,7 @@ shared_state_destroy(shared_state_ref ref) {
 }
 
 transition_ref
-shared_state_first_enabled_transition(shared_state_refc ref) {
+shared_state_first_enabled_transition_get(shared_state_refc ref) {
     if (!ref) return NULL;
     const uint32_t count = array_count(ref->transitions);
     for (uint32_t i = 0; i < count; i++) {
@@ -53,7 +53,7 @@ shared_state_first_enabled_transition(shared_state_refc ref) {
     return NULL;
 }
 transition_ref
-shared_state_first_enabled_transition_by_thread(shared_state_refc ref, thread_ref thread)
+shared_state_first_enabled_transition_by_thread_get(shared_state_refc ref, thread_ref thread)
 {
     if (!ref || !thread) return NULL;
     const uint32_t count = array_count(ref->transitions);

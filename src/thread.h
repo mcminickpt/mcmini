@@ -8,11 +8,13 @@
 
 STRUCT_DECL(thread);
 struct thread {
+    uint64_t tid; //
     pthread_t owner;
     void *arg;
     thread_routine start_routine;
     volatile int is_alive;
 };
+PRETTY_PRINT_DECL(thread);
 typedef array_ref thread_array_ref;
 thread_ref thread_create(pthread_t);
 thread_ref thread_copy(thread_refc);
@@ -25,6 +27,7 @@ struct thread_operation {
     thread_ref thread;
 };
 MEMORY_API_DECL(thread_operation);
+
 
 /*
  * Other Memory Functions
