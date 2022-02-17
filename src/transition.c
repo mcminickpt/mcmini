@@ -76,6 +76,16 @@ transition_creates(transition_ref tref, thread_ref thread)
 }
 
 bool
+transition_waits_on_thread(transition_ref tref, thread_ref thread)
+{
+    if (!tref || !thread) return false;
+    if (tref->operation->type != THREAD_LIFECYCLE) return false;
+    thread_operation_ref top = visible_operation_unsafely_as_thread_operation(tref->operation);
+    if (top->type != THREAD_JOIN) return false;
+    return threads_equal(thread, top->thread);
+}
+
+bool
 transitions_dependent(transition_ref t1, transition_ref t2)
 {
     if (!t1 || !t2) return false;
@@ -118,5 +128,32 @@ transition_enabled(transition_ref transition)
             return thread_operation_enabled(top, transition->thread);
         default:
             return false; // TODO: Semaphore and others here
+    }
+}
+
+bool
+transitions_coenabled(transition_ref t1, transition_ref t2)
+{
+    if (!t1 || !t2) return false;
+
+    if (threads_equal(t1->thread, t2->thread))
+        return false;
+
+    if (transition_creates(t1, t2->thread) || transition_creates(t2, t1->thread))
+        return false;
+
+    if (transition_waits_on_thread(t1, t2->thread) || transition_waits_on_thread(t2, t1->thread))
+        return false;
+
+    switch (t1->operation->type) {
+        case MUTEX:
+            if (t2->operation->type != MUTEX) return true;
+
+            mutex_operation_ref vop1 = visible_operation_unsafely_as_mutex_operation(t1->operation);
+            mutex_operation_ref vop1 = visible_operation_unsafely_as_mutex_operation(t2->operation);
+            return mutex_operations_coenabled(vop1, vop2);
+
+        default:
+            return true;
     }
 }

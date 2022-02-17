@@ -8,9 +8,9 @@
 
 STRUCT_DECL(othread);
 struct othread {
-    thread_ref thread;
-    sem_t dpor_scheduler_sem; // The semaphore the dpor scheduler waits on
-    sem_t pthread_sem; // The semaphore the user thread waits on
+    thread_ref thread;          /* The thread which waits*/
+    sem_t dpor_scheduler_sem;   /* The semaphore the DPOR scheduler waits on */
+    sem_t pthread_sem;          /* The semaphore the user thread waits on */
 };
 typedef array_ref othread_array_ref;
 MEMORY_API_DECL(othread);

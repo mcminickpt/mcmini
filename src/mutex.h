@@ -30,7 +30,7 @@ void mutex_destroy(mutex_ref);
 /*
  * Operations
  */
-bool mutexes_equal(mutex_ref, mutex_ref);
+bool mutexes_equal(mutex_refc, mutex_refc);
 int thread_owns_mutex(thread_ref, mutex_ref);
 int mutex_owned(mutex_ref);
 
@@ -44,7 +44,7 @@ MEMORY_API_DECL(mutex_operation);
 
 
 bool mutex_operation_enabled(mutex_operation_refc, thread_ref);
-
+bool mutex_operations_coenabled(mutex_operation_refc, mutex_operation_refc);
 /**
  * Determines whether two threads each executing one
  * of the two provided mutex operations could produce
@@ -52,6 +52,7 @@ bool mutex_operation_enabled(mutex_operation_refc, thread_ref);
  * the order of their execution matters
  */
 bool mutex_operations_race(mutex_operation_refc, mutex_operation_refc);
+bool mutex_operation_creates_mutex(mutex_operation_refc, mutex_refc);
 bool mutex_operation_is_undefined_behavior(mutex_operation_refc);
 
 

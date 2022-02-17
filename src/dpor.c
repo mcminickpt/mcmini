@@ -3,6 +3,9 @@
 #define PTHREAD_SUCCESS (0)
 #define MAX_DEPTH (1)
 
+static sem_t dpor_init_sem;
+static sem_t main_thread_init_sem;
+
 static void*
 dpor_scheduler_main(void *unused)
 {
@@ -20,21 +23,17 @@ dpor_scheduler_main(void *unused)
 
     int depth = 0;
     state_stack_item_ref s = initial_stack_item;
-    transition_ref t = shared_state_first_enabled_transition(s->state);
+    transition_ref t = main_thread_transition;
     while (depth++ <= MAX_DEPTH && t != NULL) {
         // Push s and t onto the stack
         array_append(dpor_shared->state_stack, s);
         array_append(dpor_shared->transition_stack, t);
-
-        // Let the program run to the next visible operation
         dpor_run(dpor_shared, t->thread);
-
         // Pop the next state off of the stack (pushed onto
         // the stack by the appropriate pthread wrapper call)
         s = array_remove_last(dpor_shared->state_stack);
-
-        // Update the backtrack sets
         dynamically_update_backtrack_sets(dpor_shared, s);
+        t = shared_state_first_enabled_transition(s->state);
     }
 
     // Do actual backtracking
@@ -50,8 +49,6 @@ dpor_init(void)
 {
     sem_init(&dpor_init_sem, 0, 0);
     sem_init(&main_thread_init_sem, 0, 0);
-
-    // Spawn the dpor thread itself that runs the program
     pthread_t dpor_thread;
     if (pthread_create(&dpor_thread, NULL, &dpor_scheduler_main, NULL) != PTHREAD_SUCCESS)
         abort(); // TODO: Fail properly here

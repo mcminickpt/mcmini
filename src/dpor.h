@@ -19,8 +19,6 @@ struct dpor_context {
 MEMORY_API_DECL(dpor_context);
 
 dpor_context_ref dpor_shared;
-static sem_t dpor_init_sem;
-static sem_t main_thread_init_sem;
 
 /**
  * Operations

@@ -34,7 +34,9 @@ transition_ref create_thread_finish_transition(thread_ref);
  * is directly responsible for the creation of the given
  * thread, and 0 otherwise
  */
-int transition_creates(transition_ref, thread_ref);
+bool transition_creates(transition_ref, thread_ref);
+
+bool transition_waits_on_thread(transition_ref, thread_ref);
 
 /**
  * Determines whether or not the provided transition would not
@@ -54,14 +56,25 @@ bool transition_enabled(transition_ref);
  */
 inline bool transition_blocked(transition_ref transition)
 {
+    if (!transition) return false;
     return !transition_enabled(transition);
 }
 
 bool transitions_coenabled(transition_ref, transition_ref);
 
 bool transition_happens_before(transition_ref, transition_ref);
-bool transition_happens_after(transition_ref, transition_ref);
+
+inline bool transition_happens_after(transition_ref t1, transition_ref t2)
+{
+    if (!t1 || !t2) return false;
+    return transition_happens_before(t2, t1);
+}
+
 bool transitions_dependent(transition_ref, transition_ref);
-bool transitions_independent(transition_ref, transition_ref);
+
+inline bool transitions_independent(transition_ref t1, transition_ref t2)
+{
+    return !transitions_dependent(t1, t2);
+}
 
 #endif //DPOR_TRANSITION_H
