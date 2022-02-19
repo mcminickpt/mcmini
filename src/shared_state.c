@@ -43,7 +43,7 @@ shared_state_destroy(shared_state_ref ref) {
 }
 
 transition_ref
-shared_state_first_enabled_transition_get(shared_state_refc ref) {
+shared_state_get_first_enabled_transition(shared_state_refc ref) {
     if (!ref) return NULL;
     const uint32_t count = array_count(ref->transitions);
     for (uint32_t i = 0; i < count; i++) {
@@ -53,7 +53,7 @@ shared_state_first_enabled_transition_get(shared_state_refc ref) {
     return NULL;
 }
 transition_ref
-shared_state_first_enabled_transition_by_thread_get(shared_state_refc ref, thread_ref thread)
+shared_state_get_first_enabled_transition_by_thread(shared_state_refc ref, thread_ref thread)
 {
     if (!ref || !thread) return NULL;
     const uint32_t count = array_count(ref->transitions);
@@ -62,4 +62,18 @@ shared_state_first_enabled_transition_by_thread_get(shared_state_refc ref, threa
         if (transition_enabled(t) && threads_equal(t->thread, thread)) return t;
     }
     return NULL;
+}
+
+transition_array_ref
+shared_state_create_enabled_transitions(shared_state_refc ref)
+{
+    if (!ref) return NULL;
+    array_ref array = array_create();
+    uint32_t count = array_count(ref->transitions);
+    for (uint32_t i = 0; i < count; i++) {
+        transition_ref get = array_get(array, i);
+        if (transition_enabled(get))
+            array_append(array, transition_copy(get));
+    }
+    return array;
 }

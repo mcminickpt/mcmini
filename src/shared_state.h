@@ -15,7 +15,8 @@ struct shared_state {
 };
 MEMORY_API_DECL(shared_state);
 
-transition_ref shared_state_first_enabled_transition_get(shared_state_refc);
-transition_ref shared_state_first_enabled_transition_by_thread_get(shared_state_refc, thread_ref);
+transition_ref shared_state_get_first_enabled_transition(shared_state_refc);
+transition_ref shared_state_get_first_enabled_transition_by_thread(shared_state_refc, thread_ref);
+transition_array_ref shared_state_create_enabled_transitions(shared_state_refc);
 
 #endif //DPOR_SHARED_STATE_H

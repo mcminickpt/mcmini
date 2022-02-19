@@ -33,7 +33,7 @@ dpor_scheduler_main(void *unused)
         // the stack by the appropriate pthread wrapper call)
         s = array_remove_last(dpor_shared->state_stack);
         dynamically_update_backtrack_sets(dpor_shared, s);
-        t = shared_state_first_enabled_transition(s->state);
+        t = shared_state_get_first_enabled_transition(s->state);
     }
 
     // Do actual backtracking
@@ -90,7 +90,7 @@ thread_await_dpor_scheduler(dpor_context_ref context) {
 
     othread_ref othread = NULL;
     {
-        thread_ref new_thread = thread_wrap(pthread_self());
+        thread_ref new_thread = thread_self();
         othread = NULL; // TODO: Fetch the appropriate thread entry for the new_thread
         thread_destroy(new_thread);
     }
@@ -114,6 +114,34 @@ latest_dependent_coenabled_transition_index(dpor_context_ref context, transition
     return -1;
 }
 
+static array_ref
+compute_set_E(dpor_context_ref context, transition_array_ref enabled_transitions, thread_ref thread, int state_stack_index)
+{
+    if (!enabled_transitions || !thread) return NULL;
+    thread_array_ref E = array_create();
+    if (!E) return NULL;
+    uint32_t nts = array_count(state->transitions);
+    for (uint32_t i = 0; i < nts; i++) {
+        transition_ref trans = array_get(enabled_transitions, i);
+        if (threads_equal(thread, trans->thread)) {
+            thread_ref new_thread = thread_copy(thread);
+            array_append(E, new_thread);
+        }
+
+        // Look through the transition stack
+        uint32_t t_stack_size = array_count(context->transition_stack);
+        for (uint32_t j = state_stack_index + 1; j < t_stack_size; i++) {
+            transition_ref jth_item = array_get(context->transition_stack, j);
+
+            if (threads_equal(proc(jth_item), trans->thread) && ) {
+                thread_ref new_thread = thread_copy(thread);
+                array_append(E, new_thread);
+            }
+        }
+    }
+    return t;
+}
+
 void
 dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref ref)
 {
@@ -122,15 +150,22 @@ dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref
     uint32_t thread_count = array_count(ref->state->threads);
     for (uint32_t i = 0; i < thread_count; i++) {
         thread_ref thread = array_get(ref->state->threads, i);
-        transition_ref enabled = shared_state_first_enabled_transition_by_thread_get(ref->state, thread);
+        transition_ref enabled = shared_state_get_first_enabled_transition_by_thread(ref->state, thread);
         if (enabled != NULL) {
             int i = latest_dependent_coenabled_transition_index(context, enabled);
             if (i < 0) continue;
 
-            // The state from which the transition moves from
             state_stack_item_ref from_state = array_get(context->state_stack, i);
+            array_ref enabled_at_state = shared_state_create_enabled_transitions(ref->state);
+            array_ref E = compute_set_E();
 
-            // TODO: Add computation for the set E
+            if (array_is_empty(E)) {
+                array_append_array(from_state->backtrack_set, E);
+            } else {
+                array_append(from_state->backtrack_set, array_get_first(E));
+            }
+
+            array_destroy(E, NULL);
         }
     }
 }
