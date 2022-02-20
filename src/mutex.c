@@ -1,11 +1,14 @@
 #include "mutex.h"
 
+mutex_ref mutex_alloc(void);
+MEMORY_ALLOC_DEF_DECL(mutex);
+MEMORY_ALLOC_DEF_DECL(mutex_operation);
 
 mutex_ref
 mutex_create(pthread_mutex_t *mutex)
 {
     if (!mutex) return NULL;
-    mutex_ref ref = malloc(sizeof(*ref));
+    mutex_ref ref = mutex_alloc();
     if (ref) {
         ref->mutex = mutex;
         ref->owner = NULL;
@@ -38,6 +41,23 @@ mutexes_equal(mutex_refc m1, mutex_refc m2)
     if (!m1) return m2 == NULL;
     if (!m2) return m1 == NULL;
     return m1->mutex == m2->mutex;
+}
+
+mutex_operation_ref
+mutex_operation_copy(mutex_operation_refc mop)
+{
+    mutex_operation_ref cpy = mutex_operation_alloc();
+    if (!cpy) return NULL;
+    cpy->mutex = mutex_copy(mop->mutex);
+    return cpy;
+}
+
+void
+mutex_operation_destroy(mutex_operation_ref mop)
+{
+    if (!mop) return;
+    mutex_destroy(mop->mutex);
+    free(mop);
 }
 
 bool

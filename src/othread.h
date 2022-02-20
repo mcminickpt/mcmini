@@ -13,10 +13,12 @@ struct othread {
     sem_t pthread_sem;          /* The semaphore the user thread waits on */
 };
 typedef array_ref othread_array_ref;
-MEMORY_API_DECL(othread);
+
+othread_ref othread_alloc(void);
+othread_ref othread_create(thread_ref);
+othread_ref othread_copy(othread_refc);
+void othread_destroy(othread_ref);
 
 othread_ref othread_pthread_wrap(pthread_t);
-othread_ref othread_thread_wrap(thread_ref);
-
 
 #endif //DPOR_OTHREAD_H

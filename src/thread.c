@@ -2,6 +2,8 @@
 
 MEMORY_ALLOC_DEF_DECL(thread);
 PRETTY_PRINT_DEF_DECL(thread);
+MEMORY_ALLOC_DEF_DECL(thread_operation);
+PRETTY_PRINT_DEF_DECL(thread_operation);
 
 thread_ref
 thread_self(void)
@@ -11,7 +13,7 @@ thread_self(void)
 
 thread_ref
 thread_create(pthread_t pthread) {
-    thread_ref thread = malloc(sizeof(*thread));
+    thread_ref thread = thread_alloc();
     if (!thread) return NULL;
     thread->is_alive = true;
     thread->start_routine = NULL;
@@ -37,6 +39,20 @@ thread_destroy(thread_ref thread)
 {
     if (!thread) return;
     free(thread);
+}
+
+thread_operation_ref
+thread_operation_copy(thread_operation_refc ref)
+{
+
+}
+
+void
+thread_operation_destroy(thread_operation_ref ref)
+{
+    if (!ref) return;
+    thread_destroy(ref->thread);
+    free(ref);
 }
 
 void

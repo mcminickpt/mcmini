@@ -6,6 +6,37 @@
 static sem_t dpor_init_sem;
 static sem_t main_thread_init_sem;
 
+MEMORY_ALLOC_DEF_DECL(dpor_context);
+
+dpor_context_ref
+dpor_context_create(void)
+{
+    dpor_context_ref dpor = dpor_context_alloc();
+    if (!dpor) return NULL;
+    dpor->transition_stack = array_create();
+    dpor->state_stack = array_create();
+    dpor->main_thread = NULL;
+    dpor->thread_table = array_create();
+    return dpor;
+}
+
+dpor_context_ref
+dpor_context_copy(dpor_context_refc context)
+{
+
+}
+
+void
+dpor_context_destroy(dpor_context_ref dpor)
+{
+    if (!dpor) return;
+    array_destroy(dpor->transition_stack, (free_function) transition_destroy);
+    array_destroy(dpor->state_stack, (free_function) state_stack_item_destroy);
+    array_destroy(dpor->thread_table, (free_function) othread_destroy);
+    free(dpor);
+}
+
+
 static void*
 dpor_scheduler_main(void *unused)
 {
@@ -115,12 +146,15 @@ latest_dependent_coenabled_transition_index(dpor_context_ref context, transition
 }
 
 static array_ref
-compute_set_E(dpor_context_ref context, transition_array_ref enabled_transitions, thread_ref thread, int state_stack_index)
+compute_set_E(dpor_context_ref context,
+              transition_array_ref enabled_transitions,
+              thread_ref thread,
+              int state_stack_index)
 {
     if (!enabled_transitions || !thread) return NULL;
     thread_array_ref E = array_create();
     if (!E) return NULL;
-    uint32_t nts = array_count(state->transitions);
+    uint32_t nts = array_count(enabled_transitions);
     for (uint32_t i = 0; i < nts; i++) {
         transition_ref trans = array_get(enabled_transitions, i);
         if (threads_equal(thread, trans->thread)) {
@@ -133,13 +167,13 @@ compute_set_E(dpor_context_ref context, transition_array_ref enabled_transitions
         for (uint32_t j = state_stack_index + 1; j < t_stack_size; i++) {
             transition_ref jth_item = array_get(context->transition_stack, j);
 
-            if (threads_equal(proc(jth_item), trans->thread) && ) {
+            if (threads_equal(proc(jth_item), trans->thread) && false) {
                 thread_ref new_thread = thread_copy(thread);
                 array_append(E, new_thread);
             }
         }
     }
-    return t;
+    return E;
 }
 
 void
@@ -157,7 +191,7 @@ dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref
 
             state_stack_item_ref from_state = array_get(context->state_stack, i);
             array_ref enabled_at_state = shared_state_create_enabled_transitions(ref->state);
-            array_ref E = compute_set_E();
+            array_ref E = compute_set_E(context, enabled_at_state, thread, i);
 
             if (array_is_empty(E)) {
                 array_append_array(from_state->backtrack_set, E);

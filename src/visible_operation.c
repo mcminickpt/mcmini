@@ -16,7 +16,7 @@ visible_operation_copy(visible_operation_refc other)
             copy->mutex_operation = mutex_operation_copy(other->mutex_operation);
             break;
         default:
-#warning ""
+            // TODO: Implement for semaphores, etc.
             return NULL;
     }
     return copy;
@@ -25,8 +25,8 @@ visible_operation_copy(visible_operation_refc other)
 void
 visible_operation_destroy(visible_operation_ref op)
 {
-    if (!other) return NULL;
-    switch (other->type) {
+    if (!op) return;
+    switch (op->type) {
         case THREAD_LIFECYCLE:
             thread_operation_destroy(op->thread_operation);
             break;

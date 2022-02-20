@@ -25,7 +25,8 @@ f1:
 }
 
 state_stack_item_ref
-state_stack_item_copy(state_stack_item_refc ref) {
+state_stack_item_copy(state_stack_item_refc ref)
+{
 
 }
 

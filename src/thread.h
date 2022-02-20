@@ -16,6 +16,8 @@ struct thread {
 };
 PRETTY_PRINT_DECL(thread);
 typedef array_ref thread_array_ref;
+
+thread_ref thread_alloc(void);
 thread_ref thread_create(pthread_t);
 thread_ref thread_copy(thread_refc);
 void thread_destroy(thread_ref);
@@ -26,14 +28,15 @@ struct thread_operation {
     thread_operation_type type;
     thread_ref thread;
 };
-MEMORY_API_DECL(thread_operation);
 
+thread_operation_ref thread_operation_alloc(void);
+thread_operation_ref thread_operation_copy(thread_operation_refc);
+void thread_operation_destroy(thread_operation_ref);
 
 /*
  * Other Memory Functions
  */
 thread_ref thread_self(void);
-thread_ref thread_wrap(pthread_t);
 
 /*
  * Operations
