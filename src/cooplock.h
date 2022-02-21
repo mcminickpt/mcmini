@@ -13,8 +13,8 @@ struct coop_lock {
 void coop_lock_init(coop_lock_ref);
 void coop_lock_destroy(coop_lock_ref);
 
-void coop_wait_thread(coop_lock_ref);
-void coop_wait_scheduler(coop_lock_ref);
+void coop_wait_for_thread(coop_lock_ref);
+void coop_wait_for_scheduler(coop_lock_ref);
 void coop_wake_thread(coop_lock_ref);
 void coop_wake_scheduler(coop_lock_ref);
 

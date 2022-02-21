@@ -1,5 +1,6 @@
 #include "dpor.h"
 #include "cooplock.h"
+#include "shm.h"
 #include <assert.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -15,14 +16,15 @@
 #define PTHREAD_SUCCESS (0)
 thread_local tid_t thread_self = TID_INVALID;
 
+state_stack_ref s_stack = NULL;
+transition_array_ref t_stack = NULL;
+
 tid_t tid_next = tid_main_thread;
-state_stack_ref s_stack;
-transition_array_ref t_stack;
-thread *threads; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
-coop_lock *queue;
+thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE]; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
+coop_lock queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
 
 /* Resides in shared memory -> data child passes back to parent */
-struct child_result_t shm_child_result;
+shm_transition_ref shm_child_result;
 
 thread_ref
 thread_get_self(void)

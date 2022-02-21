@@ -18,27 +18,7 @@ extern state_stack_ref s_stack;
 extern transition_array_ref t_stack;
 extern thread *threads; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
 extern coop_lock *queue;
-extern struct child_result_t shm_child_result;
-
-
-STRUCT_DECL(shm_visible_operation)
-struct shm_visible_operation {
-    visible_operation_type type;
-    union {
-        mutex_operation mutex_operation;
-        thread_operation thread_operation;
-    };
-};
-
-STRUCT_DECL(shm_transition)
-struct shm_transition {
-    thread thread;
-    shm_visible_operation operation;
-};
-
-struct child_result_t {
-    shm_transition_ref shm_transition; /* A reference to the transition the child has just discovered */
-};
+extern shm_transition_ref shm_child_result;
 
 /**
  * Operations

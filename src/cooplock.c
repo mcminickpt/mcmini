@@ -17,15 +17,17 @@ void coop_lock_destroy(coop_lock_ref ref)
 }
 
 void
-coop_wait_thread(coop_lock_ref ref)
+coop_wait_for_thread(coop_lock_ref ref)
 {
-    sem_wait(&ref->pthread_sem);
+    // The scheduler calls this
+    sem_wait(&ref->dpor_scheduler_sem);
 }
 
 void
-coop_wait_scheduler(coop_lock_ref ref)
+coop_wait_for_scheduler(coop_lock_ref ref)
 {
-    sem_wait(&ref->dpor_scheduler_sem);
+    // Threads call this; hence they wait on their own semaphore
+    sem_wait(&ref->pthread_sem);
 }
 
 void

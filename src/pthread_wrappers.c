@@ -12,8 +12,8 @@ dpor_pthread_mutex_init(pthread_mutex_t *mutex, pthread_mutexattr_t *attr)
     visible.type = MUTEX;
     visible.mutex_operation = init_mutex;
 
-    shm_child_result.shm_transition->thread = tself;
-    shm_child_result.shm_transition->operation = visible;
+    shm_child_result->thread = tself;
+    shm_child_result->operation = visible;
 
     thread_await_dpor_scheduler();
     return pthread_mutex_init(mutex, attr);
