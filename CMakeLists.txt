@@ -21,4 +21,4 @@ add_executable(DPOR
         src/transition.c
         src/transition.h
         src/visible_operation.c
-        src/visible_operation.h)
+        src/visible_operation.h src/cooplock.c src/cooplock.h)

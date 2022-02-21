@@ -1,133 +1,161 @@
 #include "dpor.h"
+#include "cooplock.h"
+#include <assert.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #define PTHREAD_SUCCESS (0)
-#define MAX_DEPTH (1)
+thread_local tid_t thread_self = TID_INVALID;
 
-static sem_t dpor_init_sem;
-static sem_t main_thread_init_sem;
+tid_t tid_next = tid_main_thread;
+state_stack_ref s_stack;
+transition_array_ref t_stack;
+thread *threads; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
+coop_lock *queue;
 
-MEMORY_ALLOC_DEF_DECL(dpor_context);
+/* Resides in shared memory -> data child passes back to parent */
+struct child_result_t shm_child_result;
 
-dpor_context_ref
-dpor_context_create(void)
+thread_ref
+thread_get_self(void)
 {
-    dpor_context_ref dpor = dpor_context_alloc();
-    if (!dpor) return NULL;
-    dpor->transition_stack = array_create();
-    dpor->state_stack = array_create();
-    dpor->main_thread = NULL;
-    dpor->thread_table = array_create();
-    return dpor;
+    if (thread_self == TID_INVALID) return NULL;
+    return &threads[thread_self];
 }
 
-dpor_context_ref
-dpor_context_copy(dpor_context_refc context)
-{
+void dpor_run(tid_t tid);
+void dpor_parent_scheduler_loop(uint32_t max_depth);
 
-}
-
-void
-dpor_context_destroy(dpor_context_ref dpor)
-{
-    if (!dpor) return;
-    array_destroy(dpor->transition_stack, (free_function) transition_destroy);
-    array_destroy(dpor->state_stack, (free_function) state_stack_item_destroy);
-    array_destroy(dpor->thread_table, (free_function) othread_destroy);
-    free(dpor);
-}
-
-
-static void*
-dpor_scheduler_main(void *unused)
-{
-    dpor_shared = dpor_context_create();
-    sem_post(&dpor_init_sem);
-    sem_wait(&main_thread_init_sem);
-
-    // 1. Create the initial state
-    state_stack_item_ref initial_stack_item = state_stack_item_create();
-    if (!initial_stack_item)
-        goto dpor_exit;
-
-    transition_ref main_thread_transition = create_thread_start_transition(dpor_shared->main_thread->thread);
-    array_append(initial_stack_item->state->transitions, main_thread_transition);
-
-    int depth = 0;
-    state_stack_item_ref s = initial_stack_item;
-    transition_ref t = main_thread_transition;
-    while (depth++ <= MAX_DEPTH && t != NULL) {
-        // Push s and t onto the stack
-        array_append(dpor_shared->state_stack, s);
-        array_append(dpor_shared->transition_stack, t);
-        dpor_run(dpor_shared, t->thread);
-        // Pop the next state off of the stack (pushed onto
-        // the stack by the appropriate pthread wrapper call)
-        s = array_remove_last(dpor_shared->state_stack);
-        dynamically_update_backtrack_sets(dpor_shared, s);
-        t = shared_state_get_first_enabled_transition(s->state);
-    }
-
-    // Do actual backtracking
-
-dpor_exit:
-    dpor_context_destroy(dpor_shared);
-    return NULL;
-}
 
 // __attribute__((constructor))
 void
 dpor_init(void)
 {
-    sem_init(&dpor_init_sem, 0, 0);
-    sem_init(&main_thread_init_sem, 0, 0);
-    pthread_t dpor_thread;
-    if (pthread_create(&dpor_thread, NULL, &dpor_scheduler_main, NULL) != PTHREAD_SUCCESS)
-        abort(); // TODO: Fail properly here
-
-    // Wait for DPOR to initialize itself
-    sem_wait(&dpor_init_sem);
-    dpor_register_main_thread(dpor_shared, pthread_self());
-    sem_post(&main_thread_init_sem);
-
-    // Wait AGAIN for scheduling to start
-    thread_await_dpor_scheduler(dpor_shared);
+    dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
 }
 
-void
-dpor_register_main_thread(dpor_context_ref context, pthread_t main_thread)
+static bool /* */
+dpor_spawn_child(void)
 {
-    dpor_register_thread(context, main_thread);
-    context->main_thread = array_get_first(dpor_shared->thread_table);
-}
-
-void
-dpor_register_thread(dpor_context_ref context, pthread_t pthread)
-{
-    othread_ref othread = othread_pthread_wrap(pthread);
-    array_append(context->thread_table, othread);
-}
-
-void
-dpor_run(dpor_context_ref context, thread_ref thread) {
-    if (!thread) return; // ERROR // FIXME: how should this error be handled
-    othread_ref othread = NULL; // TODO: Find the appropriate othread for the thread passed in
-    sem_post(&othread->pthread_sem);
-    sem_wait(&othread->dpor_scheduler_sem);
-}
-
-void
-thread_await_dpor_scheduler(dpor_context_ref context) {
-    if (!context) abort(); // TODO: How should we respond to an error here
-
-    othread_ref othread = NULL;
-    {
-        thread_ref new_thread = thread_self();
-        othread = NULL; // TODO: Fetch the appropriate thread entry for the new_thread
-        thread_destroy(new_thread);
+    pid_t childpid;
+    if ( (childpid = fork()) < 0) {
+        perror("fork");
+        abort();
     }
-    sem_post(&othread->dpor_scheduler_sem);
-    sem_wait(&othread->pthread_sem);
+
+    if (FORK_IS_CHILD_PID(childpid)) {
+        return true; /* true signifies the child */
+    }
+    return false;
 }
+
+/* Return true if we should run another iteration */
+static bool
+dpor_parent_scheduler_main(uint32_t max_depth)
+{
+    s_stack = array_create();
+    t_stack = array_create();
+    dpor_register_main_thread();
+
+    thread_ref main_thread = thread_get_self();
+    state_stack_item_ref initial_stack_item = state_stack_item_create();
+
+    transition_ref main_thread_transition = create_retain_thread_start_transition(main_thread);
+    array_append(initial_stack_item->state->transitions, main_thread_transition);
+
+    uint32_t depth = 0;
+    state_stack_item_ref s = initial_stack_item;
+    transition_ref t = main_thread_transition;
+    while (depth++ <= max_depth && t != NULL) {
+        // Push s and t onto the stack
+        array_append(dpor_shared->state_stack, s);
+        array_append(dpor_shared->transition_stack, t);
+
+        bool is_child = dpor_spawn_child();
+        if (is_child) return false; // Child process exiting the scheduler
+
+        // TODO: Extract next `t` from having run the child process
+        tid_t tid = t->thread->tid;
+        dpor_run(tid);
+
+        // TODO: Implement this function
+        transition newest_transition = convert_to_transition(shm_child_result.shm_transition);
+
+        // TODO: Update the state with the newest_transition
+        // s = next(s, t);
+
+        dynamically_update_backtrack_sets(dpor_shared, s);
+        t = shared_state_get_first_enabled_transition(s->state);
+    }
+
+    // TODO: Do actual backtracking
+
+
+    return true;
+}
+
+static void
+dpor_parent_scheduler_loop(uint32_t max_depth)
+{
+    for (uint32_t i = 0; i < max_depth; i++)
+        if (!dpor_parent_scheduler_main(max_depth)) // False for the child so it can escape to the main program
+            return;
+}
+
+// ****** CHILD FUNCTIONS **** \\
+
+tid_t
+dpor_register_thread(void)
+{
+    tid_t self = tid_next++;
+    thread_self = self;
+    thread_ref tself = &threads[self];
+    tself->owner = pthread_self();
+    tself->tid = self;
+    tself->is_alive = true;
+    return self;
+}
+
+inline tid_t
+dpor_register_main_thread(void)
+{
+    tid_t main = dpor_register_thread();
+    assert(main == TID_MAIN_THREAD);
+    return main;
+}
+
+static void
+dpor_run_thread(tid_t tid)
+{
+    coop_lock_ref lock = &queue[tid];
+    coop_wake_thread(lock);
+    coop_wait_thread(lock);
+}
+
+void
+thread_await_dpor_scheduler(void)
+{
+    coop_lock_ref lock = &queue[thread_self];
+    coop_wake_scheduler(lock);
+    coop_wait_scheduler(lock);
+}
+
+static void
+dpor_child_exit(void)
+{
+    exit(0);
+}
+
+// ****** CHILD FUNCTIONS END **** //
+
 
 static int
 latest_dependent_coenabled_transition_index(dpor_context_ref context, transition_ref transition)
@@ -146,28 +174,28 @@ latest_dependent_coenabled_transition_index(dpor_context_ref context, transition
 }
 
 static array_ref
-compute_set_E(dpor_context_ref context,
-              transition_array_ref enabled_transitions,
+compute_set_E(transition_array_ref enabled_transitions,
               thread_ref thread,
               int state_stack_index)
 {
     if (!enabled_transitions || !thread) return NULL;
     thread_array_ref E = array_create();
     if (!E) return NULL;
+
     uint32_t nts = array_count(enabled_transitions);
     for (uint32_t i = 0; i < nts; i++) {
         transition_ref trans = array_get(enabled_transitions, i);
+
         if (threads_equal(thread, trans->thread)) {
             thread_ref new_thread = thread_copy(thread);
             array_append(E, new_thread);
         }
 
-        // Look through the transition stack
         uint32_t t_stack_size = array_count(context->transition_stack);
         for (uint32_t j = state_stack_index + 1; j < t_stack_size; i++) {
             transition_ref jth_item = array_get(context->transition_stack, j);
 
-            if (threads_equal(proc(jth_item), trans->thread) && false) {
+            if (threads_equal(proc(jth_item), trans->thread)) {
                 thread_ref new_thread = thread_copy(thread);
                 array_append(E, new_thread);
             }
@@ -176,20 +204,22 @@ compute_set_E(dpor_context_ref context,
     return E;
 }
 
+
 void
-dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref ref)
+dynamically_update_backtrack_sets(state_stack_item_ref ref)
 {
-    if (!ref || !context) return;
+    if (!ref) return;
 
     uint32_t thread_count = array_count(ref->state->threads);
     for (uint32_t i = 0; i < thread_count; i++) {
         thread_ref thread = array_get(ref->state->threads, i);
         transition_ref enabled = shared_state_get_first_enabled_transition_by_thread(ref->state, thread);
+
         if (enabled != NULL) {
             int i = latest_dependent_coenabled_transition_index(context, enabled);
             if (i < 0) continue;
 
-            state_stack_item_ref from_state = array_get(context->state_stack, i);
+            state_stack_item_ref from_state = array_get(s_stack, i);
             array_ref enabled_at_state = shared_state_create_enabled_transitions(ref->state);
             array_ref E = compute_set_E(context, enabled_at_state, thread, i);
 
@@ -198,7 +228,6 @@ dynamically_update_backtrack_sets(dpor_context_ref context, state_stack_item_ref
             } else {
                 array_append(from_state->backtrack_set, array_get_first(E));
             }
-
             array_destroy(E, NULL);
         }
     }

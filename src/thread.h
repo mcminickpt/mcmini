@@ -6,9 +6,11 @@
 #include "common.h"
 #include "decl.h"
 
+typedef uint64_t tid_t;
+
 STRUCT_DECL(thread);
 struct thread {
-    uint64_t tid; //
+    tid_t tid; //
     pthread_t owner;
     void *arg;
     thread_routine start_routine;
@@ -36,7 +38,7 @@ void thread_operation_destroy(thread_operation_ref);
 /*
  * Other Memory Functions
  */
-thread_ref thread_self(void);
+//thread_ref thread_self(void);
 
 /*
  * Operations

@@ -46,11 +46,11 @@ transition_destroy(transition_ref ref)
 }
 
 static transition_ref
-create_thread_transition(thread_ref thread, thread_operation_type type)
+create_retain_thread_transition(thread_ref thread, thread_operation_type type)
 {
     thread_operation_ref top = thread_operation_alloc();
     top->type = type;
-    top->thread = thread_copy(thread);
+    top->thread = thread;
 
     visible_operation_ref vop = visible_operation_alloc();
     vop->type = THREAD_LIFECYCLE;
@@ -58,7 +58,7 @@ create_thread_transition(thread_ref thread, thread_operation_type type)
 
     transition_ref trans = transition_alloc();
     trans->operation = vop;
-    trans->thread = thread_copy(thread);
+    trans->thread = thread;
 
     return trans;
 }
@@ -66,13 +66,13 @@ create_thread_transition(thread_ref thread, thread_operation_type type)
 transition_ref
 create_thread_start_transition(thread_ref thread)
 {
-    return create_thread_transition(thread, THREAD_START);
+    return create_retain_thread_transition(thread, THREAD_START);
 }
 
 transition_ref
 create_thread_finish_transition(thread_ref thread)
 {
-    return create_thread_transition(thread, THREAD_FINISH);
+    return create_retain_thread_transition(thread, THREAD_FINISH);
 }
 
 bool

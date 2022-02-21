@@ -23,8 +23,8 @@ void transition_destroy(transition_ref);
 /*
  * Operations
  */
-transition_ref create_thread_start_transition(thread_ref);
-transition_ref create_thread_finish_transition(thread_ref);
+transition_ref create_retain_thread_start_transition(thread_ref);
+transition_ref create_retain_thread_finish_transition(thread_ref);
 
 inline thread_ref proc(transition_refc ref) {
     return ref != NULL ? ref->thread : NULL;
