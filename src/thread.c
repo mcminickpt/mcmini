@@ -19,12 +19,16 @@ thread_create(pthread_t pthread) {
     thread->start_routine = NULL;
     thread->arg = NULL;
     thread->owner = pthread;
+    thread->global = false;
     return thread; // owner unspecified
 }
 
 thread_ref
 thread_copy(thread_refc other)
 {
+    if (!other) return NULL;
+    if (other->global) return (thread_ref)other;
+
     thread_ref thread = thread_alloc();
     if (!thread) return NULL;
     thread->is_alive = other->is_alive;
@@ -38,6 +42,7 @@ void
 thread_destroy(thread_ref thread)
 {
     if (!thread) return;
+    if (thread->global) return; // Not allocated
     free(thread);
 }
 

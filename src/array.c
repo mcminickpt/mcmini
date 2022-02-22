@@ -134,7 +134,7 @@ array_count(array_refc ref) {
 }
 
 static bool
-array_invalid_index(array_refc ref, int index) {
+array_invalid_index(array_refc ref, uint32_t index) {
     return index < 0 || index >= ref->count;
 }
 
@@ -170,7 +170,7 @@ array_is_empty(array_refc ref) {
  * if the reference is NULL or if the index is invalid
  */
 void*
-array_get(array_refc ref, int index) {
+array_get(array_refc ref, uint32_t index) {
     if (!ref || array_invalid_index(ref, index)) {
         errno = EINVAL;
         return NULL;
@@ -189,7 +189,7 @@ array_get_last(array_refc ref) {
 }
 
 void
-array_set(array_ref ref, int index, const void **data) {
+array_set(array_ref ref, uint32_t index, const void **data) {
     if (!ref || array_invalid_index(ref, index)) {
         errno = EINVAL;
         return;
@@ -200,7 +200,7 @@ array_set(array_ref ref, int index, const void **data) {
 }
 
 void
-array_swap(array_ref ref, int i1, int i2) {
+array_swap(array_ref ref, uint32_t i1, uint32_t i2) {
     if (!ref || array_invalid_index(ref, i1) || array_invalid_index(ref, i2)) {
         errno = EINVAL;
         return;
@@ -255,7 +255,7 @@ array_append_array(array_ref ref, array_refc other) {
 }
 
 void
-array_insert(array_ref ref, int index, const void *data) {
+array_insert(array_ref ref, uint32_t index, const void *data) {
     if (!ref || array_invalid_index(ref, index)) {
         errno = EINVAL;
         return;
@@ -265,7 +265,7 @@ array_insert(array_ref ref, int index, const void *data) {
     void *last = array_get_last(ref);
 
     // Swap all of the other elements
-    for (int i = index; i < ref->count - 1; i++) {
+    for (uint32_t i = index; i < ref->count - 1; i++) {
         array_set(ref, i + 1, array_get(ref, i));
     }
 
@@ -275,7 +275,7 @@ array_insert(array_ref ref, int index, const void *data) {
 }
 
 void*
-array_remove(array_ref ref, int index) {
+array_remove(array_ref ref, uint32_t index) {
     if (!ref || array_invalid_index(ref, index)) {
         errno = EINVAL;
         return NULL;
@@ -292,7 +292,7 @@ array_remove(array_ref ref, int index) {
     // __ __ __ __ _*_
     // Move the _*_ to the end and then remove that
     // element
-    for (int i = index; i < ref->count - 1; i++) {
+    for (uint32_t i = index; i < ref->count - 1; i++) {
         array_swap(ref, index, index + 1);
     }
 
@@ -372,6 +372,6 @@ array_for_each(array_refc ref, void(*each)(void*)) {
         return;
     }
     uint32_t count = array_count(ref);
-    for (int i = 0; i < count; i++)
+    for (uint32_t i = 0; i < count; i++)
         each(array_get(ref, i));
 }

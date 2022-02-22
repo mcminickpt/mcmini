@@ -11,7 +11,7 @@ STRUCT_DECL(hash_table_entry)
 struct hash_table_entry {
     bool valid;                /* Whether or not this hash entry is valid (only defined within bounds) */
     uint64_t key;              /* The identifier that is mapped by the hash function */
-    void * value;    /* The value associated with the paired key */
+    void * value;              /* The value associated with the paired key */
 };
 
 /* A hash table entry that represents the absence of an entry */
