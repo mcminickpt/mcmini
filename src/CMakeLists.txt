@@ -24,7 +24,7 @@ add_executable(DPOR
         transition.h
         visible_operation.c
         visible_operation.h
-        cooplock.c
-        cooplock.h
+        mc_shared_cv.c
+        mc_shared_cv.h
         shm.c
-        shm.h)
+        shm.h fail.c fail.h)

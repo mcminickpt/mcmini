@@ -1,7 +1,7 @@
 #ifndef DPOR_DPOR_H
 #define DPOR_DPOR_H
 
-#include "cooplock.h"
+#include "mc_shared_cv.h"
 #include "othread.h"
 #include "state_stack_item.h"
 #include "shm.h"
@@ -19,7 +19,7 @@ extern tid_t tid_next;
 extern state_stack_ref s_stack;
 extern transition_array_ref t_stack;
 extern thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE];
-extern coop_lock queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
+extern mc_shared_cv queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
 extern shm_transition_ref shm_child_result;
 
 /**

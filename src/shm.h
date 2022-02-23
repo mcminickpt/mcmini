@@ -5,12 +5,24 @@
 #include "visible_operation.h"
 #include "transition.h"
 
+STRUCT_DECL(shm_mutex_operation)
+struct shm_mutex_operation {
+    mutex_operation_type type;
+    mutex mutex;
+};
+
+STRUCT_DECL(shm_thread_operation)
+struct shm_thread_operation {
+    thread_operation_type type;
+    thread thread;
+};
+
 STRUCT_DECL(shm_visible_operation)
 struct shm_visible_operation {
     visible_operation_type type;
     union {
-        mutex_operation mutex_operation;
-        thread_operation thread_operation;
+        shm_mutex_operation mutex_operation;
+        shm_thread_operation thread_operation;
     };
 };
 

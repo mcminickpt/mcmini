@@ -29,8 +29,12 @@ f1:
 shared_state_ref
 shared_state_copy(shared_state_refc other) {
     if (!other) return NULL;
-
-    return NULL;
+    shared_state_ref cpy = shared_state_alloc();
+    if (!cpy) return NULL;
+    cpy->mutexes = array_deep_cpy(other->mutexes, mutex_copy);
+    cpy->transitions = array_deep_cpy(other->mutexes, transition_copy);
+    cpy->threads = array_deep_cpy(other->threads, thread_copy);
+    return cpy;
 }
 
 void
@@ -76,4 +80,30 @@ shared_state_create_enabled_transitions(shared_state_refc ref)
             array_append(array, transition_copy(get));
     }
     return array;
+}
+
+shared_state_ref
+next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
+{
+    if (!ss_ref || !t_executed || !t_next) return NULL;
+
+    shared_state_ref cpy = shared_state_copy(ss_ref);
+    switch (t_executed->operation->type) {
+        case MUTEX:;
+            mutex_operation_ref mutop = t_executed->operation->mutex_operation;
+
+            // Search for the mutexes to see if we already have this one
+            if (shared_state_has_mutex(mutop->mutex)) {
+
+            } else {
+                shared_state_add_mutex(mutop->mutex);
+            }
+
+        case THREAD_LIFECYCLE:;
+        default:
+            return NULL;
+    }
+
+    shared_state_update_next_transition(cpy, t_executed->thread, t_next);
+    return cpy;
 }

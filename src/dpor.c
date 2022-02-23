@@ -1,5 +1,6 @@
 #include "dpor.h"
-#include "cooplock.h"
+#include "mc_shared_cv.h"
+#include "fail.h"
 #include "shm.h"
 #include <assert.h>
 #include <fcntl.h>
@@ -24,7 +25,7 @@ transition_array_ref t_stack = NULL;
 
 tid_t tid_next = TID_MAIN_THREAD;
 thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE]; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
-coop_lock queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
+mc_shared_cv queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
 
 /* Resides in shared memory -> data child passes back to parent */
 shm_transition_ref shm_child_result;
@@ -47,7 +48,7 @@ dpor_init(void)
     // a way to communicate between the parent process and child
     // if we don't already have a shared memory semaphore
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
-        coop_lock_init(&queue[i]);
+        mc_shared_cv_init(&queue[i]);
     dpor_register_main_thread();
     bool is_child = dpor_spawn_child();
     if (is_child) {
@@ -150,11 +151,12 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         tid_t tid = t_top->thread->tid;
         dpor_run(tid);
 
-        // TODO: Implement this function
-        transition_ref newest_transition = convert_to_transition(shm_child_result);
-
-        // TODO: Update the state with the newest_transition
-        // s = next(s, t);
+        transition_ref newest_transition = create_transition_from_shm(shm_child_result);
+        state_stack_item_ref next_s_top = state_stack_item_alloc();
+        next_s_top->backtrack_set = array_create();
+        next_s_top->done_set = array_create();
+        next_s_top->state = next(s_top->state, t_top, newest_transition);
+        s_top = next_s_top;
 
         dynamically_update_backtrack_sets(s_top);
         t_top = shared_state_get_first_enabled_transition(s_top->state);
@@ -179,10 +181,14 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         // stacks; hence, "depth--;" is not sufficient
         depth = array_count(s_stack);
 
+        mc_assert(depth <= max_depth);
         if (!array_is_empty(s_top->backtrack_set)) {
             bool is_child = dpor_backtrack_main(s_top, max_depth - depth);
             if (is_child) { return true; }
         }
+
+        state_stack_item_destroy(s_top);
+        transition_destroy(t_top);
     }
 
     return false;
@@ -239,17 +245,17 @@ dpor_register_main_thread(void)
 static void
 dpor_run(tid_t tid)
 {
-    coop_lock_ref lock = &queue[tid];
-    coop_wake_thread(lock);
-    coop_wait_for_thread(lock);
+    mc_shared_cv_ref lock = &queue[tid];
+    mc_shared_cv_wake_thread(lock);
+    mc_shared_cv_wait_for_thread(lock);
 }
 
 void
 thread_await_dpor_scheduler(void)
 {
-    coop_lock_ref lock = &queue[thread_self];
-    coop_wake_scheduler(lock);
-    coop_wait_for_scheduler(lock);
+    mc_shared_cv_ref lock = &queue[thread_self];
+    mc_shared_cv_wake_scheduler(lock);
+    mc_shared_cv_wait_for_scheduler(lock);
 }
 
 static void

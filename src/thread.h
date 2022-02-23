@@ -10,7 +10,7 @@ typedef uint64_t tid_t;
 
 STRUCT_DECL(thread);
 struct thread {
-    tid_t tid; //
+    tid_t tid;
     pthread_t owner;
     void *arg;
     thread_routine start_routine;
@@ -20,7 +20,7 @@ struct thread {
 PRETTY_PRINT_DECL(thread);
 typedef array_ref thread_array_ref;
 
-hash_t thread_hash(thread_ref);
+//hash_t thread_hash(thread_ref);
 thread_ref thread_alloc(void);
 thread_ref thread_create(pthread_t);
 thread_ref thread_copy(thread_refc);
@@ -32,15 +32,11 @@ struct thread_operation {
     thread_operation_type type;
     thread_ref thread;
 };
+PRETTY_PRINT_DECL(thread_operation);
 
 thread_operation_ref thread_operation_alloc(void);
 thread_operation_ref thread_operation_copy(thread_operation_refc);
 void thread_operation_destroy(thread_operation_ref);
-
-/*
- * Other Memory Functions
- */
-//thread_ref thread_self(void);
 
 /*
  * Operations
