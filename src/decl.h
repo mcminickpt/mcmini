@@ -2,7 +2,6 @@
 #define DPOR_DECL_H
 
 #define thread_local __thread
-#define id void*
 
 #define STRUCT_DECL(type)             \
 typedef struct type type;           \
