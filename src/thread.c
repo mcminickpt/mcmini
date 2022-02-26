@@ -1,10 +1,10 @@
 #include "thread.h"
+#include "dpor.h"
 #include <stdio.h>
 
 MEMORY_ALLOC_DEF_DECL(thread);
 PRETTY_PRINT_DEF_DECL(thread);
 MEMORY_ALLOC_DEF_DECL(thread_operation);
-PRETTY_PRINT_DEF_DECL(thread_operation);
 
 thread_ref
 thread_create(pthread_t pthread) {
@@ -58,9 +58,9 @@ thread_operation_destroy(thread_operation_ref ref)
 void
 thread_pretty_off(thread_refc t, unsigned int off)
 {
-    space(off); printf("*** THREAD ***");
-    space(off); printf("tid: %lu, alive: %d", t->tid, t->is_alive);
-    space(off); printf("************");
+    space(off); printf("*** THREAD ***\n");
+    space(off); printf("tid: %lu, alive: %d\n", t->tid, t->is_alive);
+    space(off); printf("************\n");
 }
 
 bool
@@ -83,4 +83,11 @@ thread_operation_enabled(thread_operation_refc top, thread_refc thread)
         default:
             return true;
     }
+}
+
+thread_ref
+thread_get_self(void)
+{
+    if (thread_self == TID_INVALID) return NULL;
+    return &threads[thread_self];
 }

@@ -1,5 +1,6 @@
 #include "pthread_wrappers.h"
 #include "mutex.h"
+#include <stdio.h>
 
 int
 dpor_pthread_mutex_init(pthread_mutex_t *m, pthread_mutexattr_t *attr)
@@ -18,6 +19,7 @@ dpor_pthread_mutex_init(pthread_mutex_t *m, pthread_mutexattr_t *attr)
     to_parent.mutex_operation = init_mutex;
     shm_child_result->thread = *tself;
     shm_child_result->operation = to_parent;
+    printf("CHILD HIT THIS\n");
     thread_await_dpor_scheduler();
     return pthread_mutex_init(m, attr);
 }

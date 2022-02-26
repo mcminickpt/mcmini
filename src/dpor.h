@@ -2,13 +2,12 @@
 #define DPOR_DPOR_H
 
 #include "mc_shared_cv.h"
-#include "othread.h"
 #include "state_stack_item.h"
 #include "shm.h"
 #include "transition.h"
 
 #define MAX_TOTAL_THREADS_PER_SCHEDULE 10u
-#define MAX_VISIBLE_OPERATION_DEPTH 1000u
+#define MAX_VISIBLE_OPERATION_DEPTH 5u
 
 typedef uint64_t tid_t;
 #define TID_MAIN_THREAD (0ul)
@@ -19,7 +18,7 @@ extern tid_t tid_next;
 extern state_stack_ref s_stack;
 extern transition_array_ref t_stack;
 extern thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE];
-extern mc_shared_cv queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
+extern mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE];
 extern shm_transition_ref shm_child_result;
 
 /**
@@ -34,14 +33,8 @@ static bool dpor_spawn_child_following_transition_stack(void);
 static void dpor_child_exit(void);
 static void dpor_child_kill(void);
 static void dpor_run(tid_t tid);
+static void *dpor_init_shared_memory_region(void);
 void thread_await_dpor_scheduler(void);
-
-inline thread_ref
-thread_get_self(void)
-{
-    if (thread_self == TID_INVALID) return NULL;
-    return &threads[thread_self];
-}
 
 /* DPOR Functions */
 void dynamically_update_backtrack_sets(state_stack_item_ref);

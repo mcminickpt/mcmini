@@ -25,10 +25,15 @@ transition_array_ref t_stack = NULL;
 
 tid_t tid_next = TID_MAIN_THREAD;
 thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE]; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
-mc_shared_cv queue[MAX_TOTAL_THREADS_PER_SCHEDULE];
+
 
 /* Resides in shared memory -> data child passes back to parent */
-shm_transition_ref shm_child_result;
+
+void *shm_addr = NULL;
+shm_transition_ref shm_child_result = NULL;
+mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE] = NULL;
+
+const size_t allocation_size = sizeof(*shm_child_result) + MAX_TOTAL_THREADS_PER_SCHEDULE * sizeof(*queue);
 
 void dpor_sigusr1(int sig)
 {
@@ -41,6 +46,10 @@ dpor_init(void)
 {
     s_stack = array_create();
     t_stack = array_create();
+    shm_addr = dpor_init_shared_memory_region();
+
+    shm_child_result = shm_addr;
+    queue = shm_addr + sizeof(*shm_child_result);
 
     // We need to create the semaphores that are shared
     // across processes BEFORE the threads are created; otherwise
@@ -48,22 +57,58 @@ dpor_init(void)
     // a way to communicate between the parent process and child
     // if we don't already have a shared memory semaphore
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
-        mc_shared_cv_init(&queue[i]);
+        mc_shared_cv_init(&*queue[i]);
     dpor_register_main_thread();
-    bool is_child = dpor_spawn_child();
-    if (is_child) {
-        // The main thread waits until scheduled to run
-        // (i.e. the main thread is in the THREAD_START state)
-        thread_await_dpor_scheduler();
-    }
     atexit(&dpor_child_kill);
+    bool is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
 
-    is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
     if (is_child) {
+        shm_child_result = dpor_init_shared_memory_region();
+        printf("THREAD AWAIT\n");
+        thread_pretty(thread_get_self());
         thread_await_dpor_scheduler();
+        printf("THREAD AWAIT 2\n");
     } else { // Parent
         exit(0);
     }
+}
+
+static void*
+dpor_init_shared_memory_region(void)
+{
+    //  If the region exists, then this returns a fd for the existing region.
+    //  Otherwise, it creates a new shared memory region.
+    char dpor[100];
+    snprintf(dpor, sizeof(dpor), "/DPOR-%s", getenv("USER"));
+    // This creates a file in /dev/shm/
+    int fd = shm_open(dpor, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+    if (fd == -1) {
+        if (errno == EACCES) {
+            fprintf(stderr, "Shared memory region '%s' not owned by this process\n",
+                    dpor);
+        } else {
+            perror("shm_open");
+        }
+        exit(EXIT_FAILURE);
+    }
+    int rc = ftruncate(fd, allocation_size);
+    if (rc == -1) {
+        perror("ftruncate");
+        exit(EXIT_FAILURE);
+    }
+    // We want stack at same address for each process.  Otherwise, a pointer
+    //   to an address in the stack data structure will not work everywhere.
+    //   Hopefully, this address is not already used.
+    void *stack_address = (void *)0x4444000;
+    shm_transition_ref *shm_addr = mmap(stack_address, allocation_size,
+                       PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
+    if (shm_addr == MAP_FAILED) {
+        perror("mmap");
+        exit(EXIT_FAILURE);
+    }
+    // shm_unlink(dpor); // Don't unlink while child processes need to open this.
+    close(fd);
+    return shm_addr;
 }
 
 static bool /* */
@@ -126,7 +171,6 @@ dpor_backtrack_main(state_stack_item_ref ss_item, uint32_t max_depth)
 
     } while (depth++ < max_depth);
 
-
     return false;
 }
 
@@ -134,6 +178,9 @@ dpor_backtrack_main(state_stack_item_ref ss_item, uint32_t max_depth)
 static bool
 dpor_parent_scheduler_main(uint32_t max_depth)
 {
+    bool is_child = dpor_spawn_child();
+    if (is_child) return true;
+
     thread_ref main_thread = thread_get_self();
     state_stack_item_ref initial_stack_item = state_stack_item_create();
 
@@ -245,17 +292,17 @@ dpor_register_main_thread(void)
 static void
 dpor_run(tid_t tid)
 {
-    mc_shared_cv_ref lock = &queue[tid];
-    mc_shared_cv_wake_thread(lock);
-    mc_shared_cv_wait_for_thread(lock);
+    mc_shared_cv_ref cv = &queue[tid];
+    mc_shared_cv_wake_thread(cv);
+    mc_shared_cv_wait_for_thread(cv);
 }
 
 void
 thread_await_dpor_scheduler(void)
 {
-    mc_shared_cv_ref lock = &queue[thread_self];
-    mc_shared_cv_wake_scheduler(lock);
-    mc_shared_cv_wait_for_scheduler(lock);
+    mc_shared_cv_ref cv = &queue[thread_self];
+    mc_shared_cv_wake_scheduler(cv);
+    mc_shared_cv_wait_for_scheduler(cv);
 }
 
 static void

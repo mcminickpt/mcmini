@@ -1,5 +1,6 @@
 #include "pthread_wrappers.h"
 #include "dpor.h"
+#include <stdio.h>
 
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
@@ -22,7 +23,7 @@ main(int argc, const char **argv) {
     pthread_t helper;
 
     dpor_pthread_mutex_init(&mutex1, NULL);
-    dpor_pthread_mutex_init(&mutex2, NULL);
+//    dpor_pthread_mutex_init(&mutex2, NULL);
 //    dpor_pthread_create(&helper, NULL, &thread_helper_main, NULL);
 //
 //    dpor_pthread_mutex_lock(&mutex2);
@@ -32,6 +33,7 @@ main(int argc, const char **argv) {
 //
 //    dpor_pthread_join(&helper, NULL);
 
+    puts("Exit");
     return 0;
 }
 

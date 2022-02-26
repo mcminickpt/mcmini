@@ -64,13 +64,13 @@ create_retain_thread_transition(thread_ref thread, thread_operation_type type)
 }
 
 transition_ref
-create_thread_start_transition(thread_ref thread)
+create_retain_thread_start_transition(thread_ref thread)
 {
     return create_retain_thread_transition(thread, THREAD_START);
 }
 
 transition_ref
-create_thread_finish_transition(thread_ref thread)
+create_retain_thread_finish_transition(thread_ref thread)
 {
     return create_retain_thread_transition(thread, THREAD_FINISH);
 }

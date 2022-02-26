@@ -1,9 +1,11 @@
 #include "shared_state.h"
 #include "common.h"
 
+MEMORY_ALLOC_DEF_DECL(shared_state)
+
 shared_state_ref
 shared_state_create(void) {
-    shared_state_ref ref = malloc(sizeof(*ref));
+    shared_state_ref ref = shared_state_alloc();
     if (!ref) goto f1;
 
     if ((ref->threads = array_create()) == NULL)
@@ -92,12 +94,12 @@ next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
         case MUTEX:;
             mutex_operation_ref mutop = t_executed->operation->mutex_operation;
 
-            // Search for the mutexes to see if we already have this one
-            if (shared_state_has_mutex(mutop->mutex)) {
-
-            } else {
-                shared_state_add_mutex(mutop->mutex);
-            }
+//            // Search for the mutexes to see if we already have this one
+//            if (shared_state_has_mutex(mutop->mutex)) {
+//
+//            } else {
+//                shared_state_add_mutex(mutop->mutex);
+//            }
 
         case THREAD_LIFECYCLE:;
         default:

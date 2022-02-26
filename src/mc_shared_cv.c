@@ -5,7 +5,7 @@ void
 mc_shared_cv_init(mc_shared_cv_ref ref)
 {
     if (!ref) return;
-    sem_init(&ref->dpor_scheduler_sem, SEM_FLAG_SHARED, 1);
+    sem_init(&ref->dpor_scheduler_sem, SEM_FLAG_SHARED, 0);
     sem_init(&ref->pthread_sem, SEM_FLAG_SHARED, 0);
 }
 
