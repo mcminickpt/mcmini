@@ -316,7 +316,7 @@ array_remove_first(array_ref ref) {
 
 void*
 array_remove_last(array_ref ref) {
-    return array_remove(ref, (int)ref->count - 1);
+    return array_remove(ref, ref->count - 1);
 }
 
 array_ref

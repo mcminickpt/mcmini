@@ -27,6 +27,7 @@ extern shm_transition_ref shm_child_result;
 void dpor_init(void);
 tid_t dpor_register_thread(void);
 tid_t dpor_register_main_thread(void);
+static void dpor_sigusr1(int);
 static bool dpor_parent_scheduler_loop(uint32_t max_depth);
 static bool dpor_spawn_child(void);
 static bool dpor_spawn_child_following_transition_stack(void);

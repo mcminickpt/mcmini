@@ -34,7 +34,7 @@ shared_state_copy(shared_state_refc other) {
     shared_state_ref cpy = shared_state_alloc();
     if (!cpy) return NULL;
     cpy->mutexes = array_deep_cpy(other->mutexes, mutex_copy);
-    cpy->transitions = array_deep_cpy(other->mutexes, transition_copy);
+    cpy->transitions = array_deep_cpy(other->transitions, transition_copy);
     cpy->threads = array_deep_cpy(other->threads, thread_copy);
     return cpy;
 }
@@ -84,6 +84,19 @@ shared_state_create_enabled_transitions(shared_state_refc ref)
     return array;
 }
 
+bool
+shared_state_has_mutex(shared_state_ref state, mutex_refc mutex)
+{
+    if (!state || !mutex) return false;
+
+    uint32_t count = array_count(state->mutexes);
+    for (uint32_t i = 0; i < count; i++) {
+        mutex_ref mut = array_get(state->mutexes, i);
+        if (mutexes_equal(mut, mutex)) return true;
+    }
+    return false;
+}
+
 shared_state_ref
 next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
 {
@@ -94,18 +107,46 @@ next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
         case MUTEX:;
             mutex_operation_ref mutop = t_executed->operation->mutex_operation;
 
-//            // Search for the mutexes to see if we already have this one
-//            if (shared_state_has_mutex(mutop->mutex)) {
-//
-//            } else {
-//                shared_state_add_mutex(mutop->mutex);
-//            }
+            // Search for the mutexes to see if we already have this one
+            if (shared_state_has_mutex(cpy, mutop->mutex))
+                break;
+
+            // TODO: Write this in a separate function
+            switch (mutop->type) {
+                case MUTEX_INIT:;
+
+                mutex_ref mut = mutop->mutex;
+                mut->state = MUTEX_UNLOCKED;
+                mut->owner = NULL;
+
+                default:
+                    break;
+            }
+
+            break;
 
         case THREAD_LIFECYCLE:;
+            break;
         default:
             return NULL;
     }
 
-    shared_state_update_next_transition(cpy, t_executed->thread, t_next);
+    shared_state_update_next_transition_for_thread(cpy, t_executed->thread, t_next);
     return cpy;
+}
+
+void
+shared_state_update_next_transition_for_thread(shared_state_ref state, thread_ref thread, transition_ref transition)
+{
+    if (!state || !thread || !transition) return;
+
+    uint32_t transitions = array_count(state->transitions);
+    for (uint32_t i = 0; i < transitions; i++) {
+        transition_ref ti = array_get(state->transitions, i);
+
+        if (threads_equal(ti->thread, thread)) {
+            array_set(state->transitions, i, (const void**)&transition);
+            return;
+        }
+    }
 }

@@ -44,7 +44,11 @@ thread_destroy(thread_ref thread)
 thread_operation_ref
 thread_operation_copy(thread_operation_refc ref)
 {
-
+    if (!ref) return NULL;
+    thread_operation_ref cpy = thread_operation_alloc();
+    cpy->thread = thread_copy(ref->thread);
+    cpy->type = ref->type;
+    return cpy;
 }
 
 void
@@ -68,7 +72,7 @@ threads_equal(thread_refc t1, thread_refc t2)
 {
     if (t1 == NULL) return t2 == NULL;
     if (t2 == NULL) return t1 == NULL;
-    return pthread_equal(t1->owner, t2->owner);
+    return t1->tid == t2->tid; //pthread_equal(t1->owner, t2->owner);
 }
 
 bool

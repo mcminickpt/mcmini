@@ -17,6 +17,7 @@ MEMORY_API_DECL(state_stack_item);
 
 
 transition_ref state_stack_item_get_first_enabled_backtrack_transition(state_stack_item_refc);
-
+void state_stack_item_remove_backtrack_thread(state_stack_item_ref, thread_ref);
+void state_stack_item_mark_thread_as_searched(state_stack_item_ref, thread_ref);
 
 #endif //DPOR_STATE_STACK_ITEM_H

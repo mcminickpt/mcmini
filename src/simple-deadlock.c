@@ -23,7 +23,7 @@ main(int argc, const char **argv) {
     pthread_t helper;
 
     dpor_pthread_mutex_init(&mutex1, NULL);
-//    dpor_pthread_mutex_init(&mutex2, NULL);
+    dpor_pthread_mutex_init(&mutex2, NULL);
 //    dpor_pthread_create(&helper, NULL, &thread_helper_main, NULL);
 //
 //    dpor_pthread_mutex_lock(&mutex2);

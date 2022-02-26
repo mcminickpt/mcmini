@@ -51,6 +51,8 @@ dpor_init(void)
     shm_child_result = shm_addr;
     queue = shm_addr + sizeof(*shm_child_result);
 
+    signal(SIGUSR1, &dpor_sigusr1);
+
     // We need to create the semaphores that are shared
     // across processes BEFORE the threads are created; otherwise
     // when we find new threads in the child process, we won't have
@@ -114,7 +116,10 @@ dpor_init_shared_memory_region(void)
 static bool /* */
 dpor_spawn_child(void)
 {
-    // TODO: Ensure that a child does not already exist
+    // Ensure that a child does not already exist
+    // to prevent fork bombing
+    mc_assert(cpid == -1);
+
     pid_t childpid;
     if ( (childpid = fork()) < 0) {
         perror("fork");
@@ -144,13 +149,15 @@ dpor_backtrack_main(state_stack_item_ref ss_item, uint32_t max_depth)
 
     uint32_t depth = 0;
     state_stack_item_ref s_top = ss_item;
-
-    // TODO: Pick a transition from the backtrack set
-    transition_ref t_top; // t = t in ss_item->state enabled transitions & t.tid in backtrack set
-
-    // TODO: Remove t.tid from the backtrack set
-
-    // TODO: Add t.tid to the done set
+    transition_ref t_top = state_stack_item_get_first_enabled_backtrack_transition(ss_item);
+    if (t_top == NULL) {
+        // TODO: We've hit a deadlock. There are no enabled
+        // transitions at this point and we should print that
+        printf("DEADLOCK\n");
+        abort();
+    }
+    state_stack_item_remove_backtrack_thread(ss_item, t_top->thread);
+    state_stack_item_mark_thread_as_searched(ss_item, t_top->thread);
 
     do {
         array_append(s_stack, s_top);
@@ -158,17 +165,17 @@ dpor_backtrack_main(state_stack_item_ref ss_item, uint32_t max_depth)
         dpor_run(t_top->thread->tid);
 
         transition_ref new_transition = create_transition_from_shm(shm_child_result);
-
-        // TODO: s_top = next(s_top, t_top) + add new_transition to to the s_top->state->transitions
-        // Roughly
-        // s_top = next(s_top, t_top)
-        // s_top->state->transitions <--- add new_transition here and get rid of old one by this thread
+        {
+            state_stack_item_ref new_s_top = state_stack_item_alloc();
+            shared_state_ref new_s = next(s_top->state, t_top, new_transition);
+            new_s_top->state = new_s;
+            new_s_top->backtrack_set = array_create();
+            new_s_top->done_set = array_create();
+            s_top = new_s_top;
+        }
 
         dynamically_update_backtrack_sets(s_top);
-
-        // TODO: Choose a new enabled transition to run next
-        // t =
-
+        t_top = shared_state_get_first_enabled_transition(s_top->state);
     } while (depth++ < max_depth);
 
     return false;
@@ -186,12 +193,13 @@ dpor_parent_scheduler_main(uint32_t max_depth)
 
     transition_ref main_thread_transition = create_retain_thread_start_transition(main_thread);
     array_append(initial_stack_item->state->transitions, main_thread_transition);
+    array_append(initial_stack_item->state->threads, main_thread);
 
     uint32_t depth = 0;
     state_stack_item_ref s_top = initial_stack_item;
     transition_ref t_top = main_thread_transition;
 
-    while (depth++ <= max_depth) {
+    while (++depth <= max_depth) {
         array_append(s_stack, s_top);
         array_append(t_stack, t_top);
 
@@ -244,8 +252,8 @@ dpor_parent_scheduler_main(uint32_t max_depth)
 static bool
 dpor_parent_scheduler_loop(uint32_t max_depth)
 {
-    for (uint32_t i = 0; i < max_depth; i++)
-        if (dpor_parent_scheduler_main(max_depth)) // True for the child so it can escape to the main routine
+    for (uint32_t i = 1; i < max_depth; i++)
+        if (dpor_parent_scheduler_main(i)) // True for the child so it can escape to the main routine
             return true;
     return false;
 }
@@ -260,6 +268,10 @@ dpor_spawn_child_following_transition_stack(void)
     if (!is_child) {
         uint32_t count = array_count(t_stack);
         for (uint32_t i = 0; i < count; i++) {
+            // NOTE: This is reliant on the fact
+            // that threads are created in the same order
+            // when we create them. This will always be consistent,
+            // but we might need to look out for when a thread dies
             transition_ref t = array_get(t_stack, i);
             dpor_run(t->thread->tid);
         }
@@ -308,6 +320,7 @@ thread_await_dpor_scheduler(void)
 static void
 dpor_child_exit(void)
 {
+    printf("CHILD EXITED\n");
     exit(0);
 }
 
@@ -320,7 +333,10 @@ latest_dependent_coenabled_transition_index(transition_ref transition)
     if (array_is_empty(t_stack)) return -1;
 
     uint32_t transition_stack_size = array_count(t_stack);
-    for (uint32_t i = transition_stack_size - 1; i >= 0; i--) {
+
+    // NOTE: The second condition for the loop is due to unsigned integer
+    // wrapped (defined behavior)
+    for (uint32_t i = transition_stack_size - 1; i >= 0 && i < transition_stack_size; i--) {
         transition_ref transition_i = array_get(t_stack, i);
         if (transitions_dependent(transition_i, transition) && transitions_coenabled(transition_i, transition)) {
             return (int)i;
