@@ -27,17 +27,20 @@ extern shm_transition_ref shm_child_result;
 void dpor_init(void);
 tid_t dpor_register_thread(void);
 tid_t dpor_register_main_thread(void);
-static void dpor_sigusr1(int);
+
+static void dpor_sigusr2(int);
 static bool dpor_parent_scheduler_loop(uint32_t max_depth);
 static bool dpor_spawn_child(void);
 static bool dpor_spawn_child_following_transition_stack(void);
 static void dpor_child_exit(void);
 static void dpor_child_kill(void);
 static void dpor_run(tid_t tid);
-static void *dpor_init_shared_memory_region(void);
-void thread_await_dpor_scheduler(void);
+static void *dpor_create_shared_memory_region(void);
+static void dpor_initialize_shared_memory_region(void);
+static void dpor_reset_cv_locks(void);
 
-/* DPOR Functions */
+void thread_await_dpor_scheduler(void);
+void thread_await_dpor_scheduler_initialization(void);
 void dynamically_update_backtrack_sets(state_stack_item_ref);
 
 #endif //DPOR_DPOR_H

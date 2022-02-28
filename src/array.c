@@ -301,7 +301,6 @@ array_remove(array_ref ref, uint32_t index) {
     // is left for later)
     uint32_t last_index = ref->count - 1;
     void *removed = array_get(ref, last_index);
-    array_set(ref, last_index, NULL);
 
     // Mark as invalid
     ref->count--;

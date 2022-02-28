@@ -1,5 +1,6 @@
 #include "mc_shared_cv.h"
 #include "common.h"
+#include <stdio.h>
 
 void
 mc_shared_cv_init(mc_shared_cv_ref ref)
@@ -21,24 +22,32 @@ void
 mc_shared_cv_wait_for_thread(mc_shared_cv_ref ref)
 {
     // The scheduler calls this
+    puts("Wait for thread");
     sem_wait(&ref->dpor_scheduler_sem);
+    puts("Wait for thread over");
 }
 
 void
 mc_shared_cv_wait_for_scheduler(mc_shared_cv_ref ref)
 {
     // Threads call this; hence they wait on their own semaphore
+    puts("Wait for scheduler");
     sem_wait(&ref->pthread_sem);
+    puts("Wait for scheduler over");
 }
 
 void
 mc_shared_cv_wake_thread(mc_shared_cv_ref ref)
 {
+    puts("Wake thread");
     sem_post(&ref->pthread_sem);
+    puts("Wake thread over");
 }
 
 void
 mc_shared_cv_wake_scheduler(mc_shared_cv_ref ref)
 {
+    puts("Wake scheduler");
     sem_post(&ref->dpor_scheduler_sem);
+    puts("Wake scheduler over");
 }

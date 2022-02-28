@@ -42,6 +42,7 @@ void thread_operation_destroy(thread_operation_ref);
  * Operations
  */
 thread_ref thread_get_self(void);
+thread_ref thread_get_main_thread(void);
 bool threads_equal(thread_refc, thread_refc);
 bool thread_operation_spawns_thread(thread_refc, thread_operation_refc);
 bool thread_operation_joins_thread(thread_refc, thread_operation_refc);

@@ -95,3 +95,9 @@ thread_get_self(void)
     if (thread_self == TID_INVALID) return NULL;
     return &threads[thread_self];
 }
+
+inline thread_ref
+thread_get_main_thread(void)
+{
+    return &threads[TID_MAIN_THREAD];
+}

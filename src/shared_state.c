@@ -97,6 +97,16 @@ shared_state_has_mutex(shared_state_ref state, mutex_refc mutex)
     return false;
 }
 
+void
+shared_state_add_mutex(shared_state_ref state, mutex_refc mutex)
+{
+    if (!state || !mutex) return;
+
+    // TODO: Watch out for when this is NULL (out of memory)
+    mutex_ref cpy = mutex_copy(mutex);
+    array_append(state->mutexes, cpy);
+}
+
 shared_state_ref
 next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
 {
@@ -118,6 +128,8 @@ next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
                 mutex_ref mut = mutop->mutex;
                 mut->state = MUTEX_UNLOCKED;
                 mut->owner = NULL;
+
+                shared_state_add_mutex(cpy, mut);
 
                 default:
                     break;

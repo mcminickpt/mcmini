@@ -24,10 +24,10 @@ state_stack_ref s_stack = NULL;
 transition_array_ref t_stack = NULL;
 
 tid_t tid_next = TID_MAIN_THREAD;
-thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE]; /* MAX_TOTAL_THREADS_PER_SCHEDULE size */
-
+thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE];
 
 /* Resides in shared memory -> data child passes back to parent */
+/* The shared semaphores must also reside in shared memory as per the man page */
 
 void *shm_addr = NULL;
 shm_transition_ref shm_child_result = NULL;
@@ -35,7 +35,7 @@ mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE] = NULL;
 
 const size_t allocation_size = sizeof(*shm_child_result) + MAX_TOTAL_THREADS_PER_SCHEDULE * sizeof(*queue);
 
-void dpor_sigusr1(int sig)
+void dpor_sigusr2(int sig)
 {
     dpor_child_exit();
 }
@@ -46,37 +46,47 @@ dpor_init(void)
 {
     s_stack = array_create();
     t_stack = array_create();
-    shm_addr = dpor_init_shared_memory_region();
+    dpor_initialize_shared_memory_region();
 
-    shm_child_result = shm_addr;
-    queue = shm_addr + sizeof(*shm_child_result);
-
-    signal(SIGUSR1, &dpor_sigusr1);
+    // XPC between parent (scheduler) and child (the program)
+//    int h = signal(SIG, &dpor_sigusr2);
+    atexit(&dpor_child_kill);
 
     // We need to create the semaphores that are shared
     // across processes BEFORE the threads are created; otherwise
     // when we find new threads in the child process, we won't have
     // a way to communicate between the parent process and child
-    // if we don't already have a shared memory semaphore
+    // if we don't already have a semaphore in shared memory
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
         mc_shared_cv_init(&*queue[i]);
-    dpor_register_main_thread();
-    atexit(&dpor_child_kill);
-    bool is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
 
+    dpor_register_main_thread();
+
+    bool is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
     if (is_child) {
-        shm_child_result = dpor_init_shared_memory_region();
-        printf("THREAD AWAIT\n");
-        thread_pretty(thread_get_self());
-        thread_await_dpor_scheduler();
-        printf("THREAD AWAIT 2\n");
+
+        // NOTE: Since this is a fork of the parent, we need
+        // only map the shared memory and don't have
+        // to re-point `shm_child_result` and `queue` to the appropriate
+        // locations (since this was already done above)
+        dpor_initialize_shared_memory_region();
+        puts("ABOUT TO START");
+        thread_await_dpor_scheduler_initialization();
     } else { // Parent
         exit(0);
     }
 }
 
+static void
+dpor_initialize_shared_memory_region()
+{
+    shm_addr = dpor_create_shared_memory_region();
+    shm_child_result = shm_addr;
+    queue = shm_addr + sizeof(*shm_child_result);
+}
+
 static void*
-dpor_init_shared_memory_region(void)
+dpor_create_shared_memory_region(void)
 {
     //  If the region exists, then this returns a fd for the existing region.
     //  Otherwise, it creates a new shared memory region.
@@ -109,8 +119,18 @@ dpor_init_shared_memory_region(void)
         exit(EXIT_FAILURE);
     }
     // shm_unlink(dpor); // Don't unlink while child processes need to open this.
+    fsync(fd);
     close(fd);
     return shm_addr;
+}
+
+static void
+dpor_reset_cv_locks(void)
+{
+    for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++) {
+        mc_shared_cv_destroy(&*queue[i]);
+        mc_shared_cv_init(&*queue[i]);
+    }
 }
 
 static bool /* */
@@ -130,6 +150,7 @@ dpor_spawn_child(void)
     if (FORK_IS_CHILD_PID(childpid)) {
         return true; /* true signifies the child */
     }
+    printf("CHILD SPAWNED %d\n", (int)cpid);
     return false;
 }
 
@@ -137,7 +158,8 @@ static void
 dpor_child_kill(void)
 {
     if (cpid == -1) return; // No child
-    int r = kill(cpid, SIGUSR1);
+    printf("CHILD KILLED %d\n", (int)cpid);
+    int r = kill(cpid, SIGSTOP);
     cpid = -1;
 }
 
@@ -185,6 +207,11 @@ dpor_backtrack_main(state_stack_item_ref ss_item, uint32_t max_depth)
 static bool
 dpor_parent_scheduler_main(uint32_t max_depth)
 {
+    // Reset semaphore values
+    puts("RESET CV LOCKS");
+    dpor_reset_cv_locks();
+    puts("RESET CV LOCKS DONE");
+
     bool is_child = dpor_spawn_child();
     if (is_child) return true;
 
@@ -204,9 +231,10 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         array_append(t_stack, t_top);
 
         tid_t tid = t_top->thread->tid;
-        dpor_run(tid);
 
+        dpor_run(tid);
         transition_ref newest_transition = create_transition_from_shm(shm_child_result);
+
         state_stack_item_ref next_s_top = state_stack_item_alloc();
         next_s_top->backtrack_set = array_create();
         next_s_top->done_set = array_create();
@@ -241,7 +269,6 @@ dpor_parent_scheduler_main(uint32_t max_depth)
             bool is_child = dpor_backtrack_main(s_top, max_depth - depth);
             if (is_child) { return true; }
         }
-
         state_stack_item_destroy(s_top);
         transition_destroy(t_top);
     }
@@ -309,6 +336,9 @@ dpor_run(tid_t tid)
     mc_shared_cv_wait_for_thread(cv);
 }
 
+// NOTE: Assumes that the parent process
+// is asleep (called dpor_run); the behavior
+// is undefined otherwise
 void
 thread_await_dpor_scheduler(void)
 {
@@ -317,10 +347,25 @@ thread_await_dpor_scheduler(void)
     mc_shared_cv_wait_for_scheduler(cv);
 }
 
+// NOTE: This should only be called in one location:
+// When the scheduler starts, there is an initial
+// race condition between the child process and the
+// parent process with `thread_await_dpor_scheduler`. `thread_await_dpor_scheduler` assumes
+// the the scheduler (parent) process is asleep; but upon
+// initialization this is not true. Hence, this method is
+// invoked instead
+void
+thread_await_dpor_scheduler_initialization(void)
+{
+    mc_shared_cv_ref cv = &queue[thread_self];
+    mc_shared_cv_wait_for_scheduler(cv);
+}
+
+
 static void
 dpor_child_exit(void)
 {
-    printf("CHILD EXITED\n");
+    printf("CHILD EXITED %d\n", (int)getpid());
     exit(0);
 }
 

@@ -5,6 +5,6 @@ add_subdirectory(lib)
 include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
 
 # Add test C++ files here
-add_executable(DPOR_Tests_Run array_tests.cpp ../src/array.c)
+add_executable(DPOR_Tests_Run array_tests.cpp ../src/array.c test_common.h)
 target_link_libraries(DPOR_Tests_Run gtest gtest_main)
 

@@ -18,7 +18,7 @@ create_transition_from_shm(shm_transition_ref shm_ref)
         case MUTEX:;
             mutex_operation_ref mutop = mutex_operation_alloc();
             shm_mutex_operation_ref shmmop = &shm_ref->operation.mutex_operation;
-            mutop->mutex = mutex_create(shmmop->mutex.mutex);
+            mutop->mutex = mutex_copy(&shmmop->mutex);
             mutop->type = shmmop->type;
             vop->type = MUTEX;
             vop->mutex_operation = mutop;
