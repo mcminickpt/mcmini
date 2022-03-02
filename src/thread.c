@@ -14,7 +14,6 @@ thread_create(pthread_t pthread) {
     thread->start_routine = NULL;
     thread->arg = NULL;
     thread->owner = pthread;
-    thread->global = false;
     return thread; // owner unspecified
 }
 
@@ -22,7 +21,6 @@ thread_ref
 thread_copy(thread_refc other)
 {
     if (!other) return NULL;
-    if (other->global) return (thread_ref)other;
 
     thread_ref thread = thread_alloc();
     if (!thread) return NULL;
@@ -37,7 +35,6 @@ void
 thread_destroy(thread_ref thread)
 {
     if (!thread) return;
-    if (thread->global) return; // Not allocated
     free(thread);
 }
 
@@ -89,15 +86,14 @@ thread_operation_enabled(thread_operation_refc top, thread_refc thread)
     }
 }
 
-thread_ref
+inline thread_ref
 thread_get_self(void)
 {
-    if (thread_self == TID_INVALID) return NULL;
-    return &threads[thread_self];
+    return csystem_get_thread(&csystem, thread_self);
 }
 
 inline thread_ref
 thread_get_main_thread(void)
 {
-    return &threads[TID_MAIN_THREAD];
+    return csystem_get_thread(&csystem, TID_MAIN_THREAD);
 }

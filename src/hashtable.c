@@ -1,7 +1,5 @@
 #include "hashtable.h"
 
-#include "hashtable.h"
-
 STRUCT_DECL(hash_table_entry)
 
 /**
@@ -25,6 +23,7 @@ struct hash_table {
     size_t count;                /* The number of occupied entries in the hash table */
     size_t len;                  /* The length, in bytes, of the hash table */
     hash_table_entry *base;      /* The base address of the hash table's contents */
+    hash_function hasher; /* A function to apply automatically to */
 };
 
 /**
@@ -118,13 +117,6 @@ hash_table_map_key(hash_table_ref ref, uint64_t key) {
     return hash_value % num_entries;
 }
 
-/**
- *
- *
- * @param ref
- * @param old_base
- * @param entries
- */
 static void
 hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base) {
     if (!ref || !ref->base) {
@@ -144,11 +136,6 @@ hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base) {
     }
 }
 
-/**
- *
- *
- * @param ref
- */
 static void
 hash_table_unforced_grow(hash_table_ref ref) {
     if (!ref) {
@@ -185,13 +172,6 @@ hash_table_unforced_grow(hash_table_ref ref) {
     }
 }
 
-/**
- *
- *
- * @param ref
- * @param key
- * @return
- */
 static uint64_t
 hash_table_probe_get(hash_table_ref ref, uint64_t key) {
     if (!ref) {
@@ -241,14 +221,8 @@ hash_table_probe_set(hash_table_ref ref, uint64_t key, bool *replace) {
     return best_match;
 }
 
-/**
- *
- *
- * @param ref
- * @return
- */
-int
-hash_table_size(hash_table_ref ref) {
+size_t
+hash_table_count(hash_table_ref ref) {
     if (!ref) {
         errno = EINVAL;
         return -1;
@@ -257,13 +231,6 @@ hash_table_size(hash_table_ref ref) {
     return ref->count;
 }
 
-/**
- *
- *
- * @param ref
- * @param key
- * @return
- */
 void*
 hash_table_get(hash_table_ref ref, uint64_t key) {
     if (!ref || !ref->base) {
@@ -276,6 +243,12 @@ hash_table_get(hash_table_ref ref, uint64_t key) {
         return NULL;
 
     return ref->base[dest].value;
+}
+
+void*
+hash_table_get_implicit(hash_table_ref ref, void *key) {
+    if (!ref) return NULL;
+    return hash_table_get(ref, ref->hasher(key));
 }
 
 void
@@ -293,6 +266,25 @@ hash_table_set(hash_table_ref ref, uint64_t key, void *value) {
     replace ? (void)0 : ref->count++;
 }
 
+void
+hash_table_set_implicit(hash_table_ref ref, void* key, void *value) {
+    if (!ref) {
+        errno = EINVAL;
+        return;
+    }
+    hash_table_set(ref, ref->hasher(key), value);
+}
+
+void
+hash_table_set_hash_function(hash_table_ref ref, hash_function hfunc)
+{
+    if (!ref) {
+        errno = EINVAL;
+        return;
+    }
+    ref->hasher = hfunc;
+}
+
 void*
 hash_table_remove(hash_table_ref ref, uint64_t key) {
     if (!ref || !ref->base) {
@@ -303,4 +295,14 @@ hash_table_remove(hash_table_ref ref, uint64_t key) {
     uint64_t index = hash_table_map_key(ref, key);
     ref->base[index] = hash_table_invalid_entry;
     ref->count--;
+}
+
+void *
+hash_table_remove_implicit(hash_table_ref ref, void* value)
+{
+    if (!ref || !ref->base) {
+        errno = EINVAL;
+        return NULL;
+    }
+    hash_table_remove(ref, ref->hasher(value));
 }

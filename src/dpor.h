@@ -1,23 +1,18 @@
 #ifndef DPOR_DPOR_H
 #define DPOR_DPOR_H
 
+#include "common.h"
 #include "mc_shared_cv.h"
 #include "state_stack_item.h"
 #include "shm.h"
+#include "concurrent_system.h"
+#include "hashtable.h"
 #include "transition.h"
 
-#define MAX_TOTAL_THREADS_PER_SCHEDULE 10u
-#define MAX_VISIBLE_OPERATION_DEPTH 5u
-
-typedef uint64_t tid_t;
-#define TID_MAIN_THREAD (0ul)
-#define TID_INVALID (-1ul) // ULONG_MAX
-
-extern thread_local tid_t thread_self;
-extern tid_t tid_next;
 extern state_stack_ref s_stack;
-extern transition_array_ref t_stack;
-extern thread threads[MAX_TOTAL_THREADS_PER_SCHEDULE];
+extern transition_stack_ref t_stack;
+extern concurrent_system csystem;
+
 extern mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE];
 extern shm_transition_ref shm_child_result;
 
@@ -25,10 +20,7 @@ extern shm_transition_ref shm_child_result;
  * Operations
  */
 void dpor_init(void);
-tid_t dpor_register_thread(void);
-tid_t dpor_register_main_thread(void);
 
-static void dpor_sigusr2(int);
 static bool dpor_parent_scheduler_loop(uint32_t max_depth);
 static bool dpor_spawn_child(void);
 static bool dpor_spawn_child_following_transition_stack(void);

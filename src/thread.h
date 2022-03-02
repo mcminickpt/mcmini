@@ -12,15 +12,13 @@ STRUCT_DECL(thread);
 struct thread {
     tid_t tid;
     pthread_t owner;
-    void *arg;
+    void * volatile arg;
     thread_routine start_routine;
     volatile bool is_alive;
-    volatile bool global;
 };
 PRETTY_PRINT_DECL(thread);
 typedef array_ref thread_array_ref;
 
-//hash_t thread_hash(thread_ref);
 thread_ref thread_alloc(void);
 thread_ref thread_create(pthread_t);
 thread_ref thread_copy(thread_refc);

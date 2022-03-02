@@ -44,12 +44,13 @@ void dpor_sigusr2(int sig)
 void
 dpor_init(void)
 {
+    csystem_init(&csystem);
     s_stack = array_create();
     t_stack = array_create();
+
     dpor_initialize_shared_memory_region();
 
     // XPC between parent (scheduler) and child (the program)
-//    int h = signal(SIG, &dpor_sigusr2);
     atexit(&dpor_child_kill);
 
     // We need to create the semaphores that are shared
@@ -60,7 +61,7 @@ dpor_init(void)
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
         mc_shared_cv_init(&*queue[i]);
 
-    dpor_register_main_thread();
+    csystem_register_main_thread(&csystem);
 
     bool is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
     if (is_child) {
@@ -305,27 +306,6 @@ dpor_spawn_child_following_transition_stack(void)
     }
 
     return is_child;
-}
-
-tid_t
-dpor_register_thread(void)
-{
-    tid_t self = tid_next++;
-    thread_self = self;
-    thread_ref tself = &threads[self];
-    tself->owner = pthread_self();
-    tself->tid = self;
-    tself->is_alive = true;
-    tself->global = true;
-    return self;
-}
-
-inline tid_t
-dpor_register_main_thread(void)
-{
-    tid_t main = dpor_register_thread();
-    assert(main == TID_MAIN_THREAD);
-    return main;
 }
 
 static void
