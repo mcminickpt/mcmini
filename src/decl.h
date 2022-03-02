@@ -30,6 +30,9 @@ inline type##_ref type##_alloc(void) {\
 void type##_pretty(type##_refc); \
 void type##_pretty_off(type##_refc, unsigned int off);
 
+#define TRANSITION_DESCRIPTION_DECL(type) \
+char *type##_transition_description(type##_refc);
+
 #define PRETTY_PRINT_DEF_DECL(type) \
 inline void type##_pretty(type##_refc ref) {   \
     type##_pretty_off(ref, 0u);          \

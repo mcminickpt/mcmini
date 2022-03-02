@@ -1,4 +1,5 @@
 #include "mutex.h"
+#include <stdio.h>
 
 mutex_ref mutex_alloc(void);
 MEMORY_ALLOC_DEF_DECL(mutex);
@@ -101,4 +102,25 @@ mutex_operations_coenabled(mutex_operation_refc op1, mutex_operation_refc op2)
         return !mutexes_equal(op1->mutex, op2->mutex);
 
     return true;
+}
+
+char*
+mutex_operation_transition_description(mutex_operation_refc mop)
+{
+    if (!mop) return NULL;
+
+    size_t sz;
+    char *description;
+
+    switch (mop->type) {
+        case MUTEX_LOCK:;
+
+            char *description = malloc(sz);
+            snprintf(description, sz, "pthread_mutex_lock(%p)", mop->mutex->mutex);
+
+            break;
+        default:
+            return NULL;
+    }
+    return description;
 }

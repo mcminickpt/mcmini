@@ -12,6 +12,7 @@ STATES_DECL(mutex, MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN);
 
 STRUCT_DECL(mutex_operation);
 TYPES_DECL(mutex_operation, MUTEX_INIT, MUTEX_LOCK, MUTEX_UNLOCK, MUTEX_DESTROY);
+TRANSITION_DESCRIPTION_DECL(mutex_operation);
 
 struct mutex {
     mutex_state state;
