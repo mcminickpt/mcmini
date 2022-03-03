@@ -37,7 +37,12 @@ dpor_post_mutex_operation_to_parent(pthread_mutex_t *m, mutex_operation_type typ
 int
 dpor_pthread_mutex_init(pthread_mutex_t *m, pthread_mutexattr_t *attr)
 {
-    dpor_post_mutex_operation_to_parent(m, MUTEX_INIT, MUTEX_UNLOCKED);
+    mutex_state state = MUTEX_UNKNOWN;
+    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
+    if (shadow) {
+        state = shadow->state;
+    }
+    dpor_post_mutex_operation_to_parent(m, MUTEX_INIT, state);
     thread_await_dpor_scheduler();
     return pthread_mutex_init(m, attr);
 }
@@ -45,7 +50,15 @@ dpor_pthread_mutex_init(pthread_mutex_t *m, pthread_mutexattr_t *attr)
 int
 dpor_pthread_mutex_lock(pthread_mutex_t *m)
 {
-    dpor_post_mutex_operation_to_parent(m, MUTEX_LOCK, MUTEX_LOCKED);
+    mutex_state state = MUTEX_UNKNOWN;
+    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
+    if (shadow) {
+        state = shadow->state;
+    } else {
+        // TODO: Report undefined behavior -> locking unitialized mutex
+        mc_report_undefined_behavior();
+    }
+    dpor_post_mutex_operation_to_parent(m, MUTEX_LOCK, state);
     thread_await_dpor_scheduler();
     return pthread_mutex_lock(m);
 }

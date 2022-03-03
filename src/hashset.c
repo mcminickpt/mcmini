@@ -21,9 +21,12 @@ hash_set_create(hash_function hfunc)
 }
 
 hash_set_ref
-hash_set_copy(hash_function)
+hash_set_copy(hash_set other)
 {
-
+    hash_set_ref hset = hash_set_alloc();
+    if (!hset) return NULL;
+    hset->storage = hash_table_copy(other.storage);
+    return hset;
 }
 
 void
@@ -48,7 +51,7 @@ hash_set_insert(hash_set_ref ref, void *value)
 
     bool contained = hash_set_contains(ref, value);
     if (contained) {
-        hash_table_set_implicit(ref->storage, value);
+        hash_table_set_implicit(ref->storage, value, HASH_SET_UNUSED_ENTRY_VALUE);
         return true;
     }
     return false;

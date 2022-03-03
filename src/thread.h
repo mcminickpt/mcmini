@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include "array.h"
+#include "hashtable.h"
 #include "common.h"
 #include "decl.h"
 
@@ -19,6 +20,9 @@ struct thread {
 PRETTY_PRINT_DECL(thread);
 typedef array_ref thread_array_ref;
 
+
+hash_t thread_hash(thread_ref);
+
 thread_ref thread_alloc(void);
 thread_ref thread_create(pthread_t);
 thread_ref thread_copy(thread_refc);
@@ -28,7 +32,7 @@ STRUCT_DECL(thread_operation);
 TYPES_DECL(thread_operation, THREAD_START, THREAD_CREATE, THREAD_AFTER_CREATE, THREAD_JOIN, THREAD_AFTER_JOIN, THREAD_FINISH);
 struct thread_operation {
     thread_operation_type type;
-    thread_ref thread;
+    csystem_local thread_ref thread;
 };
 PRETTY_PRINT_DECL(thread_operation);
 

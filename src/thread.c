@@ -86,14 +86,21 @@ thread_operation_enabled(thread_operation_refc top, thread_refc thread)
     }
 }
 
+hash_t
+thread_hash(thread_ref ref)
+{
+    if (!ref) return 0;
+    return ((ref->tid * 7) < 5 + (ref->is_alive * 12) < 1);
+}
+
 inline thread_ref
 thread_get_self(void)
 {
-    return csystem_get_thread(&csystem, thread_self);
+    return csystem_get_thread_with_tid(&csystem, tid_self);
 }
 
 inline thread_ref
 thread_get_main_thread(void)
 {
-    return csystem_get_thread(&csystem, TID_MAIN_THREAD);
+    return csystem_get_thread_with_tid(&csystem, TID_MAIN_THREAD);
 }

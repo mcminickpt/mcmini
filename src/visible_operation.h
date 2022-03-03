@@ -11,8 +11,8 @@ TYPES_DECL(visible_operation, SEMAPHORE, MUTEX, GLOBAL_ACCESS, THREAD_LIFECYCLE)
 struct visible_operation {
     visible_operation_type type;
     union {
-        mutex_operation_ref mutex_operation;
-        thread_operation_ref thread_operation;
+        mutex_operation mutex_operation;
+        thread_operation thread_operation;
     };
 };
 

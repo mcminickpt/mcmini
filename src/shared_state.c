@@ -28,25 +28,25 @@ f1:
     return NULL;
 }
 
-shared_state_ref
-shared_state_copy(shared_state_refc other) {
-    if (!other) return NULL;
-    shared_state_ref cpy = shared_state_alloc();
-    if (!cpy) return NULL;
-    cpy->mutexes = array_deep_cpy(other->mutexes, mutex_copy);
-    cpy->transitions = array_deep_cpy(other->transitions, transition_copy);
-    cpy->threads = array_deep_cpy(other->threads, thread_copy);
-    return cpy;
-}
+//shared_state_ref
+//shared_state_copy(shared_state_refc other) {
+//    if (!other) return NULL;
+//    shared_state_ref cpy = shared_state_alloc();
+//    if (!cpy) return NULL;
+//    cpy->mutexes = array_deep_cpy(other->mutexes, mutex_copy);
+//    cpy->transitions = array_deep_cpy(other->transitions, transition_copy);
+//    cpy->threads = array_deep_cpy(other->threads, thread_copy);
+//    return cpy;
+//}
 
-void
-shared_state_destroy(shared_state_ref ref) {
-    if (!ref) return;
-    array_destroy(ref->transitions, (free_function)transition_destroy);
-    array_destroy(ref->mutexes, (free_function)mutex_destroy);
-    array_destroy(ref->threads, (free_function)thread_destroy);
-    free(ref);
-}
+//void
+//shared_state_destroy(shared_state_ref ref) {
+//    if (!ref) return;
+//    array_destroy(ref->transitions, (free_function)transition_destroy);
+//    array_destroy(ref->mutexes, (free_function)mutex_destroy);
+//    array_destroy(ref->threads, (free_function)thread_destroy);
+//    free(ref);
+//}
 
 transition_ref
 shared_state_get_first_enabled_transition(shared_state_refc ref) {
@@ -73,15 +73,15 @@ shared_state_get_first_enabled_transition_by_thread(shared_state_refc ref, threa
 transition_array_ref
 shared_state_create_enabled_transitions(shared_state_refc ref)
 {
-    if (!ref) return NULL;
-    array_ref array = array_create();
-    uint32_t count = array_count(ref->transitions);
-    for (uint32_t i = 0; i < count; i++) {
-        transition_ref get = array_get(array, i);
-        if (transition_enabled(get))
-            array_append(array, transition_copy(get));
-    }
-    return array;
+//    if (!ref) return NULL;
+//    array_ref array = array_create();
+//    uint32_t count = array_count(ref->transitions);
+//    for (uint32_t i = 0; i < count; i++) {
+//        transition_ref get = array_get(array, i);
+//        if (transition_enabled(get))
+//            array_append(array, transition_copy(get));
+//    }
+//    return array;
 }
 
 bool
@@ -97,54 +97,44 @@ shared_state_has_mutex(shared_state_ref state, mutex_refc mutex)
     return false;
 }
 
-void
-shared_state_add_mutex(shared_state_ref state, mutex_refc mutex)
-{
-    if (!state || !mutex) return;
-
-    // TODO: Watch out for when this is NULL (out of memory)
-    mutex_ref cpy = mutex_copy(mutex);
-    array_append(state->mutexes, cpy);
-}
-
 shared_state_ref
 next(shared_state_ref ss_ref, transition_ref t_executed, transition_ref t_next)
 {
-    if (!ss_ref || !t_executed || !t_next) return NULL;
-
-    shared_state_ref cpy = shared_state_copy(ss_ref);
-    switch (t_executed->operation->type) {
-        case MUTEX:;
-            mutex_operation_ref mutop = t_executed->operation->mutex_operation;
-
-            // Search for the mutexes to see if we already have this one
-            if (shared_state_has_mutex(cpy, mutop->mutex))
-                break;
-
-            // TODO: Write this in a separate function
-            switch (mutop->type) {
-                case MUTEX_INIT:;
-
-                mutex_ref mut = mutop->mutex;
-                mut->state = MUTEX_UNLOCKED;
-                mut->owner = NULL;
-
-                shared_state_add_mutex(cpy, mut);
-
-                default:
-                    break;
-            }
-
-            break;
-
-        case THREAD_LIFECYCLE:;
-            break;
-        default:
-            return NULL;
-    }
-
-    shared_state_update_next_transition_for_thread(cpy, t_executed->thread, t_next);
-    return cpy;
+//    if (!ss_ref || !t_executed || !t_next) return NULL;
+//
+//    shared_state_ref cpy = shared_state_copy(ss_ref);
+//    switch (t_executed->operation->type) {
+//        case MUTEX:;
+//            mutex_operation_ref mutop = t_executed->operation->mutex_operation;
+//
+//            // Search for the mutexes to see if we already have this one
+//            if (shared_state_has_mutex(cpy, mutop->mutex))
+//                break;
+//
+//            // TODO: Write this in a separate function
+//            switch (mutop->type) {
+//                case MUTEX_INIT:;
+//
+//                mutex_ref mut = mutop->mutex;
+//                mut->state = MUTEX_UNLOCKED;
+//                mut->owner = NULL;
+//
+//                shared_state_add_mutex(cpy, mut);
+//
+//                default:
+//                    break;
+//            }
+//
+//            break;
+//
+//        case THREAD_LIFECYCLE:;
+//            break;
+//        default:
+//            return NULL;
+//    }
+//
+//    shared_state_update_next_transition_for_thread(cpy, t_executed->thread, t_next);
+//    return cpy;
 }
 
 void

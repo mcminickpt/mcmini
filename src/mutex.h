@@ -16,7 +16,7 @@ TRANSITION_DESCRIPTION_DECL(mutex_operation);
 
 struct mutex {
     mutex_state state;
-    thread_ref owner;
+    csystem_local thread_ref owner;
     pthread_mutex_t *mutex;
 };
 typedef array_ref mutex_array_ref;
@@ -24,6 +24,7 @@ typedef array_ref mutex_array_ref;
 /*
  * Memory API
  */
+hash_t mutex_hash(pthread_mutex_t*);
 mutex_ref mutex_create(pthread_mutex_t *);
 mutex_ref mutex_copy(mutex_refc);
 void mutex_destroy(mutex_ref);
@@ -38,13 +39,9 @@ int mutex_owned(mutex_ref);
 // --- MUTEX OPERATION ---
 STRUCT_DECL(mutex_operation)
 struct mutex_operation {
-    mutex_ref mutex;
+    mutex mutex;
     enum mutex_operation_type type;
 };
-
-mutex_operation_ref mutex_operation_alloc(void);
-mutex_operation_ref mutex_operation_copy(mutex_operation_refc);
-void mutex_operation_destroy(mutex_operation_ref);
 
 bool mutex_operation_enabled(mutex_operation_refc, thread_ref);
 bool mutex_operations_coenabled(mutex_operation_refc, mutex_operation_refc);

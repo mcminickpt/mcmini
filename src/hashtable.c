@@ -26,6 +26,8 @@ struct hash_table {
     hash_function hasher; /* A function to apply automatically to */
 };
 
+MEMORY_ALLOC_DEF_DECL(hash_table)
+
 /**
  * Allocates and initializes a new empty hash table on the heap
  *
@@ -45,6 +47,25 @@ hash_table_create(void) {
     return ref;
 }
 
+hash_table_ref
+hash_table_copy(hash_table_refc other)
+{
+    hash_table_ref ref = hash_table_alloc();
+
+    if (ref) {
+        ref->count = other->count;
+        ref->len = other->len;
+
+        if (other->len > 0) {
+            void *base = malloc(other->len);
+            ref->base = memcpy(base, other->base, other->len);
+        } else {
+            ref->base = NULL;
+        }
+    }
+
+    return ref;
+}
 
 /**
  * Deallocates storage used to hold the contents of a hash table

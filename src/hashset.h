@@ -7,8 +7,9 @@
 
 STRUCT_DECL(hash_set);
 
+hash_set_ref hash_set_alloc(void);
 hash_set_ref hash_set_create(hash_function);
-hash_set_ref hash_set_copy(hash_function);
+hash_set_ref hash_set_copy(hash_set);
 void hash_set_destroy(hash_set_ref);
 
 bool hash_set_contains(hash_set_ref, void*);

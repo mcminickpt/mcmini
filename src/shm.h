@@ -32,7 +32,7 @@ struct shm_transition {
     shm_visible_operation operation;
 };
 
-transition_ref create_transition_from_shm(shm_transition_ref);
+void copy_into_transition_from_shm(shm_transition_ref, transition_ref);
 
 
 #endif //DPOR_SHM_H

@@ -8,23 +8,14 @@
 
 STRUCT_DECL(transition);
 struct transition {
-    thread_ref thread;
-    visible_operation_ref operation;
+    csystem_local thread_ref thread;
+    visible_operation operation;
 };
 typedef array_ref transition_array_ref;
 typedef transition_array_ref transition_stack_ref;
 PRETTY_PRINT_DECL(transition);
 
-transition_ref transition_alloc(void);
-transition_ref transition_create(thread_ref, visible_operation_ref);
-transition_ref transition_copy(transition_refc);
-void transition_destroy(transition_ref);
 
-/*
- * Operations
- */
-transition_ref create_retain_thread_start_transition(thread_ref);
-transition_ref create_retain_thread_finish_transition(thread_ref);
 
 thread_ref proc(transition_refc ref);
 

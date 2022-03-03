@@ -3,6 +3,9 @@
 
 #define thread_local __thread
 
+/* Used as a marker to specify that a pointer is in a struct concurrent_system  */
+#define csystem_local
+
 #define STRUCT_DECL(type)             \
 typedef struct type type;           \
 typedef struct type *type##_t;      \
