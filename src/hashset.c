@@ -44,6 +44,20 @@ hash_set_contains(hash_set_ref ref, void *value)
     return hash_table_get_implicit(ref->storage, value) != NULL;
 }
 
+size_t
+hash_set_count(hash_set_ref ref)
+{
+    if (!ref) return 0;
+    return hash_table_count(ref->storage);
+}
+
+bool
+hash_set_is_empty(hash_set_ref ref)
+{
+    if (!ref) return true;
+    return hash_table_is_empty(ref->storage);
+}
+
 bool
 hash_set_insert(hash_set_ref ref, void *value)
 {

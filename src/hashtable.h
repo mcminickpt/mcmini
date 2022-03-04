@@ -17,6 +17,7 @@ MEMORY_API_DECL(hash_table);
  * Hash table properties
  */
 size_t hash_table_count(hash_table_ref);
+bool hash_table_is_empty(hash_table_ref);
 void hash_table_set_hash_function(hash_table_ref, hash_function);
 
 /*

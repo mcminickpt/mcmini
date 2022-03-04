@@ -318,6 +318,17 @@ array_remove_last(array_ref ref) {
     return array_remove(ref, ref->count - 1);
 }
 
+void
+array_clear(array_ref ref)
+{
+    if (!ref) return;
+
+    // Only clear the count and NOT the
+    // `len`. This prevents needless
+    // `realloc()` calls
+    ref->count = 0;
+}
+
 array_ref
 array_shallow_cpy(array_refc ref) {
     array_ref cpy = array_create();

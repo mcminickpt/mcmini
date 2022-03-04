@@ -246,10 +246,17 @@ size_t
 hash_table_count(hash_table_ref ref) {
     if (!ref) {
         errno = EINVAL;
-        return -1;
+        return 0;
     }
 
     return ref->count;
+}
+
+bool
+hash_table_is_empty(hash_table_ref ref)
+{
+    if (!ref) return true;
+    return ref->count == 0;
 }
 
 void*
@@ -313,9 +320,34 @@ hash_table_remove(hash_table_ref ref, uint64_t key) {
         return NULL;
     }
 
-    uint64_t index = hash_table_map_key(ref, key);
-    ref->base[index] = hash_table_invalid_entry;
+    const uint64_t index_to_remove = hash_table_map_key(ref, key);
+    const uint64_t num_ents = hash_table_num_slots(ref);
+
+    ref->base[index_to_remove] = hash_table_invalid_entry;
     ref->count--;
+
+    // With linear probing, it is not sufficient
+    // to merely mark the slot as empty. You must also perform
+    // more work to ensure that other hash-collided
+    // values still are correctly found. See
+    // https://en.wikipedia.org/wiki/Linear_probing for details
+
+    hash_table_entry *cur = NULL;
+
+    uint64_t index = (index_to_remove + 1) % num_ents;
+    uint64_t index_to_replace = index_to_remove;
+    while ((cur = &ref->base[index])->valid) {
+
+        // Asks the question: does the entry at this *index*
+        // *want* to be located before the spot we are replacing
+        uint64_t index_for_key_at_cur = hash_table_map_key(ref, cur->key);
+        if (index_for_key_at_cur <= index_to_replace) {
+            ref->base[index_to_remove] = *cur;
+            ref->base[index] = hash_table_invalid_entry;
+            index_to_replace = index;
+        }
+        index = (index + 1) % num_ents;
+    }
 }
 
 void *

@@ -47,6 +47,7 @@ void array_insert(array_ref, uint32_t index, const void *data);
 void *array_remove(array_ref, uint32_t index);
 void *array_remove_first(array_ref);
 void *array_remove_last(array_ref);
+void array_clear(array_ref);
 
 /*
  * Copying contents

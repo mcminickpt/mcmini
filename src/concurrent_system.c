@@ -87,17 +87,23 @@ csystem_get_mutex_with_pthread(concurrent_system_ref ref, pthread_mutex_t *mutex
     return (mutex_ref) hash_table_get(ref->mutex_map, (hash_t)mutex);
 }
 
-void
+static void
 csystem_apply_transition(concurrent_system_ref ref, transition_ref transition)
 {
+    // Copy the contents of the transition into the the top of the transition stack
+    ref->t_stack[ref->t_stack_top] = *transition;
 
-
+    // TODO: Do the application here
 }
 
-void
+static void
 csystem_revert_transition(concurrent_system_ref ref, transition_ref transition)
 {
 
+    transition_ref was_next = csystem_get_transition_slot_for_thread(ref, transition->thread);
+    *was_next = *transition; /* t_top represents what executed BEFORE to reach the current next transition */
+
+    // TODO: Do the revert here
 }
 
 state_stack_item_ref
@@ -125,8 +131,7 @@ csystem_grow_transition_stack(concurrent_system_ref ref, thread_ref thread)
     mc_assert(ref->t_stack_top <= MAX_VISIBLE_OPERATION_DEPTH);
 
     transition_ref thread_runs = csystem_get_transition_slot_for_thread(ref, thread);
-    *t_top = *thread_runs;
-
+    csystem_apply_transition(ref, thread_runs);
     return t_top;
 }
 
@@ -135,9 +140,7 @@ csystem_shrink_transition_stack(concurrent_system_ref ref)
 {
     mc_assert(ref->t_stack_top >= 0);
     transition_ref t_top = &ref->t_stack[ref->t_stack_top--];
-
-    transition_ref was_next = csystem_get_transition_slot_for_thread(ref, t_top->thread);
-    *was_next = *t_top; /* t_top represents what executed BEFORE to reach the current next transition */
+    csystem_revert_transition(ref, t_top);
 
     return t_top;
 }
@@ -145,8 +148,20 @@ csystem_shrink_transition_stack(concurrent_system_ref ref)
 transition_ref
 csystem_get_transition_slot_for_thread(concurrent_system_ref ref, csystem_local thread_ref thread)
 {
-    tid_t tid = thread->tid;
+    return csystem_get_transition_slot_for_tid(ref, thread->tid);
+}
+
+transition_ref
+csystem_get_transition_slot_for_tid(concurrent_system_ref ref, csystem_local tid_t tid)
+{
+    mc_assert(tid != TID_INVALID);
     return &ref->t_next[tid];
+}
+
+int
+csystem_copy_enabled_transitions(concurrent_system_ref ref, transition_ref tref_array)
+{
+
 }
 
 transition_ref
@@ -157,4 +172,34 @@ csystem_get_first_enabled_transition(concurrent_system_ref ref)
         if (transition_enabled(t_next_i)) return t_next_i;
     }
     return NULL;
+}
+
+int
+csystem_get_thread_count(concurrent_system_ref ref)
+{
+    return (int)ref->tid_next;
+}
+
+int
+csystem_state_stack_count(concurrent_system_ref ref)
+{
+    return ref->s_stack_top + 1;
+}
+
+int
+csystem_transition_stack_count(concurrent_system_ref ref)
+{
+    return ref->t_stack_top + 1;
+}
+
+bool
+csystem_state_stack_is_empty(concurrent_system_ref ref)
+{
+    return ref->s_stack_top < 0;
+}
+
+bool
+csystem_transition_stack_is_empty(concurrent_system_ref ref)
+{
+    return ref->t_stack_top < 0;
 }

@@ -37,6 +37,6 @@ transition_ref dpor_create_thread_finish_transition(thread_ref);
 
 void thread_await_dpor_scheduler(void);
 void thread_await_dpor_scheduler_initialization(void);
-void dynamically_update_backtrack_sets(state_stack_item_ref);
+void dynamically_update_backtrack_sets(void);
 
 #endif //DPOR_DPOR_H

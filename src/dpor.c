@@ -4,8 +4,6 @@
 #include "shm.h"
 #include <assert.h>
 #include <fcntl.h>
-#include <pthread.h>
-#include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -213,12 +211,10 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         // on the result the child wrote to shared memory
         transition_ref tslot = csystem_get_transition_slot_for_thread(&csystem, t_top->thread);
         copy_into_transition_from_shm(shm_child_result, tslot);
+        dynamically_update_backtrack_sets();
 
-        state_stack_item_ref next_s_top = csystem_grow_state_stack(&csystem);
-        s_top = next_s_top;
-        dynamically_update_backtrack_sets(s_top);
+        s_top = csystem_grow_state_stack(&csystem);
         t_top = csystem_get_first_enabled_transition(&csystem);
-
         if (t_top == NULL) {
             // TODO: We've hit a deadlock attempting to fill
             // the state stack with `max_depth` items
@@ -230,23 +226,23 @@ dpor_parent_scheduler_main(uint32_t max_depth)
     }
 
     dpor_child_kill();
-//    while (!array_is_empty(s_stack)) {
-//        s_top = array_remove_last(s_stack);
-//        t_top = array_remove_last(t_stack);
-//
-//        // Calls to `dpor_backtrack_main` push
-//        // new items onto the state and transition
-//        // stacks; hence, "depth--;" is not sufficient
-//        depth = array_count(s_stack);
-//
-//        mc_assert(depth <= max_depth);
-//        if (!array_is_empty(s_top->backtrack_set)) {
-//            bool is_child = dpor_backtrack_main(s_top, max_depth - depth);
-//            if (is_child) { return true; }
-//        }
-//        state_stack_item_destroy(s_top);
-//        transition_destroy(t_top);
-//    }
+    while (!csystem_state_stack_is_empty(&csystem)) {
+        s_top = csystem_shrink_state_stack(&csystem);
+        t_top = csystem_shrink_transition_stack(&csystem);
+
+        // Calls to `dpor_backtrack_main` push
+        // new items onto the state and transition
+        // stacks; hence, "depth--;" is not sufficient
+        depth = csystem_state_stack_count(&csystem);
+
+        mc_assert(depth <= max_depth);
+        if (!hash_set_is_empty(s_top->backtrack_set)) {
+            bool is_child = dpor_backtrack_main(s_top, max_depth - depth);
+            if (is_child) { return true; }
+        }
+
+        // TODO: Remove backtrack and done sets to prevent memory leaks
+    }
 
     return false;
 }
@@ -390,31 +386,33 @@ compute_set_E(transition_array_ref enabled_transitions,
 }
 
 void
-dynamically_update_backtrack_sets(state_stack_item_ref ref)
+dynamically_update_backtrack_sets(void)
 {
-//    if (!ref) return;
+//    hash_table_ref thread_to_transition_mapping = hash_table_create();
 //
-//    uint32_t thread_count = array_count(ref->state->threads);
-//    for (uint32_t j = 0; j < thread_count; j++) {
-//        thread_ref thread = array_get(ref->state->threads, j);
-//        transition_ref enabled = shared_state_get_first_enabled_transition_by_thread(ref->state, thread);
+//    int enabled_transition_top = -1;
+//    transition enabled_transitions[MAX_TOTAL_THREADS_PER_SCHEDULE];
+//    transition scratch_enabled_at_i[MAX_TOTAL_THREADS_PER_SCHEDULE];
 //
-//        if (enabled != NULL) {
-//            int i = latest_dependent_coenabled_transition_index(enabled);
-//            if (i < 0) continue;
+//    int thread_count = csystem_get_thread_count(&csystem);
+//    int t_stack_height = csystem_transition_stack_count(&csystem);
 //
-//            state_stack_item_ref from_state = array_get(s_stack, i);
-//            array_ref enabled_at_state = shared_state_create_enabled_transitions(ref->state);
-//            array_ref E = compute_set_E(enabled_at_state, thread, i);
+//    for (int tid = 0; tid < thread_count; tid++) {
+//        transition_ref tid_transition = csystem_get_transition_slot_for_thread()
 //
-//            if (array_is_empty(E)) {
-//                array_append_array(from_state->backtrack_set, E);
-//            } else {
-//                array_append(from_state->backtrack_set, array_get_first(E));
-//            }
-//            array_destroy(E, NULL);
-//        }
 //    }
+//
+//    for (int i = t_stack_height - 1; i >= 0; i--) {
+//
+//        for (int tid = 0; tid < thread_count; tid++) {
+//            thread_ref thread = csystem_get_thread_with_tid(&csystem, tid);
+//
+//            if ()
+//        }
+//
+//    }
+//
+//    array_destroy(enabled_threads_at_depth_i, NULL);
 }
 
 static transition_ref
