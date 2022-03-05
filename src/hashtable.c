@@ -172,7 +172,7 @@ hash_table_unforced_grow(hash_table_ref ref) {
 
     // Compute the number of bytes occupied by the entries in the table
     size_t fill = ref->count * sizeof(hash_table_entry);
-    double filld = fill;
+    double filld = (double)fill;
 
     if (filld >= (ref->len * REHASH_FACTOR)) {
         size_t old_len = ref->len;
@@ -348,6 +348,16 @@ hash_table_remove(hash_table_ref ref, uint64_t key) {
         }
         index = (index + 1) % num_ents;
     }
+}
+
+void
+hash_table_clear(hash_table_ref ref)
+{
+    if (!ref) return;
+
+    for (uint32_t slot = 0; slot < hash_table_num_slots(ref); slot++)
+        ref->base[slot].valid = false;
+    ref->count = 0;
 }
 
 void *

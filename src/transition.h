@@ -68,19 +68,6 @@ inline bool transition_blocked(transition_ref transition)
  */
 bool transitions_coenabled(transition_ref, transition_ref);
 
-/*
- *
- */
-bool transition_happens_before(transition_ref, transition_ref);
-
-/*
- *
- */
-inline bool transition_happens_after(transition_ref t1, transition_ref t2)
-{
-    if (!t1 || !t2) return false;
-    return transition_happens_before(t2, t1);
-}
 
 /*
  *

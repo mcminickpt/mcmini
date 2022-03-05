@@ -44,7 +44,7 @@ dpor_init(void)
     // if we don't already have a semaphore in shared memory
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
         mc_shared_cv_init(&(*queue)[i]);
-    dpor_register_main_thread();
+
     bool is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
     if (is_child) {
         // NOTE: Since this is a fork of the parent, we need
@@ -191,15 +191,17 @@ dpor_parent_scheduler_main(uint32_t max_depth)
 {
     dpor_reset_cv_locks();
     csystem_reset(&csystem);
+    dpor_register_main_thread();
 
     bool is_child = dpor_spawn_child();
     if (is_child) return true;
 
-    state_stack_item_ref s_top = csystem_grow_state_stack(&csystem);
-
+    
     thread_ref main_thread = thread_get_self();
-    dpor_create_thread_start_transition(main_thread);
+    transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
+    dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
 
+    state_stack_item_ref s_top = csystem_grow_state_stack(&csystem);
     transition_ref t_top = csystem_grow_transition_stack(&csystem, main_thread);
 
     uint32_t depth = 0;
@@ -388,56 +390,120 @@ compute_set_E(transition_array_ref enabled_transitions,
 void
 dynamically_update_backtrack_sets(void)
 {
-//    hash_table_ref thread_to_transition_mapping = hash_table_create();
-//
-//    int enabled_transition_top = -1;
-//    transition enabled_transitions[MAX_TOTAL_THREADS_PER_SCHEDULE];
-//    transition scratch_enabled_at_i[MAX_TOTAL_THREADS_PER_SCHEDULE];
-//
-//    int thread_count = csystem_get_thread_count(&csystem);
-//    int t_stack_height = csystem_transition_stack_count(&csystem);
-//
-//    for (int tid = 0; tid < thread_count; tid++) {
-//        transition_ref tid_transition = csystem_get_transition_slot_for_thread()
-//
-//    }
-//
-//    for (int i = t_stack_height - 1; i >= 0; i--) {
-//
-//        for (int tid = 0; tid < thread_count; tid++) {
-//            thread_ref thread = csystem_get_thread_with_tid(&csystem, tid);
-//
-//            if ()
-//        }
-//
-//    }
-//
-//    array_destroy(enabled_threads_at_depth_i, NULL);
+    csystem_start_backtrack(&csystem);
+
+    transition enabled_transitions_s_top[MAX_TOTAL_THREADS_PER_SCHEDULE];
+    transition scratch_enabled_at_i[MAX_TOTAL_THREADS_PER_SCHEDULE];
+
+    // The set of threads we have already found the latest dependent,
+    // co-enabled transition for
+    hash_set_ref threads_processed = hash_set_create((hash_function)thread_hash);
+
+    // Maps `thread_ref` to a `transition_ref` pointing
+    // into the static array `transitions_s_top`
+    hash_table_ref s_top_enabled_transition_map = hash_table_create();
+    hash_table_set_hash_function(s_top_enabled_transition_map, (hash_function) thread_hash);
+
+    int thread_count = csystem_get_thread_count(&csystem);
+    int t_stack_height = csystem_transition_stack_count(&csystem);
+
+    // 1. Compute enabled transition map
+    {
+        int transitions_s_top_index = 0;
+        for (tid_t tid = 0; tid < thread_count; tid++) {
+            thread_ref tid_thread = csystem_get_thread_with_tid(&csystem, tid);
+            transition_ref tid_transition = csystem_get_transition_slot_for_thread(&csystem, tid_thread);
+
+            if (transition_enabled(tid_transition)) {
+                transition_ref static_slot = &enabled_transitions_s_top[transitions_s_top_index++];
+                *static_slot = *tid_transition;
+
+                hash_table_set_implicit(s_top_enabled_transition_map,
+                                        tid_thread,
+                                        static_slot);
+            }
+        }
+    }
+
+    for (int i = t_stack_height - 1; i >= 0; i--) {
+
+        if (hash_table_is_empty(s_top_enabled_transition_map))
+            break; /* Don't need to keep going further into the transition stack if everything is processed */
+
+        int num_enabled_at_s_i = csystem_copy_enabled_transitions(&csystem, scratch_enabled_at_i);
+        transition_ref t_top_i = csystem_transition_stack_top(&csystem);
+        state_stack_item_ref s_top_i = csystem_state_stack_top(&csystem);
+
+        for (int tid = 0; tid < thread_count; tid++) {
+            thread_ref s_top_thread = csystem_get_thread_with_tid(&csystem, tid);
+            transition_ref enabled_transition_maybe = NULL; // At s_top original
+            if ((enabled_transition_maybe = hash_table_get_implicit(s_top_enabled_transition_map, s_top_thread)) != NULL) {
+
+                bool found_max_i_condition = transitions_coenabled(t_top_i, enabled_transition_maybe) &&
+                                             transitions_dependent(t_top_i, enabled_transition_maybe) &&
+                                             !happens_before_thread(&csystem, i, s_top_thread);
+                if (found_max_i_condition) {
+
+                    transition_ref p_transition = enabled_transition_maybe;
+                    thread_ref p = p_transition->thread;
+
+                    for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
+                        transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
+                        thread_ref q = q_transition->thread;
+
+                        bool q_is_in_E = threads_equal(q, p) && csystem_p_q_could_race(&csystem, i, q, p);
+                        if (q_is_in_E) {
+                            hash_set_insert(s_top_i->backtrack_set, q);
+
+                            // TODO: Only one q is needed. An optimization
+                            // where we check the done set for q first would
+                            // reduce backtracking
+
+                            // We're done now
+                            goto search_over;
+                        }
+                    }
+
+                    // If we exit the loop without hitting the `goto`, we
+                    // know that `E` is the empty set. In this case, we must
+                    // add every enabled thread to the backtrack set
+                    for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
+                        transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
+                        thread_ref q = q_transition->thread;
+                        hash_set_insert(s_top_i->backtrack_set, q);
+                    }
+
+                    search_over:
+                    // Remove this thread from needing to be searched again
+                    hash_table_remove_implicit(s_top_enabled_transition_map, s_top_thread);
+                }
+            }
+        }
+        csystem_shrink_transition_stack(&csystem);
+    }
+    csystem_end_backtrack(&csystem);
 }
 
-static transition_ref
-dpor_create_thread_transition(thread_ref thread, thread_operation_type type)
+static void
+dpor_init_thread_transition(transition_ref tref, thread_ref thread, thread_operation_type type)
 {
     thread_operation top;
     top.type = type;
     top.thread = thread;
 
-    transition_ref trans = csystem_get_transition_slot_for_thread(&csystem, thread);
-    trans->operation.type = THREAD_LIFECYCLE;
-    trans->operation.thread_operation = top;
-    trans->thread = thread;
-
-    return trans;
+    tref->operation.type = THREAD_LIFECYCLE;
+    tref->operation.thread_operation = top;
+    tref->thread = thread;
 }
 
-transition_ref
-dpor_create_thread_start_transition(thread_ref thread)
+inline void
+dpor_init_thread_start_transition(transition_ref transition, thread_ref thread)
 {
-    return dpor_create_thread_transition(thread, THREAD_START);
+    dpor_init_thread_transition(transition, thread, THREAD_START);
 }
 
-transition_ref
-dpor_create_thread_finish_transition(thread_ref thread)
+inline void
+dpor_init_thread_finish_transition(transition_ref transition, thread_ref thread)
 {
-    return dpor_create_thread_transition(thread, THREAD_FINISH);
+    dpor_init_thread_transition(transition, thread, THREAD_FINISH);
 }

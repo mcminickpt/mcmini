@@ -32,6 +32,7 @@ int csystem_state_stack_count(concurrent_system_ref);
 bool csystem_state_stack_is_empty(concurrent_system_ref);
 state_stack_item_ref csystem_grow_state_stack(concurrent_system_ref);
 state_stack_item_ref csystem_shrink_state_stack(concurrent_system_ref);
+state_stack_item_ref csystem_state_stack_top(concurrent_system_ref);
 
 /*
  * Transition Stack
@@ -40,12 +41,27 @@ int csystem_transition_stack_count(concurrent_system_ref);
 bool csystem_transition_stack_is_empty(concurrent_system_ref);
 transition_ref csystem_grow_transition_stack(concurrent_system_ref, thread_ref);
 transition_ref csystem_shrink_transition_stack(concurrent_system_ref);
+transition_ref csystem_transition_stack_top(concurrent_system_ref);
 
 transition_ref csystem_get_transition_slot_for_tid(concurrent_system_ref, tid_t);
 transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csystem_local thread_ref);
 
 transition_ref csystem_get_first_enabled_transition(concurrent_system_ref);
 int csystem_copy_enabled_transitions(concurrent_system_ref, transition_ref);
+void csystem_copy_per_thread_transitions(concurrent_system_ref, transition_ref);
+
+/**
+ * Back tracking
+ */
+void csystem_start_backtrack(concurrent_system_ref);
+bool csystem_p_q_could_race(concurrent_system_ref, int i, thread_ref q, thread_ref p);
+void csystem_end_backtrack(concurrent_system_ref);
+
+/*
+ * Happens before
+ */
+bool happens_before(concurrent_system_ref, int i, int j);
+bool happens_before_thread(concurrent_system_ref, int i, thread_ref);
 
 
 #endif //DPOR_CONCURRENT_SYSTEM_H

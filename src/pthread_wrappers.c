@@ -55,7 +55,7 @@ dpor_pthread_mutex_lock(pthread_mutex_t *m)
     if (shadow) {
         state = shadow->state;
     } else {
-        // TODO: Report undefined behavior -> locking unitialized mutex
+        // TODO: Report undefined behavior -> locking uninitialized mutex
         mc_report_undefined_behavior();
     }
     dpor_post_mutex_operation_to_parent(m, MUTEX_LOCK, state);
@@ -66,7 +66,15 @@ dpor_pthread_mutex_lock(pthread_mutex_t *m)
 int
 dpor_pthread_mutex_unlock(pthread_mutex_t *m)
 {
-    dpor_post_mutex_operation_to_parent(m, MUTEX_UNLOCK, MUTEX_LOCKED);
+    mutex_state state = MUTEX_UNKNOWN;
+    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
+    if (shadow) {
+        state = shadow->state;
+    } else {
+        // TODO: Report undefined behavior -> unlocking uninitialized mutex
+        mc_report_undefined_behavior();
+    }
+    dpor_post_mutex_operation_to_parent(m, MUTEX_UNLOCK, state);
     thread_await_dpor_scheduler();
     return pthread_mutex_unlock(m);
 }
@@ -74,9 +82,22 @@ dpor_pthread_mutex_unlock(pthread_mutex_t *m)
 int
 dpor_pthread_mutex_destroy(pthread_mutex_t *m)
 {
-    dpor_post_mutex_operation_to_parent(m, MUTEX_DESTROY, MUTEX_UNKNOWN);
+    mutex_state state = MUTEX_UNKNOWN;
+    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
+    if (shadow) {
+        state = shadow->state;
+
+        if (state == MUTEX_DESTROYED) {
+            // TODO: Report undefined behavior -> destroying a mutex that's already destroyed
+            mc_report_undefined_behavior();
+        }
+    } else {
+        // TODO: Report undefined behavior -> destroying uninitialized mutex
+        mc_report_undefined_behavior();
+    }
+    dpor_post_mutex_operation_to_parent(m, MUTEX_DESTROY, state);
     thread_await_dpor_scheduler();
-    return pthread_mutex_unlock(m);
+    return pthread_mutex_destroy(m);
 }
 
 int
@@ -86,7 +107,5 @@ dpor_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
 
     struct dpor_thread_routine_arg *dpor_thread_arg = malloc(sizeof(struct dpor_thread_routine_arg));
 
-    int pthread_create_return = pthread_create(thread, attr, routine, arg);
-
-    return pthread_create_return;
+    return pthread_create(thread, attr, routine, arg);
 }

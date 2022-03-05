@@ -120,14 +120,14 @@ array_destroy_opaque(void *opaque) {
  * @param ref a reference to an array. If the reference
  * is NULL, the function does nothing and sets errno to EINVAL
  *
- * @return the number of elements in the array, or -1 if the
+ * @return the number of elements in the array, or 0 if the
  * reference provided is NULL
  */
 uint32_t
 array_count(array_refc ref) {
     if (!ref) {
         errno = EINVAL;
-        return -1;
+        return 0;
     }
 
     return ref->count;
@@ -155,7 +155,7 @@ bool
 array_is_empty(array_refc ref) {
     if (!ref) {
         errno = EINVAL;
-        return false;
+        return true;
     }
 
     return ref->count == 0;
@@ -185,6 +185,7 @@ array_get_first(array_refc ref) {
 
 void*
 array_get_last(array_refc ref) {
+    if (!ref) return NULL;
     return array_get(ref, (int)ref->count - 1);
 }
 
@@ -315,6 +316,7 @@ array_remove_first(array_ref ref) {
 
 void*
 array_remove_last(array_ref ref) {
+    if (!ref) return NULL;
     return array_remove(ref, ref->count - 1);
 }
 
