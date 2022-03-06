@@ -42,6 +42,7 @@ bool csystem_transition_stack_is_empty(concurrent_system_ref);
 transition_ref csystem_grow_transition_stack(concurrent_system_ref, thread_ref);
 transition_ref csystem_shrink_transition_stack(concurrent_system_ref);
 transition_ref csystem_transition_stack_top(concurrent_system_ref);
+transition_ref csystem_transition_stack_get_element(concurrent_system_ref, int);
 
 transition_ref csystem_get_transition_slot_for_tid(concurrent_system_ref, tid_t);
 transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csystem_local thread_ref);
@@ -50,12 +51,16 @@ transition_ref csystem_get_first_enabled_transition(concurrent_system_ref);
 int csystem_copy_enabled_transitions(concurrent_system_ref, transition_ref);
 void csystem_copy_per_thread_transitions(concurrent_system_ref, transition_ref);
 
+/*
+ * Transitions
+ */
+transition_ref csystem_run(concurrent_system_ref, thread_ref);
+
 /**
  * Back tracking
  */
-void csystem_start_backtrack(concurrent_system_ref);
+void csystem_dynamically_update_backtrack_sets(concurrent_system_ref);
 bool csystem_p_q_could_race(concurrent_system_ref, int i, thread_ref q, thread_ref p);
-void csystem_end_backtrack(concurrent_system_ref);
 
 /*
  * Happens before

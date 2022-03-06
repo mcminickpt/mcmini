@@ -26,7 +26,7 @@ void visible_operation_destroy(visible_operation_ref);
 bool visible_operation_is_mutex_operation(visible_operation_refc);
 bool visible_operation_is_thread_operation(visible_operation_refc);
 
-mutex_operation_ref visible_operation_unsafely_as_mutex_operation(visible_operation_refc);
-thread_operation_ref visible_operation_unsafely_as_thread_operation(visible_operation_refc);
+mutex_operation_ref visible_operation_unsafely_as_mutex_operation(visible_operation_ref);
+thread_operation_ref visible_operation_unsafely_as_thread_operation(visible_operation_ref);
 
 #endif //DPOR_VISIBLE_OPERATION_H

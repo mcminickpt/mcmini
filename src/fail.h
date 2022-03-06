@@ -11,5 +11,7 @@ do {                   \
 #define mc_assert_main_thread(message)
 #define mc_report_undefined_behavior(__X, ...)
 
+#define mc_unimplemented() mc_assert(false)
+
 
 #endif //DPOR_FAIL_H

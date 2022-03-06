@@ -50,13 +50,13 @@ visible_operation_is_thread_operation(visible_operation_refc ref)
 }
 
 mutex_operation_ref
-visible_operation_unsafely_as_mutex_operation(visible_operation_refc ref)
+visible_operation_unsafely_as_mutex_operation(visible_operation_ref ref)
 {
-//    return ref != NULL ? ref->mutex_operation : NULL;
+    return ref != NULL ? &ref->mutex_operation : NULL;
 }
 
 thread_operation_ref
-visible_operation_unsafely_as_thread_operation(visible_operation_refc ref)
+visible_operation_unsafely_as_thread_operation(visible_operation_ref ref)
 {
-//    return (ref != NULL) ? ref->thread_operation : NULL;
+    return (ref != NULL) ? &ref->thread_operation : NULL;
 }

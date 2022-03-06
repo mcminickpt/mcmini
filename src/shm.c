@@ -27,7 +27,7 @@ copy_into_transition_from_shm(shm_transition_ref shm_ref, transition_ref tref)
             tref->operation.thread_operation.thread = csystem_get_thread_with_tid(&csystem, shmtop->thread.tid);
             break;
         default:
-            mc_assert(false);
+            mc_unimplemented();
             return;
     }
 }
