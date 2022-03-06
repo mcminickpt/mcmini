@@ -8,13 +8,13 @@
 STRUCT_DECL(shm_mutex_operation)
 struct shm_mutex_operation {
     mutex_operation_type type;
-    mutex mutex;
+    pthread_mutex_t *mutex;
 };
 
 STRUCT_DECL(shm_thread_operation)
 struct shm_thread_operation {
     thread_operation_type type;
-    thread thread;
+    tid_t tid;
 };
 
 STRUCT_DECL(shm_visible_operation)
@@ -31,8 +31,5 @@ struct shm_transition {
     thread thread;
     shm_visible_operation operation;
 };
-
-void copy_into_transition_from_shm(shm_transition_ref, transition_ref);
-
 
 #endif //DPOR_SHM_H

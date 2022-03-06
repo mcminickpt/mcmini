@@ -43,12 +43,14 @@ csystem_init(concurrent_system_ref ref)
     hash_table_set_hash_function(ref->mutex_map, (hash_function)mutex_hash);
 
     // Push the initial first state (the starting state) onto the state stack explicitly
-    csystem_grow_state_stack(&csystem);
+    csystem_grow_state_stack(ref);
 }
 
 void
 csystem_reset(concurrent_system_ref ref)
 {
+    // TODO: Destroy the state stack dynamic collections
+
     hash_table_destroy(ref->mutex_map);
     hash_table_destroy(ref->transition_map);
     csystem_init(ref);
@@ -76,17 +78,39 @@ csystem_register_main_thread(concurrent_system_ref ref)
     return TID_MAIN_THREAD;
 }
 
-thread_ref
+mutid_t
+csystem_register_mutex(concurrent_system_ref ref, pthread_mutex_t *mut)
+{
+    mutid_t new = ++ref->mut_next;
+    mutex_ref mnew = &ref->locks[new];
+    mnew->state = MUTEX_UNKNOWN;
+    mnew->owner = NULL;
+    mnew->mutex = mut;
+    hash_table_set_implicit(ref->mutex_map, mut, mnew);
+    return new;
+}
+
+mutex_ref
+csystem_get_mutex_with_mutid(concurrent_system_ref ref, mutid_t mutid)
+{
+    mc_assert(mutid >= 0 && mutid < MAX_MUTEX_OBJECT_COUNT);
+    if (mutid == MUTID_INVALID) return NULL;
+    return &ref->locks[mutid];
+}
+
+inline thread_ref
 csystem_get_thread_with_tid(concurrent_system_ref ref, tid_t tid)
 {
+    mc_assert(tid >= 0 && tid < MAX_TOTAL_THREADS_PER_SCHEDULE);
     if (tid == TID_INVALID) return NULL;
     return &ref->threads[tid];
 }
 
-inline thread_ref
-csystem_get_thread_with_pthread(concurrent_system_ref ref, pthread_t *pthread)
+inline bool
+csystem_is_registered_tid(concurrent_system_ref ref, tid_t tid)
 {
-
+    if (tid == TID_INVALID) return false;
+    return tid < ref->tid_next;
 }
 
 inline mutex_ref
@@ -103,27 +127,34 @@ csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operati
 
     switch (mutop->type) {
     case MUTEX_INIT:;
-            shadow = &ref->locks[++ref->mut_next];
-            *shadow = mutop->mutex;
-            hash_table_set_implicit(ref->mutex_map, mutex, shadow);
-            break;
+        shadow = &ref->locks[++ref->mut_next];
+        *shadow = mutop->mutex;
+        shadow->state = MUTEX_UNLOCKED;
+        hash_table_set_implicit(ref->mutex_map, mutex, shadow);
+        break;
     case MUTEX_LOCK:;
-            shadow = hash_table_get_implicit(ref->mutex_map, mutex);
-            shadow->state = MUTEX_LOCKED;
-            break;
-        case MUTEX_UNLOCK:
-            shadow = hash_table_get_implicit(ref->mutex_map, mutex);
-            shadow->state = MUTEX_UNLOCKED;
-            break;
-        default:
+        shadow = hash_table_get_implicit(ref->mutex_map, mutex);
+        shadow->state = MUTEX_LOCKED;
+        break;
+    case MUTEX_UNLOCK:
+        shadow = hash_table_get_implicit(ref->mutex_map, mutex);
+        shadow->state = MUTEX_UNLOCKED;
+        break;
+    default:
         mc_unimplemented();
     }
 }
 
 static void
-csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref mutop)
+csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
 {
+    // TODO: Report undefined behavior here
+    switch (top->type) {
+    case THREAD_CREATE:;
 
+    default:;
+        break;
+    }
 }
 
 static void
@@ -140,6 +171,61 @@ csystem_virtually_apply_transition(concurrent_system_ref ref, transition_ref tra
             break;
         default:
             mc_unimplemented();
+    }
+}
+
+void
+csystem_update_transition_stack_with_next_source_program_operation(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
+{
+    // TODO: This function needs to be split into smaller ones
+    // TODO: Report any undefined behavior with the transition we derive
+    tid_t shmtid = shm_ref->thread.tid;
+    thread_ref shmthread = csystem_get_thread_with_tid(ref, shmtid);
+    transition_ref tref = csystem_get_transition_slot_for_thread(ref, thread);
+    tref->thread = shmthread;
+
+    visible_operation_type type = shm_ref->operation.type;
+    switch (type) {
+        case MUTEX:;
+            shm_mutex_operation_ref shmmop = &shm_ref->operation.mutex_operation;
+            tref->operation.type = MUTEX;
+            tref->operation.mutex_operation.type = shmmop->type;
+
+            // In the special case of mutex creation, we must register
+            // the mutex on the side of the scheduler
+            mutex_ref shadow_mutex = hash_table_get_implicit(ref->mutex_map, shmmop->mutex);
+            if (shadow_mutex == NULL) {
+                mutid_t mutid = csystem_register_mutex(ref, shmmop->mutex);
+                shadow_mutex = csystem_get_mutex_with_mutid(ref, mutid);
+                tref->operation.mutex_operation.mutex = *shadow_mutex;
+            } else {
+                tref->operation.mutex_operation.mutex = *shadow_mutex;
+            }
+            break;
+
+        case THREAD_LIFECYCLE:;
+            shm_thread_operation_ref shmtop = &shm_ref->operation.thread_operation;
+            tref->operation.type = THREAD_LIFECYCLE;
+            tref->operation.thread_operation.type = shmtop->type;
+
+            // In the special case of thread creation, we must
+            // register the thread on the side of the scheduler
+            if (shmtop->type == THREAD_CREATE) {
+                tid_t new_thread_tid = csystem_register_thread(ref);
+                thread_ref new_thread = csystem_get_thread_with_tid(ref, new_thread_tid);
+                tref->operation.thread_operation.thread = new_thread;
+
+                // Also insert a new operation for the new thread
+                transition_ref t_slot_new_thread = csystem_get_transition_slot_for_thread(ref, new_thread);
+                dpor_init_thread_start_transition(t_slot_new_thread, new_thread);
+
+            } else {
+                tref->operation.thread_operation.thread = csystem_get_thread_with_tid(ref, shmtop->tid);
+            }
+            break;
+        default:;
+            mc_unimplemented();
+            return;
     }
 }
 
@@ -320,7 +406,7 @@ csystem_copy_per_thread_transitions(concurrent_system_ref ref, transition_ref tr
 }
 
 static void
-__csystem_replace_per_thread_transitions_for_backtracking(concurrent_system_ref ref, transition_ref tref_array)
+csystem_replace_per_thread_transitions_for_backtracking(concurrent_system_ref ref, transition_ref tref_array)
 {
     int thread_count = csystem_get_thread_count(ref);
 
@@ -333,7 +419,7 @@ __csystem_replace_per_thread_transitions_for_backtracking(concurrent_system_ref 
 transition_ref
 csystem_get_first_enabled_transition(concurrent_system_ref ref)
 {
-    for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++) {
+    for (int i = 0; i < ref->tid_next; i++) {
         transition_ref t_next_i = &ref->t_next[i];
         if (transition_enabled(t_next_i)) return t_next_i;
     }
@@ -441,6 +527,7 @@ csystem_p_q_could_race(concurrent_system_ref ref, int i, thread_ref q, thread_re
 void
 csystem_dynamically_update_backtrack_sets(concurrent_system_ref ref)
 {
+    // TODO: This function needs to be split into smaller pieces
     csystem_start_backtrack(ref);
 
     // TODO: Technically, only a single array is needed. The enabled transitions
@@ -538,5 +625,29 @@ csystem_dynamically_update_backtrack_sets(concurrent_system_ref ref)
         }
     }
     csystem_end_backtrack(ref);
-    __csystem_replace_per_thread_transitions_for_backtracking(ref, transitions_at_s_top);
+    csystem_replace_per_thread_transitions_for_backtracking(ref, transitions_at_s_top);
+}
+
+static void
+dpor_init_thread_transition(transition_ref tref, thread_ref thread, thread_operation_type type)
+{
+    thread_operation top;
+    top.type = type;
+    top.thread = thread;
+
+    tref->operation.type = THREAD_LIFECYCLE;
+    tref->operation.thread_operation = top;
+    tref->thread = thread;
+}
+
+inline void
+dpor_init_thread_start_transition(transition_ref transition, thread_ref thread)
+{
+    dpor_init_thread_transition(transition, thread, THREAD_START);
+}
+
+inline void
+dpor_init_thread_finish_transition(transition_ref transition, thread_ref thread)
+{
+    dpor_init_thread_transition(transition, thread, THREAD_FINISH);
 }

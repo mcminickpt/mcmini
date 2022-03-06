@@ -2,6 +2,7 @@
 #include "concurrent_system.h"
 #include "common.h"
 #include "mutex.h"
+#include "fail.h"
 #include <stdio.h>
 
 MEMORY_ALLOC_DEF_DECL(transition);
@@ -50,14 +51,16 @@ transition_enabled(transition_ref transition)
 {
     if (!transition) return false;
 
-    if (transition->operation.type == MUTEX) {
-        mutex_operation_ref mop = visible_operation_unsafely_as_mutex_operation(&transition->operation);
-        return mutex_operation_enabled(mop, transition->thread);
-    } else if (transition->operation.type == THREAD_LIFECYCLE) {
-        thread_operation_ref top = visible_operation_unsafely_as_thread_operation(&transition->operation);
-        return thread_operation_enabled(top, transition->thread);
-    } else {
-        return false; // TODO: Add semaphore etc.
+    switch (transition->operation.type) {
+        case MUTEX:;
+            mutex_operation_ref mop = visible_operation_unsafely_as_mutex_operation(&transition->operation);
+            return mutex_operation_enabled(mop, transition->thread);
+        case THREAD_LIFECYCLE:;
+            thread_operation_ref top = visible_operation_unsafely_as_thread_operation(&transition->operation);
+            return thread_operation_enabled(top, transition->thread);
+        default:;
+            mc_unimplemented();
+            return false;
     }
 }
 

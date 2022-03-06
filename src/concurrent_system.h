@@ -5,11 +5,15 @@
 #include "transition.h"
 #include "thread.h"
 #include "mutex.h"
+#include "shm.h"
 #include "state_stack_item.h"
 
 STRUCT_DECL(concurrent_system)
 
-extern thread_local tid_t tid_self;
+// NOTE: tid_self is only valid in the threads
+// of the child process
+extern child_local thread_local tid_t tid_self;
+extern concurrent_system csystem; /* Global concurrent system for the program */
 
 void csystem_init(concurrent_system_ref);
 void csystem_reset(concurrent_system_ref);
@@ -17,12 +21,17 @@ void csystem_reset(concurrent_system_ref);
 tid_t csystem_register_thread(concurrent_system_ref);
 tid_t csystem_register_main_thread(concurrent_system_ref);
 
+mutid_t csystem_register_mutex(concurrent_system_ref, pthread_mutex_t *);
+
 /*
  * Visible Objects
  */
 int csystem_get_thread_count(concurrent_system_ref);
+bool csystem_is_registered_tid(concurrent_system_ref, tid_t);
 thread_ref csystem_get_thread_with_tid(concurrent_system_ref, tid_t);
 thread_ref csystem_get_thread_with_pthread(concurrent_system_ref, pthread_t*);
+
+mutex_ref csystem_get_mutex_with_mutid(concurrent_system_ref, mutid_t);
 mutex_ref csystem_get_mutex_with_pthread(concurrent_system_ref, pthread_mutex_t*);
 
 /*
@@ -44,6 +53,7 @@ transition_ref csystem_shrink_transition_stack(concurrent_system_ref);
 transition_ref csystem_transition_stack_top(concurrent_system_ref);
 transition_ref csystem_transition_stack_get_element(concurrent_system_ref, int);
 
+void csystem_update_transition_stack_with_next_source_program_operation(concurrent_system_ref, shm_transition_ref, thread_ref);
 transition_ref csystem_get_transition_slot_for_tid(concurrent_system_ref, tid_t);
 transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csystem_local thread_ref);
 
@@ -55,6 +65,8 @@ void csystem_copy_per_thread_transitions(concurrent_system_ref, transition_ref);
  * Transitions
  */
 transition_ref csystem_run(concurrent_system_ref, thread_ref);
+void dpor_init_thread_start_transition(transition_ref, thread_ref);
+void dpor_init_thread_finish_transition(transition_ref, thread_ref);
 
 /**
  * Back tracking
@@ -67,6 +79,7 @@ bool csystem_p_q_could_race(concurrent_system_ref, int i, thread_ref q, thread_r
  */
 bool happens_before(concurrent_system_ref, int i, int j);
 bool happens_before_thread(concurrent_system_ref, int i, thread_ref);
+
 
 
 #endif //DPOR_CONCURRENT_SYSTEM_H

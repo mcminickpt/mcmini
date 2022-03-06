@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "thread.h"
 
+STRUCT_DECL(dpor_thread_routine_arg)
 struct dpor_thread_routine_arg {
     void *arg;
     thread_routine routine;
@@ -12,22 +13,24 @@ struct dpor_thread_routine_arg {
 static void *
 dpor_thread_routine_wrapper(void * arg)
 {
+    csystem_register_thread(&csystem);
+    dpor_thread_routine_arg_ref unwrapped_arg = (dpor_thread_routine_arg_ref)arg;
 
+    // Simulates being blocked at thread creation -> THREAD_START for this thread
+    thread_await_dpor_scheduler_for_thread_start_transition();
+    unwrapped_arg->routine(unwrapped_arg->arg);
+
+    free(arg); // See where the thread_wrapper is created. The memory is malloc'ed and should be freed
 }
 
 static void
-dpor_post_mutex_operation_to_parent(pthread_mutex_t *m, mutex_operation_type type, mutex_state state)
+dpor_post_mutex_operation_to_parent(pthread_mutex_t *m, mutex_operation_type type)
 {
     thread_ref tself = thread_get_self();
     shm_mutex_operation init_mutex;
-    mutex new_mutex = {
-            .mutex = m,
-            .owner = NULL,
-            .state = state
-    };
     shm_visible_operation to_parent;
     init_mutex.type = type;
-    init_mutex.mutex = new_mutex;
+    init_mutex.mutex = m;
     to_parent.type = MUTEX;
     to_parent.mutex_operation = init_mutex;
     shm_child_result->thread = *tself;
@@ -37,12 +40,7 @@ dpor_post_mutex_operation_to_parent(pthread_mutex_t *m, mutex_operation_type typ
 int
 dpor_pthread_mutex_init(pthread_mutex_t *m, pthread_mutexattr_t *attr)
 {
-    mutex_state state = MUTEX_UNKNOWN;
-    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
-    if (shadow) {
-        state = shadow->state;
-    }
-    dpor_post_mutex_operation_to_parent(m, MUTEX_INIT, state);
+    dpor_post_mutex_operation_to_parent(m, MUTEX_INIT);
     thread_await_dpor_scheduler();
     return pthread_mutex_init(m, attr);
 }
@@ -50,15 +48,7 @@ dpor_pthread_mutex_init(pthread_mutex_t *m, pthread_mutexattr_t *attr)
 int
 dpor_pthread_mutex_lock(pthread_mutex_t *m)
 {
-    mutex_state state = MUTEX_UNKNOWN;
-    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
-    if (shadow) {
-        state = shadow->state;
-    } else {
-        // TODO: Report undefined behavior -> locking uninitialized mutex
-        mc_report_undefined_behavior();
-    }
-    dpor_post_mutex_operation_to_parent(m, MUTEX_LOCK, state);
+    dpor_post_mutex_operation_to_parent(m, MUTEX_LOCK);
     thread_await_dpor_scheduler();
     return pthread_mutex_lock(m);
 }
@@ -66,15 +56,7 @@ dpor_pthread_mutex_lock(pthread_mutex_t *m)
 int
 dpor_pthread_mutex_unlock(pthread_mutex_t *m)
 {
-    mutex_state state = MUTEX_UNKNOWN;
-    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
-    if (shadow) {
-        state = shadow->state;
-    } else {
-        // TODO: Report undefined behavior -> unlocking uninitialized mutex
-        mc_report_undefined_behavior();
-    }
-    dpor_post_mutex_operation_to_parent(m, MUTEX_UNLOCK, state);
+    dpor_post_mutex_operation_to_parent(m, MUTEX_UNLOCK);
     thread_await_dpor_scheduler();
     return pthread_mutex_unlock(m);
 }
@@ -82,20 +64,7 @@ dpor_pthread_mutex_unlock(pthread_mutex_t *m)
 int
 dpor_pthread_mutex_destroy(pthread_mutex_t *m)
 {
-    mutex_state state = MUTEX_UNKNOWN;
-    mutex_ref shadow = csystem_get_mutex_with_pthread(&csystem, m);
-    if (shadow) {
-        state = shadow->state;
-
-        if (state == MUTEX_DESTROYED) {
-            // TODO: Report undefined behavior -> destroying a mutex that's already destroyed
-            mc_report_undefined_behavior();
-        }
-    } else {
-        // TODO: Report undefined behavior -> destroying uninitialized mutex
-        mc_report_undefined_behavior();
-    }
-    dpor_post_mutex_operation_to_parent(m, MUTEX_DESTROY, state);
+    dpor_post_mutex_operation_to_parent(m, MUTEX_DESTROY);
     thread_await_dpor_scheduler();
     return pthread_mutex_destroy(m);
 }
@@ -103,9 +72,8 @@ dpor_pthread_mutex_destroy(pthread_mutex_t *m)
 int
 dpor_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routine) (void *), void *arg)
 {
-    mc_assert(attr == NULL);
+    mc_assert(attr == NULL); // TODO: For now, we don't support attributes. This should be added in the future
 
-    struct dpor_thread_routine_arg *dpor_thread_arg = malloc(sizeof(struct dpor_thread_routine_arg));
-
-    return pthread_create(thread, attr, routine, arg);
+    dpor_thread_routine_arg_ref dpor_thread_arg = malloc(sizeof(struct dpor_thread_routine_arg));
+    return pthread_create(thread, attr, routine, dpor_thread_arg);
 }

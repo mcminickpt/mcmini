@@ -29,7 +29,7 @@ thread_ref thread_copy(thread_refc);
 void thread_destroy(thread_ref);
 
 STRUCT_DECL(thread_operation);
-TYPES_DECL(thread_operation, THREAD_START, THREAD_CREATE, THREAD_AFTER_CREATE, THREAD_JOIN, THREAD_AFTER_JOIN, THREAD_FINISH);
+TYPES_DECL(thread_operation, THREAD_START, THREAD_CREATE, THREAD_JOIN, THREAD_FINISH);
 struct thread_operation {
     thread_operation_type type;
     csystem_local thread_ref thread;

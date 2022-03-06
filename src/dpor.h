@@ -32,10 +32,7 @@ static void *dpor_create_shared_memory_region(void);
 static void dpor_initialize_shared_memory_region(void);
 static void dpor_reset_cv_locks(void);
 
-void dpor_init_thread_start_transition(transition_ref, thread_ref);
-void dpor_init_thread_finish_transition(transition_ref, thread_ref);
-
 void thread_await_dpor_scheduler(void);
-void thread_await_dpor_scheduler_initialization(void);
+void thread_await_dpor_scheduler_for_thread_start_transition(void);
 
 #endif //DPOR_DPOR_H

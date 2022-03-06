@@ -4,7 +4,9 @@
 #define thread_local __thread
 
 /* Used as a marker to specify that a pointer is in a struct concurrent_system  */
-#define csystem_local
+#define csystem_local /* Marker macro -> signifies local pointer into a concurrent system */
+#define child_local /* Marker macro -> signifies only significant for the child process */
+
 
 #define STRUCT_DECL(type)             \
 typedef struct type type;           \

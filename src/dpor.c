@@ -12,27 +12,21 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#define PTHREAD_SUCCESS (0)
-
 /* Resides in shared memory -> data child passes back to parent */
 /* The shared semaphores must also reside in shared memory as per the man page */
 pid_t cpid = -1;
 void *shm_addr = NULL;
 shm_transition_ref shm_child_result = NULL;
 mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE] = NULL;
-const size_t allocation_size = sizeof(*shm_child_result) + sizeof(*queue);
 
-void dpor_sigusr2(int sig)
-{
-    dpor_child_exit();
-}
+const size_t allocation_size = sizeof(*shm_child_result) + sizeof(*queue);
 
 // __attribute__((constructor))
 void
 dpor_init(void)
 {
-    csystem_init(&csystem);
     dpor_initialize_shared_memory_region();
+    csystem_init(&csystem);
 
     // XPC between parent (scheduler) and child (the program)
     atexit(&dpor_child_kill);
@@ -52,7 +46,7 @@ dpor_init(void)
         // to re-point `shm_child_result` and `queue` to the appropriate
         // locations (since this was already done above)
         dpor_initialize_shared_memory_region();
-        thread_await_dpor_scheduler_initialization();
+        thread_await_dpor_scheduler_for_thread_start_transition();
     } else { // Parent
         puts("Model checking completed");
         exit(0);
@@ -141,7 +135,7 @@ static void
 dpor_child_kill(void)
 {
     if (cpid == -1) return; // No child
-    int r = kill(cpid, SIGSTOP);
+    kill(cpid, SIGSTOP);
     cpid = -1;
 }
 
@@ -210,12 +204,8 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         csystem_run(&csystem, t_next->thread);
         dpor_run_thread_to_next_visible_operation(tid);
 
-        // Update the transition that this thread does next based
-        // on the result the child wrote to shared memory
-        transition_ref tslot = csystem_get_transition_slot_for_thread(&csystem, t_next->thread);
-        copy_into_transition_from_shm(shm_child_result, tslot);
-
-        // At this point, we have enough information to perform a backtrack
+        // Update the transition that this thread does next based on the result the child wrote to shared memory
+        csystem_update_transition_stack_with_next_source_program_operation(&csystem, shm_child_result, t_next->thread);
         csystem_dynamically_update_backtrack_sets(&csystem);
 
         t_next = csystem_get_first_enabled_transition(&csystem);
@@ -225,19 +215,20 @@ dpor_parent_scheduler_main(uint32_t max_depth)
             // Perhaps we should retry entirely with a smaller
             // depth
             dpor_child_kill();
+            puts("DEADLOCK DETECTED");
             abort();
         }
     }
 
     dpor_child_kill();
-//    while (!csystem_state_stack_is_empty(&csystem)) {
-//        state s_top = csystem_shrink_state_stack(&csystem);
-//        t_next = csystem_shrink_transition_stack(&csystem);
+//    while (!csystem_state_stack_is_empty(csystem)) {
+//        state s_top = csystem_shrink_state_stack(csystem);
+//        t_next = csystem_shrink_transition_stack(csystem);
 //
 //        // Calls to `dpor_backtrack_main` push
 //        // new items onto the state and transition
 //        // stacks; hence, "depth--;" is not sufficient
-//        depth = csystem_state_stack_count(&csystem);
+//        depth = csystem_state_stack_count(csystem);
 //
 //        mc_assert(depth <= max_depth);
 //        if (!hash_set_is_empty(s_top->backtrack_set)) {
@@ -269,7 +260,7 @@ dpor_spawn_child_following_transition_stack(void)
 
     if (!is_child) {
         int transition_stack_height = csystem_transition_stack_count(&csystem);
-        for (uint32_t i = 0; i < transition_stack_height; i++) {
+        for (int i = 0; i < transition_stack_height; i++) {
             // NOTE: This is reliant on the fact
             // that threads are created in the same order
             // when we create them. This will always be consistent,
@@ -311,7 +302,7 @@ thread_await_dpor_scheduler(void)
 // initialization this is not true. Hence, this method is
 // invoked instead
 void
-thread_await_dpor_scheduler_initialization(void)
+thread_await_dpor_scheduler_for_thread_start_transition(void)
 {
     mc_assert(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*queue)[tid_self];
@@ -338,27 +329,3 @@ dpor_child_exit(void)
 }
 
 // ****** CHILD FUNCTIONS END **** //
-
-static void
-dpor_init_thread_transition(transition_ref tref, thread_ref thread, thread_operation_type type)
-{
-    thread_operation top;
-    top.type = type;
-    top.thread = thread;
-
-    tref->operation.type = THREAD_LIFECYCLE;
-    tref->operation.thread_operation = top;
-    tref->thread = thread;
-}
-
-inline void
-dpor_init_thread_start_transition(transition_ref transition, thread_ref thread)
-{
-    dpor_init_thread_transition(transition, thread, THREAD_START);
-}
-
-inline void
-dpor_init_thread_finish_transition(transition_ref transition, thread_ref thread)
-{
-    dpor_init_thread_transition(transition, thread, THREAD_FINISH);
-}
