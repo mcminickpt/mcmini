@@ -98,9 +98,12 @@ csystem_get_mutex_with_mutid(concurrent_system_ref ref, mutid_t mutid)
     return &ref->locks[mutid];
 }
 
+#include <stdio.h>
+
 inline thread_ref
 csystem_get_thread_with_tid(concurrent_system_ref ref, tid_t tid)
 {
+    mc_assert(tid != TID_INVALID);
     mc_assert(tid >= 0 && tid < MAX_TOTAL_THREADS_PER_SCHEDULE);
     if (tid == TID_INVALID) return NULL;
     return &ref->threads[tid];
@@ -127,7 +130,8 @@ csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operati
 
     switch (mutop->type) {
     case MUTEX_INIT:;
-        shadow = &ref->locks[++ref->mut_next];
+        mutid_t mutid = csystem_register_mutex(ref, mutex);
+        shadow = csystem_get_mutex_with_mutid(ref, mutid);
         *shadow = mutop->mutex;
         shadow->state = MUTEX_UNLOCKED;
         hash_table_set_implicit(ref->mutex_map, mutex, shadow);
@@ -149,8 +153,12 @@ static void
 csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
 {
     // TODO: Report undefined behavior here
+
     switch (top->type) {
     case THREAD_CREATE:;
+
+        // Create a new thread
+
 
     default:;
         break;
@@ -308,8 +316,8 @@ csystem_grow_transition_stack(concurrent_system_ref ref, thread_ref thread)
     transition_ref thread_runs = csystem_get_transition_slot_for_thread(ref, thread);
     csystem_virtually_apply_transition(ref, thread_runs);
 
-    // Copy the contents of the transition into the the top of the transition stack
-    ref->t_stack[ref->t_stack_top] = *thread_runs;
+    // Copy the contents of the transition into the top of the transition stack
+    *t_top = *thread_runs;
 
     return t_top;
 }
@@ -334,6 +342,18 @@ csystem_shrink_transition_stack(concurrent_system_ref ref)
     transition_ref t_top = &ref->t_stack[ref->t_stack_top--];
     csystem_virtually_revert_transition(ref, t_top);
     return t_top;
+}
+
+state_stack_item_ref
+csystem_pop_program_stacks_for_backtracking(concurrent_system_ref ref)
+{
+    mc_assert(!csystem_state_stack_is_empty(ref));
+    state_stack_item_ref s_old_top = csystem_shrink_state_stack(ref);
+
+    if (!csystem_transition_stack_is_empty(ref))
+        csystem_shrink_transition_stack(ref);
+
+    return s_old_top;
 }
 
 inline transition_ref
@@ -424,6 +444,27 @@ csystem_get_first_enabled_transition(concurrent_system_ref ref)
         if (transition_enabled(t_next_i)) return t_next_i;
     }
     return NULL;
+}
+
+transition_ref
+csystem_get_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref)
+{
+    state_stack_item_ref cur_s = csystem_state_stack_top(ref);
+    for (int i = 0; i < ref->tid_next; i++) {
+        transition_ref t_next_i = &ref->t_next[i];
+        if (transition_enabled(t_next_i)) return t_next_i;
+    }
+    return NULL;
+}
+
+transition_ref
+csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref)
+{
+    state_stack_item_ref cur_s = csystem_state_stack_top(ref);
+    transition_ref next_transition = csystem_get_first_enabled_transition_in_backtrack_set(ref);
+    hash_set_remove(cur_s->backtrack_set, next_transition->thread);
+    hash_set_insert(cur_s->done_set, next_transition->thread);
+    return next_transition;
 }
 
 inline int

@@ -103,8 +103,6 @@ dpor_create_shared_memory_region(void)
 static void
 dpor_reset_cv_locks(void)
 {
-    // TODO: Technically, the semaphores don't need to be destroyed,
-    // just set to the appropriate starting values
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++) {
         mc_shared_cv_destroy(&(*queue)[i]);
         mc_shared_cv_init(&(*queue)[i]);
@@ -140,64 +138,11 @@ dpor_child_kill(void)
 }
 
 static bool
-dpor_backtrack_main(state_stack_item_ref ss_item, uint32_t max_depth)
+dpor_advance_forward(uint32_t steps, transition_refc initial_transition)
 {
-    bool is_child = dpor_spawn_child_following_transition_stack();
-    if (is_child) return true;
-
     uint32_t depth = 0;
-    state_stack_item_ref s_top = ss_item;
-    transition_ref t_top = state_stack_item_get_first_enabled_backtrack_transition(ss_item);
-    if (t_top == NULL) {
-        // TODO: We've hit a deadlock. There are no enabled
-        // transitions at this point and we should print that
-        printf("DEADLOCK\n");
-        abort();
-    }
-    state_stack_item_remove_backtrack_thread(ss_item, t_top->thread);
-    state_stack_item_mark_thread_as_searched(ss_item, t_top->thread);
-
-//    do {
-//        array_append(s_stack, s_top);
-//        array_append(t_stack, t_top);
-//        dpor_run_thread_to_next_visible_operation(t_top->thread->tid);
-//
-//        transition_ref new_transition = create_transition_from_shm(shm_child_result);
-//        {
-//            state_stack_item_ref new_s_top = state_stack_item_alloc();
-//            shared_state_ref new_s = next(s_top->state, t_top, new_transition);
-//            new_s_top->state = new_s;
-//            new_s_top->backtrack_set = array_create();
-//            new_s_top->done_set = array_create();
-//            s_top = new_s_top;
-//        }
-//
-//        dynamically_update_backtrack_sets(s_top);
-//        t_top = shared_state_get_first_enabled_transition(s_top->state);
-//    } while (depth++ < max_depth);
-
-    return false;
-}
-
-/* Return true if we should run another iteration */
-static bool
-dpor_parent_scheduler_main(uint32_t max_depth)
-{
-    dpor_reset_cv_locks();
-    csystem_reset(&csystem);
-    dpor_register_main_thread();
-
-    bool is_child = dpor_spawn_child();
-    if (is_child) return true;
-
-    thread_ref main_thread = thread_get_self();
-    transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
-    dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
-
-    transition_ref t_next = t_slot_for_main_thread_next;
-
-    uint32_t depth = 0;
-    while (++depth <= max_depth) {
+    transition_refc t_next = initial_transition;
+    while (++depth <= steps) {
         tid_t tid = t_next->thread->tid;
 
         // Virtually run the transition to get to the next state
@@ -219,25 +164,60 @@ dpor_parent_scheduler_main(uint32_t max_depth)
             abort();
         }
     }
+}
 
+static bool
+dpor_backtrack_main(uint32_t max_depth)
+{
+    bool is_child = dpor_spawn_child_following_transition_stack();
+    if (is_child) return true;
+
+    transition_ref t_next = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem);
+    if (t_next == NULL) {
+        // TODO: We've hit a deadlock. There are no enabled
+        // transitions at this point and we should print that
+        printf("DEADLOCK\n");
+        abort();
+    }
+    dpor_advance_forward(max_depth, t_next);
+    return false;
+}
+
+/* Return true if we should run another iteration */
+static bool
+dpor_parent_scheduler_main(uint32_t max_depth)
+{
+    dpor_reset_cv_locks();
+    csystem_reset(&csystem);
+    dpor_register_main_thread();
+
+    bool is_child = dpor_spawn_child();
+    if (is_child) return true;
+
+    thread_ref main_thread = thread_get_self();
+    transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
+    dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
+    dpor_advance_forward(max_depth, t_slot_for_main_thread_next);
     dpor_child_kill();
-//    while (!csystem_state_stack_is_empty(csystem)) {
-//        state s_top = csystem_shrink_state_stack(csystem);
-//        t_next = csystem_shrink_transition_stack(csystem);
-//
-//        // Calls to `dpor_backtrack_main` push
-//        // new items onto the state and transition
-//        // stacks; hence, "depth--;" is not sufficient
-//        depth = csystem_state_stack_count(csystem);
-//
-//        mc_assert(depth <= max_depth);
-//        if (!hash_set_is_empty(s_top->backtrack_set)) {
-//            bool is_child = dpor_backtrack_main(s_top, max_depth - depth);
-//            if (is_child) { return true; }
-//        }
-//
-//        // TODO: Remove backtrack and done sets to prevent memory leaks
-//    }
+
+    while (!csystem_state_stack_is_empty(&csystem)) {
+        state_stack_item_ref s_old_top = csystem_pop_program_stacks_for_backtracking(&csystem);
+
+        // Calls to `dpor_backtrack_main` push
+        // new items onto the state and transition
+        // stacks; hence, "depth--;" is not sufficient
+        const uint32_t depth = csystem_state_stack_count(&csystem);
+        mc_assert(depth <= max_depth);
+
+        if (!hash_set_is_empty(s_old_top->backtrack_set)) {
+            bool is_child = dpor_backtrack_main(max_depth - depth);
+            if (is_child) { return true; }
+        }
+
+        // TODO: Remove backtrack and done sets to prevent memory leaks
+        hash_set_destroy(s_old_top->done_set);
+        hash_set_destroy(s_old_top->backtrack_set);
+    }
 
     return false;
 }

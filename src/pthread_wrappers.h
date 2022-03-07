@@ -30,6 +30,6 @@ int dpor_pthread_mutex_unlock(pthread_mutex_t*);
 int dpor_pthread_mutex_destroy(pthread_mutex_t*);
 
 int dpor_pthread_create(pthread_t *, const pthread_attr_t *, void *(*) (void *), void *);
-int dpor_pthread_join(pthread_t *, void**);
+int dpor_pthread_join(pthread_t, void**);
 
 #endif //DPOR_PTHREAD_WRAPPERS_H

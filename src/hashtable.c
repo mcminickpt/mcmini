@@ -132,14 +132,16 @@ hash_table_num_slots(hash_table_ref ref) {
  * key maps to
  */
 static uint64_t
-hash_table_map_key(hash_table_ref ref, uint64_t key) {
+hash_table_map_key(hash_table_ref ref, uint64_t key)
+{
     uint64_t hash_value = hash_key(key);
     uint64_t num_entries = hash_table_num_slots(ref);
     return hash_value % num_entries;
 }
 
 static void
-hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base) {
+hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base)
+{
     if (!ref || !ref->base) {
         errno = EINVAL;
         return;
@@ -158,7 +160,8 @@ hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base) {
 }
 
 static void
-hash_table_unforced_grow(hash_table_ref ref) {
+hash_table_unforced_grow(hash_table_ref ref)
+{
     if (!ref) {
         errno = EINVAL;
         return;
@@ -205,9 +208,10 @@ hash_table_probe_get(hash_table_ref ref, uint64_t key) {
         return best_match;
 
     uint64_t num_ents = hash_table_num_slots(ref);
+    uint64_t num_searched = 0ul;
     hash_table_entry cur;
 
-    while ((cur = ref->base[best_match]).valid) {
+    while ((cur = ref->base[best_match]).valid && ++num_searched <= num_ents) {
         if (cur.key == key)
             return best_match;
         best_match = (best_match + 1) % num_ents;
