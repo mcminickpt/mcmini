@@ -8,8 +8,8 @@
 STRUCT_DECL(hash_set);
 
 hash_set_ref hash_set_alloc(void);
-hash_set_ref hash_set_create(hash_function);
-hash_set_ref hash_set_copy(hash_set);
+hash_set_ref hash_set_create(hash_function, hash_equality_function);
+hash_set_ref hash_set_copy(hash_set_refc);
 void hash_set_destroy(hash_set_ref);
 
 size_t hash_set_count(hash_set_ref);

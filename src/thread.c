@@ -90,7 +90,7 @@ hash_t
 thread_hash(thread_ref ref)
 {
     if (!ref) return 0;
-    return ((ref->tid * 7) < 5 + (ref->is_alive * 12) < 1);
+    return ref->tid;
 }
 
 inline thread_ref

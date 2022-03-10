@@ -15,32 +15,29 @@ struct hash_table_iter {
  * NOTE: The fields must all represent the zero value. This allows rehashing the table to happen more
  * quickly since a call to bzero empties the hash table
  */
-static const hash_table_entry hash_table_invalid_entry = { .valid = false, .key = 0, .value = NULL };
+static const hash_table_entry hash_table_invalid_entry = { .valid = false, .key = NULL, .value = NULL };
 
 struct hash_table {
-    size_t count;                /* The number of occupied entries in the hash table */
-    size_t len;                  /* The length, in bytes, of the hash table */
-    hash_table_entry *base;      /* The base address of the hash table's contents */
-    hash_function hasher; /* A function to apply automatically to */
+    size_t count;                       /* The number of occupied entries in the hash table */
+    size_t len;                         /* The length, in bytes, of the hash table */
+    hash_table_entry *base;             /* The base address of the hash table's contents */
+    hash_function hasher;               /* A function to apply automatically to */
+    hash_equality_function equals;      /* Used to resolve hash collisions -> determines when we should */
 };
-
 
 MEMORY_ALLOC_DEF_DECL(hash_table)
 
-/**
- * Allocates and initializes a new empty hash table on the heap
- *
- * @return a reference to the new empty hash table, or NULL if
- * no more memory can be allocated by the program
- */
 hash_table_ref
-hash_table_create(void) {
-    hash_table_ref ref = (hash_table_ref)malloc(sizeof(hash_table));
+hash_table_create(hash_function hash_function, hash_equality_function equals) {
+    if (!equals || !hash_function) return NULL;
 
+    hash_table_ref ref = (hash_table_ref)malloc(sizeof(hash_table));
     if (ref) {
         ref->count = 0;
         ref->len = 0;
         ref->base = NULL;
+        ref->equals = equals;
+        ref->hasher = hash_function;
     }
     return ref;
 }
@@ -48,11 +45,14 @@ hash_table_create(void) {
 hash_table_ref
 hash_table_copy(hash_table_refc other)
 {
-    hash_table_ref ref = hash_table_alloc();
+    if (!other) return NULL;
 
+    hash_table_ref ref = hash_table_alloc();
     if (ref) {
         ref->count = other->count;
         ref->len = other->len;
+        ref->hasher = other->hasher;
+        ref->equals = other->equals;
 
         if (other->len > 0) {
             void *base = malloc(other->len);
@@ -65,12 +65,6 @@ hash_table_copy(hash_table_refc other)
     return ref;
 }
 
-/**
- * Deallocates storage used to hold the contents of a hash table
- *
- * @param ref a reference to a hash table. If the reference is NULL,
- * the function does nothing
- */
 void
 hash_table_destroy(hash_table_ref ref) {
     if (!ref) {
@@ -130,9 +124,9 @@ hash_table_num_slots(hash_table_refc ref) {
  * key maps to
  */
 static uint64_t
-hash_table_map_key(hash_table_refc ref, uint64_t key)
+hash_table_map_key(hash_table_refc ref, void *key)
 {
-    uint64_t hash_value = hash_key(key);
+    uint64_t hash_value = hash_key(ref->hasher(key));
     uint64_t num_entries = hash_table_num_slots(ref);
     return hash_value % num_entries;
 }
@@ -177,7 +171,7 @@ hash_table_unforced_grow(hash_table_ref ref)
         // Prepare to rehash into the new memory region
         hash_table_entry *old_base = ref->base;
         hash_table_entry *new_base = (hash_table_entry*)malloc(new_len);
-        bzero(new_base, new_len); /* All entries are invalid */
+        explicit_bzero(new_base, new_len); /* All entries are invalid */
 
         // Rehash the first `rehash_size` entries in the table
         ref->len *= 2;
@@ -190,7 +184,7 @@ hash_table_unforced_grow(hash_table_ref ref)
 }
 
 static uint64_t
-hash_table_probe_get(hash_table_refc ref, uint64_t key) {
+hash_table_probe_get(hash_table_refc ref, void *key) {
     uint64_t best_match = hash_table_map_key(ref, key);
     if (ref->count == 0)
         return best_match;
@@ -200,7 +194,7 @@ hash_table_probe_get(hash_table_refc ref, uint64_t key) {
     hash_table_entry cur;
 
     while ((cur = ref->base[best_match]).valid && ++num_searched <= num_ents) {
-        if (cur.key == key)
+        if (ref->equals(key, cur.key))
             return best_match;
         best_match = (best_match + 1) % num_ents;
     }
@@ -209,7 +203,7 @@ hash_table_probe_get(hash_table_refc ref, uint64_t key) {
 }
 
 static uint64_t
-hash_table_probe_set(hash_table_ref ref, uint64_t key, bool *replace) {
+hash_table_probe_set(hash_table_ref ref, void *key, bool *replace) {
     uint64_t best_match = hash_table_map_key(ref, key);
     if (ref->count == 0)
         return best_match;
@@ -218,7 +212,7 @@ hash_table_probe_set(hash_table_ref ref, uint64_t key, bool *replace) {
     hash_table_entry cur;
 
     while ((cur = ref->base[best_match]).valid) {
-        if (cur.key == key) {
+        if (ref->equals(cur.key, key)) {
             *replace = true;
             return best_match;
         }
@@ -247,7 +241,7 @@ hash_table_is_empty(hash_table_refc ref)
 }
 
 void*
-hash_table_get(hash_table_refc ref, uint64_t key) {
+hash_table_get(hash_table_refc ref, void *key) {
     if (!ref || !ref->base) {
         errno = EINVAL;
         return NULL;
@@ -260,14 +254,8 @@ hash_table_get(hash_table_refc ref, uint64_t key) {
     return ref->base[dest].value;
 }
 
-void*
-hash_table_get_implicit(hash_table_refc ref, void *key) {
-    if (!ref) return NULL;
-    return hash_table_get(ref, ref->hasher(key));
-}
-
 void
-hash_table_set(hash_table_ref ref, uint64_t key, void *value) {
+hash_table_set(hash_table_ref ref, void * key, void *value) {
     if (!ref) {
         errno = EINVAL;
         return;
@@ -281,27 +269,8 @@ hash_table_set(hash_table_ref ref, uint64_t key, void *value) {
     replace ? (void)0 : ref->count++;
 }
 
-void
-hash_table_set_implicit(hash_table_ref ref, void* key, void *value) {
-    if (!ref) {
-        errno = EINVAL;
-        return;
-    }
-    hash_table_set(ref, ref->hasher(key), value);
-}
-
-void
-hash_table_set_hash_function(hash_table_ref ref, hash_function hfunc)
-{
-    if (!ref) {
-        errno = EINVAL;
-        return;
-    }
-    ref->hasher = hfunc;
-}
-
 void*
-hash_table_remove(hash_table_ref ref, uint64_t key) {
+hash_table_remove(hash_table_ref ref, void *key) {
     if (!ref || !ref->base) {
         errno = EINVAL;
         return NULL;
@@ -318,7 +287,6 @@ hash_table_remove(hash_table_ref ref, uint64_t key) {
     // more work to ensure that other hash-collided
     // values still are correctly found. See
     // https://en.wikipedia.org/wiki/Linear_probing for details
-
     hash_table_entry *cur = NULL;
 
     uint64_t index = (index_to_remove + 1) % num_ents;
@@ -341,18 +309,8 @@ void
 hash_table_clear(hash_table_ref ref)
 {
     if (!ref) return;
-    bzero(ref->base, ref->len);
+    explicit_bzero(ref->base, ref->len);
     ref->count = 0;
-}
-
-void *
-hash_table_remove_implicit(hash_table_ref ref, void* value)
-{
-    if (!ref || !ref->base) {
-        errno = EINVAL;
-        return NULL;
-    }
-    hash_table_remove(ref, ref->hasher(value));
 }
 
 MEMORY_ALLOC_DEF_DECL(hash_table_iter);
@@ -386,7 +344,6 @@ hash_table_iter_get_next(hash_table_iter_ref iter)
 
     for (uint64_t i = start; i < iter->htable_num_slots_to_search; i++) {
         hash_table_entry_ref ent = &iter->iterated->base[i];
-
         if (ent->valid) {
             iter->last_valid = i;
             iter->ent++;
