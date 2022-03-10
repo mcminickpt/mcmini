@@ -446,22 +446,19 @@ csystem_get_first_enabled_transition(concurrent_system_ref ref)
     return NULL;
 }
 
-transition_ref
-csystem_get_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref)
+static transition_ref
+csystem_get_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref, state_stack_item_ref ss_item)
 {
-    state_stack_item_ref cur_s = csystem_state_stack_top(ref);
-    for (int i = 0; i < ref->tid_next; i++) {
-        transition_ref t_next_i = &ref->t_next[i];
-        if (transition_enabled(t_next_i)) return t_next_i;
-    }
-    return NULL;
+    hash_table_iter iter = hash_table_create_iter(ss_item->backtrack_set);
+
 }
 
 transition_ref
 csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref)
 {
     state_stack_item_ref cur_s = csystem_state_stack_top(ref);
-    transition_ref next_transition = csystem_get_first_enabled_transition_in_backtrack_set(ref);
+    transition_ref next_transition = csystem_get_first_enabled_transition_in_backtrack_set(ref, cur_s);
+    if (next_transition == NULL) return NULL;
     hash_set_remove(cur_s->backtrack_set, next_transition->thread);
     hash_set_insert(cur_s->done_set, next_transition->thread);
     return next_transition;
@@ -537,9 +534,55 @@ csystem_end_backtrack(concurrent_system_ref ref)
 bool
 happens_before(concurrent_system_ref ref, int i, int j)
 {
-    transition_ref t_i = &ref->t_stack[i];
-    transition_ref t_j = &ref->t_stack[j];
-    return i <= j && transitions_dependent(t_i, t_j);
+    mc_assert(i > 0 && j > 0);
+    mc_assert(!ref->is_backtracking || ref->detached_t_top >= 0);
+
+    const int top = ref->is_backtracking ? ref->detached_t_top : ref->t_stack_top;
+
+    if (i > j) return false;
+    {
+        transition_ref t_i = &ref->t_stack[i];
+        transition_ref t_j = &ref->t_stack[j];
+        if (transitions_dependent(t_i, t_j))
+            return true;
+    }
+
+    // TODO: Make dfs stack a `static` variable and alloc
+    // when necessary. Significantly reduces free and malloc calls
+
+
+    // DFS is used instead of BFS since the
+    // performance of removing items from
+    // the array is O(1) for items at the end of the array
+    array_ref dfs_stack = array_create();
+
+    // Reduces calls to realloc()
+    array_prealloc(dfs_stack, i); // TODO: Pick a reasonable estimate here.
+
+    // Note: We use `(void*) int-type` to be able to store in the
+    // array (which expects dynamic types)
+
+    array_append(dfs_stack, (void*)(uint64_t)i);
+
+    while (!array_is_empty(dfs_stack)) {
+        uint64_t t_search = (uint64_t) array_remove_last(dfs_stack);
+        transition_ref t_search_ref = &ref->t_stack[t_search];
+
+        if (t_search == j)
+            return true;
+        else if (t_search > j)
+            continue; // We only increase from here
+        else {
+            for (int k = t_search + 1; k < top; k++) {
+                transition_ref t_k = &ref->t_stack[k];
+                if (transitions_dependent(t_k, t_search_ref))
+                    array_append(dfs_stack, (void*)(uint64_t)k);
+            }
+        }
+    }
+    array_destroy(dfs_stack, NULL);
+
+    return false;
 }
 
 bool

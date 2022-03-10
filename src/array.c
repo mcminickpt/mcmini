@@ -1,4 +1,5 @@
 #include "array.h"
+#include <math.h>
 
 /**
  * A dynamically-count array containing arbitrary contents
@@ -214,15 +215,25 @@ array_swap(array_ref ref, uint32_t i1, uint32_t i2) {
 }
 
 static void
-array_grow(array_ref ref) {
+array_grow_if_necessary_to_hold_capacity(array_ref ref, uint32_t count)
+{
     if (!ref->base) {
-        ref->base = malloc(1);
-        ref->len = 1;
+        ref->base = malloc(sizeof(void*));
+        ref->len = sizeof(void*);
     }
-    else {
-        size_t cur = ref->len;
-        ref->base = realloc(ref->base, ref->len = 2 * cur);
-    }
+
+    size_t cur = ref->len;
+    size_t final_size = cur;
+    size_t desired = count * sizeof(void*);
+
+    if (cur == 0) abort();
+
+    // + 1 and then casting rounds up
+    size_t num_times_to_double = (size_t)(log2(((double)desired) / ((double)cur)) + 1);
+    for (size_t i = 0; i < num_times_to_double; i++)
+        final_size *= 2;
+
+    ref->base = realloc(ref->base, ref->len = final_size);
 }
 
 void
@@ -231,15 +242,7 @@ array_append(array_ref ref, const void *data) {
         errno = EINVAL;
         return;
     }
-
-    size_t cur = ref->count * sizeof(void*);
-
-    // Decide if the memory should grow.
-    // The count is doubled each time to prevent
-    // high overhead from memory allocations
-    while (ref->len < cur + sizeof(void*))
-        array_grow(ref);
-
+    array_grow_if_necessary_to_hold_capacity(ref, ref->count + 1);
     array_set(ref, ref->count++, &data);
 }
 
@@ -253,6 +256,12 @@ array_append_array(array_ref ref, array_refc other) {
     for (int i = 0; i < array_count(other); i++)
         array_append(ref, array_get(other, i));
 
+}
+
+void
+array_prealloc(array_ref ref, uint32_t count)
+{
+    array_grow_if_necessary_to_hold_capacity(ref, count);
 }
 
 void

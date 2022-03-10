@@ -25,4 +25,8 @@ add_executable(DPOR
         transition.c transition.h
         visible_operation.c visible_operation.h concurrent_system.c concurrent_system.h hashset.c hashset.h)
 message("Linking object files...")
-target_link_libraries(DPOR PUBLIC -lrt -pthread)
+
+# -lrt -> shared memory
+# -pthread -> libpthread.so
+# -lm -> math library
+target_link_libraries(DPOR PUBLIC -lrt -pthread -lm)

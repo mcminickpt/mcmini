@@ -208,6 +208,7 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         // stacks; hence, "depth--;" is not sufficient
         const uint32_t depth = csystem_state_stack_count(&csystem);
         mc_assert(depth <= max_depth);
+        printf("Backtracking at depth %d\n", depth);
 
         if (!hash_set_is_empty(s_old_top->backtrack_set)) {
             bool is_child = dpor_backtrack_main(max_depth - depth);

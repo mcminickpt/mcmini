@@ -19,6 +19,8 @@ array_ref array_clone(void**, size_t);
 void array_destroy(array_ref, void(* free_each)(void *));
 void array_destroy_opaque(void*);
 
+void array_prealloc(array_ref, uint32_t count);
+
 /*
  * ---- Operations ----
  */
