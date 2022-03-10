@@ -2,29 +2,28 @@
 
 STRUCT_DECL(hash_table_entry)
 
-/**
- * An entry in a hash table that uses a raw integer value as a key
- * and associates it with an arbitrary value
- */
-struct hash_table_entry {
-    bool valid;                /* Whether or not this hash entry is valid (only defined within bounds) */
-    uint64_t key;              /* The identifier that is mapped by the hash function */
-    void * value;              /* The value associated with the paired key */
+struct hash_table_iter {
+    uint64_t ent;                            /* The index of the current valid entry in the hash table */
+    uint64_t last_valid;                     /* Points to the last valid index in the hash_table */
+    uint64_t htable_size;                    /* Cached number of elements of the hash_table that is iterated through */
+    uint64_t htable_num_slots_to_search;     /* Cached number of slots for elements in the hash_table that is iterated through */
+    hash_table_refc iterated;                /* The hash table that is iterated upon */
 };
 
 /* A hash table entry that represents the absence of an entry */
+/*
+ * NOTE: The fields must all represent the zero value. This allows rehashing the table to happen more
+ * quickly since a call to bzero empties the hash table
+ */
 static const hash_table_entry hash_table_invalid_entry = { .valid = false, .key = 0, .value = NULL };
 
-/**
- * A data structure which associates data with integer key values
- * for very fast access times
- */
 struct hash_table {
     size_t count;                /* The number of occupied entries in the hash table */
     size_t len;                  /* The length, in bytes, of the hash table */
     hash_table_entry *base;      /* The base address of the hash table's contents */
     hash_function hasher; /* A function to apply automatically to */
 };
+
 
 MEMORY_ALLOC_DEF_DECL(hash_table)
 
@@ -43,7 +42,6 @@ hash_table_create(void) {
         ref->len = 0;
         ref->base = NULL;
     }
-
     return ref;
 }
 
@@ -110,7 +108,7 @@ hash_key(uint64_t key) {
  * table, or -1 if the hash table is -1
  */
 static uint64_t
-hash_table_num_slots(hash_table_ref ref) {
+hash_table_num_slots(hash_table_refc ref) {
     return ref ? ref->len / sizeof(hash_table_entry) : UINT64_MAX;
 }
 
@@ -132,7 +130,7 @@ hash_table_num_slots(hash_table_ref ref) {
  * key maps to
  */
 static uint64_t
-hash_table_map_key(hash_table_ref ref, uint64_t key)
+hash_table_map_key(hash_table_refc ref, uint64_t key)
 {
     uint64_t hash_value = hash_key(key);
     uint64_t num_entries = hash_table_num_slots(ref);
@@ -147,14 +145,14 @@ hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base)
         return;
     }
 
+    // We just doubled the number of slots -> the old_base had half of the new one
     uint64_t entries = hash_table_num_slots(ref) / 2;
-
     for (int i = 0; i < entries; i++) {
-        hash_table_entry ent = old_base[i];
+        hash_table_entry_ref ent = &old_base[i];
 
-        if (ent.valid) {
-            uint64_t dest = hash_table_map_key(ref, ent.key);
-            ref->base[dest] = ent;
+        if (ent->valid) {
+            uint64_t dest = hash_table_map_key(ref, ent->key);
+            ref->base[dest] = *ent;
         }
     }
 }
@@ -162,11 +160,6 @@ hash_table_rehash(hash_table_ref ref, hash_table_entry *old_base)
 static void
 hash_table_unforced_grow(hash_table_ref ref)
 {
-    if (!ref) {
-        errno = EINVAL;
-        return;
-    }
-
     if (ref->base == NULL) {
         ref->base = (hash_table_entry*) malloc(sizeof(hash_table_entry));
         ref->base[0] = hash_table_invalid_entry;
@@ -177,7 +170,7 @@ hash_table_unforced_grow(hash_table_ref ref)
     size_t fill = ref->count * sizeof(hash_table_entry);
     double filld = (double)fill;
 
-    if (filld >= (ref->len * REHASH_FACTOR)) {
+    if (filld >= ((double)ref->len * REHASH_FACTOR)) {
         size_t old_len = ref->len;
         size_t new_len = 2 * old_len;
 
@@ -197,12 +190,7 @@ hash_table_unforced_grow(hash_table_ref ref)
 }
 
 static uint64_t
-hash_table_probe_get(hash_table_ref ref, uint64_t key) {
-    if (!ref) {
-        errno = EINVAL;
-        return UINT64_MAX;
-    }
-
+hash_table_probe_get(hash_table_refc ref, uint64_t key) {
     uint64_t best_match = hash_table_map_key(ref, key);
     if (ref->count == 0)
         return best_match;
@@ -222,11 +210,6 @@ hash_table_probe_get(hash_table_ref ref, uint64_t key) {
 
 static uint64_t
 hash_table_probe_set(hash_table_ref ref, uint64_t key, bool *replace) {
-    if (!ref) {
-        errno = EINVAL;
-        return UINT64_MAX;
-    }
-
     uint64_t best_match = hash_table_map_key(ref, key);
     if (ref->count == 0)
         return best_match;
@@ -247,7 +230,7 @@ hash_table_probe_set(hash_table_ref ref, uint64_t key, bool *replace) {
 }
 
 size_t
-hash_table_count(hash_table_ref ref) {
+hash_table_count(hash_table_refc ref) {
     if (!ref) {
         errno = EINVAL;
         return 0;
@@ -257,14 +240,14 @@ hash_table_count(hash_table_ref ref) {
 }
 
 bool
-hash_table_is_empty(hash_table_ref ref)
+hash_table_is_empty(hash_table_refc ref)
 {
     if (!ref) return true;
     return ref->count == 0;
 }
 
 void*
-hash_table_get(hash_table_ref ref, uint64_t key) {
+hash_table_get(hash_table_refc ref, uint64_t key) {
     if (!ref || !ref->base) {
         errno = EINVAL;
         return NULL;
@@ -278,7 +261,7 @@ hash_table_get(hash_table_ref ref, uint64_t key) {
 }
 
 void*
-hash_table_get_implicit(hash_table_ref ref, void *key) {
+hash_table_get_implicit(hash_table_refc ref, void *key) {
     if (!ref) return NULL;
     return hash_table_get(ref, ref->hasher(key));
 }
@@ -358,9 +341,7 @@ void
 hash_table_clear(hash_table_ref ref)
 {
     if (!ref) return;
-
-    for (uint32_t slot = 0; slot < hash_table_num_slots(ref); slot++)
-        ref->base[slot].valid = false;
+    bzero(ref->base, ref->len);
     ref->count = 0;
 }
 
@@ -373,3 +354,52 @@ hash_table_remove_implicit(hash_table_ref ref, void* value)
     }
     hash_table_remove(ref, ref->hasher(value));
 }
+
+MEMORY_ALLOC_DEF_DECL(hash_table_iter);
+
+hash_table_iter_ref
+hash_table_iter_create(hash_table_refc table)
+{
+    hash_table_iter_ref ref = hash_table_iter_alloc();
+    if (ref) {
+        ref->ent = 0;
+        ref->last_valid = 0;
+        ref->iterated = table;
+        ref->htable_size = hash_table_count(table);
+    }
+    return ref;
+}
+
+void
+hash_table_iter_destroy(hash_table_iter_ref ref)
+{
+    if (!ref) return;
+    free(ref);
+}
+
+hash_table_entry
+hash_table_iter_get_next(hash_table_iter_ref iter)
+{
+    if (!iter) return hash_table_invalid_entry;
+
+    uint64_t start = iter->last_valid;
+
+    for (uint64_t i = start; i < iter->htable_num_slots_to_search; i++) {
+        hash_table_entry_ref ent = &iter->iterated->base[i];
+
+        if (ent->valid) {
+            iter->last_valid = i;
+            iter->ent++;
+            return *ent;
+        }
+    }
+    return hash_table_invalid_entry;
+}
+
+inline bool
+hash_table_iter_has_next(hash_table_iter_ref iter)
+{
+    if (!iter) return false;
+    return iter->ent < iter->htable_size;
+}
+

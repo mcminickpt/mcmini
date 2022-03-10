@@ -226,8 +226,10 @@ array_grow_if_necessary_to_hold_capacity(array_ref ref, uint32_t count)
     size_t final_size = cur;
     size_t desired = count * sizeof(void*);
 
-    if (cur == 0) abort();
+    // If we already have enough space, no need to expand
+    if (cur > desired) return;
 
+    if (cur == 0) abort();
     // + 1 and then casting rounds up
     size_t num_times_to_double = (size_t)(log2(((double)desired) / ((double)cur)) + 1);
     for (size_t i = 0; i < num_times_to_double; i++)

@@ -449,8 +449,19 @@ csystem_get_first_enabled_transition(concurrent_system_ref ref)
 static transition_ref
 csystem_get_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref, state_stack_item_ref ss_item)
 {
-    hash_table_iter iter = hash_table_create_iter(ss_item->backtrack_set);
+    hash_table_iter_ref iter = hash_table_iter_create((hash_table_refc) ss_item->backtrack_set);
 
+    while (hash_table_iter_has_next(iter)) {
+        hash_table_entry ent = hash_table_iter_get_next(iter);
+        transition_ref tref = ent.value;
+
+        if (transition_enabled(tref)) {
+            hash_table_iter_destroy(iter);
+            return tref;
+        }
+    }
+    hash_table_iter_destroy(iter);
+    return NULL;
 }
 
 transition_ref
@@ -561,7 +572,6 @@ happens_before(concurrent_system_ref ref, int i, int j)
 
     // Note: We use `(void*) int-type` to be able to store in the
     // array (which expects dynamic types)
-
     array_append(dfs_stack, (void*)(uint64_t)i);
 
     while (!array_is_empty(dfs_stack)) {
@@ -571,7 +581,7 @@ happens_before(concurrent_system_ref ref, int i, int j)
         if (t_search == j)
             return true;
         else if (t_search > j)
-            continue; // We only increase from here
+            continue; // We only increase from here, but we may have pushed something onto the stack that is less than j so we have to search it
         else {
             for (int k = t_search + 1; k < top; k++) {
                 transition_ref t_k = &ref->t_stack[k];
@@ -581,16 +591,20 @@ happens_before(concurrent_system_ref ref, int i, int j)
         }
     }
     array_destroy(dfs_stack, NULL);
-
     return false;
 }
 
 bool
 happens_before_thread(concurrent_system_ref ref, int i, thread_ref p)
 {
+    transition_ref t_i = proc(&ref->t_stack[i]);
+    if (threads_equal(p, t_i->thread)) return true;
+
     for (int k = i; k <= ref->t_stack_top; k++) {
         transition_ref S_k = &ref->t_stack[k];
-        if (happens_before(ref, i, k) && threads_equal(p, S_k->thread))
+
+        // Check threads_equal first (much less costly than happens before)
+        if (threads_equal(p, S_k->thread) && happens_before(ref, i, k))
             return true;
     }
     return false;
