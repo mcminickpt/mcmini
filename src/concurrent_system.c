@@ -98,8 +98,6 @@ csystem_get_mutex_with_mutid(concurrent_system_ref ref, mutid_t mutid)
     return &ref->locks[mutid];
 }
 
-#include <stdio.h>
-
 inline thread_ref
 csystem_get_thread_with_tid(concurrent_system_ref ref, tid_t tid)
 {
@@ -107,6 +105,16 @@ csystem_get_thread_with_tid(concurrent_system_ref ref, tid_t tid)
     mc_assert(tid >= 0 && tid < MAX_TOTAL_THREADS_PER_SCHEDULE);
     if (tid == TID_INVALID) return NULL;
     return &ref->threads[tid];
+}
+
+thread_ref
+csystem_get_thread_with_pthread(concurrent_system_ref ref, pthread_t* pthread) {
+    mc_assert(pthread != NULL);
+    // TODO: Maybe it is better to create a map of threads depending on how much we use it
+    for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
+        if (ref->threads[i].tid != TID_INVALID && &ref->threads[i].owner == pthread)
+            return &ref->threads[i];
+    return NULL;
 }
 
 inline bool
@@ -125,14 +133,14 @@ csystem_get_mutex_with_pthread(concurrent_system_ref ref, pthread_mutex_t *mutex
 static void
 csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop)
 {
-    pthread_mutex_t *mutex = mutop->mutex.mutex;
+    pthread_mutex_t *mutex = mutop->mutex->mutex;
     mutex_ref shadow = NULL;
 
     switch (mutop->type) {
     case MUTEX_INIT:;
         mutid_t mutid = csystem_register_mutex(ref, mutex);
         shadow = csystem_get_mutex_with_mutid(ref, mutid);
-        *shadow = mutop->mutex;
+        shadow = mutop->mutex;
         shadow->state = MUTEX_UNLOCKED;
         hash_table_set_implicit(ref->mutex_map, mutex, shadow);
         break;
@@ -205,9 +213,9 @@ csystem_update_transition_stack_with_next_source_program_operation(concurrent_sy
             if (shadow_mutex == NULL) {
                 mutid_t mutid = csystem_register_mutex(ref, shmmop->mutex);
                 shadow_mutex = csystem_get_mutex_with_mutid(ref, mutid);
-                tref->operation.mutex_operation.mutex = *shadow_mutex;
+                tref->operation.mutex_operation.mutex = shadow_mutex;
             } else {
-                tref->operation.mutex_operation.mutex = *shadow_mutex;
+                tref->operation.mutex_operation.mutex = shadow_mutex;
             }
             break;
 
@@ -240,7 +248,7 @@ csystem_update_transition_stack_with_next_source_program_operation(concurrent_sy
 static void
 csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop)
 {
-    pthread_mutex_t *mutex = mutop->mutex.mutex;
+    pthread_mutex_t *mutex = mutop->mutex->mutex;
 
     switch (mutop->type) {
         case MUTEX_INIT:;
@@ -253,14 +261,14 @@ csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operat
             // case whereas in the former we don't. This distinction allows
             // use to tell when we have undefined behavior with an existing
             // mutex vs a new mutex entirely
-            if (mutop->mutex.state == MUTEX_UNKNOWN) {
+            if (mutop->mutex->state == MUTEX_UNKNOWN) {
                 hash_table_remove_implicit(ref->mutex_map, mutex);
                 ref->mut_next--;
             }
             break;
         default:;
             mutex_ref shadow_mutex = csystem_get_mutex_with_pthread(ref, mutex);
-            *shadow_mutex = mutop->mutex;
+            shadow_mutex = mutop->mutex;
             break;
     }
 }
