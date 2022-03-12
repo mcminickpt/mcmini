@@ -39,10 +39,11 @@ int mutex_owned(mutex_ref);
 // --- MUTEX OPERATION ---
 STRUCT_DECL(mutex_operation)
 struct mutex_operation {
-    mutex mutex;
     enum mutex_operation_type type;
+    mutex_ref mutex;
 };
-
+mutex_operation_ref mutex_operation_copy(mutex_operation_refc);
+void mutex_operation_destroy(mutex_operation_ref);
 bool mutex_operation_enabled(mutex_operation_refc, thread_ref);
 bool mutex_operations_coenabled(mutex_operation_refc, mutex_operation_refc);
 /**
