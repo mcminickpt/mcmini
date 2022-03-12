@@ -72,6 +72,14 @@ threads_equal(thread_refc t1, thread_refc t2)
     return t1->tid == t2->tid; //pthread_equal(t1->owner, t2->owner);
 }
 
+bool thread_operation_spawns_thread(thread_refc t1, thread_operation_refc t2) {
+    //TODO Implement function
+}
+
+bool thread_operation_joins_thread(thread_refc t1, thread_operation_refc t2) {
+    //TODO Implement function
+}
+
 bool
 thread_operation_enabled(thread_operation_refc top, thread_refc thread)
 {
