@@ -19,11 +19,48 @@ mutexes_equal(mutex_refc m1, mutex_refc m2)
     return m1->mutex == m2->mutex;
 }
 
+mutex_ref
+mutex_copy(mutex_refc refc)
+{
+    if (!refc) return NULL;
+    mutex_ref cpy = mutex_alloc();
+    if (!cpy) return NULL;
+    cpy->mutex = refc;
+    cpy->owner = refc->owner;
+    cpy->state = refc->state;
+    return cpy;
+}
+
+void
+mutex_destroy(mutex_ref ref)
+{
+    if (!ref) return;
+    free(ref);
+}
+
 bool
 mutex_operations_race(mutex_operation_refc mutop1, mutex_operation_refc mutop2)
 {
     if (!mutop1 || !mutop2) return NULL;
     return mutexes_equal(&mutop1->mutex, &mutop2->mutex);
+}
+
+mutex_operation_ref
+mutex_operation_copy(mutex_operation_refc ref)
+{
+    if (!ref) return NULL;
+    mutex_operation_ref cpy = mutex_operation_alloc();
+    cpy->mutex = mutex_copy(ref->mutex);
+    cpy->type = ref ->type;
+    return cpy;
+}
+
+void
+mutex_operation_destroy(mutex_operation_ref ref)
+{
+    if (!ref) return;
+    mutex_destroy(ref->mutex);
+    free(ref);
 }
 
 bool
@@ -33,7 +70,7 @@ mutex_operation_enabled(mutex_operation_refc mop, thread_ref thread)
 
     switch (mop->type) {
         case MUTEX_LOCK:
-            return mop->mutex.state != MUTEX_LOCKED;
+            return mop->mutex->state != MUTEX_LOCKED;
         default:
             return true;
     }
