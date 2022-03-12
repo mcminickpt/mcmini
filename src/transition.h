@@ -15,7 +15,6 @@ typedef array_ref transition_array_ref;
 typedef transition_array_ref transition_stack_ref;
 PRETTY_PRINT_DECL(transition);
 
-
 thread_ref proc(transition_refc ref);
 
 /**
@@ -80,6 +79,7 @@ inline bool transitions_independent(transition_ref t1, transition_ref t2)
 {
     return !transitions_dependent(t1, t2);
 }
+
 
 
 
