@@ -18,6 +18,11 @@ transition_pretty_off(transition_refc t, unsigned int off)
     space(off); puts("  *************");
 }
 
+thread_ref
+proc(transition_refc ref) {
+    return ref != NULL ? ref->thread : NULL;
+}
+
 bool
 transition_creates(transition_ref tref, thread_ref thread)
 {
@@ -121,3 +126,5 @@ transitions_dependent(transition_ref t1, transition_ref t2)
 
     return false;
 }
+
+
