@@ -12,6 +12,7 @@ typedef uint64_t tid_t;
 STRUCT_DECL(thread);
 struct thread {
     tid_t tid;
+    //OPEN QUESTION: Shall the owner be the value or reference?
     pthread_t owner;
     void * volatile arg;
     thread_routine start_routine;
