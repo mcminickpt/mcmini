@@ -11,8 +11,11 @@ TYPES_DECL(visible_operation, SEMAPHORE, MUTEX, GLOBAL_ACCESS, THREAD_LIFECYCLE)
 struct visible_operation {
     visible_operation_type type;
     union {
+        // OPEN QUESTION: Maybe it will be better to work with ref values
+        // for mutex_operatio and thread_operation
         mutex_operation mutex_operation;
         thread_operation thread_operation;
+        // TODO: Extend for semaphores, etc.
     };
 };
 
