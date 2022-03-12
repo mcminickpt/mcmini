@@ -2,10 +2,6 @@
 
 MEMORY_ALLOC_DEF_DECL(state_stack_item)
 
-thread_ref
-proc(transition_refc ref) {
-    return ref != NULL ? ref->thread : NULL;
-}
 
 transition_ref
 state_stack_item_get_first_enabled_backtrack_transition(state_stack_item_refc ss_item)
