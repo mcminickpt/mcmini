@@ -9,7 +9,7 @@
 typedef uint64_t hash_t;
 typedef hash_t(*hash_function)(void*);
 typedef bool(*hash_equality_function)(void*, void*);
-#define REHASH_FACTOR (0.5)
+#define REHASH_FACTOR ((double)0.5)
 
 STRUCT_DECL(hash_table);
 

@@ -53,11 +53,9 @@ transition_enabled(transition_ref transition)
 
     switch (transition->operation.type) {
         case MUTEX:;
-            mutex_operation_ref mop = visible_operation_unsafely_as_mutex_operation(&transition->operation);
-            return mutex_operation_enabled(mop, transition->thread);
+            return mutex_operation_enabled(&transition->operation.mutex_operation, transition->thread);
         case THREAD_LIFECYCLE:;
-            thread_operation_ref top = visible_operation_unsafely_as_thread_operation(&transition->operation);
-            return thread_operation_enabled(top, transition->thread);
+            return thread_operation_enabled(&transition->operation.thread_operation, transition->thread);
         default:;
             mc_unimplemented();
             return false;

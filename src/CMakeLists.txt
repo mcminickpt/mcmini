@@ -29,4 +29,6 @@ message("Linking object files...")
 # -lrt -> shared memory
 # -pthread -> libpthread.so
 # -lm -> math library
+#target_compile_options(DPOR PUBLIC -fsanitize=undefined) -lubsan
 target_link_libraries(DPOR PUBLIC -lrt -pthread -lm)
+

@@ -31,6 +31,7 @@ bool csystem_is_registered_tid(concurrent_system_ref, tid_t);
 thread_ref csystem_get_thread_with_tid(concurrent_system_ref, tid_t);
 thread_ref csystem_get_thread_with_pthread(concurrent_system_ref, pthread_t*);
 
+int csystem_get_mutex_count(concurrent_system_ref);
 mutex_ref csystem_get_mutex_with_mutid(concurrent_system_ref, mutid_t);
 mutex_ref csystem_get_mutex_with_pthread(concurrent_system_ref, pthread_mutex_t*);
 
@@ -51,12 +52,12 @@ state_stack_item_ref csystem_pop_program_stacks_for_backtracking(concurrent_syst
  */
 int csystem_transition_stack_count(concurrent_system_ref);
 bool csystem_transition_stack_is_empty(concurrent_system_ref);
-transition_ref csystem_grow_transition_stack(concurrent_system_ref, thread_ref);
+transition_ref csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, thread_ref thread);
 transition_ref csystem_shrink_transition_stack(concurrent_system_ref);
 transition_ref csystem_transition_stack_top(concurrent_system_ref);
 transition_ref csystem_transition_stack_get_element(concurrent_system_ref, int);
 
-void csystem_update_transition_stack_with_next_source_program_operation(concurrent_system_ref, shm_transition_ref, thread_ref);
+void csystem_simulate_running_thread(concurrent_system_ref, shm_transition_ref, thread_ref);
 transition_ref csystem_get_transition_slot_for_tid(concurrent_system_ref, tid_t);
 transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csystem_local thread_ref);
 

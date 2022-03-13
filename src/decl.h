@@ -35,12 +35,21 @@ inline type##_ref type##_alloc(void) {\
 void type##_pretty(type##_refc); \
 void type##_pretty_off(type##_refc, unsigned int off);
 
+#define PRETTY_PRINT_STATE_DECL(type) \
+void type##_state_pretty(type##_state); \
+void type##_state_pretty_off(type##_state, unsigned int off);
+
 #define TRANSITION_DESCRIPTION_DECL(type) \
 char *type##_transition_description(type##_refc);
 
 #define PRETTY_PRINT_DEF_DECL(type) \
 inline void type##_pretty(type##_refc ref) {   \
     type##_pretty_off(ref, 0u);          \
+}
+
+#define PRETTY_PRINT_STATE_DEF_DECL(type) \
+inline void type##_state_pretty(type##_state ref) {   \
+    type##_state_pretty_off(ref, 0u);          \
 }
 
 

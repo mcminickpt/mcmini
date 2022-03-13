@@ -145,13 +145,9 @@ dpor_advance_forward(uint32_t steps, transition_refc initial_transition)
     while (++depth <= steps) {
         tid_t tid = t_next->thread->tid;
 
-        // Virtually run the transition to get to the next state
-        csystem_run(&csystem, t_next->thread);
         dpor_run_thread_to_next_visible_operation(tid);
-
-        // Update the transition that this thread does next based on the result the child wrote to shared memory
-        csystem_update_transition_stack_with_next_source_program_operation(&csystem, shm_child_result, t_next->thread);
-        csystem_dynamically_update_backtrack_sets(&csystem);
+        csystem_simulate_running_thread(&csystem, shm_child_result, t_next->thread);
+//        csystem_dynamically_update_backtrack_sets(&csystem);
 
         t_next = csystem_get_first_enabled_transition(&csystem);
         if (t_next == NULL) {
@@ -176,7 +172,7 @@ dpor_backtrack_main(uint32_t max_depth)
     if (t_next == NULL) {
         // TODO: We've hit a deadlock. There are no enabled
         // transitions at this point and we should print that
-        printf("DEADLOCK\n");
+        printf("DEADLOCK in BACKTRACK MAIN\n");
         abort();
     }
     dpor_advance_forward(max_depth, t_next);
@@ -209,13 +205,12 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         const uint32_t depth = csystem_state_stack_count(&csystem);
         mc_assert(depth <= max_depth);
         printf("Backtracking at depth %d\n", depth);
+        printf("Empty? %d\n", hash_set_is_empty(s_old_top->backtrack_set));
 
         if (!hash_set_is_empty(s_old_top->backtrack_set)) {
             bool is_child = dpor_backtrack_main(max_depth - depth);
             if (is_child) { return true; }
         }
-
-        // TODO: Remove backtrack and done sets to prevent memory leaks
         hash_set_destroy(s_old_top->done_set);
         hash_set_destroy(s_old_top->backtrack_set);
     }
@@ -226,9 +221,11 @@ dpor_parent_scheduler_main(uint32_t max_depth)
 static bool
 dpor_parent_scheduler_loop(uint32_t max_depth)
 {
-    for (uint32_t i = 1; i < max_depth; i++)
+    for (uint32_t i = 1; i < max_depth; i++) {
+        printf("Scheduler main invoked for %d steps\n", i);
         if (dpor_parent_scheduler_main(i)) // True for the child so it can escape to the main routine
             return true;
+    }
     return false;
 }
 

@@ -36,7 +36,9 @@ csystem_init(concurrent_system_ref ref)
     ref->t_stack_top = -1;
     ref->s_stack_top = -1;
     ref->mut_next = -1;
-    ref->mutex_map = hash_table_create((hash_function) mutex_hash, (hash_equality_function) mutexes_equal);
+    ref->is_backtracking = false;
+    ref->detached_t_top = -1;
+    ref->mutex_map = hash_table_create((hash_function) pthread_mutex_hash, (hash_equality_function) pthread_mutexes_equal);
     ref->transition_map = hash_table_create((hash_function)thread_hash, (hash_equality_function) threads_equal);
 
     // Push the initial first state (the starting state) onto the state stack explicitly
@@ -47,6 +49,8 @@ void
 csystem_reset(concurrent_system_ref ref)
 {
     // TODO: Destroy the state stack dynamic collections
+//    hash_set_destroy(ref->s_stack[0].backtrack_set);
+//    hash_set_destroy(ref->s_stack[0].done_set);
 
     hash_table_destroy(ref->mutex_map);
     hash_table_destroy(ref->transition_map);
@@ -120,67 +124,7 @@ csystem_get_mutex_with_pthread(concurrent_system_ref ref, pthread_mutex_t *mutex
 }
 
 static void
-csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop)
-{
-    pthread_mutex_t *mutex = mutop->mutex.mutex;
-    mutex_ref shadow = NULL;
-
-    switch (mutop->type) {
-    case MUTEX_INIT:;
-        mutid_t mutid = csystem_register_mutex(ref, mutex);
-        shadow = csystem_get_mutex_with_mutid(ref, mutid);
-        *shadow = mutop->mutex;
-        shadow->state = MUTEX_UNLOCKED;
-        hash_table_set(ref->mutex_map, mutex, shadow);
-        break;
-    case MUTEX_LOCK:;
-        shadow = hash_table_get(ref->mutex_map, mutex);
-        shadow->state = MUTEX_LOCKED;
-        break;
-    case MUTEX_UNLOCK:
-        shadow = hash_table_get(ref->mutex_map, mutex);
-        shadow->state = MUTEX_UNLOCKED;
-        break;
-    default:
-        mc_unimplemented();
-    }
-}
-
-static void
-csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
-{
-    // TODO: Report undefined behavior here
-
-    switch (top->type) {
-    case THREAD_CREATE:;
-
-        // Create a new thread
-
-
-    default:;
-        break;
-    }
-}
-
-static void
-csystem_virtually_apply_transition(concurrent_system_ref ref, transition_ref transition)
-{
-    // TODO: Report undefined behavior here
-
-    switch (transition->operation.type) {
-        case MUTEX:;
-            csystem_virtually_apply_mutex_operation(ref, &transition->operation.mutex_operation);
-            break;
-        case THREAD_LIFECYCLE:;
-            csystem_virtually_apply_thread_operation(ref, &transition->operation.thread_operation);
-            break;
-        default:
-            mc_unimplemented();
-    }
-}
-
-void
-csystem_update_transition_stack_with_next_source_program_operation(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
+csystem_update_next_transition_for_thread_with_next_source_program_visible_operation(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
 {
     // TODO: This function needs to be split into smaller ones
     // TODO: Report any undefined behavior with the transition we derive
@@ -234,6 +178,75 @@ csystem_update_transition_stack_with_next_source_program_operation(concurrent_sy
     }
 }
 
+void
+csystem_simulate_running_thread(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
+{
+    csystem_grow_state_stack(ref);
+    csystem_grow_transition_stack_by_running_thread(ref, thread);
+    csystem_update_next_transition_for_thread_with_next_source_program_visible_operation(ref, shm_ref, thread);
+}
+
+static void
+csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop, bool execute_init_op)
+{
+    pthread_mutex_t *mutex = mutop->mutex.mutex;
+    mutex_ref shadow = NULL;
+
+    switch (mutop->type) {
+        case MUTEX_INIT:;
+            if (!execute_init_op) return;
+            mutid_t mutid = csystem_register_mutex(ref, mutex);
+            shadow = csystem_get_mutex_with_mutid(ref, mutid);
+            *shadow = mutop->mutex;
+            shadow->state = MUTEX_UNLOCKED;
+            hash_table_set(ref->mutex_map, mutex, shadow);
+            break;
+        case MUTEX_LOCK:;
+            shadow = hash_table_get(ref->mutex_map, mutex);
+            shadow->state = MUTEX_LOCKED;
+            break;
+        case MUTEX_UNLOCK:
+            shadow = hash_table_get(ref->mutex_map, mutex);
+            shadow->state = MUTEX_UNLOCKED;
+            break;
+        default:
+            mc_unimplemented();
+    }
+}
+
+static void
+csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top, bool execute_init_op)
+{
+    // TODO: Report undefined behavior here
+
+    switch (top->type) {
+        case THREAD_CREATE:;
+
+            // Create a new thread
+
+
+        default:;
+            break;
+    }
+}
+
+static void
+csystem_virtually_apply_transition(concurrent_system_ref ref, transition_ref transition, bool execute_resource_init_ops)
+{
+    // TODO: Report undefined behavior here
+
+    switch (transition->operation.type) {
+        case MUTEX:;
+            csystem_virtually_apply_mutex_operation(ref, &transition->operation.mutex_operation, execute_resource_init_ops);
+            break;
+        case THREAD_LIFECYCLE:;
+            csystem_virtually_apply_thread_operation(ref, &transition->operation.thread_operation, execute_resource_init_ops);
+            break;
+        default:
+            mc_unimplemented();
+    }
+}
+
 static void
 csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop)
 {
@@ -265,7 +278,12 @@ csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operat
 static void
 csystem_virtually_revert_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
 {
-
+    switch (top->type) {
+        case THREAD_CREATE:;
+            break;
+        default:;
+            break;
+    }
 }
 
 static void
@@ -305,13 +323,13 @@ csystem_shrink_state_stack(concurrent_system_ref ref)
 }
 
 inline transition_ref
-csystem_grow_transition_stack(concurrent_system_ref ref, thread_ref thread)
+csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, thread_ref thread)
 {
     transition_ref t_top = &ref->t_stack[++ref->t_stack_top];
     mc_assert(ref->t_stack_top <= MAX_VISIBLE_OPERATION_DEPTH);
 
     transition_ref thread_runs = csystem_get_transition_slot_for_thread(ref, thread);
-    csystem_virtually_apply_transition(ref, thread_runs);
+    csystem_virtually_apply_transition(ref, thread_runs, false);
 
     // Copy the contents of the transition into the top of the transition stack
     *t_top = *thread_runs;
@@ -325,10 +343,10 @@ csystem_grow_transition_stack_restore(concurrent_system_ref ref, transition_ref 
     transition_ref t_top = &ref->t_stack[++ref->t_stack_top];
     mc_assert(ref->t_stack_top <= MAX_VISIBLE_OPERATION_DEPTH);
 
-    csystem_virtually_apply_transition(ref, transition);
+    csystem_virtually_apply_transition(ref, transition, true);
 
     // Copy the contents of the transition into the the top of the transition stack
-    ref->t_stack[ref->t_stack_top] = *transition;
+    *t_top = *transition;
     return t_top;
 }
 
@@ -385,7 +403,7 @@ csystem_copy_enabled_transitions(concurrent_system_ref ref, transition_ref tref_
 transition_ref
 csystem_run(concurrent_system_ref ref, thread_ref thread)
 {
-    csystem_grow_transition_stack(ref, thread);
+    csystem_grow_transition_stack_by_running_thread(ref, thread);
     csystem_grow_state_stack(ref);
 }
 
