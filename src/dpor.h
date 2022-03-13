@@ -23,6 +23,7 @@ static tid_t dpor_register_thread(void);
 static tid_t dpor_register_main_thread(void);
 
 static bool dpor_parent_scheduler_loop(uint32_t max_depth);
+static bool dpor_begin_target_program_at_main(void);
 static bool dpor_spawn_child(void);
 static bool dpor_spawn_child_following_transition_stack(void);
 static void dpor_child_exit(void);

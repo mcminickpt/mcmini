@@ -7,6 +7,7 @@
 #define csystem_local /* Marker macro -> signifies local pointer into a concurrent system */
 #define child_local /* Marker macro -> signifies only significant for the child process */
 
+#define fallthrough /* Marker to make switch case fall through explicit */
 
 #define STRUCT_DECL(type)             \
 typedef struct type type;           \

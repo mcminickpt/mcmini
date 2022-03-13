@@ -40,17 +40,9 @@ dpor_init(void)
         mc_shared_cv_init(&(*queue)[i]);
 
     bool is_child = dpor_parent_scheduler_loop(MAX_VISIBLE_OPERATION_DEPTH);
-    if (is_child) {
-        // NOTE: Since this is a fork of the parent, we need
-        // only map the shared memory and don't have
-        // to re-point `shm_child_result` and `queue` to the appropriate
-        // locations (since this was already done above)
-        dpor_initialize_shared_memory_region();
-        thread_await_dpor_scheduler_for_thread_start_transition();
-    } else { // Parent
-        puts("Model checking completed");
-        exit(0);
-    }
+    if (is_child) return;
+    puts("***** Model checking completed! *****");
+    exit(0);
 }
 
 static void
@@ -109,6 +101,23 @@ dpor_reset_cv_locks(void)
     }
 }
 
+static bool
+dpor_begin_target_program_at_main(void)
+{
+    bool is_child = dpor_spawn_child();
+    if (is_child) {
+        // NOTE: Technically, the child will be frozen
+        // inside of dpor_init until it is scheduled. But
+        // this is only a technicality: it doesn't actually
+        // matter where the child spawns so long as it reaches
+        // the actual source program
+        tid_self = 0;
+        dpor_initialize_shared_memory_region();
+        thread_await_dpor_scheduler_for_thread_start_transition();
+    }
+    return is_child;
+}
+
 static bool /* */
 dpor_spawn_child(void)
 {
@@ -138,7 +147,7 @@ dpor_child_kill(void)
 }
 
 static bool
-dpor_advance_forward(uint32_t steps, transition_refc initial_transition)
+dpor_begin_iterative_deepening_with_steps(uint32_t steps, transition_refc initial_transition)
 {
     uint32_t depth = 0;
     transition_refc t_next = initial_transition;
@@ -147,7 +156,7 @@ dpor_advance_forward(uint32_t steps, transition_refc initial_transition)
 
         dpor_run_thread_to_next_visible_operation(tid);
         csystem_simulate_running_thread(&csystem, shm_child_result, t_next->thread);
-//        csystem_dynamically_update_backtrack_sets(&csystem);
+        csystem_dynamically_update_backtrack_sets(&csystem);
 
         t_next = csystem_get_first_enabled_transition(&csystem);
         if (t_next == NULL) {
@@ -160,11 +169,13 @@ dpor_advance_forward(uint32_t steps, transition_refc initial_transition)
             abort();
         }
     }
+    dpor_child_kill();
 }
 
 static bool
 dpor_backtrack_main(uint32_t max_depth)
 {
+    if (max_depth == 0) return false; // Nothing to do
     bool is_child = dpor_spawn_child_following_transition_stack();
     if (is_child) return true;
 
@@ -175,7 +186,7 @@ dpor_backtrack_main(uint32_t max_depth)
         printf("DEADLOCK in BACKTRACK MAIN\n");
         abort();
     }
-    dpor_advance_forward(max_depth, t_next);
+    dpor_begin_iterative_deepening_with_steps(max_depth, t_next);
     return false;
 }
 
@@ -187,32 +198,31 @@ dpor_parent_scheduler_main(uint32_t max_depth)
     csystem_reset(&csystem);
     dpor_register_main_thread();
 
-    bool is_child = dpor_spawn_child();
+    bool is_child = dpor_begin_target_program_at_main();
     if (is_child) return true;
 
     thread_ref main_thread = thread_get_self();
     transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
     dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
-    dpor_advance_forward(max_depth, t_slot_for_main_thread_next);
-    dpor_child_kill();
+    dpor_begin_iterative_deepening_with_steps(max_depth, t_slot_for_main_thread_next);
 
     while (!csystem_state_stack_is_empty(&csystem)) {
-        state_stack_item_ref s_old_top = csystem_pop_program_stacks_for_backtracking(&csystem);
+        state_stack_item_ref s_top = csystem_state_stack_top(&csystem);
 
         // Calls to `dpor_backtrack_main` push
         // new items onto the state and transition
         // stacks; hence, "depth--;" is not sufficient
-        const uint32_t depth = csystem_state_stack_count(&csystem);
+        const uint32_t depth = csystem_transition_stack_count(&csystem);
         mc_assert(depth <= max_depth);
         printf("Backtracking at depth %d\n", depth);
-        printf("Empty? %d\n", hash_set_is_empty(s_old_top->backtrack_set));
-
-        if (!hash_set_is_empty(s_old_top->backtrack_set)) {
+        printf("Empty? %d\n", hash_set_is_empty(s_top->backtrack_set));
+        if (!hash_set_is_empty(s_top->backtrack_set)) {
             bool is_child = dpor_backtrack_main(max_depth - depth);
-            if (is_child) { return true; }
+            if (is_child) return true;
         }
-        hash_set_destroy(s_old_top->done_set);
-        hash_set_destroy(s_old_top->backtrack_set);
+        hash_set_destroy(s_top->done_set);
+        hash_set_destroy(s_top->backtrack_set);
+        csystem_pop_program_stacks_for_backtracking(&csystem);
     }
 
     return false;
@@ -234,7 +244,8 @@ dpor_parent_scheduler_loop(uint32_t max_depth)
 static bool
 dpor_spawn_child_following_transition_stack(void)
 {
-    bool is_child = dpor_spawn_child();
+    dpor_reset_cv_locks();
+    bool is_child = dpor_begin_target_program_at_main();
 
     if (!is_child) {
         int transition_stack_height = csystem_transition_stack_count(&csystem);

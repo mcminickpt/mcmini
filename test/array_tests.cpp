@@ -26,26 +26,6 @@ protected:
     const int *const a4 = (int*)0x4;
 };
 
-array_ref array_clone(void**, size_t);
-void array_destroy(array_ref, void(* free_each)(void *));
-void array_destroy_opaque(void*);
-
-void *array_get_last(array_refc);
-void *array_get_first(array_refc);
-void array_set(array_ref, uint32_t index, const void **data);
-void array_swap(array_ref, uint32_t i1, uint32_t i2);
-
-void array_append(array_ref, const void *data);
-void array_append_array(array_ref, const struct array*);
-void array_insert(array_ref, uint32_t index, const void *data);
-void *array_remove(array_ref, uint32_t index);
-void *array_remove_first(array_ref);
-void *array_remove_last(array_ref);
-
-
-array_ref array_shallow_cpy(array_refc);
-array_ref array_deep_cpy(array_refc, void*(*  cpy)(void * ));
-
 TEST_F(array_test, test_array_create) {
     array_ref test = array_create();
     ASSERT_TRUE(array_is_empty(test));

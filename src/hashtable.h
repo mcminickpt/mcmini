@@ -13,7 +13,6 @@ typedef bool(*hash_equality_function)(void*, void*);
 
 STRUCT_DECL(hash_table);
 
-
 hash_table_ref hash_table_alloc(void);
 hash_table_ref hash_table_create(hash_function, hash_equality_function);
 hash_table_ref hash_table_copy(hash_table_refc);
@@ -40,7 +39,5 @@ hash_table_iter_ref hash_table_iter_create(hash_table_refc);
 void hash_table_iter_destroy(hash_table_iter_ref);
 hash_table_entry hash_table_iter_get_next(hash_table_iter_ref);
 bool hash_table_iter_has_next(hash_table_iter_ref);
-
-
 
 #endif //DPOR_HASHTABLE_H
