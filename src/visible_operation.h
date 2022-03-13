@@ -11,14 +11,13 @@ TYPES_DECL(visible_operation, SEMAPHORE, MUTEX, GLOBAL_ACCESS, THREAD_LIFECYCLE)
 struct visible_operation {
     visible_operation_type type;
     union {
+        // We need value types here; otherwise we have to
+        // malloc for each transition in the transition stack.
         mutex_operation mutex_operation;
         thread_operation thread_operation;
+        // TODO: Extend for semaphores, etc.
     };
 };
-
-visible_operation_ref visible_operation_alloc(void);
-visible_operation_ref visible_operation_copy(visible_operation_refc);
-void visible_operation_destroy(visible_operation_ref);
 
 /*
  * Operations

@@ -20,6 +20,25 @@ mutexes_equal(mutex_refc m1, mutex_refc m2)
     return m1->mutex == m2->mutex;
 }
 
+mutex_ref
+mutex_copy(mutex_refc refc)
+{
+    if (!refc) return NULL;
+    mutex_ref cpy = mutex_alloc();
+    if (!cpy) return NULL;
+    cpy->mutex = refc;
+    cpy->owner = refc->owner;
+    cpy->state = refc->state;
+    return cpy;
+}
+
+void
+mutex_destroy(mutex_ref ref)
+{
+    if (!ref) return;
+    free(ref);
+}
+
 bool
 pthread_mutexes_equal(pthread_mutex_t *m1, pthread_mutex_t *m2)
 {
