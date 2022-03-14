@@ -146,8 +146,8 @@ dpor_child_kill(void)
     cpid = -1;
 }
 
-static bool
-dpor_begin_iterative_deepening_with_steps(uint32_t steps, transition_refc initial_transition)
+static void
+dpor_run_iterative_deepening_with_steps(uint32_t steps, transition_refc initial_transition)
 {
     uint32_t depth = 0;
     transition_refc t_next = initial_transition;
@@ -173,20 +173,14 @@ dpor_begin_iterative_deepening_with_steps(uint32_t steps, transition_refc initia
 }
 
 static bool
-dpor_backtrack_main(uint32_t max_depth)
+dpor_backtrack_main(uint32_t max_depth, transition_refc initial_transition)
 {
     if (max_depth == 0) return false; // Nothing to do
+
     bool is_child = dpor_spawn_child_following_transition_stack();
     if (is_child) return true;
 
-    transition_ref t_next = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem);
-    if (t_next == NULL) {
-        // TODO: We've hit a deadlock. There are no enabled
-        // transitions at this point and we should print that
-        printf("DEADLOCK in BACKTRACK MAIN\n");
-        abort();
-    }
-    dpor_begin_iterative_deepening_with_steps(max_depth, t_next);
+    dpor_run_iterative_deepening_with_steps(max_depth, initial_transition);
     return false;
 }
 
@@ -204,7 +198,7 @@ dpor_parent_scheduler_main(uint32_t max_depth)
     thread_ref main_thread = thread_get_self();
     transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
     dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
-    dpor_begin_iterative_deepening_with_steps(max_depth, t_slot_for_main_thread_next);
+    dpor_run_iterative_deepening_with_steps(max_depth, t_slot_for_main_thread_next);
 
     while (!csystem_state_stack_is_empty(&csystem)) {
         state_stack_item_ref s_top = csystem_state_stack_top(&csystem);
@@ -214,12 +208,15 @@ dpor_parent_scheduler_main(uint32_t max_depth)
         // stacks; hence, "depth--;" is not sufficient
         const uint32_t depth = csystem_transition_stack_count(&csystem);
         mc_assert(depth <= max_depth);
-        printf("Backtracking at depth %d\n", depth);
-        printf("Empty? %d\n", hash_set_is_empty(s_top->backtrack_set));
-        if (!hash_set_is_empty(s_top->backtrack_set)) {
-            bool is_child = dpor_backtrack_main(max_depth - depth);
+        printf("**** Backtracking at depth %d ****\n", depth);
+        while (!hash_set_is_empty(s_top->backtrack_set)) {
+            // TODO: We can be smart here and only run a thread
+            // if it is not already in a sleep set or lock set (eventually)
+            transition_ref t_initial = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem, s_top);
+            is_child = dpor_backtrack_main(max_depth - depth, t_initial);
             if (is_child) return true;
         }
+        printf("**** Backtracking completed at depth %d ****\n", depth);
         hash_set_destroy(s_top->done_set);
         hash_set_destroy(s_top->backtrack_set);
         csystem_pop_program_stacks_for_backtracking(&csystem);
@@ -257,6 +254,16 @@ dpor_spawn_child_following_transition_stack(void)
             transition_ref t = csystem_transition_stack_get_element(&csystem, i);
             dpor_run_thread_to_next_visible_operation(t->thread->tid);
         }
+    } else {
+        // We need to reset the concurrent system
+        // for the child since, at the time this method
+        // is invoked, it will have a complete copy of
+        // the state the of system. But we need to
+        // re-simulate the system by running the transitions
+        // in the transition stack; otherwise, shadow resource
+        // allocations will be off
+        csystem_reset(&csystem);
+        dpor_register_main_thread();
     }
 
     return is_child;

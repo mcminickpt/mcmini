@@ -498,13 +498,12 @@ csystem_get_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref,
 }
 
 transition_ref
-csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref)
+csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref, state_stack_item_ref ss_item)
 {
-    state_stack_item_ref cur_s = csystem_state_stack_top(ref);
-    transition_ref next_transition = csystem_get_first_enabled_transition_in_backtrack_set(ref, cur_s);
+    transition_ref next_transition = csystem_get_first_enabled_transition_in_backtrack_set(ref, ss_item);
     if (next_transition == NULL) return NULL;
-    hash_set_remove(cur_s->backtrack_set, next_transition->thread);
-    hash_set_insert(cur_s->done_set, next_transition->thread);
+    hash_set_remove(ss_item->backtrack_set, next_transition->thread);
+    hash_set_insert(ss_item->done_set, next_transition->thread);
     return next_transition;
 }
 
