@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "concurrent_system.h"
 #include "common.h"
 #include "hashtable.h"
@@ -25,6 +26,7 @@ struct concurrent_system
     // *** BACKTRACKING ***
     bool is_backtracking;                                   /* Whether or not the system is performing backtrack analysis*/
     int detached_t_top;                                     /* Points to the top of the transition stack in the current backtrack */
+    int detached_s_top;                                     /* Points to the top of the state stack in the current backtrack */
 };
 
 concurrent_system csystem; /* Global concurrent system for the program */
@@ -38,6 +40,7 @@ csystem_init(concurrent_system_ref ref)
     ref->mut_next = -1;
     ref->is_backtracking = false;
     ref->detached_t_top = -1;
+    ref->detached_s_top = -1;
     ref->mutex_map = hash_table_create((hash_function) pthread_mutex_hash, (hash_equality_function) pthread_mutexes_equal);
     ref->transition_map = hash_table_create((hash_function)thread_hash, (hash_equality_function) threads_equal);
 
@@ -128,6 +131,17 @@ csystem_get_top_of_transition_stack_based_on_context(concurrent_system_ref ref)
     }
 }
 
+static inline int
+csystem_get_top_of_state_stack_based_on_context(concurrent_system_ref ref)
+{
+    if (ref->is_backtracking) {
+        mc_assert(ref->detached_s_top >= 0);
+        return ref->detached_s_top;
+    } else {
+        return ref->s_stack_top;
+    }
+}
+
 static void
 csystem_update_next_transition_for_thread_with_next_source_program_visible_operation(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
 {
@@ -186,7 +200,7 @@ csystem_update_next_transition_for_thread_with_next_source_program_visible_opera
 void
 csystem_simulate_running_thread(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
 {
-    csystem_grow_state_stack(ref);
+    csystem_grow_state_stack_by_running_thread(ref, thread);
     csystem_grow_transition_stack_by_running_thread(ref, thread);
     csystem_update_next_transition_for_thread_with_next_source_program_visible_operation(ref, shm_ref, thread);
 }
@@ -319,7 +333,7 @@ csystem_virtually_revert_transition(concurrent_system_ref ref, transition_ref tr
     }
 }
 
-state_stack_item_ref
+static state_stack_item_ref
 csystem_grow_state_stack(concurrent_system_ref ref)
 {
     state_stack_item_ref s_top = &ref->s_stack[++ref->s_stack_top];
@@ -327,6 +341,18 @@ csystem_grow_state_stack(concurrent_system_ref ref)
     s_top->done_set = hash_set_create((hash_function) thread_hash, (hash_equality_function) threads_equal);
     mc_assert(ref->s_stack_top <= MAX_VISIBLE_OPERATION_DEPTH);
     return s_top;
+}
+
+static state_stack_item_ref
+csystem_grow_state_stack_by_running_thread(concurrent_system_ref ref, thread_ref advancing_thread)
+{
+    mc_assert(ref->s_stack_top >= 0);
+    {
+        state_stack_item_ref s_top_old = &ref->s_stack[ref->s_stack_top];
+        bool inserted = hash_set_insert(s_top_old->done_set, advancing_thread);
+        mc_assert(inserted);
+    }
+    return csystem_grow_state_stack(ref);
 }
 
 inline state_stack_item_ref
@@ -415,13 +441,6 @@ csystem_copy_enabled_transitions(concurrent_system_ref ref, transition_ref tref_
     return enabled_thread_count;
 }
 
-transition_ref
-csystem_run(concurrent_system_ref ref, thread_ref thread)
-{
-    csystem_grow_transition_stack_by_running_thread(ref, thread);
-    csystem_grow_state_stack(ref);
-}
-
 inline transition_ref
 csystem_transition_stack_get_element(concurrent_system_ref ref, int i)
 {
@@ -458,11 +477,6 @@ csystem_replace_per_thread_transitions_for_backtracking(concurrent_system_ref re
 {
     int thread_count = csystem_get_thread_count(ref);
     size_t cpy_size = thread_count * sizeof(transition);
-
-//    for (tid_t tid = 0; tid < thread_count; tid++) {
-//        transition_ref tid_transition = csystem_get_transition_slot_for_tid(ref, tid);
-//        *tid_transition = tref_array[tid];
-//    }
 
     // NOTE: Assumes tref_array maps tid_t to the
     // transition corresponding to that thread
@@ -543,6 +557,7 @@ csystem_start_backtrack(concurrent_system_ref ref)
     mc_assert(!ref->is_backtracking);
     ref->is_backtracking = true;
     ref->detached_t_top = ref->t_stack_top;
+    ref->detached_s_top = ref->s_stack_top;
 }
 
 void
@@ -555,6 +570,7 @@ csystem_end_backtrack(concurrent_system_ref ref)
     // makes no sense when backtracking. "Back" is in the name
     // after all...
     mc_assert(ref->t_stack_top < ref->detached_t_top);
+    mc_assert(ref->s_stack_top < ref->detached_s_top);
 
     const bool no_transitions_left = csystem_transition_stack_is_empty(ref);
     const int cur_top = no_transitions_left ? 0 : ref->t_stack_top;
@@ -571,7 +587,10 @@ csystem_end_backtrack(concurrent_system_ref ref)
         transition_ref transition_i = &ref->t_stack[i];
         csystem_replay_transition_to_restore_state_after_backtracking(ref, transition_i);
     }
+
+    ref->s_stack_top = ref->detached_s_top;
     ref->detached_t_top = -1;
+    ref->detached_s_top = -1;
 }
 
 bool
@@ -733,6 +752,7 @@ csystem_dynamically_update_backtrack_sets(concurrent_system_ref ref)
             }
         }
         csystem_shrink_transition_stack(ref);
+        csystem_shrink_state_stack(ref);
     }
     hash_table_destroy(thread_to_transition_map_at_last_s);
     csystem_end_backtrack(ref);
@@ -761,4 +781,15 @@ inline void
 dpor_init_thread_finish_transition(transition_ref transition, thread_ref thread)
 {
     dpor_init_thread_transition(transition, thread, THREAD_FINISH);
+}
+
+void
+csystem_print_transition_stack(concurrent_system_ref ref)
+{
+    puts("*** TRANSITION STACK CONTENT DUMP ****");
+    for (int i = 0; i < ref->t_stack_top; i++) {
+        transition_ref t_i = &ref->t_stack[i];
+        transition_pretty(t_i);
+    }
+    puts("***************");
 }

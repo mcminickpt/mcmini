@@ -71,7 +71,7 @@ transitions_coenabled(transition_ref t1, transition_ref t2)
         return false;
 
     if (transition_creates(t1, t2->thread) || transition_creates(t2, t1->thread))
-        return true;
+        return false;
 
     if (transition_waits_on_thread(t1, t2->thread) || transition_waits_on_thread(t2, t1->thread))
         return false;

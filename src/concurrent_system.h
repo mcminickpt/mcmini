@@ -40,10 +40,11 @@ mutex_ref csystem_get_mutex_with_pthread(concurrent_system_ref, pthread_mutex_t*
  */
 int csystem_state_stack_count(concurrent_system_ref);
 bool csystem_state_stack_is_empty(concurrent_system_ref);
-state_stack_item_ref csystem_grow_state_stack(concurrent_system_ref);
+static state_stack_item_ref csystem_grow_state_stack(concurrent_system_ref);
+static state_stack_item_ref csystem_grow_state_stack_by_running_thread(concurrent_system_ref, thread_ref);
 state_stack_item_ref csystem_shrink_state_stack(concurrent_system_ref);
 state_stack_item_ref csystem_state_stack_top(concurrent_system_ref);
-transition_ref csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref, state_stack_item_ref ss_item);
+transition_ref csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref, state_stack_item_ref);
 
 state_stack_item_ref csystem_pop_program_stacks_for_backtracking(concurrent_system_ref);
 
@@ -52,7 +53,7 @@ state_stack_item_ref csystem_pop_program_stacks_for_backtracking(concurrent_syst
  */
 int csystem_transition_stack_count(concurrent_system_ref);
 bool csystem_transition_stack_is_empty(concurrent_system_ref);
-transition_ref csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, thread_ref thread);
+transition_ref csystem_grow_transition_stack_by_running_thread(concurrent_system_ref, thread_ref);
 transition_ref csystem_shrink_transition_stack(concurrent_system_ref);
 transition_ref csystem_transition_stack_top(concurrent_system_ref);
 transition_ref csystem_transition_stack_get_element(concurrent_system_ref, int);
@@ -64,6 +65,11 @@ transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csy
 transition_ref csystem_get_first_enabled_transition(concurrent_system_ref);
 int csystem_copy_enabled_transitions(concurrent_system_ref, transition_ref);
 void csystem_copy_per_thread_transitions(concurrent_system_ref, transition_ref);
+
+/*
+ * Pretty printing
+ */
+void csystem_print_transition_stack(concurrent_system_ref);
 
 /*
  * Transitions
