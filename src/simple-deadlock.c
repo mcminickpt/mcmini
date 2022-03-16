@@ -36,8 +36,7 @@ main(int argc, const char **argv) {
     dpor_pthread_mutex_lock(&mutex2);
     dpor_pthread_mutex_unlock(&mutex2);
     dpor_pthread_mutex_unlock(&mutex1);
-
-    puts("Exit");
+    dpor_main_thread_enter_process_exit_loop();
     return 0;
 }
 

@@ -41,7 +41,8 @@ csystem_init(concurrent_system_ref ref)
     ref->is_backtracking = false;
     ref->detached_t_top = -1;
     ref->detached_s_top = -1;
-    ref->mutex_map = hash_table_create((hash_function) pthread_mutex_hash, (hash_equality_function) pthread_mutexes_equal);
+    ref->mutex_map = hash_table_create((hash_function) pthread_mutex_hash,
+                                       (hash_equality_function) dpor_pthread_mutexes_equal);
     ref->transition_map = hash_table_create((hash_function)thread_hash, (hash_equality_function) threads_equal);
 
     // Push the initial first state (the starting state) onto the state stack explicitly
@@ -66,7 +67,7 @@ csystem_register_thread(concurrent_system_ref ref)
     tself->start_routine = NULL;
     tself->owner = pthread_self();
     tself->tid = self;
-    tself->is_alive = true;
+    tself->state = THREAD_ALIVE;
     return self;
 }
 
@@ -107,6 +108,19 @@ csystem_get_thread_with_tid(concurrent_system_ref ref, tid_t tid)
     return &ref->threads[tid];
 }
 
+thread_ref
+csystem_get_thread_with_pthread(concurrent_system_ref ref, pthread_t pthread_identity)
+{
+    const int t_stack_top = csystem_transition_stack_count(ref);
+    for (int i = 0; i < ref->tid_next; i++) {
+        thread_ref t = &ref->threads[i];
+        if (pthread_equal(t->owner, pthread_identity)) {
+            return t;
+        }
+    }
+    return NULL;
+}
+
 inline bool
 csystem_is_registered_tid(concurrent_system_ref ref, tid_t tid)
 {
@@ -143,10 +157,71 @@ csystem_get_top_of_state_stack_based_on_context(concurrent_system_ref ref)
 }
 
 static void
+csystem_update_system_with_mutex_operation(concurrent_system_ref ref, transition_ref next_transition_slot, shm_mutex_operation_ref shmmop)
+{
+    // TODO: Report any undefined behavior with the transition we derive
+    next_transition_slot->operation.type = MUTEX;
+    next_transition_slot->operation.mutex_operation.type = shmmop->type;
+
+    // In the special case of mutex creation, we must register
+    // the mutex on the side of the scheduler
+    mutex_ref shadow_mutex = hash_table_get(ref->mutex_map, shmmop->mutex);
+    const bool mutex_didnt_exist = shadow_mutex == NULL;
+    if (mutex_didnt_exist) {
+        mutid_t mutid = csystem_register_mutex(ref, shmmop->mutex);
+        shadow_mutex = csystem_get_mutex_with_mutid(ref, mutid);
+        next_transition_slot->operation.mutex_operation.mutex = *shadow_mutex;
+    } else {
+        next_transition_slot->operation.mutex_operation.mutex = *shadow_mutex;
+    }
+
+    // Undefined mutex behavior e.g.
+    if (mutex_didnt_exist) {
+        switch (shmmop->type) {
+            case MUTEX_INIT:;
+                break;
+            default:;
+                mc_report_undefined_behavior();
+        }
+    } else {
+        // Init twice
+    }
+}
+
+static void
+csystem_update_system_with_thread_operation(concurrent_system_ref ref, transition_ref next_transition_slot, shm_thread_operation_ref shmtop)
+{
+    // TODO: Report any undefined behavior with the transition we derive
+    next_transition_slot->operation.type = THREAD_LIFECYCLE;
+    next_transition_slot->operation.thread_operation.type = shmtop->type;
+
+    switch (shmtop->type) {
+        case THREAD_CREATE:;
+            // In the special case of thread creation, we must
+            // register the thread on the side of the scheduler
+            tid_t new_thread_tid = csystem_register_thread(ref);
+            thread_ref new_thread = csystem_get_thread_with_tid(ref, new_thread_tid);
+            next_transition_slot->operation.thread_operation.thread = new_thread;
+
+            // Also insert a new operation for the new thread
+            transition_ref t_slot_new_thread = csystem_get_transition_slot_for_thread(ref, new_thread);
+            dpor_init_thread_start_transition(t_slot_new_thread, new_thread);
+            break;
+        case THREAD_JOIN:;
+            // Complete implementation
+            mc_unimplemented();
+//            thread_ref referenced_thread = csystem_get_thread_with_pthread(ref, shmtop->target);
+//            next_transition_slot->operation.thread_operation.thread = referenced_thread;
+            break;
+        default:
+            next_transition_slot->operation.thread_operation.thread = csystem_get_thread_with_tid(ref, shmtop->tid);
+            break;
+    }
+}
+
+static void
 csystem_update_next_transition_for_thread_with_next_source_program_visible_operation(concurrent_system_ref ref, shm_transition_ref shm_ref, thread_ref thread)
 {
-    // TODO: This function needs to be split into smaller ones
-    // TODO: Report any undefined behavior with the transition we derive
     tid_t shmtid = shm_ref->thread.tid;
     thread_ref shmthread = csystem_get_thread_with_tid(ref, shmtid);
     transition_ref tref = csystem_get_transition_slot_for_thread(ref, thread);
@@ -156,40 +231,11 @@ csystem_update_next_transition_for_thread_with_next_source_program_visible_opera
     switch (type) {
         case MUTEX:;
             shm_mutex_operation_ref shmmop = &shm_ref->operation.mutex_operation;
-            tref->operation.type = MUTEX;
-            tref->operation.mutex_operation.type = shmmop->type;
-
-            // In the special case of mutex creation, we must register
-            // the mutex on the side of the scheduler
-            mutex_ref shadow_mutex = hash_table_get(ref->mutex_map, shmmop->mutex);
-            if (shadow_mutex == NULL) {
-                mutid_t mutid = csystem_register_mutex(ref, shmmop->mutex);
-                shadow_mutex = csystem_get_mutex_with_mutid(ref, mutid);
-                tref->operation.mutex_operation.mutex = *shadow_mutex;
-            } else {
-                tref->operation.mutex_operation.mutex = *shadow_mutex;
-            }
+            csystem_update_system_with_mutex_operation(ref, tref, shmmop);
             break;
-
         case THREAD_LIFECYCLE:;
             shm_thread_operation_ref shmtop = &shm_ref->operation.thread_operation;
-            tref->operation.type = THREAD_LIFECYCLE;
-            tref->operation.thread_operation.type = shmtop->type;
-
-            // In the special case of thread creation, we must
-            // register the thread on the side of the scheduler
-            if (shmtop->type == THREAD_CREATE) {
-                tid_t new_thread_tid = csystem_register_thread(ref);
-                thread_ref new_thread = csystem_get_thread_with_tid(ref, new_thread_tid);
-                tref->operation.thread_operation.thread = new_thread;
-
-                // Also insert a new operation for the new thread
-                transition_ref t_slot_new_thread = csystem_get_transition_slot_for_thread(ref, new_thread);
-                dpor_init_thread_start_transition(t_slot_new_thread, new_thread);
-
-            } else {
-                tref->operation.thread_operation.thread = csystem_get_thread_with_tid(ref, shmtop->tid);
-            }
+            csystem_update_system_with_thread_operation(ref, tref, shmtop);
             break;
         default:;
             mc_unimplemented();
@@ -237,14 +283,18 @@ static void
 csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top, bool execute_init_op)
 {
     // TODO: Report undefined behavior here
-
     switch (top->type) {
         case THREAD_CREATE:;
-        if (!execute_init_op) return;
-
-        // Create a new thread
-        ref->tid_next++;
-
+            if (!execute_init_op) return;
+            // "Create" a new thread
+            ref->tid_next++;
+            break;
+        case THREAD_FINISH:;
+            top->thread->state = THREAD_DEAD;
+            break;
+        case THREAD_JOIN:;
+            top->thread->state = THREAD_SLEEPING;
+            break;
         default:;
             break;
     }
@@ -292,7 +342,7 @@ csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operat
                 ref->mut_next--;
                 break;
             }
-            fallthrough;
+            fallthrough; // Intentional fallthrough
         default:;
             mutex_ref shadow_mutex = csystem_get_mutex_with_pthread(ref, mutex);
             *shadow_mutex = mutop->mutex;
@@ -305,10 +355,16 @@ csystem_virtually_revert_thread_operation(concurrent_system_ref ref, thread_oper
 {
     switch (top->type) {
         case THREAD_CREATE:;
-            // Remove the thread that was created
+            // Remove the new thread that was created
             ref->tid_next--;
             break;
-        case THREAD_JOIN:;
+        case THREAD_FINISH:
+        case THREAD_JOIN:
+            // TODO: Ensure that the only way to reach
+            // THREAD_FINISH AND THREAD_JOIN is indeed THREAD_ALIVE
+            top->thread->state = THREAD_ALIVE;
+            break;
+        case THREAD_TERMINATE_PROCESS:;
             mc_unimplemented();
         default:;
             break;

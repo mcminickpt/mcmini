@@ -29,7 +29,7 @@ mutid_t csystem_register_mutex(concurrent_system_ref, pthread_mutex_t *);
 int csystem_get_thread_count(concurrent_system_ref);
 bool csystem_is_registered_tid(concurrent_system_ref, tid_t);
 thread_ref csystem_get_thread_with_tid(concurrent_system_ref, tid_t);
-thread_ref csystem_get_thread_with_pthread(concurrent_system_ref, pthread_t*);
+thread_ref csystem_get_thread_with_pthread(concurrent_system_ref, pthread_t);
 
 int csystem_get_mutex_count(concurrent_system_ref);
 mutex_ref csystem_get_mutex_with_mutid(concurrent_system_ref, mutid_t);

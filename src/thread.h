@@ -10,37 +10,25 @@
 typedef uint64_t tid_t;
 
 STRUCT_DECL(thread);
+STATES_DECL(thread,THREAD_ALIVE, THREAD_SLEEPING, THREAD_DEAD);
 struct thread {
     tid_t tid;
-    //OPEN QUESTION: Shall the owner be the value or reference?
     pthread_t owner;
     void * volatile arg;
     thread_routine start_routine;
-    volatile bool is_alive;
+    thread_state state;
 };
 PRETTY_PRINT_DECL(thread);
 typedef array_ref thread_array_ref;
-
-
 hash_t thread_hash(thread_ref);
 
-thread_ref thread_alloc(void);
-thread_ref thread_create(pthread_t);
-thread_ref thread_copy(thread_refc);
-void thread_destroy(thread_ref);
-
 STRUCT_DECL(thread_operation);
-TYPES_DECL(thread_operation, THREAD_START, THREAD_CREATE, THREAD_JOIN, THREAD_FINISH);
+TYPES_DECL(thread_operation, THREAD_START, THREAD_CREATE, THREAD_JOIN, THREAD_FINISH, THREAD_TERMINATE_PROCESS);
 struct thread_operation {
     thread_operation_type type;
     csystem_local thread_ref thread;
 };
 PRETTY_PRINT_DECL(thread_operation);
-
-thread_operation_ref thread_operation_alloc(void);
-thread_operation_ref thread_operation_copy(thread_operation_refc);
-void thread_operation_destroy(thread_operation_ref);
-
 /*
  * Operations
  */

@@ -24,19 +24,13 @@ typedef array_ref mutex_array_ref;
 PRETTY_PRINT_DECL(mutex);
 PRETTY_PRINT_STATE_DECL(mutex);
 
-/*
- * Memory API
- */
 hash_t pthread_mutex_hash(pthread_mutex_t*);
-mutex_ref mutex_create(pthread_mutex_t *);
-mutex_ref mutex_copy(mutex_refc);
-void mutex_destroy(mutex_ref);
 
 /*
  * Operations
  */
 bool mutexes_equal(mutex_refc, mutex_refc);
-bool pthread_mutexes_equal(pthread_mutex_t*, pthread_mutex_t*);
+bool dpor_pthread_mutexes_equal(pthread_mutex_t *m1, pthread_mutex_t *m2);
 int thread_owns_mutex(thread_ref, mutex_ref);
 int mutex_owned(mutex_ref);
 

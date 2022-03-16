@@ -13,8 +13,9 @@ struct shm_mutex_operation {
 
 STRUCT_DECL(shm_thread_operation)
 struct shm_thread_operation {
-    thread_operation_type type;
     tid_t tid;
+    pthread_t target;
+    thread_operation_type type;
 };
 
 STRUCT_DECL(shm_visible_operation)

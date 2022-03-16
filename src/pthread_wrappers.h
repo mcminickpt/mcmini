@@ -31,5 +31,6 @@ int dpor_pthread_mutex_destroy(pthread_mutex_t*);
 
 int dpor_pthread_create(pthread_t *, const pthread_attr_t *, void *(*) (void *), void *);
 int dpor_pthread_join(pthread_t, void**);
+void dpor_main_thread_enter_process_exit_loop(void); // TODO: We need a better system for this
 
 #endif //DPOR_PTHREAD_WRAPPERS_H
