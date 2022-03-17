@@ -40,6 +40,7 @@ thread_operation_enabled(thread_operation_refc top, thread_refc thread)
         case THREAD_JOIN:
             return top->thread->state != THREAD_ALIVE;
         case THREAD_TERMINATE_PROCESS:
+        case THREAD_FINISH:
             return false;
         default:
             return true;

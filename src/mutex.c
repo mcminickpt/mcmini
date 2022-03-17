@@ -73,7 +73,8 @@ mutex_operations_coenabled(mutex_operation_refc op1, mutex_operation_refc op2)
     || mutex_operation_creates_mutex(op2, &op1->mutex))
         return false;
 
-    if (op1->type == MUTEX_LOCK && op2->type == MUTEX_LOCK)
+    if ((op1->type == MUTEX_LOCK && op2->type == MUTEX_UNLOCK)
+    || (op1->type == MUTEX_UNLOCK && op2->type == MUTEX_LOCK))
         return !mutexes_equal(&op1->mutex, &op2->mutex);
 
     return true;

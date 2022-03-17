@@ -123,6 +123,6 @@ dpor_pthread_join(pthread_t pthread, void **result)
 void
 dpor_main_thread_enter_process_exit_loop(void)
 {
-    dpor_post_thread_operation_to_parent(TID_INVALID, THREAD_TERMINATE_PROCESS);
+    dpor_post_thread_operation_to_parent(tid_self, THREAD_TERMINATE_PROCESS);
     thread_await_dpor_scheduler();
 }

@@ -44,6 +44,7 @@ static state_stack_item_ref csystem_grow_state_stack(concurrent_system_ref);
 static state_stack_item_ref csystem_grow_state_stack_by_running_thread(concurrent_system_ref, thread_ref);
 state_stack_item_ref csystem_shrink_state_stack(concurrent_system_ref);
 state_stack_item_ref csystem_state_stack_top(concurrent_system_ref);
+state_stack_item_ref csystem_state_stack_get_element(concurrent_system_ref ref, int i);
 transition_ref csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref, state_stack_item_ref);
 
 state_stack_item_ref csystem_pop_program_stacks_for_backtracking(concurrent_system_ref);

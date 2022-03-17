@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #define MAX_TOTAL_THREADS_PER_SCHEDULE 50u
-#define MAX_VISIBLE_OPERATION_DEPTH 10u//300u
+#define MAX_VISIBLE_OPERATION_DEPTH 200u
 #define MAX_MUTEX_OBJECT_COUNT 100u
 
 typedef uint64_t tid_t;

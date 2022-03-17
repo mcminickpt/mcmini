@@ -9,8 +9,8 @@ void*
 thread_helper_main(void *unused) {
     dpor_pthread_mutex_lock(&mutex2);
     dpor_pthread_mutex_lock(&mutex1);
-    dpor_pthread_mutex_unlock(&mutex1);
-    dpor_pthread_mutex_unlock(&mutex2);
+//    dpor_pthread_mutex_unlock(&mutex1);
+//    dpor_pthread_mutex_unlock(&mutex2);
     return NULL;
 }
 
@@ -29,13 +29,13 @@ main(int argc, const char **argv) {
 
     dpor_pthread_mutex_lock(&mutex1);
     dpor_pthread_mutex_lock(&mutex2);
-    dpor_pthread_mutex_unlock(&mutex2);
-    dpor_pthread_mutex_unlock(&mutex1);
+//    dpor_pthread_mutex_unlock(&mutex2);
+//    dpor_pthread_mutex_unlock(&mutex1);
 
-    dpor_pthread_mutex_lock(&mutex1);
-    dpor_pthread_mutex_lock(&mutex2);
-    dpor_pthread_mutex_unlock(&mutex2);
-    dpor_pthread_mutex_unlock(&mutex1);
+//    dpor_pthread_mutex_lock(&mutex1);
+//    dpor_pthread_mutex_lock(&mutex2);
+//    dpor_pthread_mutex_unlock(&mutex2);
+//    dpor_pthread_mutex_unlock(&mutex1);
     dpor_main_thread_enter_process_exit_loop();
     return 0;
 }
