@@ -15,6 +15,7 @@ TYPES_DECL(mutex_operation, MUTEX_INIT, MUTEX_LOCK, MUTEX_UNLOCK, MUTEX_DESTROY)
 TRANSITION_DESCRIPTION_DECL(mutex_operation);
 
 struct mutex {
+    mutid_t mutid;
     mutex_state state;
     csystem_local thread_ref owner;
     pthread_mutex_t *mutex;
@@ -38,6 +39,12 @@ int mutex_owned(mutex_ref);
 STRUCT_DECL(mutex_operation)
 struct mutex_operation {
     mutex mutex;
+    enum mutex_operation_type type;
+};
+
+STRUCT_DECL(dynamic_mutex_operation)
+struct dynamic_mutex_operation {
+    csystem_local mutex_ref mutex;
     enum mutex_operation_type type;
 };
 

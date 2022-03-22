@@ -29,6 +29,7 @@ main(int argc, const char **argv) {
 
     dpor_pthread_mutex_lock(&mutex1);
     dpor_pthread_mutex_lock(&mutex2);
+
 //    dpor_pthread_mutex_unlock(&mutex2);
 //    dpor_pthread_mutex_unlock(&mutex1);
 

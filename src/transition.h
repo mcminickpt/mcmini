@@ -6,16 +6,22 @@
 #include "visible_operation.h"
 #include <stdbool.h>
 
-STRUCT_DECL(transition);
+STRUCT_DECL(transition)
+STRUCT_DECL(dynamic_transition)
 struct transition {
     csystem_local thread_ref thread;
     visible_operation operation;
+};
+struct dynamic_transition {
+    csystem_local thread_ref thread;
+    dynamic_visible_operation operation;
 };
 typedef array_ref transition_array_ref;
 typedef transition_array_ref transition_stack_ref;
 PRETTY_PRINT_DECL(transition);
 
 thread_ref proc(transition_refc ref);
+transition dynamic_transition_get_snapshot(dynamic_transition_ref);
 
 /**
  * Whether or not the given transition is directly
@@ -47,6 +53,7 @@ bool transition_is_thread_exit(transition_refc);
  * block if executed in a real program
  */
 bool transition_enabled(transition_ref);
+bool dynamic_transition_enabled(dynamic_transition_ref);
 
 /**
  * Determines whether or not the provided transition would

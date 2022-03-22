@@ -45,7 +45,7 @@ static state_stack_item_ref csystem_grow_state_stack_by_running_thread(concurren
 state_stack_item_ref csystem_shrink_state_stack(concurrent_system_ref);
 state_stack_item_ref csystem_state_stack_top(concurrent_system_ref);
 state_stack_item_ref csystem_state_stack_get_element(concurrent_system_ref ref, int i);
-transition_ref csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref, state_stack_item_ref);
+dynamic_transition_ref csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref, state_stack_item_ref);
 
 state_stack_item_ref csystem_pop_program_stacks_for_backtracking(concurrent_system_ref);
 
@@ -60,10 +60,10 @@ transition_ref csystem_transition_stack_top(concurrent_system_ref);
 transition_ref csystem_transition_stack_get_element(concurrent_system_ref, int);
 
 void csystem_simulate_running_thread(concurrent_system_ref, shm_transition_ref, thread_ref);
-transition_ref csystem_get_transition_slot_for_tid(concurrent_system_ref, tid_t);
-transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csystem_local thread_ref);
+dynamic_transition_ref csystem_get_transition_slot_for_tid(concurrent_system_ref, tid_t);
+dynamic_transition_ref csystem_get_transition_slot_for_thread(concurrent_system_ref, csystem_local thread_ref);
 
-transition_ref csystem_get_first_enabled_transition(concurrent_system_ref);
+dynamic_transition_ref csystem_get_first_enabled_transition(concurrent_system_ref);
 int csystem_copy_enabled_transitions(concurrent_system_ref, transition_ref);
 void csystem_copy_per_thread_transitions(concurrent_system_ref, transition_ref);
 
@@ -76,8 +76,8 @@ void csystem_print_transition_stack(concurrent_system_ref);
  * Transitions
  */
 transition_ref csystem_run(concurrent_system_ref, thread_ref);
-void dpor_init_thread_start_transition(transition_ref, thread_ref);
-void dpor_init_thread_finish_transition(transition_ref, thread_ref);
+void dpor_init_thread_start_transition(dynamic_transition_ref, thread_ref);
+void dpor_init_thread_finish_transition(dynamic_transition_ref, thread_ref);
 
 /**
  * Back tracking
@@ -91,6 +91,10 @@ bool csystem_p_q_could_race(concurrent_system_ref, int i, thread_ref q, thread_r
 bool happens_before(concurrent_system_ref, int i, int j);
 bool happens_before_thread(concurrent_system_ref, int i, thread_ref);
 
+/*
+ * Dynamic transitions
+ */
+dynamic_transition transition_convert_to_dynamic_transition_in_system(concurrent_system_ref, transition_ref);
 
 
 #endif //DPOR_CONCURRENT_SYSTEM_H

@@ -147,10 +147,10 @@ dpor_child_kill(void)
 }
 
 static void
-dpor_exhaust_threads(transition_refc initial_transition)
+dpor_exhaust_threads(dynamic_transition_ref initial_transition)
 {
     int debug_depth = csystem_transition_stack_count(&csystem);
-    transition_refc t_next = initial_transition;
+    dynamic_transition_ref t_next = initial_transition;
     // TODO: When we hit a deadlock, retry from a
     // different backtracking point
     do {
@@ -160,11 +160,14 @@ dpor_exhaust_threads(transition_refc initial_transition)
         csystem_simulate_running_thread(&csystem, shm_child_result, t_next->thread);
         csystem_dynamically_update_backtrack_sets(&csystem);
     } while ( (t_next = csystem_get_first_enabled_transition(&csystem)) != NULL );
+
+    // TODO: Test for deadlock
+
     dpor_child_kill();
 }
 
 static bool
-dpor_backtrack_main(transition_refc initial_transition)
+dpor_backtrack_main(dynamic_transition_ref initial_transition)
 {
     bool is_child = dpor_spawn_child_following_transition_stack();
     if (is_child) return true;
@@ -172,7 +175,7 @@ dpor_backtrack_main(transition_refc initial_transition)
     return false;
 }
 
-/* Return true if we should run another iteration */
+/* Return true for the child process so that is can escape to the target program */
 static bool
 dpor_scheduler_main(void)
 {
@@ -184,7 +187,7 @@ dpor_scheduler_main(void)
     if (is_child) return true;
 
     thread_ref main_thread = thread_get_self();
-    transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
+    dynamic_transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
     dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
     dpor_exhaust_threads(t_slot_for_main_thread_next);
 
@@ -196,7 +199,7 @@ dpor_scheduler_main(void)
         if (!hash_set_is_empty(s_top->backtrack_set)) {
             // TODO: We can be smart here and only run a thread
             // if it is not already in a sleep set or lock set (eventually)
-            transition_ref t_initial = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem, s_top);
+            dynamic_transition_ref t_initial = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem, s_top);
             is_child = dpor_backtrack_main(t_initial);
             if (is_child) return true;
         }

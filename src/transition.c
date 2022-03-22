@@ -1,12 +1,11 @@
 #include "transition.h"
-#include "concurrent_system.h"
 #include "common.h"
 #include "mutex.h"
 #include "fail.h"
 #include <stdio.h>
 
-MEMORY_ALLOC_DEF_DECL(transition);
-PRETTY_PRINT_DEF_DECL(transition);
+MEMORY_ALLOC_DEF_DECL(transition)
+PRETTY_PRINT_DEF_DECL(transition)
 
 void
 transition_pretty_off(transition_refc t, unsigned int off)
@@ -40,10 +39,18 @@ transition_is_thread_exit(transition_refc tref)
 {
     if (!tref) return false;
     if (visible_operation_is_thread_operation(&tref->operation)) {
-        thread_operation_ref top = visible_operation_unsafely_as_thread_operation(&tref->operation);
+        thread_operation_refc top = &tref->operation.thread_operation;
         return top->type == THREAD_FINISH;
     }
     return false;
+}
+
+bool
+dynamic_transition_enabled(dynamic_transition_ref dtrans)
+{
+    // TODO: Prevent copies in the future
+    transition t_copy = dynamic_transition_get_snapshot(dtrans);
+    return transition_enabled(&t_copy);
 }
 
 bool
@@ -52,11 +59,11 @@ transition_enabled(transition_ref transition)
     if (!transition) return false;
 
     switch (transition->operation.type) {
-        case MUTEX:;
+        case MUTEX:
             return mutex_operation_enabled(&transition->operation.mutex_operation, transition->thread);
-        case THREAD_LIFECYCLE:;
+        case THREAD_LIFECYCLE:
             return thread_operation_enabled(&transition->operation.thread_operation, transition->thread);
-        default:;
+        default:
             mc_unimplemented();
             return false;
     }
@@ -90,6 +97,7 @@ transitions_coenabled(transition_ref t1, transition_ref t2)
     }
 }
 
+
 bool
 transitions_dependent(transition_ref t1, transition_ref t2)
 {
@@ -120,4 +128,37 @@ transitions_dependent(transition_ref t1, transition_ref t2)
     return false;
 }
 
+void
+dynamic_transition_copy_thread_snapshot(dynamic_thread_operation_ref dtref, thread_operation_ref tref)
+{
+    tref->type = dtref->type;
+    tref->thread = dtref->thread;
+}
 
+void
+dynamic_transition_copy_mutex_snapshot(dynamic_mutex_operation_ref dmref, mutex_operation_ref mref)
+{
+    mref->type = dmref->type;
+    mref->mutex = *dmref->mutex;
+}
+
+
+transition
+dynamic_transition_get_snapshot(dynamic_transition_ref dref)
+{
+    transition t;
+    t.thread = dref->thread;
+    t.operation.type = dref->operation.type;
+    switch (dref->operation.type) {
+        case MUTEX:
+            dynamic_transition_copy_mutex_snapshot(&dref->operation.mutex_operation, &t.operation.mutex_operation);
+            break;
+        case THREAD_LIFECYCLE:
+            dynamic_transition_copy_thread_snapshot(&dref->operation.thread_operation, &t.operation.thread_operation);
+            break;
+        default:
+            mc_unimplemented();
+            break;
+    }
+    return t;
+}
