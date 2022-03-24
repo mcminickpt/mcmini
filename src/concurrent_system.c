@@ -72,6 +72,20 @@ csystem_register_thread(concurrent_system_ref ref)
 }
 
 tid_t
+csystem_register_thread_soft(concurrent_system_ref ref)
+{
+    tid_t self = ref->tid_next;
+    tid_self = self;
+    thread_ref tself = &ref->threads[self];
+    tself->arg = NULL;
+    tself->start_routine = NULL;
+    tself->owner = pthread_self();
+    tself->tid = self;
+    tself->state = THREAD_ALIVE;
+    return self;
+}
+
+tid_t
 csystem_register_main_thread(concurrent_system_ref ref)
 {
     tid_t main = csystem_register_thread(ref);
@@ -83,6 +97,19 @@ mutid_t
 csystem_register_mutex(concurrent_system_ref ref, pthread_mutex_t *mut)
 {
     mutid_t new = ref->mut_next++;
+    mutex_ref mnew = &ref->locks[new];
+    mnew->state = MUTEX_UNKNOWN;
+    mnew->owner = NULL;
+    mnew->mutex = mut;
+    mnew->mutid = new;
+    hash_table_set(ref->mutex_map, mut, mnew);
+    return new;
+}
+
+mutid_t
+csystem_register_mutex_soft(concurrent_system_ref ref, pthread_mutex_t *mut)
+{
+    mutid_t new = ref->mut_next;
     mutex_ref mnew = &ref->locks[new];
     mnew->state = MUTEX_UNKNOWN;
     mnew->owner = NULL;
@@ -169,7 +196,7 @@ csystem_update_system_with_mutex_operation(concurrent_system_ref ref, dynamic_tr
     mutex_ref shadow_mutex = hash_table_get(ref->mutex_map, shmmop->mutex);
     const bool mutex_didnt_exist = shadow_mutex == NULL;
     if (mutex_didnt_exist) {
-        mutid_t mutid = csystem_register_mutex(ref, shmmop->mutex);
+        mutid_t mutid = csystem_register_mutex_soft(ref, shmmop->mutex);
         shadow_mutex = csystem_get_mutex_with_mutid(ref, mutid);
         next_transition_slot->operation.mutex_operation.mutex = shadow_mutex;
     } else {
@@ -200,7 +227,7 @@ csystem_update_system_with_thread_operation(concurrent_system_ref ref, dynamic_t
         case THREAD_CREATE:;
             // In the special case of thread creation, we must
             // register the thread on the side of the scheduler
-            tid_t new_thread_tid = csystem_register_thread(ref);
+            tid_t new_thread_tid = csystem_register_thread_soft(ref);
             thread_ref new_thread = csystem_get_thread_with_tid(ref, new_thread_tid);
             next_transition_slot->operation.thread_operation.thread = new_thread;
 
@@ -265,10 +292,7 @@ csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operati
             if (!execute_init_op) return;
             mutid_t mutid = csystem_register_mutex(ref, mutex);
             shadow = csystem_get_mutex_with_mutid(ref, mutid);
-            shadow->mutid = mutid;
             shadow->state = MUTEX_UNLOCKED;
-            shadow->owner = NULL;
-            shadow->mutex = mutex;
             hash_table_set(ref->mutex_map, mutex, shadow);
             break;
         case MUTEX_LOCK:;
@@ -339,16 +363,14 @@ csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operat
             // use to tell when we have undefined behavior with an existing
             // mutex vs a new mutex entirely
             if (mutop->mutex.state == MUTEX_UNKNOWN) {
-
+                // Implicit in this assumption is this undoes the top-most
+                // mutex init from the transition stack. Otherwise, we'd be
+                // unregistering a mutex with a valid `mutid`. This is true
+                // of all visible objects, however
+                hash_table_remove(ref->mutex_map, mutex);
+                ref->mut_next--;
+                break;
             }
-
-            // Implicit in this assumption is this undoes the top-most
-            // mutex init from the transition stack. Otherwise, we'd be
-            // unregistering a mutex with a valid `mutid`. This is true
-            // of all visible objects, however
-            hash_table_remove(ref->mutex_map, mutex);
-            ref->mut_next--;
-            break;
 
 //            fallthrough; // Intentional fallthrough
         default:;
@@ -382,9 +404,6 @@ csystem_virtually_revert_thread_operation(concurrent_system_ref ref, thread_oper
 static void
 csystem_virtually_revert_transition(concurrent_system_ref ref, transition_ref transition)
 {
-    dynamic_transition_ref was_next = csystem_get_transition_slot_for_thread(ref, transition->thread);
-    *was_next = transition_convert_to_dynamic_transition_in_system(ref, transition); /* t_top represents what executed BEFORE to reach the current next transition */
-
     switch (transition->operation.type) {
         case MUTEX:;
             csystem_virtually_revert_mutex_operation(ref, &transition->operation.mutex_operation);
@@ -435,7 +454,7 @@ csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, threa
 
     dynamic_transition_ref thread_runs = csystem_get_transition_slot_for_thread(ref, thread);
     transition snapshot = dynamic_transition_get_snapshot(thread_runs);
-    csystem_virtually_apply_transition(ref, &snapshot, false);
+    csystem_virtually_apply_transition(ref, &snapshot, true);
 
     // Copy the contents of the transition into the top of the transition stack
     *t_top = snapshot;
@@ -446,14 +465,7 @@ csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, threa
 static inline transition_ref
 csystem_replay_transition_to_restore_state_after_backtracking(concurrent_system_ref ref, transition_ref transition)
 {
-    transition_ref t_top = &ref->t_stack[++ref->t_stack_top];
-    mc_assert(ref->t_stack_top <= MAX_VISIBLE_OPERATION_DEPTH);
-
     csystem_virtually_apply_transition(ref, transition, true);
-
-    // Copy the contents of the transition into the the top of the transition stack
-    *t_top = *transition;
-    return t_top;
 }
 
 inline transition_ref
@@ -699,7 +711,7 @@ csystem_end_backtrack(concurrent_system_ref ref)
     mc_assert(ref->s_stack_top < ref->detached_s_top);
 
     const bool no_transitions_left = csystem_transition_stack_is_empty(ref);
-    const int cur_top = no_transitions_left ? 0 : ref->t_stack_top;
+    const int cur_top = ref->t_stack_top + 1;
     const int dest_top = ref->detached_t_top;
 
     // NOTE: The assumption is that while
@@ -713,7 +725,7 @@ csystem_end_backtrack(concurrent_system_ref ref)
         transition_ref transition_i = &ref->t_stack[i];
         csystem_replay_transition_to_restore_state_after_backtracking(ref, transition_i);
     }
-
+    ref->t_stack_top = ref->detached_t_top;
     ref->s_stack_top = ref->detached_s_top;
     ref->detached_t_top = -1;
     ref->detached_s_top = -1;
@@ -805,82 +817,133 @@ csystem_p_q_could_race(concurrent_system_ref ref, int i, thread_ref q, thread_re
     return false;
 }
 
-void
-csystem_dynamically_update_backtrack_sets(concurrent_system_ref ref)
+static void
+csystem_insert_threads_for_backtrack_point(concurrent_system_ref ref,
+                                           thread_ref p,
+                                           hash_table_ref thread_to_transition_map_at_last_s,
+                                           transition_ref scratch_enabled_at_i,
+                                           transition_ref S_i,
+                                           state_stack_item_ref s_i,
+                                           int i)
 {
-    // TODO: This function needs to be split into smaller pieces
-    csystem_start_backtrack(ref);
+    int num_enabled_at_s_i = csystem_copy_enabled_transitions(ref, scratch_enabled_at_i);
+    for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
+        transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
+        thread_ref q = q_transition->thread;
 
-    // next(last(S), p) for each thread
-    static dynamic_transition dynamic_transitions_at_last_s[MAX_TOTAL_THREADS_PER_SCHEDULE];
-    static transition static_transitions_at_last_s[MAX_TOTAL_THREADS_PER_SCHEDULE];
-    static transition scratch_enabled_at_i[MAX_TOTAL_THREADS_PER_SCHEDULE];
-    csystem_copy_per_thread_transitions(ref, static_transitions_at_last_s);
-    csystem_copy_per_thread_dynamic_transitions(ref, dynamic_transitions_at_last_s);
+        bool q_is_in_E = threads_equal(q, p) || csystem_p_q_could_race(ref, i, q, p);
+        if (q_is_in_E) {
+            hash_set_insert(s_i->backtrack_set, q);
 
-    int thread_count = csystem_get_thread_count(ref);
-    int t_stack_height = csystem_transition_stack_count(ref);
-    mc_assert(thread_count <= MAX_TOTAL_THREADS_PER_SCHEDULE);
-    mc_assert(t_stack_height <= MAX_VISIBLE_OPERATION_DEPTH);
+            // TODO: Only one q is needed. An optimization
+            // where we check the done set for q first would
+            // reduce backtracking
 
-    // TODO: Make the transition map static
-    hash_table_ref thread_to_transition_map_at_last_s = hash_table_create((hash_function) thread_hash, (hash_equality_function) threads_equal);
+            // The thread doesn't need to be checked again: any other k
+            // for which the condition is satisfied will be less (or
+            hash_table_remove(thread_to_transition_map_at_last_s, p);
+            return;
+        }
+    }
+
+    // If we exit the loop, we know that `E` is the empty set. In this case, we must
+    // add every enabled thread to the backtrack set
+    for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
+        transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
+        thread_ref q = q_transition->thread;
+        hash_set_insert(s_i->backtrack_set, q);
+    }
+}
+
+
+static void
+csystem_check_should_backtrack_thread_at_i(concurrent_system_ref ref,
+                                           thread_ref p,
+                                           hash_table_ref thread_to_transition_map_at_last_s,
+                                           transition_ref scratch_enabled_at_i,
+                                           transition_ref S_i,
+                                           state_stack_item_ref s_i,
+                                           int i)
+{
+    transition_ref next_s_p = NULL;
+    if ((next_s_p = hash_table_get(thread_to_transition_map_at_last_s, p)) != NULL) {
+        mc_assert(next_s_p->thread == p);
+
+        bool found_max_i_condition = transitions_coenabled(S_i, next_s_p) &&
+                                     transitions_dependent(S_i, next_s_p) &&
+                                     !happens_before_thread(ref, i, p);
+        if (found_max_i_condition)
+            csystem_insert_threads_for_backtrack_point(ref, p,
+                                                       thread_to_transition_map_at_last_s,
+                                                       scratch_enabled_at_i,
+                                                       S_i, s_i, i);
+    }
+}
+
+static void
+csystem_examine_potential_backtrack_points(concurrent_system_ref ref,
+                                           hash_table_ref thread_to_transition_map_at_last_s,
+                                           transition_ref scratch_enabled_at_i,
+                                           transition_ref S_i,
+                                           state_stack_item_ref s_i,
+                                           int i) {
+    const int thread_count = csystem_get_thread_count(ref);
+    for (int tid = 0; tid < thread_count; tid++) {
+        thread_ref p = csystem_get_thread_with_tid(ref, tid);
+        csystem_check_should_backtrack_thread_at_i(ref, p,
+                                                   thread_to_transition_map_at_last_s,
+                                                   scratch_enabled_at_i, S_i, s_i, i);
+    }
+}
+
+static void
+csystem_cache_next_transitions_for_backtracking(concurrent_system_ref ref,
+                                                hash_table_ref thread_to_transition_map_at_last_s,
+                                                transition_ref static_transitions_at_last_s)
+{
+    const int thread_count = csystem_get_thread_count(ref);
     for (tid_t tid = 0; tid < thread_count; tid++) {
         thread_ref tid_thread = csystem_get_thread_with_tid(ref, tid);
         transition_ref transition_for_tid = &static_transitions_at_last_s[tid];
         hash_table_set(thread_to_transition_map_at_last_s, tid_thread, transition_for_tid);
     }
+}
+
+void
+csystem_dynamically_update_backtrack_sets(concurrent_system_ref ref)
+{
+    // next(last(S), p) for each thread
+    static dynamic_transition dynamic_transitions_at_last_s[MAX_TOTAL_THREADS_PER_SCHEDULE];
+    static transition static_transitions_at_last_s[MAX_TOTAL_THREADS_PER_SCHEDULE];
+    static transition scratch_enabled_at_i[MAX_TOTAL_THREADS_PER_SCHEDULE];
+
+    csystem_start_backtrack(ref);
+    csystem_copy_per_thread_transitions(ref, static_transitions_at_last_s);
+    csystem_copy_per_thread_dynamic_transitions(ref, dynamic_transitions_at_last_s);
+
+    const int t_stack_height = csystem_transition_stack_count(ref);
+    mc_assert(t_stack_height <= MAX_VISIBLE_OPERATION_DEPTH);
+
+    // TODO: Make the transition map static
+    hash_table_ref thread_to_transition_map_at_last_s = hash_table_create((hash_function) thread_hash, (hash_equality_function) threads_equal);
+    csystem_cache_next_transitions_for_backtracking(ref,
+                                                    thread_to_transition_map_at_last_s,
+                                                    static_transitions_at_last_s);
 
     /* Don't need to keep going further into the transition stack if everything is processed */
     for (int i = t_stack_height - 1; i >= 0 && !hash_table_is_empty(thread_to_transition_map_at_last_s); i--) {
-        transition_ref S_i = csystem_transition_stack_top(ref);
+        transition_ref S_i = csystem_transition_stack_get_element(ref, i);
         csystem_pop_program_stacks_for_backtracking(ref); // Ensures that we are looking at the enabled threads at pre(S, i)
         state_stack_item_ref state_stack_item_i = csystem_state_stack_get_element(ref, i); // pre(S, i), now the top of the state stack
-
-        next_thread: for (int tid = 0; tid < thread_count; tid++) {
-            thread_ref p = csystem_get_thread_with_tid(ref, tid);
-
-            // Transition in the latest state stack (at this point lost but whose enabled transitions were copied into the
-            // array `enabled_transitions_s_top`)
-            transition_ref p_transition = NULL;
-            if ((p_transition = hash_table_get(thread_to_transition_map_at_last_s, p)) != NULL) {
-                mc_assert(p_transition->thread == p);
-
-                bool found_max_i_condition = transitions_coenabled(S_i, p_transition) &&
-                                             transitions_dependent(S_i, p_transition) &&
-                                             !happens_before_thread(ref, i, p);
-                if (found_max_i_condition) {
-                    int num_enabled_at_s_i = csystem_copy_enabled_transitions(ref, scratch_enabled_at_i);
-                    for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
-                        transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
-                        thread_ref q = q_transition->thread;
-
-                        bool q_is_in_E = threads_equal(q, p) || csystem_p_q_could_race(ref, i, q, p);
-                        if (q_is_in_E) {
-                            hash_set_insert(state_stack_item_i->backtrack_set, q);
-
-                            // TODO: Only one q is needed. An optimization
-                            // where we check the done set for q first would
-                            // reduce backtracking
-
-                            // The thread doesn't need to be checked again: any other k
-                            // for which the condition is satisfied will be less (or
-                            hash_table_remove(thread_to_transition_map_at_last_s, p);
-                            goto next_thread;
-                        }
-                    }
-
-                    // If we exit the loop, we know that `E` is the empty set. In this case, we must
-                    // add every enabled thread to the backtrack set
-                    for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
-                        transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
-                        thread_ref q = q_transition->thread;
-                        hash_set_insert(state_stack_item_i->backtrack_set, q);
-                    }
-                }
-            }
-        }
+        csystem_examine_potential_backtrack_points(ref,
+                                                   thread_to_transition_map_at_last_s,
+                                                   scratch_enabled_at_i,
+                                                   S_i,
+                                                   state_stack_item_i,
+                                                   i);
     }
+
+    // TODO: HOw could we get to t_3?
     hash_table_destroy(thread_to_transition_map_at_last_s);
     csystem_end_backtrack(ref);
     csystem_replace_per_thread_transitions_after_backtracking(ref, static_transitions_at_last_s);
