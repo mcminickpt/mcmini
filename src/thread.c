@@ -36,11 +36,14 @@ bool
 thread_operation_enabled(thread_operation_refc top, thread_refc thread)
 {
     if (!top || !thread) return false;
+
+    if (thread->state == THREAD_DEAD)
+        return false;
+
     switch (top->type) {
         case THREAD_JOIN:
             return top->thread->state != THREAD_ALIVE;
         case THREAD_TERMINATE_PROCESS:
-        case THREAD_FINISH:
             return false;
         default:
             return true;

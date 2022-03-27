@@ -60,6 +60,8 @@ dpor_thread_routine_wrapper(void * arg)
     thread_await_dpor_scheduler();
 
     free(arg); // See where the thread_wrapper is created. The memory is malloc'ed and should be freed
+
+    thread_await_dpor_scheduler_for_thread_finish_transition();
     return return_value;
 }
 

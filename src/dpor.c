@@ -149,7 +149,7 @@ dpor_child_kill(void)
 static void
 dpor_exhaust_threads(dynamic_transition_ref initial_transition)
 {
-    int debug_depth = csystem_transition_stack_count(&csystem);
+    int debug_depth = csystem_state_stack_count(&csystem);
     dynamic_transition_ref t_next = initial_transition;
     do {
         debug_depth++;
@@ -193,7 +193,7 @@ dpor_scheduler_main(void)
     dpor_exhaust_threads(t_slot_for_main_thread_next);
 
     while (!csystem_state_stack_is_empty(&csystem)) {
-        const uint32_t depth = csystem_transition_stack_count(&csystem);
+        const uint32_t depth = csystem_state_stack_count(&csystem);
         printf("**** Backtracking at depth %d ****\n", depth);
 
         state_stack_item_ref s_top = csystem_state_stack_top(&csystem);
@@ -203,9 +203,14 @@ dpor_scheduler_main(void)
             dynamic_transition_ref t_initial = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem, s_top);
 
             if (t_initial) {
+                printf("**** Backtracking BEGUN at depth %d ****\n", depth);
                 is_child = dpor_backtrack_main(t_initial);
                 if (is_child) return true;
             }
+        } else {
+//            hash_set_destroy(s_top->done_set);
+//            hash_set_destroy(s_top->backtrack_set);
+            puts("**** ... Nothing to backtrack on... ****");
         }
         csystem_pop_program_stacks_for_backtracking(&csystem);
         printf("**** Backtracking completed at depth %d ****\n", depth);
@@ -280,6 +285,14 @@ thread_await_dpor_scheduler_for_thread_start_transition(void)
     mc_assert(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*queue)[tid_self];
     mc_shared_cv_wait_for_scheduler(cv);
+}
+
+void
+thread_await_dpor_scheduler_for_thread_finish_transition(void)
+{
+    mc_assert(tid_self != TID_INVALID);
+    mc_shared_cv_ref cv = &(*queue)[tid_self];
+    mc_shared_cv_wake_scheduler(cv);
 }
 
 static tid_t

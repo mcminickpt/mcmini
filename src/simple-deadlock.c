@@ -19,7 +19,6 @@ main(int argc, const char **argv) {
     dpor_init();
 
     pthread_t helper;
-    pthread_t helper2;
 
     dpor_pthread_mutex_init(&mutex1, NULL);
     dpor_pthread_mutex_init(&mutex2, NULL);

@@ -36,5 +36,6 @@ static void dpor_reset_cv_locks(void);
 
 void thread_await_dpor_scheduler(void);
 void thread_await_dpor_scheduler_for_thread_start_transition(void);
+void thread_await_dpor_scheduler_for_thread_finish_transition(void);
 
 #endif //DPOR_DPOR_H

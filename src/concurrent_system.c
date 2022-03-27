@@ -235,10 +235,12 @@ csystem_update_system_with_thread_operation(concurrent_system_ref ref, dynamic_t
             dynamic_transition_ref t_slot_new_thread = csystem_get_transition_slot_for_thread(ref, new_thread);
             dpor_init_thread_start_transition(t_slot_new_thread, new_thread);
             break;
-        case THREAD_JOIN:
+        case THREAD_JOIN:;
             // Complete implementation
             mc_unimplemented();
+//            // TODO:
 //            thread_ref referenced_thread = csystem_get_thread_with_pthread(ref, shmtop->target);
+//
 //            next_transition_slot->operation.thread_operation.thread = referenced_thread;
             break;
         case THREAD_START:
