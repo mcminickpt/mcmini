@@ -371,8 +371,7 @@ csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operat
                 ref->mut_next--;
                 break;
             }
-
-//            fallthrough; // Intentional fallthrough
+            // Intentional fallthrough
         default:;
             mutex_ref shadow_mutex = csystem_get_mutex_with_pthread(ref, mutex);
             *shadow_mutex = mutop->mutex;
@@ -426,6 +425,26 @@ csystem_grow_state_stack(concurrent_system_ref ref)
     return s_top;
 }
 
+bool
+csystem_is_in_deadlock(concurrent_system_ref ref)
+{
+    const int threads = csystem_get_thread_count(ref);
+    for (tid_t i = 0; i < threads; i++) {
+        dynamic_transition_ref tslot = csystem_get_transition_slot_for_tid(ref, i);
+        transition tslotcpy = dynamic_transition_get_snapshot(tslot);
+
+        // TODO: Figure out how to deal with THREAD_TERMINATE_PROCESS
+        // more generally
+        if (tslotcpy.operation.type == THREAD_LIFECYCLE &&
+        tslotcpy.operation.thread_operation.type == THREAD_TERMINATE_PROCESS)
+            return false;
+
+        if (transition_enabled(&tslotcpy))
+            return false;
+    }
+    return true;
+}
+
 static state_stack_item_ref
 csystem_grow_state_stack_by_running_thread(concurrent_system_ref ref, thread_ref advancing_thread)
 {
@@ -433,7 +452,6 @@ csystem_grow_state_stack_by_running_thread(concurrent_system_ref ref, thread_ref
     {
         state_stack_item_ref s_top_old = &ref->s_stack[ref->s_stack_top];
         bool inserted = hash_set_insert(s_top_old->done_set, advancing_thread);
-//        mc_assert(inserted);
     }
     return csystem_grow_state_stack(ref);
 }
@@ -462,7 +480,7 @@ csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, threa
     return t_top;
 }
 
-static inline transition_ref
+static inline void
 csystem_replay_transition_to_restore_state_after_backtracking(concurrent_system_ref ref, transition_ref transition)
 {
     csystem_virtually_apply_transition(ref, transition, true);
@@ -653,7 +671,11 @@ dynamic_transition_ref
 csystem_pop_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref, state_stack_item_ref ss_item)
 {
     dynamic_transition_ref next_transition = csystem_get_first_enabled_transition_in_backtrack_set(ref, ss_item);
-    if (next_transition == NULL) return NULL;
+    if (next_transition == NULL)
+        return NULL;
+    if (hash_set_contains(ss_item->done_set, next_transition->thread))
+        return NULL;
+
     hash_set_remove(ss_item->backtrack_set, next_transition->thread);
     hash_set_insert(ss_item->done_set, next_transition->thread);
     return next_transition;

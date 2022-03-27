@@ -151,8 +151,6 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
 {
     int debug_depth = csystem_transition_stack_count(&csystem);
     dynamic_transition_ref t_next = initial_transition;
-    // TODO: When we hit a deadlock, retry from a
-    // different backtracking point
     do {
         debug_depth++;
         tid_t tid = t_next->thread->tid;
@@ -162,6 +160,9 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
     } while ( (t_next = csystem_get_first_enabled_transition(&csystem)) != NULL );
 
     // TODO: Test for deadlock
+    if (csystem_is_in_deadlock(&csystem)) {
+        puts("*** DEADLOCK DETECTED ***");
+    }
 
     dpor_child_kill();
 }
@@ -200,8 +201,11 @@ dpor_scheduler_main(void)
             // TODO: We can be smart here and only run a thread
             // if it is not already in a sleep set or lock set (eventually)
             dynamic_transition_ref t_initial = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem, s_top);
-            is_child = dpor_backtrack_main(t_initial);
-            if (is_child) return true;
+
+            if (t_initial) {
+                is_child = dpor_backtrack_main(t_initial);
+                if (is_child) return true;
+            }
         }
         csystem_pop_program_stacks_for_backtracking(&csystem);
         printf("**** Backtracking completed at depth %d ****\n", depth);

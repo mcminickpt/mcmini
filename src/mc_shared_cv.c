@@ -22,32 +22,32 @@ void
 mc_shared_cv_wait_for_thread(mc_shared_cv_ref ref)
 {
     // The scheduler calls this
-    printf("Wait for thread on %p\n", &ref->dpor_scheduler_sem);
+//    printf("Wait for thread on %p\n", &ref->dpor_scheduler_sem);
     sem_wait(&ref->dpor_scheduler_sem);
-    puts("Wait for thread over");
+//    puts("Wait for thread over");
 }
 
 void
 mc_shared_cv_wait_for_scheduler(mc_shared_cv_ref ref)
 {
     // Threads call this; hence they wait on their own semaphore
-    printf("Wait for scheduler on %p\n", &ref->pthread_sem);
+//    printf("Wait for scheduler on %p\n", &ref->pthread_sem);
     sem_wait(&ref->pthread_sem);
-    puts("Wait for scheduler over");
+//    puts("Wait for scheduler over");
 }
 
 void
 mc_shared_cv_wake_thread(mc_shared_cv_ref ref)
 {
-    printf("Wake thread on %p\n", &ref->pthread_sem);
+//    printf("Wake thread on %p\n", &ref->pthread_sem);
     sem_post(&ref->pthread_sem);
-    puts("Wake thread over");
+//    puts("Wake thread over");
 }
 
 void
 mc_shared_cv_wake_scheduler(mc_shared_cv_ref ref)
 {
-    printf("Wake scheduler on %p\n", &ref->dpor_scheduler_sem);
+//    printf("Wake scheduler on %p\n", &ref->dpor_scheduler_sem);
     sem_post(&ref->dpor_scheduler_sem);
-    puts("Wake scheduler over");
+//    puts("Wake scheduler over");
 }

@@ -54,6 +54,7 @@ state_stack_item_ref csystem_pop_program_stacks_for_backtracking(concurrent_syst
  */
 int csystem_transition_stack_count(concurrent_system_ref);
 bool csystem_transition_stack_is_empty(concurrent_system_ref);
+bool csystem_is_in_deadlock(concurrent_system_ref ref);
 transition_ref csystem_grow_transition_stack_by_running_thread(concurrent_system_ref, thread_ref);
 transition_ref csystem_shrink_transition_stack(concurrent_system_ref);
 transition_ref csystem_transition_stack_top(concurrent_system_ref);
