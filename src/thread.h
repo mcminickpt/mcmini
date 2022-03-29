@@ -23,7 +23,13 @@ typedef array_ref thread_array_ref;
 hash_t thread_hash(thread_ref);
 
 STRUCT_DECL(thread_operation)
-TYPES_DECL(thread_operation, THREAD_START, THREAD_CREATE, THREAD_JOIN, THREAD_FINISH, THREAD_TERMINATE_PROCESS);
+TYPES_DECL(thread_operation,
+           THREAD_START,
+           THREAD_CREATE,
+           THREAD_JOIN,
+           THREAD_FINISH,
+           THREAD_TERMINATE_PROCESS
+           );
 struct thread_operation {
     thread_operation_type type;
     csystem_local thread_ref thread;
@@ -34,6 +40,7 @@ typedef thread_operation dynamic_thread_operation;
 typedef thread_operation_ref dynamic_thread_operation_ref;
 
 PRETTY_PRINT_DECL(thread_operation);
+PRETTY_PRINT_TYPE_DECL(thread_operation);
 /*
  * Operations
  */

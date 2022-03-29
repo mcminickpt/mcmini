@@ -39,7 +39,7 @@ dpor_init(void)
     for (int i = 0; i < MAX_TOTAL_THREADS_PER_SCHEDULE; i++)
         mc_shared_cv_init(&(*queue)[i]);
 
-    bool is_child = dpor_scheduler_main(MAX_VISIBLE_OPERATION_DEPTH);
+    bool is_child = dpor_scheduler_main();
     if (is_child) return;
     puts("***** Model checking completed! *****");
     exit(0);
@@ -162,13 +162,13 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
     // TODO: Test for deadlock
     if (csystem_is_in_deadlock(&csystem)) {
         puts("*** DEADLOCK DETECTED ***");
+        csystem_print_transition_stack(&csystem);
     }
-
     dpor_child_kill();
 }
 
 static bool
-dpor_backtrack_main(dynamic_transition_ref initial_transition)
+dpor_readvance_main(dynamic_transition_ref initial_transition)
 {
     bool is_child = dpor_spawn_child_following_transition_stack();
     if (is_child) return true;
@@ -204,12 +204,12 @@ dpor_scheduler_main(void)
 
             if (t_initial) {
                 printf("**** Backtracking BEGUN at depth %d ****\n", depth);
-                is_child = dpor_backtrack_main(t_initial);
+                is_child = dpor_readvance_main(t_initial);
                 if (is_child) return true;
             }
         } else {
-//            hash_set_destroy(s_top->done_set);
-//            hash_set_destroy(s_top->backtrack_set);
+            hash_set_destroy(s_top->done_set);
+            hash_set_destroy(s_top->backtrack_set);
             puts("**** ... Nothing to backtrack on... ****");
         }
         csystem_pop_program_stacks_for_backtracking(&csystem);

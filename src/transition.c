@@ -11,10 +11,9 @@ void
 transition_pretty_off(transition_refc t, unsigned int off)
 {
     if (!t) return;
-    space(off); printf("****** TRANSITION (addr %p) ******", t);
-    space(off); puts("  *************");
+    space(off); printf("****** TRANSITION (addr %p) ******\n", t);
     thread_pretty_off(t->thread, off + 2);
-    space(off); puts("  *************");
+    visible_operation_pretty_off(&t->operation, off + 2);
 }
 
 bool

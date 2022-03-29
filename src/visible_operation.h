@@ -19,6 +19,8 @@ struct visible_operation {
     };
 };
 
+PRETTY_PRINT_DECL(visible_operation);
+
 struct dynamic_visible_operation {
     visible_operation_type type;
     union {

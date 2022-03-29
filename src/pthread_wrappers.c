@@ -102,16 +102,17 @@ dpor_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
 {
     mc_assert(attr == NULL); // TODO: For now, we don't support attributes. This should be added in the future
 
-    // We don't know which thread this affects. Hence, TID_INVALID is passed to signify that
-    // we are creating a new thread
-    dpor_post_thread_operation_to_parent(TID_INVALID, THREAD_CREATE);
-    thread_await_dpor_scheduler();
-
     dpor_thread_routine_arg_ref dpor_thread_arg = malloc(sizeof(struct dpor_thread_routine_arg));
     dpor_thread_arg->arg = arg;
     dpor_thread_arg->routine = routine;
+    int return_value = pthread_create(thread, attr, dpor_thread_routine_wrapper, dpor_thread_arg);
 
-    return pthread_create(thread, attr, dpor_thread_routine_wrapper, dpor_thread_arg);
+    // pthread_create may fail to actually spawn a thread
+    tid_t tid_return = return_value == 0 ? TID_INVALID : TID_PTHREAD_CREATE_FAILED;
+    dpor_post_thread_operation_to_parent_with_target(tid_return, THREAD_CREATE, *thread);
+    thread_await_dpor_scheduler();
+
+    return return_value;
 }
 
 int

@@ -2,6 +2,7 @@
 #include "concurrent_system.h"
 #include "common.h"
 #include "hashtable.h"
+#include "stats.h"
 #include "fail.h"
 
 thread_local tid_t tid_self = TID_INVALID;
@@ -18,7 +19,6 @@ struct concurrent_system
     int t_stack_top;                                                /* Points to the top of the transition stack */
     transition t_stack[MAX_VISIBLE_OPERATION_DEPTH];                /* *** TRANSITION STACK *** */
     dynamic_transition t_next[MAX_TOTAL_THREADS_PER_SCHEDULE];      /* Storage for each next transition (next(s, p)) = for each thread */
-    hash_table_ref transition_map;                                  /* Maps `struct thread*` to `transition_ref` in `t_next` */
 
     int s_stack_top;                                                /* Points to the top of the state stack */
     state_stack_item s_stack[MAX_VISIBLE_OPERATION_DEPTH];          /* *** STATE STACK *** */
@@ -43,8 +43,6 @@ csystem_init(concurrent_system_ref ref)
     ref->detached_s_top = -1;
     ref->mutex_map = hash_table_create((hash_function) pthread_mutex_hash,
                                        (hash_equality_function) dpor_pthread_mutexes_equal);
-    ref->transition_map = hash_table_create((hash_function)thread_hash, (hash_equality_function) threads_equal);
-
     // Push the initial first state (the starting state) onto the state stack explicitly
     csystem_grow_state_stack(ref);
 }
@@ -53,36 +51,47 @@ void
 csystem_reset(concurrent_system_ref ref)
 {
     hash_table_destroy(ref->mutex_map);
-    hash_table_destroy(ref->transition_map);
     csystem_init(ref);
 }
 
-tid_t
-csystem_register_thread(concurrent_system_ref ref)
+static tid_t
+csystem_register_thread_with_pthread(concurrent_system_ref ref, pthread_t identity)
 {
     tid_t self = ref->tid_next++;
     tid_self = self;
     thread_ref tself = &ref->threads[self];
     tself->arg = NULL;
     tself->start_routine = NULL;
-    tself->owner = pthread_self();
+    tself->owner = identity;
     tself->tid = self;
     tself->state = THREAD_ALIVE;
     return self;
 }
 
+inline tid_t
+csystem_register_thread(concurrent_system_ref ref)
+{
+    return csystem_register_thread_with_pthread(ref, pthread_self());
+}
+
 tid_t
-csystem_register_thread_soft(concurrent_system_ref ref)
+csystem_register_thread_soft_with_pthread(concurrent_system_ref ref, pthread_t identity)
 {
     tid_t self = ref->tid_next;
     tid_self = self;
     thread_ref tself = &ref->threads[self];
     tself->arg = NULL;
     tself->start_routine = NULL;
-    tself->owner = pthread_self();
+    tself->owner = identity;
     tself->tid = self;
     tself->state = THREAD_ALIVE;
     return self;
+}
+
+inline tid_t
+csystem_register_thread_soft(concurrent_system_ref ref)
+{
+    return csystem_register_thread_soft_with_pthread(ref, pthread_self());
 }
 
 tid_t
@@ -139,7 +148,9 @@ csystem_get_thread_with_tid(concurrent_system_ref ref, tid_t tid)
 thread_ref
 csystem_get_thread_with_pthread(concurrent_system_ref ref, pthread_t pthread_identity)
 {
-    const int t_stack_top = csystem_transition_stack_count(ref);
+    // The `threads` upon creation hold all of the pthread_t
+    // opaque  values and thus implicitly map `pthread_t` to
+    // `thread_ref`
     for (int i = 0; i < ref->tid_next; i++) {
         thread_ref t = &ref->threads[i];
         if (pthread_equal(t->owner, pthread_identity)) {
@@ -227,21 +238,31 @@ csystem_update_system_with_thread_operation(concurrent_system_ref ref, dynamic_t
         case THREAD_CREATE:;
             // In the special case of thread creation, we must
             // register the thread on the side of the scheduler
-            tid_t new_thread_tid = csystem_register_thread_soft(ref);
+
+            // TODO: If thread creation fails, we need to
+            // be able to handle this gracefully
+            tid_t new_thread_tid = csystem_register_thread_soft_with_pthread(ref, shmtop->target);
             thread_ref new_thread = csystem_get_thread_with_tid(ref, new_thread_tid);
             next_transition_slot->operation.thread_operation.thread = new_thread;
 
-            // Also insert a new operation for the new thread
+            // Also insert a new operation for the *nthread
             dynamic_transition_ref t_slot_new_thread = csystem_get_transition_slot_for_thread(ref, new_thread);
             dpor_init_thread_start_transition(t_slot_new_thread, new_thread);
             break;
+
         case THREAD_JOIN:;
             // Complete implementation
-            mc_unimplemented();
-//            // TODO:
-//            thread_ref referenced_thread = csystem_get_thread_with_pthread(ref, shmtop->target);
-//
-//            next_transition_slot->operation.thread_operation.thread = referenced_thread;
+
+            thread_ref shadow_thread = csystem_get_thread_with_pthread(ref, shmtop->target);
+            const bool thread_didnt_exist = shadow_thread == NULL;
+            if (thread_didnt_exist) {
+                tid_t tid = csystem_register_thread_soft_with_pthread(ref, shmtop->target);
+                shadow_thread = csystem_get_thread_with_tid(ref, tid);
+                next_transition_slot->operation.thread_operation.thread = shadow_thread;
+            } else {
+                next_transition_slot->operation.thread_operation.thread = shadow_thread;
+            }
+
             break;
         case THREAD_START:
             break;
@@ -284,14 +305,13 @@ csystem_simulate_running_thread(concurrent_system_ref ref, shm_transition_ref sh
 }
 
 static void
-csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop, bool execute_init_op)
+csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operation_ref mutop)
 {
     pthread_mutex_t *mutex = mutop->mutex.mutex;
     mutex_ref shadow = NULL;
 
     switch (mutop->type) {
         case MUTEX_INIT:;
-            if (!execute_init_op) return;
             mutid_t mutid = csystem_register_mutex(ref, mutex);
             shadow = csystem_get_mutex_with_mutid(ref, mutid);
             shadow->state = MUTEX_UNLOCKED;
@@ -311,12 +331,11 @@ csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operati
 }
 
 static void
-csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top, bool execute_init_op)
+csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
 {
     // TODO: Report undefined behavior here
     switch (top->type) {
         case THREAD_CREATE:;
-            if (!execute_init_op) return;
             // "Create" a new thread
             ref->tid_next++;
             break;
@@ -332,16 +351,16 @@ csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_opera
 }
 
 static void
-csystem_virtually_apply_transition(concurrent_system_ref ref, transition_ref transition, bool execute_resource_init_ops)
+csystem_virtually_apply_transition(concurrent_system_ref ref, transition_ref transition)
 {
     // TODO: Report undefined behavior here
 
     switch (transition->operation.type) {
         case MUTEX:;
-            csystem_virtually_apply_mutex_operation(ref, &transition->operation.mutex_operation, execute_resource_init_ops);
+            csystem_virtually_apply_mutex_operation(ref, &transition->operation.mutex_operation);
             break;
         case THREAD_LIFECYCLE:;
-            csystem_virtually_apply_thread_operation(ref, &transition->operation.thread_operation, execute_resource_init_ops);
+            csystem_virtually_apply_thread_operation(ref, &transition->operation.thread_operation);
             break;
         default:
             mc_unimplemented();
@@ -391,8 +410,8 @@ csystem_virtually_revert_thread_operation(concurrent_system_ref ref, thread_oper
             break;
         case THREAD_FINISH:
         case THREAD_JOIN:
-            // TODO: Ensure that the only way to reach
-            // THREAD_FINISH AND THREAD_JOIN is indeed THREAD_ALIVE
+            // The only way to reach
+            // THREAD_FINISH AND THREAD_JOIN is THREAD_ALIVE
             top->thread->state = THREAD_ALIVE;
             break;
         case THREAD_TERMINATE_PROCESS:;
@@ -474,7 +493,7 @@ csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, threa
 
     dynamic_transition_ref thread_runs = csystem_get_transition_slot_for_thread(ref, thread);
     transition snapshot = dynamic_transition_get_snapshot(thread_runs);
-    csystem_virtually_apply_transition(ref, &snapshot, true);
+    csystem_virtually_apply_transition(ref, &snapshot);
 
     // Copy the contents of the transition into the top of the transition stack
     *t_top = snapshot;
@@ -485,7 +504,7 @@ csystem_grow_transition_stack_by_running_thread(concurrent_system_ref ref, threa
 static inline void
 csystem_replay_transition_to_restore_state_after_backtracking(concurrent_system_ref ref, transition_ref transition)
 {
-    csystem_virtually_apply_transition(ref, transition, true);
+    csystem_virtually_apply_transition(ref, transition);
 }
 
 inline transition_ref
@@ -1000,7 +1019,8 @@ void
 csystem_print_transition_stack(concurrent_system_ref ref)
 {
     puts("*** TRANSITION STACK CONTENT DUMP ****");
-    for (int i = 0; i < ref->t_stack_top; i++) {
+
+    for (int i = 0; i <= ref->t_stack_top; i++) {
         transition_ref t_i = &ref->t_stack[i];
         transition_pretty(t_i);
     }

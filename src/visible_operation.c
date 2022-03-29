@@ -1,6 +1,25 @@
 #include "visible_operation.h"
+#include "fail.h"
+#include <stdio.h>
 
 MEMORY_ALLOC_DEF_DECL(visible_operation)
+PRETTY_PRINT_DEF_DECL(visible_operation)
+
+void
+visible_operation_pretty_off(visible_operation_refc vop, unsigned int off)
+{
+    switch (vop->type) {
+        case MUTEX:
+            mutex_operation_pretty_off(&vop->mutex_operation, off);
+            break;
+        case THREAD_LIFECYCLE:
+            thread_operation_pretty_off(&vop->thread_operation, off);
+            break;
+        default:
+            mc_unimplemented();
+    }
+}
+
 
 bool
 visible_operation_is_thread_operation(visible_operation_refc ref)

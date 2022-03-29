@@ -23,7 +23,7 @@ add_executable(DPOR
         simple-deadlock.c
         thread.c thread.h
         transition.c transition.h
-        visible_operation.c visible_operation.h concurrent_system.c concurrent_system.h hashset.c hashset.h)
+        visible_operation.c visible_operation.h concurrent_system.c concurrent_system.h hashset.c hashset.h stats.h)
 message("Linking object files...")
 
 # -lrt -> shared memory

@@ -12,7 +12,10 @@ STATES_DECL(mutex, MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN, MUTEX_DESTROYED)
 
 STRUCT_DECL(mutex_operation);
 TYPES_DECL(mutex_operation, MUTEX_INIT, MUTEX_LOCK, MUTEX_UNLOCK, MUTEX_DESTROY);
-TRANSITION_DESCRIPTION_DECL(mutex_operation);
+TRANSITION_DESCRIPTION_DECL(mutex_operation)
+
+PRETTY_PRINT_DECL(mutex_operation)
+PRETTY_PRINT_TYPE_DECL(mutex_operation)
 
 struct mutex {
     mutid_t mutid;

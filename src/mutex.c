@@ -5,6 +5,8 @@
 mutex_ref mutex_alloc(void);
 MEMORY_ALLOC_DEF_DECL(mutex);
 MEMORY_ALLOC_DEF_DECL(mutex_operation);
+PRETTY_PRINT_DEF_DECL(mutex_operation);
+PRETTY_PRINT_TYPE_DEF_DECL(mutex_operation);
 
 hash_t
 pthread_mutex_hash(pthread_mutex_t *m)
@@ -86,11 +88,10 @@ PRETTY_PRINT_STATE_DEF_DECL(mutex);
 void
 mutex_pretty_off(mutex_refc mut, unsigned int off)
 {
-    space(off); puts("**** MUTEX ****");
-    space(off); printf(" pthread_mutex: %p \n", mut->mutex);
-    space(off); printf(" owner: %p \n", mut->owner);
+    space(off); puts("");
     mutex_state_pretty_off(mut->state, off);
-    space(off); puts("************");
+    space(off); printf("\"MUTEX\" pthread_mutex: %p owner: %p id: %lu", mut->mutex, mut->owner, mut->mutid);
+
 }
 
 void
@@ -103,5 +104,27 @@ mutex_state_pretty_off(mutex_state state, unsigned int off)
         case MUTEX_LOCKED:      puts("MUTEX_LOCKED"); break;
         case MUTEX_DESTROYED:   puts("MUTEX_DESTROYED"); break;
         default:                mc_unimplemented();
+    }
+}
+void
+mutex_operation_pretty_off(mutex_operation_refc mop, unsigned int off)
+{
+    space(off); puts("MUTEX OPERATION");
+    mutex_operation_type_pretty_off(mop->type, off + 2);
+    mutex_pretty_off(&mop->mutex, off + 2);
+    puts("");
+}
+
+void
+mutex_operation_type_pretty_off(mutex_operation_type type, unsigned int off)
+{
+    space(off);
+    switch (type) {
+        case MUTEX_LOCK:        printf("MUTEX_LOCK"); break;
+        case MUTEX_UNLOCK:      printf("MUTEX_UNLOCK"); break;
+        case MUTEX_INIT:        printf("MUTEX_INIT"); break;
+        case MUTEX_DESTROY:     printf("MUTEX_DESTROY"); break;
+        default:
+            mc_unimplemented();
     }
 }

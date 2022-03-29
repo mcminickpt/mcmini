@@ -12,6 +12,7 @@ typedef uint64_t tid_t;
 typedef uint64_t mutid_t;
 #define TID_MAIN_THREAD (0ul)
 #define TID_INVALID (-1ul) // ULONG_MAX
+#define TID_PTHREAD_CREATE_FAILED (-2ul) // ULONG_MAX - 1
 #define MUTID_INVALID (-1ul) // ULONG_MAX
 
 #define FORK_IS_CHILD_PID(pid) ((pid) == 0)
