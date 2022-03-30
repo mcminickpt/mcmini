@@ -1018,10 +1018,23 @@ dpor_init_thread_finish_transition(dynamic_transition_ref transition, thread_ref
 void
 csystem_print_transition_stack(concurrent_system_ref ref)
 {
-    puts("*** TRANSITION STACK CONTENT DUMP ****");
+    puts("**** TRANSITION STACK CONTENT DUMP ****");
 
     for (int i = 0; i <= ref->t_stack_top; i++) {
         transition_ref t_i = &ref->t_stack[i];
+        transition_pretty(t_i);
+    }
+    puts("***************");
+}
+
+void
+csystem_print_next_transitions_stack(concurrent_system_ref ref)
+{
+    puts("**** NEXT TRANSITION STACK CONTENT DUMP ****");
+
+    const int threads = csystem_get_thread_count(ref);
+    for (int i = 0; i < threads; i++) {
+        transition_ref t_i = &ref->t_next[i];
         transition_pretty(t_i);
     }
     puts("***************");

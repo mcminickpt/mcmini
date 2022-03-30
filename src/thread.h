@@ -10,7 +10,9 @@
 typedef uint64_t tid_t;
 
 STRUCT_DECL(thread);
-STATES_DECL(thread,THREAD_ALIVE, THREAD_SLEEPING, THREAD_DEAD);
+STATES_DECL(thread, THREAD_ALIVE, THREAD_SLEEPING, THREAD_DEAD);
+
+PRETTY_PRINT_STATE_DECL(thread);
 struct thread {
     tid_t tid;
     pthread_t owner;

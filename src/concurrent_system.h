@@ -72,6 +72,7 @@ void csystem_copy_per_thread_transitions(concurrent_system_ref, transition_ref);
  * Pretty printing
  */
 void csystem_print_transition_stack(concurrent_system_ref);
+void csystem_print_next_transitions_stack(concurrent_system_ref);
 
 /*
  * Transitions

@@ -5,13 +5,26 @@
 
 MEMORY_ALLOC_DEF_DECL(thread);
 PRETTY_PRINT_DEF_DECL(thread);
+PRETTY_PRINT_STATE_DEF_DECL(thread);
 PRETTY_PRINT_TYPE_DEF_DECL(thread_operation);
 MEMORY_ALLOC_DEF_DECL(thread_operation);
 
 void
 thread_pretty_off(thread_refc t, unsigned int off)
 {
-    space(off); printf("\"THREAD\" tid: %lu, alive: %d\n", t->tid, t->state == THREAD_ALIVE);
+    space(off); printf("\"THREAD\" tid: %lu, state:", t->tid);
+    thread_state_pretty(t->state); puts("");
+}
+
+void
+thread_state_pretty_off(thread_state state, unsigned int off)
+{
+    space(off);
+    switch (state) {
+        case THREAD_ALIVE:      printf("THREAD_ALIVE"); break;
+        case THREAD_SLEEPING:   printf("THREAD_SLEEPING"); break;
+        case THREAD_DEAD:       printf("THREAD_DEAD"); break;
+    }
 }
 
 bool
@@ -44,7 +57,7 @@ thread_operation_enabled(thread_operation_refc top, thread_refc thread)
 
     switch (top->type) {
         case THREAD_JOIN:
-            return top->thread->state != THREAD_ALIVE;
+            return top->thread->state == THREAD_DEAD;
         case THREAD_TERMINATE_PROCESS:
             return false;
         default:

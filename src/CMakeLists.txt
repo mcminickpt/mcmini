@@ -30,5 +30,6 @@ message("Linking object files...")
 # -pthread -> libpthread.so
 # -lm -> math library
 #target_compile_options(DPOR PUBLIC -fsanitize=undefined) -lubsan
-target_link_libraries(DPOR PUBLIC -lrt -pthread -lm)
+set(DPOR_LINK_TARGET_FLAGS -lrt -pthread -lm)
+target_link_libraries(DPOR PUBLIC ${DPOR_LINK_TARGET_FLAGS})
 

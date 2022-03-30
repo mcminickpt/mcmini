@@ -33,10 +33,10 @@ main(int argc, const char **argv) {
     dpor_pthread_mutex_init(&mutex2, NULL);
     dpor_pthread_mutex_init(&mutex3, NULL);
     dpor_pthread_create(&helper, NULL, &thread_helper_main, NULL);
-//    dpor_pthread_create(&helper2, NULL, &thread_helper2_main, NULL);
+    dpor_pthread_create(&helper2, NULL, &thread_helper2_main, NULL);
 
 
-//    dpor_pthread_join(helper, NULL);
+    dpor_pthread_join(helper, NULL);
 //    dpor_pthread_join(helper2, NULL);
 //    dpor_pthread_join(helper, NULL);
     dpor_pthread_mutex_lock(&mutex1);
