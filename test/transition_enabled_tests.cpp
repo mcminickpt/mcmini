@@ -12,7 +12,7 @@ protected:
     make_thread_transition(thread_ref source_thread, thread_operation_type type, thread_ref target_thread)
     {
         transition t;
-        t.thread = source_thread;
+        t.thread = *source_thread;
         t.operation.type = THREAD_LIFECYCLE;
         t.operation.thread_operation.type = type;
         t.operation.thread_operation.thread = target_thread;
@@ -23,7 +23,7 @@ protected:
     make_mutex_transition(thread_ref source_thread, mutex_operation_type type, mutex target_mutex)
     {
         transition t;
-        t.thread = source_thread;
+        t.thread = *source_thread;
         t.operation.type = MUTEX;
         t.operation.mutex_operation.type = type;
         t.operation.mutex_operation.mutex = target_mutex;

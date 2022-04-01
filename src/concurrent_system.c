@@ -278,6 +278,7 @@ csystem_update_next_transition_for_thread_with_next_source_program_visible_opera
     tid_t shmtid = shm_ref->thread.tid;
     thread_ref shmthread = csystem_get_thread_with_tid(ref, shmtid);
     dynamic_transition_ref tref = csystem_get_transition_slot_for_thread(ref, thread);
+    mc_assert(shmtid == tref->thread->tid);
     tref->thread = shmthread;
 
     visible_operation_type type = shm_ref->operation.type;
@@ -340,6 +341,7 @@ csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_opera
             ref->tid_next++;
             break;
         case THREAD_FINISH:;
+            puts("THREAD FINISHED");
             top->thread->state = THREAD_DEAD;
             break;
         case THREAD_JOIN:;
@@ -526,29 +528,10 @@ csystem_undo_most_recent_transition(concurrent_system_ref ref)
     // to run; otherwise, the operation that actually would
     // have run next would have been executed
     transition_ref old_t_top = csystem_shrink_transition_stack(ref);
-    thread_ref thread_executed = old_t_top->thread;
+    tid_t thread_executed = old_t_top->thread.tid;
 
-    dynamic_transition_ref t_next_dest = csystem_get_transition_slot_for_tid(ref, thread_executed->tid);
+    dynamic_transition_ref t_next_dest = csystem_get_transition_slot_for_tid(ref, thread_executed);
     *t_next_dest = transition_convert_to_dynamic_transition_in_system(ref, old_t_top);
-
-//    // Exit early for a thread_start operation (nothing can execute before it)
-//    if (old_t_top->operation.type == THREAD_LIFECYCLE) {
-//        thread_operation_ref top = &old_t_top->operation.thread_operation;
-//        if (top->type == THREAD_START) return;
-//    }
-//
-//    // Find the first transition in the transition stack that
-//    // this thread executed (aside from the `old_next_for_tid`)
-//    thread_ref thread_executed = old_t_top->thread;
-//    const int t_stack_top = ref->t_stack_top;
-//    for (int i = t_stack_top; i >= 0; i--) {
-//        transition_ref t_i = &ref->t_stack[i];
-//        if (threads_equal(t_i->thread, thread_executed)) {
-//            dynamic_transition_ref t_next_dest = csystem_get_transition_slot_for_tid(ref, thread_executed->tid);
-//            *t_next_dest = transition_convert_to_dynamic_transition_in_system(ref, t_i);
-//            return;
-//        }
-//    }
 }
 
 state_stack_item_ref
@@ -623,6 +606,7 @@ csystem_copy_per_thread_transitions(concurrent_system_ref ref, transition_ref tr
     int thread_count = csystem_get_thread_count(ref);
     for (tid_t tid = 0; tid < thread_count; tid++) {
         dynamic_transition_ref tid_transition = csystem_get_transition_slot_for_tid(ref, tid);
+        mc_assert(tid_transition->thread->tid == tid);
         tref_array[tid] = dynamic_transition_get_snapshot(tid_transition);
     }
 }
@@ -678,6 +662,7 @@ csystem_get_first_enabled_transition_in_backtrack_set(concurrent_system_ref ref,
     while (hash_set_iter_has_next(iter)) {
         hash_set_entry ent = hash_set_iter_get_next(iter);
         thread_ref backtrack_thread = ent.value;
+        mc_assert(backtrack_thread != NULL);
         dynamic_transition_ref dynamic_transition_for_thread = csystem_get_transition_slot_for_thread(ref, backtrack_thread);
         if (dynamic_transition_enabled(dynamic_transition_for_thread)) {
             hash_set_iter_destroy(iter);
@@ -774,6 +759,12 @@ csystem_end_backtrack(concurrent_system_ref ref)
     ref->detached_s_top = -1;
 }
 
+inline thread_ref
+proc(concurrent_system_ref ref, transition_refc tref)
+{
+    return csystem_get_thread_with_tid(ref, tref->thread.tid);
+}
+
 bool
 happens_before(concurrent_system_ref ref, int i, int j)
 {
@@ -832,7 +823,7 @@ happens_before(concurrent_system_ref ref, int i, int j)
 bool
 happens_before_thread(concurrent_system_ref ref, int i, thread_ref p)
 {
-    thread_ref t_i = proc(&ref->t_stack[i]);
+    thread_ref t_i = proc(ref, &ref->t_stack[i]);
     if (threads_equal(p, t_i)) return true;
 
     const int t_stack_top = csystem_get_top_of_transition_stack_based_on_context(ref);
@@ -840,7 +831,7 @@ happens_before_thread(concurrent_system_ref ref, int i, thread_ref p)
         transition_ref S_k = &ref->t_stack[k];
 
         // Check threads_equal first (much less costly than happens before)
-        if (threads_equal(p, S_k->thread) && happens_before(ref, i, k))
+        if (threads_equal(p, &S_k->thread) && happens_before(ref, i, k))
             return true;
     }
     return false;
@@ -854,7 +845,7 @@ csystem_p_q_could_race(concurrent_system_ref ref, int i, thread_ref q, thread_re
     const int t_stack_top = csystem_get_top_of_transition_stack_based_on_context(ref);
     for (int j = i + 1; j <= t_stack_top; j++) {
         transition_ref S_j = &ref->t_stack[j];
-        if (threads_equal(q, proc(S_j)) && happens_before_thread(ref, j, p))
+        if (threads_equal(q, proc(ref, S_j)) && happens_before_thread(ref, j, p))
             return true;
     }
     return false;
@@ -872,7 +863,7 @@ csystem_insert_threads_for_backtrack_point(concurrent_system_ref ref,
     int num_enabled_at_s_i = csystem_copy_enabled_transitions(ref, scratch_enabled_at_i);
     for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
         transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
-        thread_ref q = q_transition->thread;
+        thread_ref q = &q_transition->thread;
 
         bool q_is_in_E = threads_equal(q, p) || csystem_p_q_could_race(ref, i, q, p);
         if (q_is_in_E) {
@@ -893,7 +884,7 @@ csystem_insert_threads_for_backtrack_point(concurrent_system_ref ref,
     // add every enabled thread to the backtrack set
     for (int s_i_index = 0; s_i_index < num_enabled_at_s_i; s_i_index++) {
         transition_ref q_transition = &scratch_enabled_at_i[s_i_index];
-        thread_ref q = q_transition->thread;
+        thread_ref q = &q_transition->thread;
         hash_set_insert(s_i->backtrack_set, q);
     }
 }
@@ -910,7 +901,7 @@ csystem_check_should_backtrack_thread_at_i(concurrent_system_ref ref,
 {
     transition_ref next_s_p = NULL;
     if ((next_s_p = hash_table_get(thread_to_transition_map_at_last_s, p)) != NULL) {
-        mc_assert(next_s_p->thread == p);
+        mc_assert(next_s_p->thread.tid == p->tid);
 
         bool found_max_i_condition = transitions_coenabled(S_i, next_s_p) &&
                                      transitions_dependent(S_i, next_s_p) &&
@@ -948,6 +939,7 @@ csystem_cache_next_transitions_for_backtracking(concurrent_system_ref ref,
     for (tid_t tid = 0; tid < thread_count; tid++) {
         thread_ref tid_thread = csystem_get_thread_with_tid(ref, tid);
         transition_ref transition_for_tid = &static_transitions_at_last_s[tid];
+        mc_assert(transition_for_tid->thread.tid == tid_thread->tid);
         hash_table_set(thread_to_transition_map_at_last_s, tid_thread, transition_for_tid);
     }
 }
@@ -1032,11 +1024,11 @@ csystem_print_next_transitions_stack(concurrent_system_ref ref)
 {
     puts("**** NEXT TRANSITION STACK CONTENT DUMP ****");
 
-    const int threads = csystem_get_thread_count(ref);
-    for (int i = 0; i < threads; i++) {
-        transition_ref t_i = &ref->t_next[i];
-        transition_pretty(t_i);
-    }
+//    const int threads = csystem_get_thread_count(ref);
+//    for (int i = 0; i < threads; i++) {
+//        transition_ref t_i = &ref->t_next[i];
+//        transition_pretty(t_i);
+//    }
     puts("***************");
 }
 
@@ -1059,7 +1051,7 @@ dynamic_transition
 transition_convert_to_dynamic_transition_in_system(concurrent_system_ref ref, transition_ref tref)
 {
     dynamic_transition d;
-    d.thread = tref->thread;
+    d.thread = csystem_get_thread_with_tid(ref, tref->thread.tid);
     d.operation.type = tref->operation.type;
     switch (tref->operation.type) {
         case MUTEX:

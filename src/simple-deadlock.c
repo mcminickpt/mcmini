@@ -15,8 +15,8 @@ thread_helper_main(void *unused) {
 
 void*
 thread_helper2_main(void *unused) {
-    dpor_pthread_mutex_lock(&mutex3);
-    dpor_pthread_mutex_lock(&mutex1);
+//    dpor_pthread_mutex_lock(&mutex3);
+//    dpor_pthread_mutex_lock(&mutex1);
     return NULL;
 }
 
@@ -31,10 +31,11 @@ main(int argc, const char **argv) {
 
     dpor_pthread_mutex_init(&mutex1, NULL);
     dpor_pthread_mutex_init(&mutex2, NULL);
-    dpor_pthread_mutex_init(&mutex3, NULL);
+//    dpor_pthread_mutex_init(&mutex3, NULL);
     dpor_pthread_create(&helper, NULL, &thread_helper_main, NULL);
+    printf("HELPER IN CHILD %lu\n", helper);
     dpor_pthread_create(&helper2, NULL, &thread_helper2_main, NULL);
-
+    printf("HELPER2 IN CHILD %lu\n", helper2);
 
     dpor_pthread_join(helper, NULL);
 //    dpor_pthread_join(helper2, NULL);

@@ -12,7 +12,7 @@ transition_pretty_off(transition_refc t, unsigned int off)
 {
     if (!t) return;
     space(off); printf("****** TRANSITION (addr %p) ******\n", t);
-    thread_pretty_off(t->thread, off + 2);
+    thread_pretty_off(&t->thread, off + 2);
     visible_operation_pretty_off(&t->operation, off + 2);
 }
 
@@ -59,9 +59,9 @@ transition_enabled(transition_ref transition)
 
     switch (transition->operation.type) {
         case MUTEX:
-            return mutex_operation_enabled(&transition->operation.mutex_operation, transition->thread);
+            return mutex_operation_enabled(&transition->operation.mutex_operation, &transition->thread);
         case THREAD_LIFECYCLE:
-            return thread_operation_enabled(&transition->operation.thread_operation, transition->thread);
+            return thread_operation_enabled(&transition->operation.thread_operation, &transition->thread);
         default:
             mc_unimplemented();
             return false;
@@ -73,13 +73,13 @@ transitions_coenabled(transition_ref t1, transition_ref t2)
 {
     if (!t1 || !t2) return false;
 
-    if (threads_equal(t1->thread, t2->thread))
+    if (threads_equal(&t1->thread, &t2->thread))
         return false;
 
-    if (transition_creates(t1, t2->thread) || transition_creates(t2, t1->thread))
+    if (transition_creates(t1, &t2->thread) || transition_creates(t2, &t1->thread))
         return false;
 
-    if (transition_waits_on_thread(t1, t2->thread) || transition_waits_on_thread(t2, t1->thread))
+    if (transition_waits_on_thread(t1, &t2->thread) || transition_waits_on_thread(t2, &t1->thread))
         return false;
 
     if (transition_is_thread_exit(t1) || transition_is_thread_exit(t2))
@@ -103,11 +103,11 @@ transitions_dependent(transition_ref t1, transition_ref t2)
     if (!t1 || !t2) return false;
 
     // Execution by the same thread
-    if (threads_equal(t1->thread, t2->thread))
+    if (threads_equal(&t1->thread, &t2->thread))
         return true;
 
     // t1 creates the thread executing t2 or vice-versa
-    if (transition_creates(t1, t2->thread) || transition_creates(t2, t1->thread))
+    if (transition_creates(t1, &t2->thread) || transition_creates(t2, &t1->thread))
         return true;
 
     // t1 or t2 is a join operation
@@ -146,7 +146,7 @@ transition
 dynamic_transition_get_snapshot(dynamic_transition_ref dref)
 {
     transition t;
-    t.thread = dref->thread;
+    t.thread = *dref->thread;
     t.operation.type = dref->operation.type;
     switch (dref->operation.type) {
         case MUTEX:

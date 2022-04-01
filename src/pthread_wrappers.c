@@ -61,9 +61,10 @@ dpor_thread_routine_wrapper(void * arg)
 
     free(arg); // See where the thread_wrapper is created. The memory is malloc'ed and should be freed
 
-    puts("THREAD FINISHED ROUTINE");
-    thread_await_dpor_scheduler_for_thread_finish_transition();
-    puts("THREAD EXITED HERE");
+    printf("THREAD FINISHED ROUTINE %lu\n", pthread_self());
+    dpor_post_thread_operation_to_parent(tid_self, THREAD_FINISH);
+    thread_awake_dpor_scheduler_for_thread_finish_transition();
+    printf("THREAD EXITED HERE %lu\n", pthread_self());
     return return_value;
 }
 
@@ -122,12 +123,15 @@ dpor_pthread_join(pthread_t pthread, void **result)
 {
     dpor_post_thread_operation_to_parent_with_target(TID_INVALID, THREAD_JOIN, pthread);
     thread_await_dpor_scheduler();
+    printf("JOINGIN %lu\n", pthread);
     return pthread_join(pthread, result);
 }
+
 
 void
 dpor_main_thread_enter_process_exit_loop(void)
 {
     dpor_post_thread_operation_to_parent(tid_self, THREAD_TERMINATE_PROCESS);
+    puts("TERMINATE PROCESS");
     thread_await_dpor_scheduler();
 }

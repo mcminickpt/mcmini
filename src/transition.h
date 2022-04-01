@@ -9,7 +9,7 @@
 STRUCT_DECL(transition)
 STRUCT_DECL(dynamic_transition)
 struct transition {
-    csystem_local thread_ref thread;
+    csystem_local thread thread;
     visible_operation operation;
 };
 struct dynamic_transition {
@@ -20,7 +20,6 @@ typedef array_ref transition_array_ref;
 typedef transition_array_ref transition_stack_ref;
 PRETTY_PRINT_DECL(transition);
 
-thread_ref proc(transition_refc ref);
 transition dynamic_transition_get_snapshot(dynamic_transition_ref);
 
 /**

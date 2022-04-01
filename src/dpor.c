@@ -21,6 +21,12 @@ mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE] = NULL;
 
 const size_t allocation_size = sizeof(*shm_child_result) + sizeof(*queue);
 
+static void
+dpor_exit(void)
+{
+    puts("EXITING");
+}
+
 // __attribute__((constructor))
 void
 dpor_init(void)
@@ -29,7 +35,7 @@ dpor_init(void)
     csystem_init(&csystem);
 
     // XPC between parent (scheduler) and child (the program)
-    atexit(&dpor_child_kill);
+    atexit(&dpor_exit);
 
     // We need to create the semaphores that are shared
     // across processes BEFORE the threads are created; otherwise
@@ -101,6 +107,13 @@ dpor_reset_cv_locks(void)
     }
 }
 
+void
+sig_stop_handler(int sig)
+{
+    printf("******* CHILD EXITING with pid %lu *******************\n", (uint64_t)getpid());
+    _Exit(0);
+}
+
 static bool
 dpor_begin_target_program_at_main(void)
 {
@@ -133,6 +146,8 @@ dpor_spawn_child(void)
     cpid = childpid;
 
     if (FORK_IS_CHILD_PID(childpid)) {
+        signal(SIGUSR1, &sig_stop_handler);
+        printf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
         return true; /* true signifies the child */
     }
     return false;
@@ -142,17 +157,20 @@ static void
 dpor_child_kill(void)
 {
     if (cpid == -1) return; // No child
-    kill(cpid, SIGSTOP);
+    kill(cpid, SIGUSR1);
+    waitpid(cpid, NULL, 0);
     cpid = -1;
 }
 
 static void
 dpor_exhaust_threads(dynamic_transition_ref initial_transition)
 {
-    int debug_depth = csystem_state_stack_count(&csystem);
+    puts("**** Exhausting threads... ****");
+    int debug_depth = csystem_transition_stack_count(&csystem);
     dynamic_transition_ref t_next = initial_transition;
     do {
         debug_depth++;
+        printf("**** At depth %d ****\n", debug_depth);
         tid_t tid = t_next->thread->tid;
         dpor_run_thread_to_next_visible_operation(tid);
         csystem_simulate_running_thread(&csystem, shm_child_result, t_next->thread);
@@ -170,6 +188,7 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
 static bool
 dpor_readvance_main(dynamic_transition_ref initial_transition)
 {
+    dpor_reset_cv_locks();
     bool is_child = dpor_spawn_child_following_transition_stack();
     if (is_child) return true;
     dpor_exhaust_threads(initial_transition);
@@ -233,8 +252,9 @@ dpor_spawn_child_following_transition_stack(void)
             // that threads are created in the same order
             // when we create them. This will always be consistent,
             // but we might need to look out for when a thread dies
+            printf("Respawn step %d\n", i + 1);
             transition_ref t = csystem_transition_stack_get_element(&csystem, i);
-            dpor_run_thread_to_next_visible_operation(t->thread->tid);
+            dpor_run_thread_to_next_visible_operation(t->thread.tid);
         }
     } else {
         // We need to reset the concurrent system
@@ -268,6 +288,7 @@ thread_await_dpor_scheduler(void)
 {
     mc_assert(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*queue)[tid_self];
+    printf("tid_self in child: %lu\n", tid_self);
     mc_shared_cv_wake_scheduler(cv);
     mc_shared_cv_wait_for_scheduler(cv);
 }
@@ -288,7 +309,7 @@ thread_await_dpor_scheduler_for_thread_start_transition(void)
 }
 
 void
-thread_await_dpor_scheduler_for_thread_finish_transition(void)
+thread_awake_dpor_scheduler_for_thread_finish_transition(void)
 {
     mc_assert(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*queue)[tid_self];
@@ -308,10 +329,12 @@ dpor_register_main_thread(void)
 }
 
 static void
-dpor_child_exit(void)
+dpor_print_shared_cvs(void)
 {
-    printf("CHILD EXITED %d\n", (int)getpid());
-    exit(0);
+    for (int i = 0; i <MAX_TOTAL_THREADS_PER_SCHEDULE; i++) {
+        printf("THREAD SLOT %d", i);
+        mc_shared_cv_pretty(&(*queue)[i]);
+    }
 }
 
 // ****** CHILD FUNCTIONS END **** //

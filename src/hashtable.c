@@ -322,8 +322,9 @@ hash_table_iter_create(hash_table_refc table)
     if (ref) {
         ref->ent = 0;
         ref->last_valid = 0;
-        ref->iterated = table;
         ref->htable_size = hash_table_count(table);
+        ref->htable_num_slots_to_search = hash_table_num_slots(table);
+        ref->iterated = table;
     }
     return ref;
 }
@@ -341,7 +342,6 @@ hash_table_iter_get_next(hash_table_iter_ref iter)
     if (!iter) return hash_table_invalid_entry;
 
     uint64_t start = iter->last_valid;
-
     for (uint64_t i = start; i < iter->htable_num_slots_to_search; i++) {
         hash_table_entry_ref ent = &iter->iterated->base[i];
         if (ent->valid) {

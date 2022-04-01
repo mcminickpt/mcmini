@@ -80,6 +80,7 @@ void csystem_print_next_transitions_stack(concurrent_system_ref);
 transition_ref csystem_run(concurrent_system_ref, thread_ref);
 void dpor_init_thread_start_transition(dynamic_transition_ref, thread_ref);
 void dpor_init_thread_finish_transition(dynamic_transition_ref, thread_ref);
+thread_ref proc(concurrent_system_ref, transition_refc ref);
 
 /**
  * Back tracking

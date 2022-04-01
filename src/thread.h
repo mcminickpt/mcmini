@@ -34,7 +34,7 @@ TYPES_DECL(thread_operation,
            );
 struct thread_operation {
     thread_operation_type type;
-    csystem_local thread_ref thread;
+    csystem_local thread thread;
 };
 
 // Dynamism for thread operations is already existant

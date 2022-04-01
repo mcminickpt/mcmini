@@ -65,7 +65,7 @@ shared_state_get_first_enabled_transition_by_thread(shared_state_refc ref, threa
     const uint32_t count = array_count(ref->transitions);
     for (uint32_t i = 0; i < count; i++) {
         transition_ref t = array_get(ref->transitions, i);
-        if (transition_enabled(t) && threads_equal(t->thread, thread)) return t;
+        if (transition_enabled(t) && threads_equal(&t->thread, thread)) return t;
     }
     return NULL;
 }
@@ -146,7 +146,7 @@ shared_state_update_next_transition_for_thread(shared_state_ref state, thread_re
     for (uint32_t i = 0; i < transitions; i++) {
         transition_ref ti = array_get(state->transitions, i);
 
-        if (threads_equal(ti->thread, thread)) {
+        if (threads_equal(&ti->thread, thread)) {
             array_set(state->transitions, i, (const void**)&transition);
             return;
         }

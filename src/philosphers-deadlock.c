@@ -6,7 +6,7 @@
 //#include "pthread_wrappers.h"
 //#include "dpor.h"
 //
-//#define NUM_THREADS 3
+//#define NUM_THREADS 2
 //
 //struct forks {
 //  int philosopher;
@@ -19,7 +19,7 @@
 //  dpor_pthread_mutex_lock(forks->left_fork);
 //  dpor_pthread_mutex_lock(forks->right_fork);
 ////  sleep(1);
-////  printf("Philosopher %d just ate.\n", forks->philosopher);
+//  printf("Philosopher %d just ate.\n", forks->philosopher);
 //  dpor_pthread_mutex_unlock(forks->left_fork);
 //  dpor_pthread_mutex_unlock(forks->right_fork);
 //  return NULL;
@@ -45,9 +45,9 @@
 //    dpor_pthread_create(&thread[i], NULL, &philosopher_doit, &forks[i]);
 //  }
 //
-////  for (i = 0; i < NUM_THREADS; i++) {
-////    dpor_pthread_join(thread[i], NULL);
-////  }
+//  for (i = 0; i < NUM_THREADS; i++) {
+//    dpor_pthread_join(thread[i], NULL);
+//  }
 //
 //  dpor_main_thread_enter_process_exit_loop();
 //  return 0;
