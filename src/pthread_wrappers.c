@@ -49,6 +49,9 @@ static void *
 dpor_thread_routine_wrapper(void * arg)
 {
     csystem_register_thread(&csystem);
+    sem_post(&dpor_pthread_create_binary_sem);
+
+    printf("THREAD CREATED %lu %lu\n", pthread_self(), tid_self);
     dpor_thread_routine_arg_ref unwrapped_arg = (dpor_thread_routine_arg_ref)arg;
 
     // Simulates being blocked at thread creation -> THREAD_START for this thread
@@ -61,10 +64,10 @@ dpor_thread_routine_wrapper(void * arg)
 
     free(arg); // See where the thread_wrapper is created. The memory is malloc'ed and should be freed
 
-    printf("THREAD FINISHED ROUTINE %lu\n", pthread_self());
+    printf("THREAD FINISHED ROUTINE %lu %lu\n", pthread_self(), tid_self);
     dpor_post_thread_operation_to_parent(tid_self, THREAD_FINISH);
     thread_awake_dpor_scheduler_for_thread_finish_transition();
-    printf("THREAD EXITED HERE %lu\n", pthread_self());
+    printf("THREAD EXITED HERE %lu %lu\n", pthread_self(), tid_self);
     return return_value;
 }
 
@@ -108,7 +111,9 @@ dpor_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
     dpor_thread_routine_arg_ref dpor_thread_arg = malloc(sizeof(struct dpor_thread_routine_arg));
     dpor_thread_arg->arg = arg;
     dpor_thread_arg->routine = routine;
+
     int return_value = pthread_create(thread, attr, dpor_thread_routine_wrapper, dpor_thread_arg);
+    sem_wait(&dpor_pthread_create_binary_sem);
 
     // pthread_create may fail to actually spawn a thread
     tid_t tid_return = return_value == 0 ? TID_INVALID : TID_PTHREAD_CREATE_FAILED;
@@ -122,8 +127,9 @@ int
 dpor_pthread_join(pthread_t pthread, void **result)
 {
     dpor_post_thread_operation_to_parent_with_target(TID_INVALID, THREAD_JOIN, pthread);
+    printf("JOINING BEFORE %lu\n", pthread);
     thread_await_dpor_scheduler();
-    printf("JOINGIN %lu\n", pthread);
+    printf("JOINING AFTER %lu\n", pthread);
     return pthread_join(pthread, result);
 }
 

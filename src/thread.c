@@ -57,7 +57,7 @@ thread_operation_enabled(thread_operation_refc top, thread_refc thread)
 
     switch (top->type) {
         case THREAD_JOIN:
-            return top->thread->state == THREAD_DEAD;
+            return top->thread.state == THREAD_DEAD;
         case THREAD_TERMINATE_PROCESS:
             return false;
         default:
@@ -89,7 +89,7 @@ thread_operation_pretty_off(thread_operation_refc top, unsigned int off)
 {
     space(off); printf(" \"THREAD OPERATION\" (address %p)\n", top);
     thread_operation_type_pretty_off(top->type, off + 4);
-    thread_pretty_off(top->thread, off + 4);
+    thread_pretty_off(&top->thread, off + 4);
 }
 
 void

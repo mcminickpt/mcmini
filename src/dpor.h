@@ -12,6 +12,9 @@
 extern mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE];
 extern shm_transition_ref shm_child_result;
 
+// FIXES double pthread-create race condition
+extern sem_t dpor_pthread_create_binary_sem;
+
 /**
  * Operations
  */

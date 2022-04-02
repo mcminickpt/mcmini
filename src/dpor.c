@@ -18,6 +18,7 @@ pid_t cpid = -1;
 void *shm_addr = NULL;
 shm_transition_ref shm_child_result = NULL;
 mc_shared_cv (*queue)[MAX_TOTAL_THREADS_PER_SCHEDULE] = NULL;
+sem_t dpor_pthread_create_binary_sem;
 
 const size_t allocation_size = sizeof(*shm_child_result) + sizeof(*queue);
 
@@ -32,6 +33,7 @@ void
 dpor_init(void)
 {
     dpor_initialize_shared_memory_region();
+    sem_init(&dpor_pthread_create_binary_sem, 0, 0);
     csystem_init(&csystem);
 
     // XPC between parent (scheduler) and child (the program)
@@ -199,8 +201,8 @@ dpor_readvance_main(dynamic_transition_ref initial_transition)
 static bool
 dpor_scheduler_main(void)
 {
-    dpor_reset_cv_locks();
-    csystem_reset(&csystem);
+//    dpor_reset_cv_locks();
+//    csystem_reset(&csystem);
     dpor_register_main_thread();
 
     bool is_child = dpor_begin_target_program_at_main();
@@ -252,8 +254,9 @@ dpor_spawn_child_following_transition_stack(void)
             // that threads are created in the same order
             // when we create them. This will always be consistent,
             // but we might need to look out for when a thread dies
-            printf("Respawn step %d\n", i + 1);
+
             transition_ref t = csystem_transition_stack_get_element(&csystem, i);
+            printf("Respawn step %d. Running thread with id %lu\n", i + 1, t->thread.tid);
             dpor_run_thread_to_next_visible_operation(t->thread.tid);
         }
     } else {

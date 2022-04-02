@@ -38,8 +38,11 @@ struct thread_operation {
 };
 
 // Dynamism for thread operations is already existant
-typedef thread_operation dynamic_thread_operation;
-typedef thread_operation_ref dynamic_thread_operation_ref;
+STRUCT_DECL(dynamic_thread_operation)
+struct dynamic_thread_operation {
+    thread_operation_type type;
+    csystem_local thread_ref thread;
+};
 
 PRETTY_PRINT_DECL(thread_operation);
 PRETTY_PRINT_TYPE_DECL(thread_operation);

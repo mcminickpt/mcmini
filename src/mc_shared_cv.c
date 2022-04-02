@@ -51,7 +51,7 @@ mc_shared_cv_wake_thread(mc_shared_cv_ref ref)
 //    printf("Wake thread on %p %lu\n", &ref->pthread_sem, pthread_self());
     sem_post(&ref->pthread_sem);
 //    puts("Wake thread over");
-//    puts("*********");
+    puts("*********");
 }
 
 void

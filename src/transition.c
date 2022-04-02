@@ -20,7 +20,7 @@ bool
 transition_creates(transition_ref tref, thread_ref thread)
 {
     if (!tref || !thread) return false;
-    return tref->operation.type == THREAD_LIFECYCLE && threads_equal(tref->operation.thread_operation.thread, thread);
+    return tref->operation.type == THREAD_LIFECYCLE && threads_equal(&tref->operation.thread_operation.thread, thread);
 }
 
 bool
@@ -30,7 +30,7 @@ transition_waits_on_thread(transition_ref tref, thread_ref thread)
     if (tref->operation.type != THREAD_LIFECYCLE) return false;
     thread_operation_ref top = visible_operation_unsafely_as_thread_operation(&tref->operation);
     if (top->type != THREAD_JOIN) return false;
-    return threads_equal(thread, top->thread);
+    return threads_equal(thread, &top->thread);
 }
 
 bool
@@ -131,7 +131,7 @@ void
 dynamic_transition_copy_thread_snapshot(dynamic_thread_operation_ref dtref, thread_operation_ref tref)
 {
     tref->type = dtref->type;
-    tref->thread = dtref->thread;
+    tref->thread = *dtref->thread;
 }
 
 void

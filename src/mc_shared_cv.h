@@ -19,5 +19,4 @@ void mc_shared_cv_wait_for_scheduler(mc_shared_cv_ref);
 void mc_shared_cv_wake_thread(mc_shared_cv_ref);
 void mc_shared_cv_wake_scheduler(mc_shared_cv_ref);
 
-
 #endif //DPOR_MC_SHARED_CV_H

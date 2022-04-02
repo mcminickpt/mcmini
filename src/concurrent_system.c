@@ -332,20 +332,21 @@ csystem_virtually_apply_mutex_operation(concurrent_system_ref ref, mutex_operati
 }
 
 static void
-csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
+csystem_virtually_apply_thread_operation(concurrent_system_ref ref, thread_ref thread_running_transition, thread_operation_ref top)
 {
     // TODO: Report undefined behavior here
+    thread_ref thread_operated_on_shadow = csystem_get_thread_with_tid(ref, top->thread.tid);
+    thread_ref operating_thread_shadow = csystem_get_thread_with_tid(ref, thread_running_transition->tid);
     switch (top->type) {
         case THREAD_CREATE:;
             // "Create" a new thread
             ref->tid_next++;
             break;
         case THREAD_FINISH:;
-            puts("THREAD FINISHED");
-            top->thread->state = THREAD_DEAD;
+            thread_operated_on_shadow->state = THREAD_DEAD;
             break;
         case THREAD_JOIN:;
-            top->thread->state = THREAD_SLEEPING;
+            operating_thread_shadow->state = thread_operated_on_shadow->state == THREAD_DEAD ? THREAD_ALIVE : THREAD_SLEEPING;
             break;
         default:;
             break;
@@ -362,7 +363,7 @@ csystem_virtually_apply_transition(concurrent_system_ref ref, transition_ref tra
             csystem_virtually_apply_mutex_operation(ref, &transition->operation.mutex_operation);
             break;
         case THREAD_LIFECYCLE:;
-            csystem_virtually_apply_thread_operation(ref, &transition->operation.thread_operation);
+            csystem_virtually_apply_thread_operation(ref, &transition->thread, &transition->operation.thread_operation);
             break;
         default:
             mc_unimplemented();
@@ -403,18 +404,21 @@ csystem_virtually_revert_mutex_operation(concurrent_system_ref ref, mutex_operat
 }
 
 static void
-csystem_virtually_revert_thread_operation(concurrent_system_ref ref, thread_operation_ref top)
+csystem_virtually_revert_thread_operation(concurrent_system_ref ref, thread_ref thread_running_transition, thread_operation_ref top)
 {
+    thread_ref thread_operated_on_shadow = csystem_get_thread_with_tid(ref, top->thread.tid);
+    thread_ref operating_thread_shadow = csystem_get_thread_with_tid(ref, thread_running_transition->tid);
     switch (top->type) {
         case THREAD_CREATE:;
             // Remove the new thread that was created
             ref->tid_next--;
             break;
-        case THREAD_FINISH:
+        case THREAD_FINISH: // Either should be ok to set. We assert that a thread is always finishing itself
+            mc_assert(top->thread.tid == thread_running_transition->tid); // Falthrough intended
         case THREAD_JOIN:
             // The only way to reach
             // THREAD_FINISH AND THREAD_JOIN is THREAD_ALIVE
-            top->thread->state = THREAD_ALIVE;
+            operating_thread_shadow->state = THREAD_ALIVE;
             break;
         case THREAD_TERMINATE_PROCESS:;
             mc_unimplemented();
@@ -431,7 +435,7 @@ csystem_virtually_revert_transition(concurrent_system_ref ref, transition_ref tr
             csystem_virtually_revert_mutex_operation(ref, &transition->operation.mutex_operation);
             break;
         case THREAD_LIFECYCLE:;
-            csystem_virtually_revert_thread_operation(ref, &transition->operation.thread_operation);
+            csystem_virtually_revert_thread_operation(ref, &transition->thread, &transition->operation.thread_operation);
             break;
         default:
             mc_unimplemented();
@@ -987,7 +991,7 @@ csystem_dynamically_update_backtrack_sets(concurrent_system_ref ref)
 static void
 dpor_init_thread_transition(dynamic_transition_ref tref, thread_ref thread, thread_operation_type type)
 {
-    thread_operation top;
+    dynamic_thread_operation top;
     top.type = type;
     top.thread = thread;
     tref->operation.type = THREAD_LIFECYCLE;
@@ -1024,11 +1028,11 @@ csystem_print_next_transitions_stack(concurrent_system_ref ref)
 {
     puts("**** NEXT TRANSITION STACK CONTENT DUMP ****");
 
-//    const int threads = csystem_get_thread_count(ref);
-//    for (int i = 0; i < threads; i++) {
-//        transition_ref t_i = &ref->t_next[i];
-//        transition_pretty(t_i);
-//    }
+    const int threads = csystem_get_thread_count(ref);
+    for (int i = 0; i < threads; i++) {
+        transition t_i = dynamic_transition_get_snapshot(&ref->t_next[i]);
+        transition_pretty(&t_i);
+    }
     puts("***************");
 }
 
@@ -1043,7 +1047,7 @@ void
 thread_transition_convert_to_dynamic_transition(concurrent_system_ref ref, thread_operation_ref tref, dynamic_thread_operation_ref dmref)
 {
     dmref->type = tref->type;
-    dmref->thread = tref->thread;
+    dmref->thread = csystem_get_thread_with_tid(ref, tref->thread.tid);
 }
 
 
