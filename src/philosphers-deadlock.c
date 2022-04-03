@@ -6,7 +6,7 @@
 #include "pthread_wrappers.h"
 #include "dpor.h"
 
-#define NUM_THREADS 4
+#define NUM_THREADS 3
 
 struct forks {
   int philosopher;
@@ -18,8 +18,7 @@ void * philosopher_doit(void *forks_arg) {
   struct forks *forks = forks_arg;
   dpor_pthread_mutex_lock(forks->left_fork);
   dpor_pthread_mutex_lock(forks->right_fork);
-//  sleep(1);
-  printf("Philosopher %d just ate.\n", forks->philosopher);
+//  printf("Philosopher %d just ate.\n", forks->philosopher);
   dpor_pthread_mutex_unlock(forks->left_fork);
   dpor_pthread_mutex_unlock(forks->right_fork);
   return NULL;

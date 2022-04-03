@@ -183,6 +183,10 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
     if (csystem_is_in_deadlock(&csystem)) {
         puts("*** DEADLOCK DETECTED ***");
         csystem_print_transition_stack(&csystem);
+        csystem_print_next_transitions_stack(&csystem);
+    } else {
+        puts("*** NO FAILURE DETECTED ***");
+//        csystem_print_transition_stack(&csystem);
     }
     dpor_child_kill();
 }
@@ -291,7 +295,6 @@ thread_await_dpor_scheduler(void)
 {
     mc_assert(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*queue)[tid_self];
-    printf("tid_self in child: %lu\n", tid_self);
     mc_shared_cv_wake_scheduler(cv);
     mc_shared_cv_wait_for_scheduler(cv);
 }
