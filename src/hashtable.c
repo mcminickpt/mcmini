@@ -276,7 +276,7 @@ hash_table_remove(hash_table_ref ref, void *key) {
         return NULL;
     }
 
-    const uint64_t index_to_remove = hash_table_map_key(ref, key);
+    const uint64_t index_to_remove = hash_table_probe_get(ref, key);
     const uint64_t num_ents = hash_table_num_slots(ref);
     const uint64_t num_ents_to_search = num_ents ? (num_ents - 1) : 0;
 
@@ -291,19 +291,20 @@ hash_table_remove(hash_table_ref ref, void *key) {
     hash_table_entry *cur = NULL;
 
     uint64_t num_ents_searched = 0;
-    uint64_t index = (index_to_remove + 1) % num_ents;
+    uint64_t current_index = (index_to_remove + 1) % num_ents;
     uint64_t index_to_replace = index_to_remove;
-    while ((cur = &ref->base[index])->valid) {
+    while ((cur = &ref->base[current_index])->valid) {
 
         // Asks the question: does the entry at this *index*
         // *want* to be located before the spot we are replacing
-        uint64_t target_index_for_key_at_cur = hash_table_probe_get(ref, cur->key);
-        if (target_index_for_key_at_cur <= index_to_replace) {
+        uint64_t location_in_table_for_key_at_cur = hash_table_probe_get(ref, cur->key);
+        uint64_t target_index_for_key_at_cur = hash_table_map_key(ref, cur->key);
+        if (target_index_for_key_at_cur <= index_to_replace && location_in_table_for_key_at_cur > index_to_replace) {
             ref->base[index_to_replace] = *cur;
-            ref->base[index] = hash_table_invalid_entry;
-            index_to_replace = index;
+            ref->base[current_index] = hash_table_invalid_entry;
+            index_to_replace = current_index;
         }
-        index = (index + 1) % num_ents;
+        current_index = (current_index + 1) % num_ents;
     }
 }
 

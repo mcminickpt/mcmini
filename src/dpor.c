@@ -172,7 +172,7 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
     dynamic_transition_ref t_next = initial_transition;
     do {
         debug_depth++;
-        printf("**** At depth %d ****\n", debug_depth);
+//        printf("**** At depth %d ****\n", debug_depth);
         tid_t tid = t_next->thread->tid;
         dpor_run_thread_to_next_visible_operation(tid);
         csystem_simulate_running_thread(&csystem, shm_child_result, t_next->thread);
@@ -260,7 +260,7 @@ dpor_spawn_child_following_transition_stack(void)
             // but we might need to look out for when a thread dies
 
             transition_ref t = csystem_transition_stack_get_element(&csystem, i);
-            printf("Respawn step %d. Running thread with id %lu\n", i + 1, t->thread.tid);
+//            printf("Respawn step %d. Running thread with id %lu\n", i + 1, t->thread.tid);
             dpor_run_thread_to_next_visible_operation(t->thread.tid);
         }
     } else {

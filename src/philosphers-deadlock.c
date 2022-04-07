@@ -6,7 +6,7 @@
 #include "pthread_wrappers.h"
 #include "dpor.h"
 
-#define NUM_THREADS 3
+#define NUM_THREADS 4
 
 struct forks {
   int philosopher;
