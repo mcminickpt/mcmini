@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include "dpor.h"
 
-PRETTY_PRINT_DEF_DECL(mc_shared_cv)
+//PRETTY_PRINT_DEF_DECL(mc_shared_cv)
 
 void
 mc_shared_cv_init(mc_shared_cv_ref ref)
@@ -63,12 +63,12 @@ mc_shared_cv_wake_scheduler(mc_shared_cv_ref ref)
 //    puts("*********");
 }
 
-void
-mc_shared_cv_pretty_off(mc_shared_cv_refc ref, unsigned int off)
-{
-    space(off);
-    int dpor_sem_value, pthread_sem_value;
-    sem_getvalue(&ref->pthread_sem, &pthread_sem_value);
-    sem_getvalue(&ref->dpor_scheduler_sem, &dpor_sem_value);
-    printf("dpor_scheduler_sem count: %d, pthread_count: %d\n", dpor_sem_value, pthread_sem_value);
-}
+//void
+//mc_shared_cv_pretty_off(mc_shared_cv_refc ref, unsigned int off)
+//{
+//    space(off);
+//    int dpor_sem_value, pthread_sem_value;
+//    sem_getvalue(&ref->pthread_sem, &pthread_sem_value);
+//    sem_getvalue(&ref->dpor_scheduler_sem, &dpor_sem_value);
+//    printf("dpor_scheduler_sem count: %d, pthread_count: %d\n", dpor_sem_value, pthread_sem_value);
+//}
