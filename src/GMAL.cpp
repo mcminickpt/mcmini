@@ -5,7 +5,6 @@
 #include "transitions/GMALThreadStart.h"
 
 extern "C" {
-    #include "fail.h"
     #include "mc_shared_cv.h"
     #include <cassert>
     #include <fcntl.h>
@@ -256,7 +255,7 @@ gmal_begin_target_program_at_main()
 void
 gmal_run_thread_to_next_visible_operation(tid_t tid)
 {
-    mc_assert(tid != TID_INVALID);
+    GMAL_ASSERT(tid != TID_INVALID);
     mc_shared_cv_ref cv = &(*threadQueue)[tid];
     mc_shared_cv_wake_thread(cv);
     mc_shared_cv_wait_for_thread(cv);

@@ -1,7 +1,7 @@
 #ifndef DPOR_GMALSHARED_H
 #define DPOR_GMALSHARED_H
 
-#include <cassert>
+#include <assert.h>
 #include "GMALConstants.h"
 
 extern "C" {
