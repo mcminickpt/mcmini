@@ -2,6 +2,7 @@
 #include "GMAL_Private.h"
 #include "GMALSharedTransition.h"
 #include "GMALTransitionFactory.h"
+#include "transitions/GMALThreadStart.h"
 
 extern "C" {
     #include "fail.h"
@@ -55,6 +56,7 @@ void
 gmal_create_program_state()
 {
     programState = GMALState();
+    programState.registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
 }
 
 GMAL_PROGRAM_TYPE
@@ -63,21 +65,14 @@ gmal_scheduler_main()
     gmal_register_main_thread();
 
     auto mainThread = programState.getThreadWithId(tid_self);
-    auto mainThreadPtr = (GMALThread*)mainThread.get();
-    auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThreadPtr);
-    programState.setNextTransitionForThread(tid_self, initialTransition.get());
-
-//    programStat
-
-//    thread_ref main_thread = thread_get_self();
-//    dynamic_transition_ref t_slot_for_main_thread_next = csystem_get_transition_slot_for_thread(&csystem, main_thread);
-//    dpor_init_thread_start_transition(t_slot_for_main_thread_next, main_thread);
+    auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
+    programState.setNextTransitionForThread(tid_self, initialTransition);
 
     GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main();
     if (GMAL_IS_SOURCE_PROGRAM(program))
         return GMAL_SOURCE_PROGRAM;
 
-//    gmal_exhaust_threads(t_slot_for_main_thread_next);
+    gmal_exhaust_threads(initialTransition);
 //
 //    while (!csystem_state_stack_is_empty(&csystem)) {
 //        const uint32_t depth = csystem_state_stack_count(&csystem);
@@ -251,8 +246,7 @@ gmal_begin_target_program_at_main()
         // this is only a technicality: it doesn't actually
         // matter where the child spawns so long as it reaches
         // the actual source program
-//        tid_self = 0;
-
+        tid_self = 0;
         gmal_initialize_shared_memory_region();
         thread_await_gmal_scheduler_for_thread_start_transition();
     }
@@ -278,21 +272,24 @@ gmal_child_kill()
 }
 
 void
-gmal_exhaust_threads()
+gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
 {
-//    puts("**** Exhausting threads... ****");
-//    int debug_depth = csystem_transition_stack_count(&csystem);
-//    dynamic_transition_ref t_next = initial_transition;
-//    do {
-//        debug_depth++;
-////        printf("**** At depth %d ****\n", debug_depth);
-//        tid_t tid = t_next->thread->tid;
-//        dpor_run_thread_to_next_visible_operation(tid);
-//        csystem_simulate_running_thread(&csystem, shm_child_result, t_next->thread);
+    puts("**** Exhausting threads... ****");
+    uint64_t debug_depth = programState.getTransitionStackSize();
+    std::shared_ptr<GMALTransition> t_next = initialTransition;
+    do {
+        debug_depth++;
+        tid_t tid = t_next->getThreadId();
+        gmal_run_thread_to_next_visible_operation(tid);
+        t_next->applyToState(programState);
+        programState.setNextTransitionForThread(tid, shmTransitionData);
+
 //        csystem_dynamically_update_backtrack_sets(&csystem);
-//    } while ( (t_next = csystem_get_first_enabled_transition(&csystem)) != NULL );
-//
-//    // TODO: Test for deadlock
+    } while (false);
+
+//    t_next = csystem_get_first_enabled_transition(&csystem)) != NULL;
+
+    // TODO: Test for deadlock
 //    if (csystem_is_in_deadlock(&csystem)) {
 //        puts("*** DEADLOCK DETECTED ***");
 //        csystem_print_transition_stack(&csystem);
@@ -301,7 +298,7 @@ gmal_exhaust_threads()
 //        puts("*** NO FAILURE DETECTED ***");
 ////        csystem_print_transition_stack(&csystem);
 //    }
-//    dpor_child_kill();
+    gmal_child_kill();
 }
 
 GMAL_PROGRAM_TYPE
@@ -312,41 +309,6 @@ gmal_readvance_main()
 //    if (is_child) return true;
 //    dpor_exhaust_threads(initial_transition);
     return GMAL_SCHEDULER;
-}
-
-
-// NOTE: Assumes that the parent process
-// is asleep (called dpor_run_thread_to_next_visible_operation); the behavior
-// is undefined otherwise
-void
-thread_await_gmal_scheduler()
-{
-    mc_assert(tid_self != TID_INVALID);
-    mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
-    mc_shared_cv_wake_scheduler(cv);
-    mc_shared_cv_wait_for_scheduler(cv);
-}
-
-// NOTE: This should only be called in one location:
-// When the scheduler starts, there is an initial
-// race condition between the child process and the
-// parent process with `thread_await_dpor_scheduler`. `thread_await_dpor_scheduler` assumes
-// the scheduler (parent) process is asleep; but upon
-// initialization this is not true. Hence, this method is invoked instead
-void
-thread_await_gmal_scheduler_for_thread_start_transition()
-{
-    mc_assert(tid_self != TID_INVALID);
-    mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
-    mc_shared_cv_wait_for_scheduler(cv);
-}
-
-void
-thread_awake_gmal_scheduler_for_thread_finish_transition()
-{
-    mc_assert(tid_self != TID_INVALID);
-    mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
-    mc_shared_cv_wake_scheduler(cv);
 }
 
 tid_t

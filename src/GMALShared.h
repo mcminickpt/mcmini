@@ -11,7 +11,6 @@ extern "C" {
 typedef uint64_t objid_t;
 typedef objid_t GMALObjectID;
 typedef uint64_t GMALTypeID;
-typedef uint64_t GMALTransitionID;
 
 #ifndef __cplusplus
 #   define GMAL_EXTERN

@@ -37,10 +37,11 @@ public:
         return this->_registerNewObject(object);
     }
 
-    inline std::shared_ptr<GMALVisibleObject>
-    getObjectWithId(objid_t id)
+    template<typename Object>
+    inline std::shared_ptr<Object>
+    getObjectWithId(objid_t id) const
     {
-        return this->storage[id];
+        return std::static_pointer_cast<Object, GMALVisibleObject>(this->storage[id]);
     }
 };
 

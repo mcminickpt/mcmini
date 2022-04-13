@@ -10,7 +10,7 @@ struct GMALThreadShadow {
     thread_routine startRoutine;
     pthread_t systemIdentity;
     enum GMALThreadState {
-        sleeping, alive, dead
+        alive, sleeping, dead
     } state;
 };
 
@@ -27,6 +27,7 @@ public:
         threadShadow.arg = arg;
         threadShadow.systemIdentity = systemIdentity;
         threadShadow.startRoutine = startRoutine;
+        threadShadow.state = GMALThreadShadow::alive;
     }
     inline explicit GMALThread(tid_t tid, GMALThreadShadow shadow) : GMALVisibleObject(), threadShadow(shadow), tid(tid) {}
 };

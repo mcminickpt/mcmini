@@ -1,12 +1,6 @@
 #include "GMALState.h"
 
 std::shared_ptr<GMALTransition>
-GMALState::getSlotForThread(GMALRef<GMALThread> thread)
-{
-    return nextTransitions[thread->tid];
-}
-
-std::shared_ptr<GMALTransition>
 GMALState::getSlotForThread(GMALThread *thread)
 {
     return nextTransitions[thread->tid];
@@ -30,34 +24,38 @@ GMALState::softRegisterNewObject(GMALVisibleObject *object)
     return objectStorage.registerNewObject(object);
 }
 
-std::shared_ptr<GMALVisibleObject>
-GMALState::getObjectWithId(objid_t id)
+template<typename Object>
+std::shared_ptr<Object>
+GMALState::getObjectWithId(objid_t id) const
 {
-    return objectStorage.getObjectWithId(id);
+    return objectStorage.getObjectWithId<Object>(id);
 }
 
-std::shared_ptr<GMALVisibleObject>
-GMALState::getThreadWithId(tid_t id)
+std::shared_ptr<GMALThread>
+GMALState::getThreadWithId(tid_t id) const
 {
-    return objectStorage.getObjectWithId(0);
+    return objectStorage.getObjectWithId<GMALThread>(id);
 }
 
 void
-GMALState::setNextTransitionForThread(GMALRef<GMALThread> thread, GMALTransition *transition)
+GMALState::setNextTransitionForThread(GMALThread *thread, std::shared_ptr<GMALTransition> transition)
 {
     this->setNextTransitionForThread(thread->tid, transition);
 }
 
 void
-GMALState::setNextTransitionForThread(GMALThread *thread, GMALTransition *transition)
+GMALState::setNextTransitionForThread(tid_t tid, std::shared_ptr<GMALTransition> transition)
 {
-    this->setNextTransitionForThread(thread->tid, transition);
+    this->nextTransitions[tid] = transition;
 }
 
 void
-GMALState::setNextTransitionForThread(tid_t tid, GMALTransition *transition)
+GMALState::setNextTransitionForThread(tid_t tid, GMALSharedTransition *shmData)
 {
-    this->nextTransitions[tid] = std::shared_ptr<GMALTransition>(transition);
+    GMALSharedMemoryHandler handlerForType = this->sharedMemoryHandlerTypeMap.find(shmData->type)->second;
+    GMALTransition *newTransitionForThread = handlerForType(&shmData->data, *this);
+    auto sharedPointer = std::shared_ptr<GMALTransition>(newTransitionForThread);
+    this->setNextTransitionForThread(tid, sharedPointer);
 }
 
 tid_t
@@ -75,4 +73,24 @@ GMALState::createMainThread()
     tid_t mainThreadId = this->createNewThread();
     GMAL_ASSERT(mainThreadId == TID_MAIN_THREAD);
     return mainThreadId;
+}
+
+uint64_t
+GMALState::getTransitionStackSize() const
+{
+    if (this->t_stack_top < 0) return 0;
+    return this->t_stack_top + 1;
+}
+
+uint64_t
+GMALState::getStateStackSize() const
+{
+    if (this->s_stack_top < 0) return 0;
+    return this->s_stack_top + 1;
+}
+
+void
+GMALState::registerVisibleOperationType(GMALType type, GMALSharedMemoryHandler handler)
+{
+    this->sharedMemoryHandlerTypeMap.insert({type, handler});
 }

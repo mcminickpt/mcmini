@@ -3,35 +3,30 @@
 
 #include <stdlib.h>
 #include <optional>
+#include <map>
 
-namespace gmal {
+template<typename Key, typename Value>
+class GMALMap {
+private:
+    std::map<Key, Value> map;
+public:
+    Value valueForKey(Key key);
+    bool remove(Key, Value *);
+    bool insert(Key, Value);
+    bool contains(Key);
+};
 
-    template<typename Key, typename Value>
-    class GMALMap {
+template<typename Key, typename Value>
+Value GMALMap<Key, Value>::valueForKey(Key key)
+{
+    return map.find(key)->second;
+}
 
-    public:
-        Value valueForKey(Key key);
+template<typename Key, typename Value>
+bool GMALMap<Key, Value>::insert(Key key, Value value)
+{
+    return map.insert({key, value}).second;
+}
 
-        bool remove(Key, Value *);
-
-        bool insert(Key, Value);
-
-        bool contains(Key);
-    };
-
-    template<typename Key, typename Value>
-    class GMALFixedMap : public GMALMap<Key, Value> {
-
-    public:
-        Value valueForKey(Key key);
-
-        bool remove(Key, Value *);
-
-        bool insert(Key, Value);
-
-        bool contains(Key);
-    };
-
-} /* namespace gmal */
 
 #endif //GMAL_GMALMAP_H

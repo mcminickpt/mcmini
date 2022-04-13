@@ -2,20 +2,15 @@
 #define GMAL_GMALTRANSITIONFACTORY_H
 
 #include "GMALShared.h"
-#include "GMALRef.h"
 #include "GMALTransition.h"
-#include "GMALThreadStart.h"
+#include "transitions/GMALThreadStart.h"
 
 class GMALTransitionFactory final {
 public:
     GMALTransitionFactory() = delete;
 
-    static std::shared_ptr<GMALTransition>
-    createInitialTransitionForThread(GMALThread *thread)
-    {
-        auto tStart = new GMALThreadStart(GMAL_PASS_DYNAMIC<GMALThread>(thread));
-        return std::shared_ptr<GMALTransition>(tStart);
-    }
+    // Factory methods
+    static std::shared_ptr<GMALTransition>createInitialTransitionForThread(std::shared_ptr<GMALThread> thread);
 };
 
 #endif //GMAL_GMALTRANSITIONFACTORY_H
