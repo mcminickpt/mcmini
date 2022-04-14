@@ -20,11 +20,14 @@ public:
 
     static GMALTransition *staticCopy() { return nullptr; }
 
-    virtual void applyToState(GMALState &state) {}
-    virtual void unapplyToState(GMALState &state) {}
-    virtual bool enabledInState(const GMALState &state) { return true; }
-    virtual bool conenabledWith(const GMALTransition &other) { return true; }
-    virtual bool dependentWith(const GMALTransition &other) { return true; }
+    static bool dependentTransitions(const std::shared_ptr<GMALTransition>&, const std::shared_ptr<GMALTransition>&);
+    static bool coenabledTransitions(const std::shared_ptr<GMALTransition>&, const std::shared_ptr<GMALTransition>&);
+
+    virtual void applyToState(GMALState *) {}
+    virtual void unapplyToState(const GMALState *) {}
+    virtual bool enabledInState(const GMALState *) { return true; }
+    virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
+    virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
 
     tid_t getThreadId() { return thread->tid; }
 };

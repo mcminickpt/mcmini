@@ -17,7 +17,7 @@ add_executable(GMAL
         GMALTransition.cpp GMALTransition.h
         GMAL.cpp GMAL.h
         GMALState.cpp GMALState.h GMAL_Private.h GMALConstants.h
-        ${GMAL_C_FILES} transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h GMALTransitionFactory.cpp GMALTransitionFactory.h transitions/GMALThreadTransitionWrappers.cpp transitions/GMALThreadTransitionWrappers.h)
+        ${GMAL_C_FILES} transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h GMALTransitionFactory.cpp GMALTransitionFactory.h transitions/GMALThreadTransitionWrappers.cpp transitions/GMALThreadTransitionWrappers.h GMALStateStackItem.cpp GMALStateStackItem.h)
 message("Linking object files...")
 
 # -lrt -> shared memory

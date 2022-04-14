@@ -280,13 +280,10 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
         debug_depth++;
         tid_t tid = t_next->getThreadId();
         gmal_run_thread_to_next_visible_operation(tid);
-        t_next->applyToState(programState);
+        programState.virtuallyRunTransition(t_next);
         programState.setNextTransitionForThread(tid, shmTransitionData);
-
-//        csystem_dynamically_update_backtrack_sets(&csystem);
-    } while (false);
-
-//    t_next = csystem_get_first_enabled_transition(&csystem)) != NULL;
+        programState.dynamicallyUpdateBacktrackSets();
+    } while ((t_next = programState.getFirstEnabledTransitionFromNextStack()) != nullptr);
 
     // TODO: Test for deadlock
 //    if (csystem_is_in_deadlock(&csystem)) {

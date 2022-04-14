@@ -18,17 +18,6 @@ struct GMALThreadStart : public GMALThreadTransition {
 public:
     inline explicit GMALThreadStart(std::shared_ptr<GMALThread> thread) : GMALThreadTransition(thread) {}
 
-    bool
-    dependentWith(const GMALTransition &other) override
-    {
-        return true;
-    }
-
-    bool
-    conenabledWith(const GMALTransition &other) override
-    {
-        return true;
-    }
 };
 
 #endif //GMAL_GMALTHREADSTART_H

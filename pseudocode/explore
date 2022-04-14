@@ -213,7 +213,9 @@ func dynamically_update_backtrack_sets(item: state_stack_item) {
         }
     }
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> mp/develop
+T1 -> sem_post of sem_1 which has count 1
+T2 -> sem_post of sem_1 which has count 0
+
+
+
