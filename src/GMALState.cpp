@@ -3,15 +3,15 @@
 #include <vector>
 
 std::shared_ptr<GMALTransition>
-GMALState::getSlotForThread(GMALThread *thread)
+GMALState::getNextTransitionForThread(GMALThread *thread)
 {
     return nextTransitions[thread->tid];
 }
 
 std::shared_ptr<GMALTransition>
-GMALState::getSlotForThread(tid_t tid)
+GMALState::getNextTransitionForThread(tid_t thread)
 {
-    return nextTransitions[tid];
+    return nextTransitions[thread];
 }
 
 objid_t
@@ -109,6 +109,12 @@ GMALState::getTransitionAtIndex(int i) const
     return this->transitionStack[i];
 }
 
+std::shared_ptr<GMALTransition>
+GMALState::getTransitionStackTop() const
+{
+    return this->transitionStack[this->transitionStackTop];
+}
+
 inline tid_t
 GMALState::getThreadRunningTransitionAtIndex(int i) const
 {
@@ -120,6 +126,13 @@ GMALState::getStateItemAtIndex(int i) const
 {
     return this->stateStack[i];
 }
+
+std::shared_ptr<GMALStateStackItem>
+GMALState::getStateStackTop() const
+{
+    return this->stateStack[this->stateStackTop];
+}
+
 
 std::shared_ptr<GMALTransition>
 GMALState::getPendingTransitionForThread(tid_t tid) const
@@ -136,6 +149,25 @@ GMALState::getFirstEnabledTransitionFromNextStack()
         if (nextTransitionForI->enabledInState(this)) return nextTransitionForI;
     }
     return nullptr;
+}
+
+bool
+GMALState::programIsInDeadlock() const
+{
+    // TODO: Complete this function
+    return false;
+}
+
+bool
+GMALState::transitionStackIsEmpty() const
+{
+    return this->transitionStackTop < 0;
+}
+
+bool
+GMALState::stateStackIsEmpty() const
+{
+    return this->stateStackTop < 0;
 }
 
 bool
@@ -231,12 +263,17 @@ GMALState::dynamicallyUpdateBacktrackSets()
         remainingThreadsToProcess.insert(static_cast<tid_t>(i));
     }
 
+    int detachedTransitionStackTop = transitionStackTopBeforeBacktracking;
+
     // 4. Perform the actual backtracking here
 
     // Walk up the transition stack, starting at the top
-    for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
+    for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--, detachedTransitionStackTop--) {
         std::shared_ptr<GMALTransition> S_i = this->getTransitionAtIndex(i);
         std::shared_ptr<GMALStateStackItem> preSi = this->getStateItemAtIndex(i);
+
+        // Undo the transition so that the state reflects
+        this->virtuallyRevertTransitionForBacktracking(S_i);
 
         // The set of threads at pre(S, i) that are enabled. Lazily created
         auto enabledThreadsAtPreSi = std::set<tid_t>();
@@ -279,6 +316,9 @@ GMALState::dynamicallyUpdateBacktrackSets()
 
     // Restore the previous state
     {
+        for (auto i = detachedTransitionStackTop; i <= transitionStackTopBeforeBacktracking; i++)
+            this->virtuallyRunTransition(this->getTransitionAtIndex(i));
+
         for (auto i = 0; i < numThreadsBeforeBacktracking; i++)
             this->nextTransitions[i] = nextTransitionsAtLastS[i];
 
@@ -287,10 +327,42 @@ GMALState::dynamicallyUpdateBacktrackSets()
     }
 }
 
-
 void
 GMALState::virtuallyRunTransition(const std::shared_ptr<GMALTransition> &transition)
 {
-    transition->applyToState(this);
+    std::shared_ptr<GMALTransition> dynamicCopy = transition->dynamicCopyInState(this);
+    dynamicCopy->applyToState(this);
     // Do other state updates here
+}
+
+void
+GMALState::virtuallyRevertTransition(const std::shared_ptr<GMALTransition> &transition)
+{
+    std::shared_ptr<GMALTransition> dynamicCopy = transition->dynamicCopyInState(this);
+    dynamicCopy->unapplyToState(this);
+    // Do other state updates
+}
+
+void
+GMALState::virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition> &transition)
+{
+    this->virtuallyRevertTransition(transition);
+    tid_t threadRunningTransition = transition->getThreadId();
+    this->nextTransitions[threadRunningTransition] = transition;
+}
+void
+GMALState::reset()
+{
+    this->stateStackTop = -1;
+    this->transitionStackTop = -1;
+    this->nextThreadId = 0;
+}
+
+void
+GMALState::moveToPreviousState()
+{
+    std::shared_ptr<GMALTransition> transitionTop = this->getTransitionStackTop();
+    this->virtuallyRevertTransitionForBacktracking(transitionTop);
+    this->transitionStackTop--;
+    this->stateStackTop--;
 }

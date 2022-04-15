@@ -72,32 +72,28 @@ gmal_scheduler_main()
         return GMAL_SOURCE_PROGRAM;
 
     gmal_exhaust_threads(initialTransition);
-//
-//    while (!csystem_state_stack_is_empty(&csystem)) {
-//        const uint32_t depth = csystem_state_stack_count(&csystem);
-//        printf("**** Backtracking at depth %d ****\n", depth);
-//
-//        state_stack_item_ref s_top = csystem_state_stack_top(&csystem);
-//        if (!hash_set_is_empty(s_top->backtrack_set)) {
-//            // TODO: We can be smart here and only run a thread
-//            // if it is not already in a sleep set or lock set (eventually)
-//            dynamic_transition_ref t_initial = csystem_pop_first_enabled_transition_in_backtrack_set(&csystem, s_top);
-//
-//            if (t_initial) {
-//                printf("**** Backtracking BEGUN at depth %d ****\n", depth);
-//                program = gmal_readvance_main(t_initial);
-//
-//                if (GMAL_IS_SOURCE_PROGRAM(program))
-//                    return GMAL_SOURCE_PROGRAM;
-//            }
-//        } else {
-//            hash_set_destroy(s_top->done_set);
-//            hash_set_destroy(s_top->backtrack_set);
-//            puts("**** ... Nothing to backtrack on... ****");
-//        }
-//        csystem_pop_program_stacks_for_backtracking(&csystem);
-//        printf("**** Backtracking completed at depth %d ****\n", depth);
-//    }
+
+    while (!programState.stateStackIsEmpty()) {
+        const uint32_t depth = programState.getStateStackSize();
+        printf("**** Backtracking from state %d ****\n", depth);
+
+        std::shared_ptr<GMALStateStackItem> sTop = programState.getStateStackTop();
+        if (sTop->hasThreadsToBacktrackOn()) {
+            // TODO: We can be smart here and only run a thread
+            // if it is not already in a sleep set or lock set (eventually)
+
+            // DPOR ensures that any thread in the backtrack set is enabled in this state
+            tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
+            std::shared_ptr<GMALTransition> backtrackOperation = programState.getNextTransitionForThread(backtrackThread);
+            program = gmal_readvance_main(backtrackOperation);
+            if (GMAL_IS_SOURCE_PROGRAM(program))
+                return GMAL_SOURCE_PROGRAM;
+        } else {
+            puts("**** ... Nothing to backtrack on... ****");
+        }
+        programState.moveToPreviousState();
+        printf("**** Backtracking completed at state %d ****\n", depth);
+    }
     return false;
 }
 
@@ -204,34 +200,32 @@ gmal_spawn_child()
 GMAL_PROGRAM_TYPE
 gmal_spawn_child_following_transition_stack()
 {
-//    gmal_reset_cv_locks();
-//    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main();
-//
-//    if (GMAL_IS_SCHEDULER(program)) {
-//        int transition_stack_height = csystem_transition_stack_count(&csystem);
-//        for (int i = 0; i < transition_stack_height; i++) {
-//            // NOTE: This is reliant on the fact
-//            // that threads are created in the same order
-//            // when we create them. This will always be consistent,
-//            // but we might need to look out for when a thread dies
-//
-//            transition_ref t = csystem_transition_stack_get_element(&csystem, i);
-////            printf("Respawn step %d. Running thread with id %lu\n", i + 1, t->thread.tid);
-//            gmal_run_thread_to_next_visible_operation(t->thread.tid);
-//        }
-//    } else {
-//        // We need to reset the concurrent system
-//        // for the child since, at the time this method
-//        // is invoked, it will have a complete copy of
-//        // the state the of system. But we need to
-//        // re-simulate the system by running the transitions
-//        // in the transition stack; otherwise, shadow resource
-//        // allocations will be off
-//        csystem_reset(&csystem);
-//        gmal_register_main_thread();
-//    }
-//
-//    return program;
+    gmal_reset_cv_locks();
+    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main();
+
+    if (GMAL_IS_SCHEDULER(program)) {
+        const int transition_stack_height = programState.getTransitionStackSize();
+        for (int i = 0; i < transition_stack_height; i++) {
+            // NOTE: This is reliant on the fact
+            // that threads are created in the same order
+            // when we create them. This will always be consistent,
+            // but we might need to look out for when a thread dies
+            tid_t nextTid = programState.getThreadRunningTransitionAtIndex(i);
+            gmal_run_thread_to_next_visible_operation(nextTid);
+        }
+    } else {
+        // We need to reset the concurrent system
+        // for the child since, at the time this method
+        // is invoked, it will have a complete copy of
+        // the state the of system. But we need to
+        // re-simulate the system by running the transitions
+        // in the transition stack; otherwise, shadow resource
+        // allocations will be off
+        programState.reset();
+        gmal_register_main_thread();
+    }
+
+    return program;
     return GMAL_SCHEDULER;
 }
 
@@ -285,25 +279,21 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
         programState.dynamicallyUpdateBacktrackSets();
     } while ((t_next = programState.getFirstEnabledTransitionFromNextStack()) != nullptr);
 
-    // TODO: Test for deadlock
-//    if (csystem_is_in_deadlock(&csystem)) {
-//        puts("*** DEADLOCK DETECTED ***");
-//        csystem_print_transition_stack(&csystem);
-//        csystem_print_next_transitions_stack(&csystem);
-//    } else {
-//        puts("*** NO FAILURE DETECTED ***");
-////        csystem_print_transition_stack(&csystem);
-//    }
+    if (programState.programIsInDeadlock()) {
+        puts("*** DEADLOCK DETECTED ***");
+    } else {
+        puts("*** NO FAILURE DETECTED ***");
+    }
     gmal_child_kill();
 }
 
 GMAL_PROGRAM_TYPE
-gmal_readvance_main()
+gmal_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
 {
-//    dpor_reset_cv_locks();
-//    bool is_child = dpor_spawn_child_following_transition_stack();
-//    if (is_child) return true;
-//    dpor_exhaust_threads(initial_transition);
+    gmal_reset_cv_locks();
+    GMAL_PROGRAM_TYPE program = gmal_spawn_child_following_transition_stack();
+    if (GMAL_IS_SOURCE_PROGRAM(program)) return GMAL_SOURCE_PROGRAM;
+    gmal_exhaust_threads(nextTransitionToTest);
     return GMAL_SCHEDULER;
 }
 

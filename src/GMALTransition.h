@@ -18,18 +18,18 @@ public:
     GMALTransition(const GMALTransition&) = default;
     GMALTransition &operator=(const GMALTransition&) = default;
 
-    static GMALTransition *staticCopy() { return nullptr; }
-
     static bool dependentTransitions(const std::shared_ptr<GMALTransition>&, const std::shared_ptr<GMALTransition>&);
     static bool coenabledTransitions(const std::shared_ptr<GMALTransition>&, const std::shared_ptr<GMALTransition>&);
 
-    virtual void applyToState(GMALState *) {}
-    virtual void unapplyToState(const GMALState *) {}
+    virtual std::shared_ptr<GMALTransition> staticCopy() = 0;
+    virtual std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) = 0;
+    virtual void applyToState(GMALState *) = 0;
+    virtual void unapplyToState(GMALState *) = 0;
     virtual bool enabledInState(const GMALState *) { return true; }
     virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
 
-    tid_t getThreadId() { return thread->tid; }
+    inline tid_t getThreadId() { return thread->tid; }
 };
 
 #endif //GMAL_GMALTRANSITION_H

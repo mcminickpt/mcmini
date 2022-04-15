@@ -6,6 +6,6 @@ class GMALState;
 #include "GMALShared.h"
 #include "GMALVisibleObject.h"
 
-class GMALVisibleObject { objid_t id; friend GMALState; };
+class GMALVisibleObject { objid_t id; GMALSystemID systemId; friend GMALState; };
 
 #endif //GMAL_GMALVISIBLEOBJECT_H

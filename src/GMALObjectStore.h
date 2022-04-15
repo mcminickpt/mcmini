@@ -4,13 +4,34 @@
 #include "GMALVisibleObject.h"
 #include "GMALShared.h"
 #include <memory>
+#include <unordered_map>
 #include <string.h>
+
+struct PointerHasher {
+    std::size_t operator()(void *code) const
+    {
+        return (std::size_t)(code);
+    }
+};
+
+struct PointersEqual {
+    bool operator()(void *lhs, void *rhs) const
+    {
+        return lhs == rhs;
+    }
+};
 
 class GMALObjectStore {
 private:
 
-    objid_t storageTop;
+    objid_t storageTop = 0;
     std::shared_ptr<GMALVisibleObject> storage[MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM];
+
+    /**
+     * Maps identities of visible objects given by the system to their
+     * shadow-struct counterparts in
+     */
+    std::unordered_map<void*, objid_t, PointerHasher, PointersEqual> systemVisibleObjectMap;
 
     inline objid_t
     _registerNewObject(GMALVisibleObject *object)
@@ -23,7 +44,7 @@ private:
 
 public:
 
-    inline GMALObjectStore() : storageTop(0) { bzero(storage, sizeof(storage)); }
+    inline GMALObjectStore() { bzero(storage, sizeof(storage)); }
 
     inline objid_t
     registerNewObject(GMALVisibleObject *object)
@@ -42,6 +63,21 @@ public:
     getObjectWithId(objid_t id) const
     {
         return std::static_pointer_cast<Object, GMALVisibleObject>(this->storage[id]);
+    }
+
+    inline void
+    mapSystemAddressToShadow(void *systemAddress, objid_t shadowId)
+    {
+        systemVisibleObjectMap.insert({systemAddress, shadowId});
+    }
+
+    template<typename Object>
+    inline std::shared_ptr<Object>
+    getObjectWithSystemAddress(void *systemAddress)
+    {
+        auto kvPair = systemVisibleObjectMap.find(systemAddress);
+        objid_t shadowObjectId = kvPair->second;
+        return this->getObjectWithId<Object>(shadowObjectId);
     }
 };
 

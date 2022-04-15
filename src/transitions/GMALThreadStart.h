@@ -18,6 +18,10 @@ struct GMALThreadStart : public GMALThreadTransition {
 public:
     inline explicit GMALThreadStart(std::shared_ptr<GMALThread> thread) : GMALThreadTransition(thread) {}
 
+    std::shared_ptr<GMALTransition> staticCopy() override;
+    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
+    void applyToState(GMALState *) override;
+    void unapplyToState(GMALState *) override;
 };
 
 #endif //GMAL_GMALTHREADSTART_H

@@ -11,6 +11,9 @@ private:
 public:
     void addBacktrackingThreadIfUnsearched(tid_t);
     void markBacktrackThreadSearched(tid_t);
+
+    bool hasThreadsToBacktrackOn() const;
+    tid_t popFirstThreadToBacktrackOn();
 };
 
 #endif //GMAL_GMALSTATESTACKITEM_H

@@ -13,4 +13,20 @@ void
 GMALStateStackItem::markBacktrackThreadSearched(tid_t tid)
 {
     this->doneSet.insert(tid);
+    this->backtrackSet.erase(tid);
+}
+
+bool
+GMALStateStackItem::hasThreadsToBacktrackOn() const
+{
+    return !backtrackSet.empty();
+}
+
+tid_t
+GMALStateStackItem::popFirstThreadToBacktrackOn()
+{
+    GMAL_ASSERT(this->hasThreadsToBacktrackOn());
+    tid_t randomThreadInBacktrackSet = *this->backtrackSet.end();
+    this->markBacktrackThreadSearched(randomThreadInBacktrackSet);
+    return randomThreadInBacktrackSet;
 }

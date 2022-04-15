@@ -15,7 +15,7 @@ void gmal_create_program_state();
 /* Scheduler control */
 GMAL_PROGRAM_TYPE gmal_scheduler_main();
 void gmal_exhaust_threads(std::shared_ptr<GMALTransition>);
-GMAL_PROGRAM_TYPE gmal_readvance_main();
+GMAL_PROGRAM_TYPE gmal_readvance_main(std::shared_ptr<GMALTransition>);
 void gmal_create_initial_scheduler_state();
 void gmal_exit();
 
