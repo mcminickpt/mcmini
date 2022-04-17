@@ -85,7 +85,7 @@ public:
     std::shared_ptr<GMALTransition> getNextTransitionForThread(tid_t thread);
     std::shared_ptr<GMALTransition> getFirstEnabledTransitionFromNextStack();
 
-    bool programIsInDeadlock() const;
+    bool programIsInDeadlock();
 
     objid_t createNewThread();
     objid_t createNewThread(GMALThreadShadow&);

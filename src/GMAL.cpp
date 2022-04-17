@@ -285,7 +285,7 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
         gmal_run_thread_to_next_visible_operation(tid);
         programState.simulateRunningTransition(t_next);
         programState.setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
-//        programState.dynamicallyUpdateBacktrackSets();
+        programState.dynamicallyUpdateBacktrackSets();
     } while ((t_next = programState.getFirstEnabledTransitionFromNextStack()) != nullptr);
 
     if (programState.programIsInDeadlock()) {

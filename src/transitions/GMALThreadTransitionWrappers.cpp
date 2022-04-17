@@ -18,6 +18,7 @@ void *
 gmal_thread_routine_wrapper(void * arg)
 {
     tid_self = programState.createNewThread();
+    printf("tid_self %lu in routine wrapper\n", tid_self);
     sem_post(&gmal_pthread_create_binary_sem);
 
     auto unwrapped_arg = (gmal_thread_routine_arg*)arg;
@@ -61,7 +62,7 @@ gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
     sem_wait(&gmal_pthread_create_binary_sem);
 
     // TODO: When pthread_create fails, *thread is undefined
-    thread_post_visible_operation_hit(typeid(GMALThreadCreate), &newlyCreatedThread);
+    thread_post_visible_operation_hit<GMALThreadShadow>(typeid(GMALThreadCreate), &newlyCreatedThread);
     thread_await_gmal_scheduler();
 
     return return_value;

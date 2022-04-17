@@ -2,12 +2,12 @@
 #define GMAL_GMALSTATESTACKITEM_H
 
 #include "GMALShared.h"
-#include <set>
+#include <unordered_set>
 
 struct GMALStateStackItem final {
 private:
-    std::set<tid_t> backtrackSet;
-    std::set<tid_t> doneSet;
+    std::unordered_set<tid_t> backtrackSet;
+    std::unordered_set<tid_t> doneSet;
 public:
     void addBacktrackingThreadIfUnsearched(tid_t);
     void markBacktrackThreadSearched(tid_t);

@@ -26,7 +26,10 @@ tid_t
 GMALStateStackItem::popFirstThreadToBacktrackOn()
 {
     GMAL_ASSERT(this->hasThreadsToBacktrackOn());
-    tid_t randomThreadInBacktrackSet = *this->backtrackSet.end();
+
+    tid_t randomThreadInBacktrackSet = *this->backtrackSet.begin();
+    this->backtrackSet.erase(this->backtrackSet.begin());
+
     this->markBacktrackThreadSearched(randomThreadInBacktrackSet);
     return randomThreadInBacktrackSet;
 }
