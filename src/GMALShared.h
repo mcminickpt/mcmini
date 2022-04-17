@@ -11,7 +11,7 @@ extern "C" {
 typedef uint64_t objid_t;
 typedef objid_t GMALObjectID;
 typedef uint64_t GMALTypeID;
-typedef const void *GMALSystemID;
+typedef void *GMALSystemID;
 
 #ifndef __cplusplus
 #   define GMAL_EXTERN
@@ -30,10 +30,13 @@ typedef const void *GMALSystemID;
 #endif
 
 #define GMAL_ASSERT(__X) assert(__X)
+#define GMAL_FAIL() GMAL_ASSERT(0)
 #define GMAL_FATAL_ON_FAIL(expr) \
 do {                            \
     (static_cast <bool> (expr) ? void (0) : abort()); \
 } while(0)
+
+#define GMAL_FATAL() abort() \
 
 #define GMAL_UNIMPLEMENTED() GMAL_ASSERT(false)
 

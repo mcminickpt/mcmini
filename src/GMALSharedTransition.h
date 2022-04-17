@@ -7,9 +7,11 @@
 struct GMALSharedTransition {
 public:
     const std::type_info &type;
-    uint8_t data[];
-    GMALSharedTransition(const std::type_info &type) : type(type) {}
+    tid_t executor;
+    GMALSharedTransition(tid_t executor, const std::type_info &type) : executor(executor), type(type) {}
 };
+
+void GMALSharedTransitionReplace(GMALSharedTransition *, GMALSharedTransition *);
 
 static_assert(std::is_trivially_copyable<GMALSharedTransition>::value,
         "The shared transition is not trivially copiable. Performing a memcpy of this type "

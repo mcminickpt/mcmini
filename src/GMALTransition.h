@@ -25,7 +25,7 @@ public:
     virtual std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) = 0;
     virtual void applyToState(GMALState *) = 0;
     virtual void unapplyToState(GMALState *) = 0;
-    virtual bool enabledInState(const GMALState *) { return true; }
+    virtual bool enabledInState(const GMALState *) { return thread->enabled(); }
     virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
 

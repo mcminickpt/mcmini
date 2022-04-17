@@ -4,7 +4,7 @@
 struct GMALTransition;
 struct GMALSharedTransition;
 struct GMALState;
-typedef GMALTransition*(*GMALSharedMemoryHandler)(void*, const GMALState&);
+typedef GMALTransition*(*GMALSharedMemoryHandler)(const GMALSharedTransition*, void*, GMALState*);
 
 #include <stdint.h>
 #include "GMALShared.h"
@@ -45,14 +45,12 @@ private:
      * A pointer to the top-most element in the transition stack
      */
     int transitionStackTop = -1;
-//    int detachedTransitionStackTop = -1;
     std::shared_ptr<GMALTransition> transitionStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
 
     /**
      * A pointer to the top-most element in the state stack
      */
     int stateStackTop = -1;
-//    int detachedStackTop = -1;
 
     /**
      * The current backtracking states at this particular moment in time
@@ -65,8 +63,12 @@ private:
     std::unordered_map<TypeInfoRef, GMALSharedMemoryHandler, TypeHasher, TypesEqual>
     sharedMemoryHandlerTypeMap;
 
+    /* Maps thread ids to their respective object ids */
+    std::unordered_map<tid_t, objid_t> threadIdMap;
+
 private:
 
+    void growStateStack();
     void virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition>&);
 
     std::shared_ptr<GMALTransition> getTransitionAtIndex(int) const;
@@ -85,19 +87,24 @@ public:
 
     bool programIsInDeadlock() const;
 
-    tid_t createNewThread();
-    tid_t createMainThread();
+    objid_t createNewThread();
+    objid_t createNewThread(GMALThreadShadow&);
+    objid_t createMainThread();
 
-    objid_t registerNewObject(GMALVisibleObject *object);
-    objid_t softRegisterNewObject(GMALVisibleObject *object);
+    objid_t addNewThread(GMALThreadShadow&);
+
+    objid_t registerNewObject(const std::shared_ptr<GMALVisibleObject>& object);
 
     template<typename T> std::shared_ptr<T> getObjectWithId(objid_t id) const;
     std::shared_ptr<GMALThread> getThreadWithId(tid_t id) const;
 
     void setNextTransitionForThread(GMALThread *, std::shared_ptr<GMALTransition>);
     void setNextTransitionForThread(tid_t, std::shared_ptr<GMALTransition>);
-    void setNextTransitionForThread(tid_t, GMALSharedTransition*);
+    void setNextTransitionForThread(tid_t, GMALSharedTransition*, void *);
 
+    void growStateStackWithTransition(const std::shared_ptr<GMALTransition>&);
+    void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
+    void simulateRunningTransition(const std::shared_ptr<GMALTransition>&);
     void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
     void virtuallyRevertTransition(const std::shared_ptr<GMALTransition>&);
 
@@ -118,9 +125,18 @@ public:
 
     // Registering new types
     void registerVisibleOperationType(GMALType, GMALSharedMemoryHandler);
+    void registerVisibleObjectWithSystemIdentity(GMALSystemID, std::shared_ptr<GMALVisibleObject>);
+
+    template<typename Object>
+    std::shared_ptr<Object>
+    getVisibleObjectWithSystemIdentity(GMALSystemID systemId) {
+        return objectStorage.getObjectWithSystemAddress<Object>(systemId);
+    }
+
     void dynamicallyUpdateBacktrackSets();
 
     // Restarting
+    void start();
     void reset();
     void moveToPreviousState();
 };

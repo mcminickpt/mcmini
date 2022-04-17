@@ -2,7 +2,9 @@
 #include "GMAL_Private.h"
 #include "GMALSharedTransition.h"
 #include "GMALTransitionFactory.h"
+#include "transitions/GMALThreadCreate.h"
 #include "transitions/GMALThreadStart.h"
+#include "transitions/GMALThreadFinish.h"
 
 extern "C" {
     #include "mc_shared_cv.h"
@@ -16,7 +18,7 @@ extern "C" {
     #include <unistd.h>
 }
 
-/* The shmTransitionData resides in shared memory */
+/* The shmTransitionTypeInfo resides in shared memory */
 /* The semaphores must also reside in shared memory as per the man page */
 
 /* Synchronization primitives */
@@ -27,8 +29,9 @@ sem_t gmal_pthread_create_binary_sem;
 
 /* Data transfer */
 void *shmStart = nullptr;
-GMALSharedTransition *shmTransitionData = nullptr;
-const size_t shmAllocationSize =  sizeof(*threadQueue) + (sizeof(*shmTransitionData) + MAX_SHARED_MEMORY_ALLOCATION);
+GMALSharedTransition *shmTransitionTypeInfo = nullptr;
+void *shmTransitionData = nullptr;
+const size_t shmAllocationSize =  sizeof(*threadQueue) + (sizeof(*shmTransitionTypeInfo) + MAX_SHARED_MEMORY_ALLOCATION);
 
 /* Program state */
 GMALState programState;
@@ -56,6 +59,9 @@ gmal_create_program_state()
 {
     programState = GMALState();
     programState.registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
+    programState.registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
+    programState.registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
+    programState.start();
 }
 
 GMAL_PROGRAM_TYPE
@@ -147,10 +153,13 @@ gmal_initialize_shared_memory_region()
 {
     void *shm = gmal_create_shared_memory_region();
     void *threadQueueStart = shm;
-    void *shmTransitionStart = (char*)threadQueueStart + sizeof(*threadQueue);
+    void *shmTransitionTypeInfoStart = (char*)threadQueueStart + sizeof(*threadQueue);
+    void *shmTransitionDataStart = (char*)shmTransitionTypeInfoStart + sizeof(*shmTransitionTypeInfo);
+
     shmStart = shm;
     threadQueue = static_cast<typeof(threadQueue)>(threadQueueStart);
-    shmTransitionData = static_cast<typeof(shmTransitionData)>(shmTransitionStart);
+    shmTransitionTypeInfo = static_cast<typeof(shmTransitionTypeInfo)>(shmTransitionTypeInfoStart);
+    shmTransitionData = shmTransitionDataStart;
 }
 
 void
@@ -274,9 +283,9 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
         debug_depth++;
         tid_t tid = t_next->getThreadId();
         gmal_run_thread_to_next_visible_operation(tid);
-        programState.virtuallyRunTransition(t_next);
-        programState.setNextTransitionForThread(tid, shmTransitionData);
-        programState.dynamicallyUpdateBacktrackSets();
+        programState.simulateRunningTransition(t_next);
+        programState.setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
+//        programState.dynamicallyUpdateBacktrackSets();
     } while ((t_next = programState.getFirstEnabledTransitionFromNextStack()) != nullptr);
 
     if (programState.programIsInDeadlock()) {
@@ -290,7 +299,6 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
 GMAL_PROGRAM_TYPE
 gmal_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
 {
-    gmal_reset_cv_locks();
     GMAL_PROGRAM_TYPE program = gmal_spawn_child_following_transition_stack();
     if (GMAL_IS_SOURCE_PROGRAM(program)) return GMAL_SOURCE_PROGRAM;
     gmal_exhaust_threads(nextTransitionToTest);

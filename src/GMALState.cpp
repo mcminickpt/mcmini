@@ -1,4 +1,6 @@
 #include "GMALState.h"
+#include "GMALTransitionFactory.h"
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -15,15 +17,12 @@ GMALState::getNextTransitionForThread(tid_t thread)
 }
 
 objid_t
-GMALState::registerNewObject(GMALVisibleObject *object)
+GMALState::registerNewObject(const std::shared_ptr<GMALVisibleObject>& object)
 {
-    return objectStorage.registerNewObject(object);
-}
-
-objid_t
-GMALState::softRegisterNewObject(GMALVisibleObject *object)
-{
-    return objectStorage.registerNewObject(object);
+    objid_t newObj = objectStorage.registerNewObject(object);
+    GMALSystemID objID = object->getSystemId();
+    objectStorage.mapSystemAddressToShadow(objID, newObj);
+    return newObj;
 }
 
 template<typename Object>
@@ -34,9 +33,10 @@ GMALState::getObjectWithId(objid_t id) const
 }
 
 std::shared_ptr<GMALThread>
-GMALState::getThreadWithId(tid_t id) const
+GMALState::getThreadWithId(tid_t tid) const
 {
-    return objectStorage.getObjectWithId<GMALThread>(id);
+    objid_t threadObjectId = threadIdMap.find(tid)->second;
+    return objectStorage.getObjectWithId<GMALThread>(threadObjectId);
 }
 
 void
@@ -52,21 +52,38 @@ GMALState::setNextTransitionForThread(tid_t tid, std::shared_ptr<GMALTransition>
 }
 
 void
-GMALState::setNextTransitionForThread(tid_t tid, GMALSharedTransition *shmData)
+GMALState::setNextTransitionForThread(tid_t tid, GMALSharedTransition *shmTypeInfo, void *shmData)
 {
-    GMALSharedMemoryHandler handlerForType = this->sharedMemoryHandlerTypeMap.find(shmData->type)->second;
-    GMALTransition *newTransitionForThread = handlerForType(&shmData->data, *this);
+    // TODO: Assert when the type doesn't exist
+    auto maybeHandler = this->sharedMemoryHandlerTypeMap.find(shmTypeInfo->type);
+    if (maybeHandler == this->sharedMemoryHandlerTypeMap.end()) {
+        return;
+    }
+
+    GMALSharedMemoryHandler handlerForType = maybeHandler->second;
+    GMALTransition *newTransitionForThread = handlerForType(shmTypeInfo, shmData, this);
+    GMAL_FATAL_ON_FAIL(newTransitionForThread != nullptr);
+
     auto sharedPointer = std::shared_ptr<GMALTransition>(newTransitionForThread);
     this->setNextTransitionForThread(tid, sharedPointer);
 }
 
 tid_t
-GMALState::createNewThread()
+GMALState::createNewThread(GMALThreadShadow &shadow)
 {
     tid_t newTid = this->nextThreadId++;
-    auto thread = new GMALThread(newTid, nullptr, nullptr, pthread_self());
-    objid_t objid = this->registerNewObject(thread);
+    auto rawThread = new GMALThread(newTid, shadow);
+    auto thread = std::shared_ptr<GMALThread>(rawThread);
+    objid_t newObjId = this->registerNewObject(thread);
+    this->threadIdMap.insert({newTid, newObjId});
     return newTid;
+}
+
+tid_t
+GMALState::createNewThread()
+{
+    auto shadow = GMALThreadShadow(nullptr, nullptr, pthread_self());
+    return this->createNewThread(shadow);
 }
 
 tid_t
@@ -75,6 +92,16 @@ GMALState::createMainThread()
     tid_t mainThreadId = this->createNewThread();
     GMAL_ASSERT(mainThreadId == TID_MAIN_THREAD);
     return mainThreadId;
+}
+
+tid_t
+GMALState::addNewThread(GMALThreadShadow &shadow)
+{
+    tid_t newThread = this->createNewThread(shadow);
+    auto thread = getThreadWithId(newThread);
+    auto threadStart = GMALTransitionFactory::createInitialTransitionForThread(thread);
+    this->setNextTransitionForThread(newThread, threadStart);
+    return newThread;
 }
 
 uint64_t
@@ -269,6 +296,7 @@ GMALState::dynamicallyUpdateBacktrackSets()
 
     // Walk up the transition stack, starting at the top
     for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--, detachedTransitionStackTop--) {
+
         std::shared_ptr<GMALTransition> S_i = this->getTransitionAtIndex(i);
         std::shared_ptr<GMALStateStackItem> preSi = this->getStateItemAtIndex(i);
 
@@ -280,6 +308,8 @@ GMALState::dynamicallyUpdateBacktrackSets()
         const auto numThreadsAtDepthi = this->getNumProgramThreads();
 
         // for all processes p
+
+        // TODO: Concurent modification with iteration bug here!
         for (auto p : remainingThreadsToProcess) {
             std::shared_ptr<GMALTransition> nextSP = nextTransitionsAtLastS[p];
             const bool shouldProcess = GMALTransition::dependentTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
@@ -291,7 +321,7 @@ GMALState::dynamicallyUpdateBacktrackSets()
 
                 // Compute set E
                 if (enabledThreadsAtPreSi.empty()) {
-                    for (auto j = 0; j < numThreadsAtDepthi; i++) {
+                    for (auto j = 0; j < numThreadsAtDepthi; j++) {
                         auto nextAtPreSi = this->getPendingTransitionForThread(i);
                         if (nextAtPreSi->enabledInState(this)) enabledThreadsAtPreSi.insert(j);
                     }
@@ -350,6 +380,51 @@ GMALState::virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTr
     tid_t threadRunningTransition = transition->getThreadId();
     this->nextTransitions[threadRunningTransition] = transition;
 }
+
+void
+GMALState::simulateRunningTransition(const std::shared_ptr<GMALTransition> &transition)
+{
+    this->growStateStackWithTransition(transition);
+    this->growTransitionStackRunning(transition);
+    this->virtuallyRunTransition(transition);
+}
+
+void
+GMALState::growTransitionStackRunning(const std::shared_ptr<GMALTransition> &transition)
+{
+    auto transitionCopy = transition->staticCopy();
+    this->transitionStackTop++;
+    this->transitionStack[this->transitionStackTop] = transitionCopy;
+}
+
+void
+GMALState::growStateStack()
+{
+    auto newState = std::make_shared<GMALStateStackItem>();
+    this->stateStackTop++;
+    this->stateStack[this->stateStackTop] = newState;
+}
+
+
+void
+GMALState::growStateStackWithTransition(const std::shared_ptr<GMALTransition> &transition)
+{
+    GMAL_ASSERT(this->stateStackTop >= 0);
+
+    // Insert the thread that ran the transition into the
+    // done set of the current top-most state
+    auto oldSTop = this->stateStack[this->stateStackTop];
+    auto threadRunningTransition = transition->getThreadId();
+    oldSTop->addBacktrackingThreadIfUnsearched(threadRunningTransition);
+    this->growStateStack();
+}
+
+void
+GMALState::start()
+{
+    this->growStateStack();
+}
+
 void
 GMALState::reset()
 {
@@ -366,3 +441,4 @@ GMALState::moveToPreviousState()
     this->transitionStackTop--;
     this->stateStackTop--;
 }
+

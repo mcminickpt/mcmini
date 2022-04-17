@@ -2,17 +2,9 @@
 #define GMAL_GMALTHREADSTART_H
 
 #include "GMALShared.h"
-#include "GMALTransition.h"
+#include "GMALThreadTransition.h"
 
-GMALTransition* GMALReadThreadStart(void *, const GMALState&);
-
-struct GMALThreadTransition : public GMALTransition {
-protected:
-    std::shared_ptr<GMALThread> target;
-public:
-    GMALThreadTransition(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALThread> target) : GMALTransition(running), target(target) {}
-    GMALThreadTransition(std::shared_ptr<GMALThread> runningThread) : GMALThreadTransition(runningThread, runningThread) {}
-};
+GMALTransition* GMALReadThreadStart(const GMALSharedTransition*, void*, GMALState*);
 
 struct GMALThreadStart : public GMALThreadTransition {
 public:

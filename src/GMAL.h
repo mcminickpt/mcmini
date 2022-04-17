@@ -17,7 +17,8 @@ extern sem_t gmal_pthread_create_binary_sem;
 
 /* Data transfer */
 extern void *shmStart;
-extern GMALSharedTransition *shmTransitionData;
+extern GMALSharedTransition *shmTransitionTypeInfo;
+extern void *shmTransitionData;
 extern const size_t shmAllocationSize;
 
 /* State */
