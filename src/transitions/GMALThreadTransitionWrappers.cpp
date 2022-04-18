@@ -7,6 +7,7 @@
 #include "GMALThread.h"
 #include "GMALThreadCreate.h"
 #include "GMALThreadFinish.h"
+#include "GMALThreadJoin.h"
 #include <strings.h>
 
 struct gmal_thread_routine_arg {
@@ -47,7 +48,7 @@ gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
 {
     GMAL_FATAL_ON_FAIL(attr == nullptr); // TODO: For now, we don't support attributes. This should be added in the future
 
-    auto newlyCreatedThread = GMALThreadShadow(arg, routine, *thread);
+
     auto dpor_thread_arg = (gmal_thread_routine_arg *)malloc(sizeof(gmal_thread_routine_arg));
     dpor_thread_arg->arg = arg;
     dpor_thread_arg->routine = routine;
@@ -62,10 +63,23 @@ gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
     sem_wait(&gmal_pthread_create_binary_sem);
 
     // TODO: When pthread_create fails, *thread is undefined
+    auto newlyCreatedThread = GMALThreadShadow(arg, routine, *thread);
     thread_post_visible_operation_hit<GMALThreadShadow>(typeid(GMALThreadCreate), &newlyCreatedThread);
     thread_await_gmal_scheduler();
 
     return return_value;
+}
+
+int
+gmal_pthread_join(pthread_t thread, void **output)
+{
+    // The join handler doesn't care about the other arguments
+    auto newlyCreatedThread = GMALThreadShadow(NULL, NULL, thread);
+    thread_post_visible_operation_hit<GMALThreadShadow>(typeid(GMALThreadJoin), &newlyCreatedThread);
+    thread_await_gmal_scheduler();
+
+    // TODO: What should we do when this fails
+    return pthread_join(thread, output);
 }
 
 void

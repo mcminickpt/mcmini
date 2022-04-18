@@ -13,5 +13,5 @@ GMALTransition::dependentTransitions(const std::shared_ptr<GMALTransition>& t1, 
 bool
 GMALTransition::coenabledTransitions(const std::shared_ptr<GMALTransition>& t1, const std::shared_ptr<GMALTransition>& t2)
 {
-    return t1->coenabledWith(t2) || t2->coenabledWith(t1);
+    return t1->coenabledWith(t2) && t2->coenabledWith(t1);
 }

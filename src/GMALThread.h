@@ -35,14 +35,20 @@ public:
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;
 
+    bool operator ==(const GMALThread&) const;
+
+    // Managing thread state
+    GMALThreadShadow::GMALThreadState getState() const;
+
     bool enabled();
+    bool isAlive() const;
+    bool isDead() const;
 
     void awaken();
     void sleep();
 
     void regenerate();
     void die();
-
     void spawn();
     void despawn();
 };

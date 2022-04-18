@@ -44,3 +44,19 @@ bool
 GMALThreadFinish::enabledInState(const GMALState *) {
     return thread->enabled() && thread->tid != TID_MAIN_THREAD;
 }
+
+bool
+GMALThreadFinish::coenabledWith(std::shared_ptr<GMALTransition> transition) {
+    if (this->thread->tid == transition->getThreadId()) {
+        return false;
+    }
+    return true;
+}
+
+bool
+GMALThreadFinish::dependentWith(std::shared_ptr<GMALTransition> transition) {
+    if (this->thread->tid == transition->getThreadId()) {
+        return true;
+    }
+    return false;
+}

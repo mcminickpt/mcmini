@@ -5,6 +5,7 @@
 #include "transitions/GMALThreadCreate.h"
 #include "transitions/GMALThreadStart.h"
 #include "transitions/GMALThreadFinish.h"
+#include "transitions/GMALThreadJoin.h"
 
 extern "C" {
     #include "mc_shared_cv.h"
@@ -61,6 +62,7 @@ gmal_create_program_state()
     programState.registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
     programState.registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
     programState.registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
+    programState.registerVisibleOperationType(typeid(GMALThreadJoin), &GMALReadThreadJoin);
     programState.start();
 }
 

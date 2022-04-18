@@ -17,6 +17,18 @@ GMALThread::getSystemId() {
 }
 
 bool
+GMALThread::operator==(const GMALThread &thread) const {
+    return this->tid == thread.tid;
+}
+
+GMALThreadShadow::GMALThreadState
+GMALThread::getState() const
+{
+    return threadShadow.state;
+}
+
+
+bool
 GMALThread::enabled()
 {
     return this->threadShadow.state == GMALThreadShadow::alive;
@@ -56,5 +68,19 @@ void
 GMALThread::regenerate()
 {
     this->threadShadow.state = GMALThreadShadow::alive;
+}
+
+bool
+GMALThread::isAlive() const
+{
+    // Note this is NOT equivalent to
+    // threadShadow.state == GMALThreadShadow::alive;
+    return threadShadow.state == GMALThreadShadow::alive || threadShadow.state == GMALThreadShadow::sleeping;
+}
+
+bool
+GMALThread::isDead() const
+{
+    return threadShadow.state == GMALThreadShadow::dead;
 }
 

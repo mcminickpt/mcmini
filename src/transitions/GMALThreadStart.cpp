@@ -39,3 +39,25 @@ GMALThreadStart::unapplyToState(GMALState *) {
     // Nothing to do
     this->thread->despawn();
 }
+
+bool
+GMALThreadStart::coenabledWith(std::shared_ptr<GMALTransition> transition)
+{
+    if (this->thread->tid == transition->getThreadId()) {
+        return false;
+    }
+
+    // Technically, if the other transition is *never* enabled,
+    // we could return false here. Such a transition is hard to
+    // imagine though...
+    return true;
+}
+
+bool
+GMALThreadStart::dependentWith(std::shared_ptr<GMALTransition> transition)
+{
+    if (this->thread->tid == transition->getThreadId()) {
+        return true;
+    }
+    return false;
+}

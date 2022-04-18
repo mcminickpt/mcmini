@@ -325,7 +325,7 @@ GMALState::dynamicallyUpdateBacktrackSets()
         // for all processes p
         for (auto p : remainingThreadsToProcess) {
             std::shared_ptr<GMALTransition> nextSP = nextTransitionsAtLastS[p];
-            const bool shouldProcess = GMALTransition::dependentTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
+            const bool shouldProcess = GMALTransition::dependentTransitions(S_i, nextSP) && GMALTransition::coenabledTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
 
             // if there exists i such that ...
             if (shouldProcess) {
@@ -340,6 +340,7 @@ GMALState::dynamicallyUpdateBacktrackSets()
                     }
                 }
 
+                bool EIsEmpty = true;
                 for (auto q : enabledThreadsAtPreSi) {
                     const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
 
@@ -348,11 +349,15 @@ GMALState::dynamicallyUpdateBacktrackSets()
                         // Add any element in E
                         // TODO: We can selectively pick here to reduce the number of times we backtrack
                         preSi->addBacktrackingThreadIfUnsearched(q);
+                        EIsEmpty = false;
+                        break;
                     }
                 }
-                // E is the empty set -> add every enabled thread at pre(S, i)
-                for (auto q : enabledThreadsAtPreSi)
-                    preSi->addBacktrackingThreadIfUnsearched(q);
+                if (EIsEmpty) {
+                    // E is the empty set -> add every enabled thread at pre(S, i)
+                    for (auto q : enabledThreadsAtPreSi)
+                        preSi->addBacktrackingThreadIfUnsearched(q);
+                }
             }
         }
 
