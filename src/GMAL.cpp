@@ -2,10 +2,7 @@
 #include "GMAL_Private.h"
 #include "GMALSharedTransition.h"
 #include "GMALTransitionFactory.h"
-#include "transitions/GMALThreadCreate.h"
-#include "transitions/GMALThreadStart.h"
-#include "transitions/GMALThreadFinish.h"
-#include "transitions/GMALThreadJoin.h"
+#include "transitions/GMALTransitionsShared.h"
 
 extern "C" {
     #include "mc_shared_cv.h"
@@ -63,6 +60,9 @@ gmal_create_program_state()
     programState.registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
     programState.registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
     programState.registerVisibleOperationType(typeid(GMALThreadJoin), &GMALReadThreadJoin);
+    programState.registerVisibleOperationType(typeid(GMALMutexInit), &GMALReadMutexInit);
+    programState.registerVisibleOperationType(typeid(GMALMutexUnlock), &GMALReadMutexUnlock);
+    programState.registerVisibleOperationType(typeid(GMALMutexLock), &GMALReadMutexLock);
     programState.start();
 }
 
@@ -252,6 +252,13 @@ gmal_begin_target_program_at_main()
         // the actual source program
         tid_self = 0;
         gmal_initialize_shared_memory_region();
+
+        // This is important to handle the case when the
+        // main thread hits return 0; or the process otherwise
+        // exits with a call to e.g. exit; in that case, we
+        // keep the process alive to allow the model checker to
+        // continue working
+        GMAL_FATAL_ON_FAIL(atexit(&gmal_exit_main_thread) == 0);
         thread_await_gmal_scheduler_for_thread_start_transition();
     }
     return program;

@@ -29,7 +29,7 @@ GMALThread::getState() const
 
 
 bool
-GMALThread::enabled()
+GMALThread::enabled() const
 {
     return this->threadShadow.state == GMALThreadShadow::alive;
 }

@@ -18,6 +18,9 @@ public:
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
     bool enabledInState(const GMALState *) override;
+
+    bool joinsOnThread(tid_t) const;
+    bool joinsOnThread(const std::shared_ptr<GMALThread>&) const;
 };
 
 #endif //GMAL_GMALTHREADJOIN_H

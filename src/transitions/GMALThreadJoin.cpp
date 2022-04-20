@@ -75,3 +75,15 @@ GMALThreadJoin::dependentWith(std::shared_ptr<GMALTransition> transition)
     }
     return false;
 }
+
+bool
+GMALThreadJoin::joinsOnThread(tid_t tid) const
+{
+    return this->target->tid == tid;
+}
+
+bool
+GMALThreadJoin::joinsOnThread(const std::shared_ptr<GMALThread>& thread) const
+{
+    return this->target->tid == thread->tid;
+}

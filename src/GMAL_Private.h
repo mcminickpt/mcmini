@@ -43,4 +43,5 @@ void thread_await_gmal_scheduler();
 void thread_await_gmal_scheduler_for_thread_start_transition();
 void thread_awake_gmal_scheduler_for_thread_finish_transition();
 
+
 #endif //GMAL_GMAL_PRIVATE_H

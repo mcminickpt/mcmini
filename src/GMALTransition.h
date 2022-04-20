@@ -29,7 +29,7 @@ public:
     virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
 
-    inline tid_t getThreadId() { return thread->tid; }
+    inline tid_t getThreadId() const { return thread->tid; }
 };
 
 #endif //GMAL_GMALTRANSITION_H

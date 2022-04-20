@@ -9,11 +9,15 @@ class GMALState;
 
 class GMALVisibleObject {
     objid_t id;
-
     virtual GMALSystemID getSystemId() = 0;
-
     virtual std::shared_ptr<GMALVisibleObject> copy() = 0;
     friend GMALState;
+protected:
+
+    GMALVisibleObject() = default;
+    GMALVisibleObject(objid_t id) : id(id) {}
+public:
+    objid_t getObjectId();
 };
 
 #endif //GMAL_GMALVISIBLEOBJECT_H

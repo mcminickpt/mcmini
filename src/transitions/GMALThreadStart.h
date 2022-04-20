@@ -16,7 +16,6 @@ public:
     void unapplyToState(GMALState *) override;
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
-
 };
 
 #endif //GMAL_GMALTHREADSTART_H

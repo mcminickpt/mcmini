@@ -56,8 +56,5 @@ GMALThreadStart::coenabledWith(std::shared_ptr<GMALTransition> transition)
 bool
 GMALThreadStart::dependentWith(std::shared_ptr<GMALTransition> transition)
 {
-    if (this->thread->tid == transition->getThreadId()) {
-        return true;
-    }
-    return false;
+    return this->thread->tid == transition->getThreadId();
 }

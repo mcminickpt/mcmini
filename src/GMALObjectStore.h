@@ -47,7 +47,7 @@ public:
     inline GMALObjectStore() { bzero(storage, sizeof(storage)); }
 
     inline objid_t
-    registerNewObject( std::shared_ptr<GMALVisibleObject> object)
+    registerNewObject(std::shared_ptr<GMALVisibleObject> object)
     {
         return this->_registerNewObject(object);
     }

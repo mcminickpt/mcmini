@@ -40,7 +40,7 @@ public:
     // Managing thread state
     GMALThreadShadow::GMALThreadState getState() const;
 
-    bool enabled();
+    bool enabled() const;
     bool isAlive() const;
     bool isDead() const;
 

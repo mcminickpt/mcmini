@@ -66,3 +66,9 @@ GMALThreadCreate::dependentWith(std::shared_ptr<GMALTransition> transition)
     }
     return false;
 }
+
+bool
+GMALThreadCreate::doesCreateThread(tid_t tid) const
+{
+    return this->target->tid == tid;
+}

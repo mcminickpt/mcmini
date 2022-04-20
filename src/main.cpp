@@ -6,30 +6,28 @@
 
 #include <pthread.h>
 
-pthread_t main_thread;
+//pthread_t main_thread;
+
+pthread_mutex_t m1;
+pthread_mutex_t m2;
 
 void*
 thread_helper_main(void *unused) {
-    gmal_pthread_join(main_thread, nullptr);
+    gmal_pthread_mutex_lock(&m2);
+    gmal_pthread_mutex_lock(&m1);
     return NULL;
 }
-
-#include <iostream>
-#include <type_traits>
 
 int
 main(int argc, const char **argv)
 {
     gmal_init();
-
-    main_thread = pthread_self();
-
     pthread_t helper;
 
+    gmal_pthread_mutex_init(&m1, nullptr);
+    gmal_pthread_mutex_init(&m2, nullptr);
     gmal_pthread_create(&helper, nullptr, &thread_helper_main, nullptr);
-    gmal_pthread_join(helper, nullptr);
-//    gmal_pthread_create(&helper, nullptr, &thread_helper_main, nullptr);
-
-    gmal_exit_main_thread();
+    gmal_pthread_mutex_lock(&m1);
+    gmal_pthread_mutex_lock(&m2);
     return 0;
 }

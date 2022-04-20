@@ -17,6 +17,8 @@ public:
     void unapplyToState(GMALState *) override;
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
+
+    bool doesCreateThread(tid_t) const;
 };
 
 #endif //GMAL_GMALTHREADCREATE_H

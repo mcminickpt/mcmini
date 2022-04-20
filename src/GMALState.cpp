@@ -26,13 +26,6 @@ GMALState::registerNewObject(const std::shared_ptr<GMALVisibleObject>& object)
     return newObj;
 }
 
-template<typename Object>
-std::shared_ptr<Object>
-GMALState::getObjectWithId(objid_t id) const
-{
-    return objectStorage.getObjectWithId<Object>(id);
-}
-
 std::shared_ptr<GMALThread>
 GMALState::getThreadWithId(tid_t tid) const
 {
@@ -388,20 +381,22 @@ GMALState::virtuallyRunTransition(const std::shared_ptr<GMALTransition> &transit
     // Do other state updates here
 }
 
-void
-GMALState::virtuallyRevertTransition(const std::shared_ptr<GMALTransition> &transition)
-{
-    std::shared_ptr<GMALTransition> dynamicCopy = transition->dynamicCopyInState(this);
-    dynamicCopy->unapplyToState(this);
-    // Do other state updates
-}
+//void
+//GMALState::virtuallyRevertTransition(const std::shared_ptr<GMALTransition> &transition)
+//{
+//    std::shared_ptr<GMALTransition> dynamicCopy = transition->dynamicCopyInState(this);
+//    dynamicCopy->unapplyToState(this);
+//    // Do other state updates
+//}
 
 void
 GMALState::virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition> &transition)
 {
-    this->virtuallyRevertTransition(transition);
-    tid_t threadRunningTransition = transition->getThreadId();
-    this->nextTransitions[threadRunningTransition] = transition;
+//    this->virtuallyRevertTransition(transition);
+    std::shared_ptr<GMALTransition> dynamicCopy = transition->dynamicCopyInState(this);
+    dynamicCopy->unapplyToState(this);
+    tid_t threadRunningTransition = dynamicCopy->getThreadId();
+    this->nextTransitions[threadRunningTransition] = dynamicCopy;
 }
 
 void
@@ -465,5 +460,14 @@ GMALState::moveToPreviousState()
         this->transitionStackTop--;
     }
     this->stateStackTop--;
+}
+
+void
+GMALState::registerVisibleObjectWithSystemIdentity(GMALSystemID systemId, std::shared_ptr<GMALVisibleObject> object)
+{
+    // TODO: This can be simplified easily
+    objid_t id = this->objectStorage.registerNewObject(object);
+    this->objectStorage.mapSystemAddressToShadow(systemId, id);
+    object->id = id;
 }
 

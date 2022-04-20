@@ -92,10 +92,15 @@ public:
     objid_t createMainThread();
 
     objid_t addNewThread(GMALThreadShadow&);
-
     objid_t registerNewObject(const std::shared_ptr<GMALVisibleObject>& object);
 
-    template<typename T> std::shared_ptr<T> getObjectWithId(objid_t id) const;
+    template<typename Object>
+    std::shared_ptr<Object>
+    getObjectWithId(objid_t id) const
+    {
+        return objectStorage.getObjectWithId<Object>(id);
+    }
+
     std::shared_ptr<GMALThread> getThreadWithId(tid_t id) const;
 
     void setNextTransitionForThread(GMALThread *, std::shared_ptr<GMALTransition>);

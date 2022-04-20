@@ -19,7 +19,6 @@ void *
 gmal_thread_routine_wrapper(void * arg)
 {
     tid_self = programState.createNewThread();
-    printf("tid_self %lu in routine wrapper\n", tid_self);
     sem_post(&gmal_pthread_create_binary_sem);
 
     auto unwrapped_arg = (gmal_thread_routine_arg*)arg;
@@ -48,7 +47,6 @@ gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
 {
     GMAL_FATAL_ON_FAIL(attr == nullptr); // TODO: For now, we don't support attributes. This should be added in the future
 
-
     auto dpor_thread_arg = (gmal_thread_routine_arg *)malloc(sizeof(gmal_thread_routine_arg));
     dpor_thread_arg->arg = arg;
     dpor_thread_arg->routine = routine;
@@ -74,7 +72,7 @@ int
 gmal_pthread_join(pthread_t thread, void **output)
 {
     // The join handler doesn't care about the other arguments
-    auto newlyCreatedThread = GMALThreadShadow(NULL, NULL, thread);
+    auto newlyCreatedThread = GMALThreadShadow(nullptr, nullptr, thread);
     thread_post_visible_operation_hit<GMALThreadShadow>(typeid(GMALThreadJoin), &newlyCreatedThread);
     thread_await_gmal_scheduler();
 
@@ -85,41 +83,9 @@ gmal_pthread_join(pthread_t thread, void **output)
 void
 gmal_exit_main_thread()
 {
-    thread_post_visible_operation_hit(typeid(GMALThreadFinish));
+    auto newlyCreatedThread = GMALThreadShadow(nullptr, nullptr, pthread_self());
+    thread_post_visible_operation_hit(typeid(GMALThreadFinish), &newlyCreatedThread);
     thread_await_gmal_scheduler();
-}
-
-// NOTE: Assumes that the parent process
-// is asleep (called dpor_run_thread_to_next_visible_operation); the behavior
-// is undefined otherwise
-void
-thread_await_gmal_scheduler()
-{
-    GMAL_ASSERT(tid_self != TID_INVALID);
-    mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
-    mc_shared_cv_wake_scheduler(cv);
-    mc_shared_cv_wait_for_scheduler(cv);
-}
-
-// NOTE: This should only be called in one location:
-// When the scheduler starts, there is an initial
-// race condition between the child process and the
-// parent process with `thread_await_dpor_scheduler`. `thread_await_dpor_scheduler` assumes
-// the scheduler (parent) process is asleep; but upon
-// initialization this is not true. Hence, this method is invoked instead
-void
-thread_await_gmal_scheduler_for_thread_start_transition()
-{
-    GMAL_ASSERT(tid_self != TID_INVALID);
-    mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
-    mc_shared_cv_wait_for_scheduler(cv);
-}
-
-void
-thread_awake_gmal_scheduler_for_thread_finish_transition() {
-    GMAL_ASSERT(tid_self != TID_INVALID);
-    mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
-    mc_shared_cv_wake_scheduler(cv);
 }
 
 template<typename SharedMemoryData> void
@@ -129,11 +95,4 @@ thread_post_visible_operation_hit(const std::type_info &type, SharedMemoryData *
     auto newShmData = shmData;
     memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
     memcpy(shmTransitionData, newShmData, sizeof(SharedMemoryData));
-}
-
-void
-thread_post_visible_operation_hit(const std::type_info &type)
-{
-    auto newTypeInfo = GMALSharedTransition(tid_self, type);
-    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
 }
