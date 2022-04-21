@@ -30,7 +30,8 @@ public:
     GMALVisibleObject(), threadShadow(GMALThreadShadow(arg, startRoutine, systemIdentity)), tid(tid) {}
 
     inline explicit GMALThread(tid_t tid, GMALThreadShadow shadow) : GMALVisibleObject(), threadShadow(shadow), tid(tid) {}
-    inline GMALThread(const GMALThread &thread) : GMALThread(thread.tid, thread.threadShadow) {}
+    inline GMALThread(const GMALThread &thread)
+    : GMALVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid) {}
 
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;

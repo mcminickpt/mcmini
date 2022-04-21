@@ -44,7 +44,7 @@ GMALMutexUnlock::applyToState(GMALState *state)
 void
 GMALMutexUnlock::unapplyToState(GMALState *state)
 {
-    this->mutex->unlock();
+    this->mutex->lock();
 }
 
 bool

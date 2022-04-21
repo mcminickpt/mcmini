@@ -16,10 +16,6 @@ GMALThread::getSystemId() {
     return (GMALSystemID)threadShadow.systemIdentity;
 }
 
-bool
-GMALThread::operator==(const GMALThread &thread) const {
-    return this->tid == thread.tid;
-}
 
 GMALThreadShadow::GMALThreadState
 GMALThread::getState() const
@@ -27,11 +23,10 @@ GMALThread::getState() const
     return threadShadow.state;
 }
 
-
 bool
 GMALThread::enabled() const
 {
-    return this->threadShadow.state == GMALThreadShadow::alive;
+    return this->threadShadow.state == GMALThreadShadow::alive || this->threadShadow.state == GMALThreadShadow::embryo;
 }
 
 void

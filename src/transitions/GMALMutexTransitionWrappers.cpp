@@ -35,6 +35,7 @@ gmal_pthread_mutex_lock(pthread_mutex_t *mutex)
     thread_await_gmal_scheduler();
 
     // TODO: What should we do when this fails
+//    puts("About to lock");
     return pthread_mutex_lock(mutex);
 }
 

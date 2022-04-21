@@ -18,7 +18,7 @@ private:
 
 public:
     inline explicit GMALMutex(GMALMutexShadow shadow) : GMALVisibleObject(), mutexShadow(shadow) {}
-    inline GMALMutex(const GMALMutex &mutex) : GMALMutex(mutex.mutexShadow) {}
+    inline GMALMutex(const GMALMutex &mutex) : GMALVisibleObject(mutex.getObjectId()), mutexShadow(mutex.mutexShadow) {}
 
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;

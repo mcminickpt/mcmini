@@ -69,6 +69,9 @@ GMALState::createNewThread(GMALThreadShadow &shadow)
     auto rawThread = new GMALThread(newTid, shadow);
     auto thread = std::shared_ptr<GMALThread>(rawThread);
     objid_t newObjId = this->registerNewObject(thread);
+
+    // TODO: Encapsulate transferring object ids
+    thread->id = newObjId;
     this->threadIdMap.insert({newTid, newObjId});
     return newTid;
 }

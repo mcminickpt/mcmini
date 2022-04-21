@@ -181,10 +181,17 @@ gmal_reset_cv_locks()
 }
 
 void
-sigusr1_handler(int sig)
+sigusr1_handler_child(int sig)
 {
     printf("******* CHILD EXITING with pid %lu *******************\n", (uint64_t)getpid());
     _Exit(0);
+}
+
+void
+sigusr1_handler_scheduler(int sig)
+{
+    puts("******* Something went wrong in the source program... *******************");
+    _Exit(1);
 }
 
 GMAL_PROGRAM_TYPE
@@ -201,11 +208,13 @@ gmal_spawn_child()
     cpid = childpid;
 
     if (FORK_IS_CHILD_PID(childpid)) {
-        signal(SIGUSR1, &sigusr1_handler);
+        signal(SIGUSR1, &sigusr1_handler_child);
         printf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
         return GMAL_SOURCE_PROGRAM;
+    } else {
+        signal(SIGUSR1, &sigusr1_handler_scheduler);
+        return GMAL_SCHEDULER;
     }
-    return GMAL_SCHEDULER;
 }
 
 GMAL_PROGRAM_TYPE
@@ -254,10 +263,17 @@ gmal_begin_target_program_at_main()
         gmal_initialize_shared_memory_region();
 
         // This is important to handle the case when the
-        // main thread hits return 0; or the process otherwise
-        // exits with a call to e.g. exit; in that case, we
+        // main thread hits return 0; in that case, we
         // keep the process alive to allow the model checker to
         // continue working
+        //
+        // NOTE: This does not handle the case where a
+        // thread makes a call to exit(). This is a special case we need
+        // to be able to handle
+        //
+        // NOTE!!: atexit handlers can be invoked when a dynamic
+        // library is unloaded. In the transparent target, we need
+        // to be able to handle this case gracefully
         GMAL_FATAL_ON_FAIL(atexit(&gmal_exit_main_thread) == 0);
         thread_await_gmal_scheduler_for_thread_start_transition();
     }

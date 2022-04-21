@@ -1,7 +1,7 @@
 #include "GMALVisibleObject.h"
 
 objid_t
-GMALVisibleObject::getObjectId()
+GMALVisibleObject::getObjectId() const
 {
     return this->id;
 }
