@@ -17,8 +17,6 @@ protected:
     GMALVisibleObject(objid_t id) : id(id) {}
 public:
     objid_t getObjectId() const;
-
-    virtual void print() = 0;
 };
 
 #endif //GMAL_GMALVISIBLEOBJECT_H
