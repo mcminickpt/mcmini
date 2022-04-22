@@ -60,3 +60,12 @@ GMALThreadFinish::dependentWith(std::shared_ptr<GMALTransition> transition) {
     }
     return false;
 }
+
+void
+GMALThreadFinish::print()
+{
+    puts("************************");
+    puts(" -- THREAD FINISH -- ");
+    this->thread->print();
+    puts("************************");
+}

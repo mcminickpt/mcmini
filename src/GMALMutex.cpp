@@ -53,3 +53,11 @@ GMALMutex::deinit()
 {
     this->mutexShadow.state = GMALMutexShadow::undefined;
 }
+
+
+void
+GMALMutex::print()
+{
+    printf("MUTEX id: %lu pthread_mutex_t: %p, state: %d\n", this->getObjectId(),
+           this->mutexShadow.systemIdentity, this->mutexShadow.state);
+}

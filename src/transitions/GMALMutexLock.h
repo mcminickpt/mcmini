@@ -18,6 +18,8 @@ public:
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
     bool enabledInState(const GMALState *) override;
+
+    void print() override;
 };
 
 #endif //GMAL_GMALMUTEXLOCK_H

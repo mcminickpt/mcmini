@@ -32,6 +32,8 @@ public:
     void unlock();
     void init();
     void deinit();
+
+    void print() override;
 };
 
 #endif //GMAL_GMALMUTEX_H

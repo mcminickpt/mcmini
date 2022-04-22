@@ -89,3 +89,12 @@ GMALMutexLock::dependentWith(std::shared_ptr<GMALTransition> transition)
     return false;
 }
 
+void
+GMALMutexLock::print()
+{
+    puts("************************");
+    puts(" -- MUTEX LOCK -- ");
+    this->thread->print();
+    this->mutex->print();
+    puts("************************");
+}

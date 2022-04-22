@@ -478,5 +478,7 @@ GMALState::registerVisibleObjectWithSystemIdentity(GMALSystemID systemId, std::s
 void
 GMALState::printTransitionStack()
 {
-
+    for (int i = 0; i <= this->transitionStackTop; i++) {
+        this->getTransitionAtIndex(i)->print();
+    }
 }

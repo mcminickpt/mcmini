@@ -56,3 +56,12 @@ GMALThreadStart::dependentWith(std::shared_ptr<GMALTransition> transition)
 {
     return this->thread->tid == transition->getThreadId();
 }
+
+void
+GMALThreadStart::print()
+{
+    puts("************************");
+    puts(" -- THREAD START -- ");
+    this->thread->print();
+    puts("************************");
+}

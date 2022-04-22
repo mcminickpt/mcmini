@@ -79,3 +79,9 @@ GMALThread::isDead() const
     return threadShadow.state == GMALThreadShadow::dead;
 }
 
+
+void
+GMALThread::print()
+{
+    printf("THREAD tid: %lu, id: %lu, pthread: %lu \n", this->tid, this->getObjectId(), this->threadShadow.systemIdentity);
+}

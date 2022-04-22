@@ -70,7 +70,7 @@ GMALMutexUnlock::print()
 {
     puts("************************");
     puts(" -- MUTEX UNLOCK -- ");
-    puts("THREAD 1");
-    puts("pthread: pthread_t ");
+    this->thread->print();
+    this->mutex->print();
     puts("************************");
 }

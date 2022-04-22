@@ -314,6 +314,7 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
 
     if (programState.programIsInDeadlock()) {
         puts("*** DEADLOCK DETECTED ***");
+        programState.printTransitionStack();
     } else {
         puts("*** NO FAILURE DETECTED ***");
     }

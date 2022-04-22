@@ -72,3 +72,15 @@ GMALThreadCreate::doesCreateThread(tid_t tid) const
 {
     return this->target->tid == tid;
 }
+
+void
+GMALThreadCreate::print()
+{
+    puts("************************");
+    puts(" -- THREAD CREATE -- ");
+    puts(" - Running Thread - ");
+    this->thread->print();
+    puts(" - Target Thread - ");
+    this->target->print();
+    puts("************************");
+}

@@ -66,3 +66,13 @@ GMALMutexInit::dependentWith(std::shared_ptr<GMALTransition> other)
     }
     return false;
 }
+
+void
+GMALMutexInit::print()
+{
+    puts("************************");
+    puts(" -- MUTEX INIT -- ");
+    this->thread->print();
+    this->mutex->print();
+    puts("************************");
+}

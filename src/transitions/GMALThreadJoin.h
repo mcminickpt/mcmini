@@ -21,6 +21,8 @@ public:
 
     bool joinsOnThread(tid_t) const;
     bool joinsOnThread(const std::shared_ptr<GMALThread>&) const;
+
+    void print() override;
 };
 
 #endif //GMAL_GMALTHREADJOIN_H

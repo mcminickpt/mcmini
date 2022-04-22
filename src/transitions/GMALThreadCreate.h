@@ -19,6 +19,8 @@ public:
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
 
     bool doesCreateThread(tid_t) const;
+
+    void print() override;
 };
 
 #endif //GMAL_GMALTHREADCREATE_H
