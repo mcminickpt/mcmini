@@ -1,7 +1,3 @@
-//
-// Created by parallels on 4/12/22.
-//
-
 #include "GMALThreadTransitionWrappers.h"
 #include "../GMAL.h"
 #include "GMALThread.h"
@@ -9,6 +5,10 @@
 #include "GMALThreadFinish.h"
 #include "GMALThreadJoin.h"
 #include <strings.h>
+
+extern "C" {
+#include "GMALSharedLibraryWrappers.h"
+}
 
 struct gmal_thread_routine_arg {
     void *arg;
@@ -19,7 +19,7 @@ void *
 gmal_thread_routine_wrapper(void * arg)
 {
     tid_self = programState.createNewThread();
-    sem_post(&gmal_pthread_create_binary_sem);
+    __real_sem_post(&gmal_pthread_create_binary_sem);
 
     auto unwrapped_arg = (gmal_thread_routine_arg*)arg;
 
@@ -51,14 +51,14 @@ gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
     dpor_thread_arg->arg = arg;
     dpor_thread_arg->routine = routine;
 
-    int return_value = pthread_create(thread, attr, &gmal_thread_routine_wrapper, dpor_thread_arg);
+    int return_value = __real_pthread_create(thread, attr, &gmal_thread_routine_wrapper, dpor_thread_arg);
 
     // We need to ensure that the thread is
     // created has fully registered itself with the
     // concurrent system; otherwise, there is a race condition
     // in which two thread creates in the child might
     // not be scheduled to run until *two* steps of the scheduler
-    sem_wait(&gmal_pthread_create_binary_sem);
+    __real_sem_wait(&gmal_pthread_create_binary_sem);
 
     // TODO: When pthread_create fails, *thread is undefined
     auto newlyCreatedThread = GMALThreadShadow(arg, routine, *thread);
@@ -77,7 +77,7 @@ gmal_pthread_join(pthread_t thread, void **output)
     thread_await_gmal_scheduler();
 
     // TODO: What should we do when this fails
-    return pthread_join(thread, output);
+    return __real_pthread_join(thread, output);
 }
 
 void

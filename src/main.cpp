@@ -36,7 +36,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define NUM_THREADS 3
+#define NUM_THREADS 2
 
 struct forks {
     int philosopher;

@@ -5,6 +5,10 @@
 #include <typeinfo>
 #include "../GMALShared.h"
 
+extern "C" {
+    #include "GMALSharedLibraryWrappers.h"
+}
+
 #include "transitions/GMALThreadCreate.h"
 #include "transitions/GMALThreadStart.h"
 #include "transitions/GMALThreadFinish.h"

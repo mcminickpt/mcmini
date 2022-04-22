@@ -5,6 +5,10 @@
 #include "GMALMutexInit.h"
 #include "GMAL.h"
 
+extern "C" {
+    #include "GMALSharedLibraryWrappers.h"
+}
+
 template<typename SharedMemoryData> void
 thread_post_visible_operation_hit(const std::type_info &type, SharedMemoryData * shmData)
 {
@@ -23,7 +27,7 @@ gmal_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
     thread_await_gmal_scheduler();
 
     // TODO: What should we do when this fails
-    return pthread_mutex_init(mutex, attr);
+    return __real_pthread_mutex_init(mutex, attr);
 }
 
 int
@@ -35,8 +39,7 @@ gmal_pthread_mutex_lock(pthread_mutex_t *mutex)
     thread_await_gmal_scheduler();
 
     // TODO: What should we do when this fails
-//    puts("About to lock");
-    return pthread_mutex_lock(mutex);
+    return __real_pthread_mutex_lock(mutex);
 }
 
 int
@@ -48,5 +51,5 @@ gmal_pthread_mutex_unlock(pthread_mutex_t *mutex)
     thread_await_gmal_scheduler();
 
     // TODO: What should we do when this fails
-    return pthread_mutex_unlock(mutex);
+    return __real_pthread_mutex_unlock(mutex);
 }

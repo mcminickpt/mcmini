@@ -2,17 +2,20 @@ cmake_minimum_required(VERSION 3.21)
 project(GMAL C CXX)
 message("***** GMAL MODEL CHECKER *****")
 
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories(.)
-set(GMAL_C_FILES mc_shared_cv.c mc_shared_cv.h)
+set(MAIN_FUNCTION main.cpp)
+set(GMAL_C_FILES mc_shared_cv.c mc_shared_cv.h
+        transitions/GMALSharedLibraryWrappers.c transitions/GMALSharedLibraryWrappers.h)
 set(GMAL_CPP_FILES
         GMALShared.h
         GMALMap.cpp GMALMap.h
         GMALThread.cpp GMALThread.h
         GMALVisibleObject.cpp GMALVisibleObject.h
         GMALObjectStore.cpp GMALObjectStore.h
-        GMALSharedTransition.cpp GMALSharedTransition.h main.cpp
+        GMALSharedTransition.cpp GMALSharedTransition.h
         GMALWrappers.cpp GMALWrappers.h
         GMALTransition.cpp GMALTransition.h
         GMAL.cpp GMAL.h
@@ -31,18 +34,26 @@ set(GMAL_CPP_FILES
         transitions/GMALMutexLock.cpp transitions/GMALMutexLock.h
         transitions/GMALMutexInit.cpp transitions/GMALMutexInit.h
         transitions/GMALMutexUnlock.cpp transitions/GMALMutexUnlock.h
-        transitions/GMALMutexTransitionWrappers.cpp transitions/GMALMutexTransitionWrappers.h transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h)
+        transitions/GMALMutexTransitionWrappers.cpp transitions/GMALMutexTransitionWrappers.h
+        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h)
 
-add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES})
+add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")
 
 # -lrt -> shared memory
 # -pthread -> libpthread.so
 # -lm -> math library
+# -ldl -> dlsym etc.
 #target_compile_options(DPOR PUBLIC -fsanitize=undefined) -lubsan
-set(GMAL_LINK_TARGET_FLAGS -lrt -pthread -lm)
+set(GMAL_LINK_TARGET_FLAGS -lrt -pthread -lm -ldl)
 target_link_libraries(GMAL PUBLIC ${GMAL_LINK_TARGET_FLAGS})
 
 # Shared library
-add_library(gmal SHARED ${GMAL_CPP_FILES} ${GMAL_C_FILES})
-target_compile_definitions(gmal PUBLIC GMAL_SHARED_LIBRARY=1)
+add_library(gmalchecker SHARED ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
+target_compile_definitions(gmalchecker PUBLIC GMAL_SHARED_LIBRARY=1)
+target_link_libraries(gmalchecker PUBLIC ${GMAL_LINK_TARGET_FLAGS})
+
+# Executable that loads the shared library
+set(MAIN_FUNCTION launch.c)
+add_executable(gmal ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
+target_link_libraries(gmal PUBLIC ${GMAL_LINK_TARGET_FLAGS})

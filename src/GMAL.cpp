@@ -37,6 +37,7 @@ GMALState programState;
 GMAL_CTOR void
 gmal_init()
 {
+    gmal_load_pthread_routines();
     gmal_create_program_state();
     gmal_initialize_shared_memory_region();
     gmal_create_thread_sleep_points();
