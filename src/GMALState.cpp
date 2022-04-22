@@ -474,3 +474,9 @@ GMALState::registerVisibleObjectWithSystemIdentity(GMALSystemID systemId, std::s
     object->id = id;
 }
 
+
+void
+GMALState::printTransitionStack()
+{
+
+}

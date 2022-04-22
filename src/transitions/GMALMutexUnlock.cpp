@@ -64,3 +64,13 @@ GMALMutexUnlock::dependentWith(std::shared_ptr<GMALTransition> transition)
 {
     return false;
 }
+
+void
+GMALMutexUnlock::print()
+{
+    puts("************************");
+    puts(" -- MUTEX UNLOCK -- ");
+    puts("THREAD 1");
+    puts("pthread: pthread_t ");
+    puts("************************");
+}

@@ -10,9 +10,6 @@ struct GMALMutexUnlock : public GMALMutexTransition {
 public:
 
     GMALMutexUnlock(std::shared_ptr<GMALThread> thread, std::shared_ptr<GMALMutex> mutex) : GMALMutexTransition(thread, mutex) {}
-
-
-
     std::shared_ptr<GMALTransition> staticCopy() override;
     std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
     void applyToState(GMALState *) override;
@@ -20,6 +17,8 @@ public:
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
     bool enabledInState(const GMALState *) override;
+
+    void print() override;
 };
 
 #endif //GMAL_GMALMUTEXUNLOCK_H

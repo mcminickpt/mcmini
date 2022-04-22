@@ -144,6 +144,8 @@ public:
     void start();
     void reset();
     void moveToPreviousState();
+
+    void printTransitionStack();
 };
 
 #endif //GMAL_GMALSTATE_H

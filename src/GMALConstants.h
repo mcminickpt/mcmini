@@ -27,6 +27,12 @@ typedef uint64_t mutid_t;
 #define GMAL_IS_SCHEDULER(expr) (static_cast<bool>(expr) == GMAL_SCHEDULER)
 #define GMAL_IS_SOURCE_PROGRAM(expr) (static_cast<bool>(expr) == GMAL_SOURCE_PROGRAM)
 
+#ifdef GMAL_SHARED_LIBRARY
+#define GMAL_CTOR __attribute__((constructor))
+#else
+#define GMAL_CTOR
+#endif
+
 #define PTHREAD_SUCCESS (0)
 #define SEM_FLAG_SHARED (1)
 

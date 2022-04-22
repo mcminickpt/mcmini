@@ -5,8 +5,8 @@ message("***** GMAL MODEL CHECKER *****")
 set(CMAKE_CXX_STANDARD 11)
 
 include_directories(.)
-set (GMAL_C_FILES mc_shared_cv.c mc_shared_cv.h)
-add_executable(GMAL
+set(GMAL_C_FILES mc_shared_cv.c mc_shared_cv.h)
+set(GMAL_CPP_FILES
         GMALShared.h
         GMALMap.cpp GMALMap.h
         GMALThread.cpp GMALThread.h
@@ -17,7 +17,7 @@ add_executable(GMAL
         GMALTransition.cpp GMALTransition.h
         GMAL.cpp GMAL.h
         GMALState.cpp GMALState.h GMAL_Private.h GMALConstants.h
-        ${GMAL_C_FILES} transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h
+        transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h
         GMALTransitionFactory.cpp GMALTransitionFactory.h
         transitions/GMALThreadTransitionWrappers.cpp
         transitions/GMALThreadTransitionWrappers.h
@@ -32,6 +32,8 @@ add_executable(GMAL
         transitions/GMALMutexInit.cpp transitions/GMALMutexInit.h
         transitions/GMALMutexUnlock.cpp transitions/GMALMutexUnlock.h
         transitions/GMALMutexTransitionWrappers.cpp transitions/GMALMutexTransitionWrappers.h transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h)
+
+add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES})
 message("Linking object files...")
 
 # -lrt -> shared memory
@@ -41,3 +43,6 @@ message("Linking object files...")
 set(GMAL_LINK_TARGET_FLAGS -lrt -pthread -lm)
 target_link_libraries(GMAL PUBLIC ${GMAL_LINK_TARGET_FLAGS})
 
+# Shared library
+add_library(gmal SHARED ${GMAL_CPP_FILES} ${GMAL_C_FILES})
+target_compile_definitions(gmal PUBLIC GMAL_SHARED_LIBRARY=1)

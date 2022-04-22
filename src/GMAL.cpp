@@ -34,8 +34,7 @@ const size_t shmAllocationSize =  sizeof(*threadQueue) + (sizeof(*shmTransitionT
 /* Program state */
 GMALState programState;
 
-// __attribute__((constructor))
-void
+GMAL_CTOR void
 gmal_init()
 {
     gmal_create_program_state();

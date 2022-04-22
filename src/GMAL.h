@@ -24,6 +24,6 @@ extern const size_t shmAllocationSize;
 /* State */
 extern GMALState programState;
 
-void gmal_init();
+GMAL_CTOR void gmal_init();
 
 #endif //GMAL_GMAL_H
