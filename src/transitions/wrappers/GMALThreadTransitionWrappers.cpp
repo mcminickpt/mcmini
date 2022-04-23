@@ -1,13 +1,12 @@
 #include "GMALThreadTransitionWrappers.h"
-#include "../GMAL.h"
-#include "GMALThread.h"
-#include "GMALThreadCreate.h"
-#include "GMALThreadFinish.h"
-#include "GMALThreadJoin.h"
-#include <strings.h>
+#include "GMAL.h"
+#include "objects/GMALThread.h"
+#include "transitions/GMALThreadCreate.h"
+#include "transitions/GMALThreadFinish.h"
+#include "transitions/GMALThreadJoin.h"
 
 extern "C" {
-#include "GMALSharedLibraryWrappers.h"
+    #include "GMALSharedLibraryWrappers.h"
 }
 
 struct gmal_thread_routine_arg {
@@ -37,6 +36,7 @@ gmal_thread_routine_wrapper(void * arg)
     // See where the thread_wrapper is created. The memory is malloc'ed and should be freed
     free(arg);
 
+    // NOTE: Thread exit requires only data about the thread that ran
     thread_post_visible_operation_hit(typeid(GMALThreadFinish));
     thread_awake_gmal_scheduler_for_thread_finish_transition();
     return return_value;
@@ -86,13 +86,4 @@ gmal_exit_main_thread()
     auto newlyCreatedThread = GMALThreadShadow(nullptr, nullptr, pthread_self());
     thread_post_visible_operation_hit(typeid(GMALThreadFinish), &newlyCreatedThread);
     thread_await_gmal_scheduler();
-}
-
-template<typename SharedMemoryData> void
-thread_post_visible_operation_hit(const std::type_info &type, SharedMemoryData * shmData)
-{
-    auto newTypeInfo = GMALSharedTransition(tid_self, type);
-    auto newShmData = shmData;
-    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
-    memcpy(shmTransitionData, newShmData, sizeof(SharedMemoryData));
 }

@@ -12,7 +12,7 @@ typedef GMALTransition*(*GMALSharedMemoryHandler)(const GMALSharedTransition*, v
 #include "GMALSharedTransition.h"
 #include "GMALStateStackItem.h"
 #include "GMALObjectStore.h"
-#include "GMALThread.h"
+#include "objects/GMALThread.h"
 #include <typeinfo>
 #include <functional>
 #include <unordered_map>

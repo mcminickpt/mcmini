@@ -6,6 +6,12 @@ GMALMutex::operator==(const GMALMutex &other) const
     return this->mutexShadow.systemIdentity == other.mutexShadow.systemIdentity;
 }
 
+bool
+GMALMutex::operator!=(const GMALMutex &other) const
+{
+    return this->mutexShadow.systemIdentity != other.mutexShadow.systemIdentity;
+}
+
 GMALSystemID
 GMALMutex::getSystemId()
 {

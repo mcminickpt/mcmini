@@ -8,12 +8,12 @@ set(CMAKE_CXX_STANDARD 11)
 include_directories(.)
 set(MAIN_FUNCTION main.cpp)
 set(GMAL_C_FILES mc_shared_cv.c mc_shared_cv.h
-        transitions/GMALSharedLibraryWrappers.c transitions/GMALSharedLibraryWrappers.h)
+        transitions/wrappers/GMALSharedLibraryWrappers.c transitions/wrappers/GMALSharedLibraryWrappers.h)
 set(GMAL_CPP_FILES
         GMALShared.h
         GMALMap.cpp GMALMap.h
-        GMALThread.cpp GMALThread.h
-        GMALVisibleObject.cpp GMALVisibleObject.h
+        objects/GMALThread.cpp objects/GMALThread.h
+        objects/GMALVisibleObject.cpp objects/GMALVisibleObject.h
         GMALObjectStore.cpp GMALObjectStore.h
         GMALSharedTransition.cpp GMALSharedTransition.h
         GMALWrappers.cpp GMALWrappers.h
@@ -22,20 +22,20 @@ set(GMAL_CPP_FILES
         GMALState.cpp GMALState.h GMAL_Private.h GMALConstants.h
         transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h
         GMALTransitionFactory.cpp GMALTransitionFactory.h
-        transitions/GMALThreadTransitionWrappers.cpp
-        transitions/GMALThreadTransitionWrappers.h
+        transitions/wrappers/GMALThreadTransitionWrappers.cpp
+        transitions/wrappers/GMALThreadTransitionWrappers.h
         GMALStateStackItem.cpp GMALStateStackItem.h
         transitions/GMALThreadCreate.cpp transitions/GMALThreadCreate.h
         transitions/GMALThreadTransition.cpp transitions/GMALThreadTransition.h
         transitions/GMALThreadFinish.cpp transitions/GMALThreadFinish.h
         transitions/GMALThreadJoin.cpp transitions/GMALThreadJoin.h
-        GMALMutex.cpp GMALMutex.h
+        objects/GMALMutex.cpp objects/GMALMutex.h
         transitions/GMALMutexTransition.cpp transitions/GMALMutexTransition.h
         transitions/GMALMutexLock.cpp transitions/GMALMutexLock.h
         transitions/GMALMutexInit.cpp transitions/GMALMutexInit.h
         transitions/GMALMutexUnlock.cpp transitions/GMALMutexUnlock.h
-        transitions/GMALMutexTransitionWrappers.cpp transitions/GMALMutexTransitionWrappers.h
-        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h)
+        transitions/wrappers/GMALMutexTransitionWrappers.cpp transitions/wrappers/GMALMutexTransitionWrappers.h
+        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h objects/GMALSemaphore.cpp objects/GMALSemaphore.h transitions/GMALSemaphoreTransition.cpp transitions/GMALSemaphoreTransition.h transitions/GMALSemPost.cpp transitions/GMALSemPost.h transitions/GMALSemInit.cpp transitions/GMALSemInit.h transitions/GMALSemWait.cpp transitions/GMALSemWait.h transitions/wrappers/GMALSemaphoreTransitionWrappers.cpp transitions/wrappers/GMALSemaphoreTransitionWrappers.h)
 
 add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")

@@ -5,7 +5,7 @@ struct GMALState;
 
 #include "GMALShared.h"
 #include "GMALState.h"
-#include "GMALThread.h"
+#include "objects/GMALThread.h"
 #include <memory>
 #include <utility>
 

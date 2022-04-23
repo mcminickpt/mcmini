@@ -1,7 +1,7 @@
 #ifndef GMAL_GMALOBJECTSTORE_H
 #define GMAL_GMALOBJECTSTORE_H
 
-#include "GMALVisibleObject.h"
+#include "objects/GMALVisibleObject.h"
 #include "GMALShared.h"
 #include <memory>
 #include <unordered_map>

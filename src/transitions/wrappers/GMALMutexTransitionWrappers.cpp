@@ -1,21 +1,12 @@
 #include "GMALMutexTransitionWrappers.h"
-#include "GMALTransitionsShared.h"
-#include "GMALMutexLock.h"
-#include "GMALMutexUnlock.h"
-#include "GMALMutexInit.h"
+#include "transitions/GMALTransitionsShared.h"
+#include "transitions/GMALMutexLock.h"
+#include "transitions/GMALMutexUnlock.h"
+#include "transitions/GMALMutexInit.h"
 #include "GMAL.h"
 
 extern "C" {
-    #include "GMALSharedLibraryWrappers.h"
-}
-
-template<typename SharedMemoryData> void
-thread_post_visible_operation_hit(const std::type_info &type, SharedMemoryData * shmData)
-{
-    auto newTypeInfo = GMALSharedTransition(tid_self, type);
-    auto newShmData = shmData;
-    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
-    memcpy(shmTransitionData, newShmData, sizeof(SharedMemoryData));
+    #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
 }
 
 int

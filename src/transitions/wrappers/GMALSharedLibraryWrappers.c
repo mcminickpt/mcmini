@@ -9,6 +9,7 @@ typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
 typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
+typeof(&sem_init) sem_init_ptr;
 
 void gmal_load_pthread_routines()
 {
@@ -20,6 +21,7 @@ void gmal_load_pthread_routines()
     pthread_mutex_unlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_unlock");
     sem_wait_ptr = dlsym(RTLD_NEXT, "sem_wait");
     sem_post_ptr = dlsym(RTLD_NEXT, "sem_post");
+    sem_init_ptr = dlsym(RTLD_NEXT, "sem_init");
 #else
     pthread_create_ptr = &pthread_create;
     pthread_join_ptr = &pthread_join;
@@ -28,6 +30,7 @@ void gmal_load_pthread_routines()
     pthread_mutex_unlock_ptr = &pthread_mutex_unlock;
     sem_post_ptr = &sem_post;
     sem_wait_ptr = &sem_wait;
+    sem_init_ptr = &sem_init;
 #endif
 }
 

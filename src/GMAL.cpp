@@ -63,6 +63,9 @@ gmal_create_program_state()
     programState.registerVisibleOperationType(typeid(GMALMutexInit), &GMALReadMutexInit);
     programState.registerVisibleOperationType(typeid(GMALMutexUnlock), &GMALReadMutexUnlock);
     programState.registerVisibleOperationType(typeid(GMALMutexLock), &GMALReadMutexLock);
+    programState.registerVisibleOperationType(typeid(GMALSemInit), &GMALReadSemInit);
+    programState.registerVisibleOperationType(typeid(GMALSemPost), &GMALReadSemPost);
+    programState.registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
     programState.start();
 }
 

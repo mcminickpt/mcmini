@@ -24,6 +24,7 @@ public:
     GMALSystemID getSystemId() override;
 
     bool operator ==(const GMALMutex&) const;
+    bool operator !=(const GMALMutex&) const;
 
     bool isLocked() const;
     bool isUnlocked() const;

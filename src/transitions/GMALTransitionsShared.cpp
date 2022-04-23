@@ -34,15 +34,6 @@ thread_awake_gmal_scheduler_for_thread_finish_transition() {
     mc_shared_cv_wake_scheduler(cv);
 }
 
-template<typename SharedMemoryData> void
-thread_post_visible_operation_hit(const std::type_info &type, SharedMemoryData * shmData)
-{
-    auto newTypeInfo = GMALSharedTransition(tid_self, type);
-    auto newShmData = shmData;
-    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
-    memcpy(shmTransitionData, newShmData, sizeof(SharedMemoryData));
-}
-
 void
 thread_post_visible_operation_hit(const std::type_info &type)
 {

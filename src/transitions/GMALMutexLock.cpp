@@ -62,10 +62,9 @@ GMALMutexLock::coenabledWith(std::shared_ptr<GMALTransition> transition)
     {
         auto maybeMutexUnlock = std::dynamic_pointer_cast<GMALMutexUnlock, GMALTransition>(transition);
         if (maybeMutexUnlock) {
-            return maybeMutexUnlock->mutex != this->mutex;
+            return *maybeMutexUnlock->mutex != *this->mutex;
         }
     }
-
     return true;
 }
 

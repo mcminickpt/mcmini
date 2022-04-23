@@ -2,7 +2,7 @@
 #define GMAL_GMALMUTEXTRANSITION_H
 
 #include "GMALTransition.h"
-#include "../GMALMutex.h"
+#include "objects/GMALMutex.h"
 
 struct GMALMutexTransition : public GMALTransition {
 public:
