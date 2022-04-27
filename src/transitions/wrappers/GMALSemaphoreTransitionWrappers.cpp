@@ -1,4 +1,3 @@
-#include "GMAL.h"
 #include "GMALSemaphoreTransitionWrappers.h"
 #include "transitions/GMALTransitionsShared.h"
 #include "transitions/GMALSemWait.h"

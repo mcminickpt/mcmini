@@ -4,10 +4,6 @@
 #include <assert.h>
 #include "GMALConstants.h"
 
-extern "C" {
-    #include "decl.h"
-}
-
 typedef uint64_t objid_t;
 typedef objid_t GMALObjectID;
 typedef uint64_t GMALTypeID;
@@ -22,6 +18,10 @@ typedef void *GMALSystemID;
 #   define GMAL_EXTERN_DECLS_BEGIN extern "C" {
 #   define GMAL_EXTERN_DECLS_END }
 #endif
+
+GMAL_EXTERN_DECLS_BEGIN
+#include "decl.h"
+GMAL_EXTERN_DECLS_END
 
 #ifndef __cplusplus
 #   define GMAL_THREAD_LOCAL thread_local

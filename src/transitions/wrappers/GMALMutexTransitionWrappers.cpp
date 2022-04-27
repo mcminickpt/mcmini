@@ -3,7 +3,6 @@
 #include "transitions/GMALMutexLock.h"
 #include "transitions/GMALMutexUnlock.h"
 #include "transitions/GMALMutexInit.h"
-#include "GMAL.h"
 
 extern "C" {
     #include "transitions/wrappers/GMALSharedLibraryWrappers.h"

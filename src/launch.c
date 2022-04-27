@@ -35,6 +35,6 @@ main(int argc, const char **argv)
     setenv("LD_PRELOAD", buf, 1);
     execvp(cur_arg[0], cur_arg);
     fprintf(stderr, "Executable '%s' not found.\n", cur_arg[0]);
-    perror("mcmini");
+    perror("gmal");
     return 1;
 }

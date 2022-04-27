@@ -42,7 +42,7 @@ gmal_init()
     gmal_initialize_shared_memory_region();
     gmal_create_thread_sleep_points();
 
-    GMAL_FATAL_ON_FAIL(sem_init(&gmal_pthread_create_binary_sem, 0, 0) == 0);
+    GMAL_FATAL_ON_FAIL(__real_sem_init(&gmal_pthread_create_binary_sem, 0, 0) == 0);
     GMAL_FATAL_ON_FAIL(atexit(&gmal_exit) == 0);
 
     GMAL_PROGRAM_TYPE program = gmal_scheduler_main();

@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "GMALSharedLibraryWrappers.h"
 #include "GMALMutexTransitionWrappers.h"
+#include "GMALSemaphoreTransitionWrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -51,5 +52,23 @@ int
 pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
     return gmal_pthread_mutex_unlock(mutex);
+}
+
+int
+sem_init(sem_t *sem, int pshared, unsigned int value)
+{
+    return gmal_sem_init(sem, pshared, value);
+}
+
+int
+sem_post(sem_t *sem)
+{
+    return gmal_sem_post(sem);
+}
+
+int
+sem_wait(sem_t *sem)
+{
+    return gmal_sem_wait(sem);
 }
 #endif
