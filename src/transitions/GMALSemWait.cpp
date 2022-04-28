@@ -49,10 +49,6 @@ GMALSemWait::unapplyToState(GMALState *state)
 bool
 GMALSemWait::coenabledWith(std::shared_ptr<GMALTransition> other)
 {
-    auto maybeSemaphoreOperation = std::dynamic_pointer_cast<GMALSemaphoreTransition, GMALTransition>(other);
-    if (maybeSemaphoreOperation) {
-        return *maybeSemaphoreOperation->sem != *this->sem;
-    }
     return true;
 }
 

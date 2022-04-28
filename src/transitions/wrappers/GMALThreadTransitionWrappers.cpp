@@ -4,6 +4,8 @@
 #include "transitions/GMALThreadCreate.h"
 #include "transitions/GMALThreadFinish.h"
 #include "transitions/GMALThreadJoin.h"
+#include "transitions/GMALTransitionsShared.h"
+#include <typeinfo>
 
 extern "C" {
     #include "GMALSharedLibraryWrappers.h"
@@ -59,7 +61,6 @@ gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routi
     // in which two thread creates in the child might
     // not be scheduled to run until *two* steps of the scheduler
     __real_sem_wait(&gmal_pthread_create_binary_sem);
-
     // TODO: When pthread_create fails, *thread is undefined
     auto newlyCreatedThread = GMALThreadShadow(arg, routine, *thread);
     thread_post_visible_operation_hit<GMALThreadShadow>(typeid(GMALThreadCreate), &newlyCreatedThread);

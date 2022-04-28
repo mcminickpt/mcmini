@@ -32,7 +32,7 @@ void *shmTransitionData = nullptr;
 const size_t shmAllocationSize =  sizeof(*threadQueue) + (sizeof(*shmTransitionTypeInfo) + MAX_SHARED_MEMORY_ALLOCATION);
 
 /* Program state */
-GMALState programState;
+GMALState programState = GMALState();
 
 GMAL_CTOR void
 gmal_init()

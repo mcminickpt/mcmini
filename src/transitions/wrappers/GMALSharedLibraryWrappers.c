@@ -2,6 +2,7 @@
 #include "GMALSharedLibraryWrappers.h"
 #include "GMALMutexTransitionWrappers.h"
 #include "GMALSemaphoreTransitionWrappers.h"
+#include "GMALThreadTransitionWrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -36,6 +37,21 @@ void gmal_load_pthread_routines()
 }
 
 #if GMAL_SHARED_LIBRARY
+
+#include <stdio.h>
+
+int
+pthread_create(pthread_t *pthread, const pthread_attr_t *attr, void*(*routine)(void*), void *arg)
+{
+    return gmal_pthread_create(pthread, attr, routine, arg);
+}
+
+int
+pthread_join(pthread_t pthread, void **result)
+{
+    return gmal_pthread_join(pthread, result);
+}
+
 int
 pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
 {

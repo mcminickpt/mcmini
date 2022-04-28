@@ -146,6 +146,11 @@ public:
     void moveToPreviousState();
 
     void printTransitionStack();
+
+    // Dtor
+    GMALState();
+    ~GMALState();
+
 };
 
 #endif //GMAL_GMALSTATE_H
