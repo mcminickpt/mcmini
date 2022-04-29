@@ -1,7 +1,4 @@
 #include "mc_shared_cv.h"
-#include "common.h"
-#include <stdio.h>
-#include <pthread.h>
 #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
 
 //PRETTY_PRINT_DEF_DECL(mc_shared_cv)

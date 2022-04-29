@@ -19,10 +19,6 @@ typedef void *GMALSystemID;
 #   define GMAL_EXTERN_DECLS_END }
 #endif
 
-GMAL_EXTERN_DECLS_BEGIN
-#include "decl.h"
-GMAL_EXTERN_DECLS_END
-
 #ifndef __cplusplus
 #   define GMAL_THREAD_LOCAL thread_local
 #else
@@ -39,6 +35,12 @@ do {                            \
 #define GMAL_FATAL() abort() \
 
 #define GMAL_UNIMPLEMENTED() GMAL_ASSERT(false)
+
+#define GMAL_STRUCT_DECL(type)             \
+typedef struct type type;           \
+typedef struct type *type##_t;      \
+typedef struct type *type##_ref;    \
+typedef const struct type *type##_refc;
 
 
 #endif //DPOR_GMALSHARED_H
