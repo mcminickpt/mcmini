@@ -5,6 +5,7 @@
 #include "transitions/GMALThreadFinish.h"
 #include "transitions/GMALThreadJoin.h"
 #include "transitions/GMALTransitionsShared.h"
+#include "transitions/GMALExitTransition.h"
 #include <typeinfo>
 
 extern "C" {
@@ -47,7 +48,10 @@ gmal_thread_routine_wrapper(void * arg)
 int
 gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routine)(void *), void *arg)
 {
-    GMAL_FATAL_ON_FAIL(attr == nullptr); // TODO: For now, we don't support attributes. This should be added in the future
+    // TODO: For now, we don't support attributes. This should be added in the future
+    if (attr != nullptr) {
+        gmal_child_panic();
+    }
 
     auto dpor_thread_arg = (gmal_thread_routine_arg *)malloc(sizeof(gmal_thread_routine_arg));
     dpor_thread_arg->arg = arg;
@@ -87,4 +91,12 @@ gmal_exit_main_thread()
     auto newlyCreatedThread = GMALThreadShadow(nullptr, nullptr, pthread_self());
     thread_post_visible_operation_hit(typeid(GMALThreadFinish), &newlyCreatedThread);
     thread_await_gmal_scheduler();
+}
+
+void
+gmal_exit(int status)
+{
+    thread_post_visible_operation_hit(typeid(GMALExitTransition), &status);
+    thread_await_gmal_scheduler();
+    __real_exit(status);
 }

@@ -26,5 +26,6 @@ extern const size_t shmAllocationSize;
 extern GMALDeferred<GMALState> programState;
 
 GMAL_CTOR void gmal_init();
+void gmal_child_panic();
 
 #endif //GMAL_GMAL_H

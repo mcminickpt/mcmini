@@ -19,6 +19,7 @@ extern "C" {
 #include "transitions/GMALSemInit.h"
 #include "transitions/GMALSemPost.h"
 #include "transitions/GMALSemWait.h"
+#include "transitions/GMALExitTransition.h"
 
 #include "GMAL.h"
 

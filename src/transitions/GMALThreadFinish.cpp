@@ -69,3 +69,9 @@ GMALThreadFinish::print()
     this->thread->print();
     puts("************************");
 }
+
+bool
+GMALThreadFinish::ensuresDeadlockIsImpossible()
+{
+    return this->thread->tid == TID_MAIN_THREAD;
+}

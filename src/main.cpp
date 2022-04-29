@@ -24,6 +24,7 @@ pthread_mutex_t mutex;
 
 void *producer(void *pno)
 {
+    gmal_exit(0);
     int i;
     int item;
     for( i = 0; i < MaxItems*2; i++) {
@@ -40,6 +41,7 @@ void *producer(void *pno)
 
 void *consumer(void *cno)
 {
+    gmal_exit(0);
     int i;
     for( i = 0; i < MaxItems; i++) {
         gmal_sem_wait(&full);

@@ -182,11 +182,8 @@ GMALState::programIsInDeadlock()
     for (tid_t tid = 0; tid < numThreads; tid++) {
         auto nextTransitionForTid = this->getNextTransitionForThread(tid);
 
-        if (tid == TID_MAIN_THREAD) {
-            if (typeid(*nextTransitionForTid) == typeid(GMALThreadFinish)) {
-                return false;
-            }
-        }
+        if (nextTransitionForTid->ensuresDeadlockIsImpossible())
+            return false;
 
         if (nextTransitionForTid->enabledInState(this))
             return false;

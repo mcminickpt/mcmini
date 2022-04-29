@@ -35,7 +35,7 @@ set(GMAL_CPP_FILES
         transitions/GMALMutexInit.cpp transitions/GMALMutexInit.h
         transitions/GMALMutexUnlock.cpp transitions/GMALMutexUnlock.h
         transitions/wrappers/GMALMutexTransitionWrappers.cpp transitions/wrappers/GMALMutexTransitionWrappers.h
-        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h objects/GMALSemaphore.cpp objects/GMALSemaphore.h transitions/GMALSemaphoreTransition.cpp transitions/GMALSemaphoreTransition.h transitions/GMALSemPost.cpp transitions/GMALSemPost.h transitions/GMALSemInit.cpp transitions/GMALSemInit.h transitions/GMALSemWait.cpp transitions/GMALSemWait.h transitions/wrappers/GMALSemaphoreTransitionWrappers.cpp transitions/wrappers/GMALSemaphoreTransitionWrappers.h GMALDeferred.h)
+        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h objects/GMALSemaphore.cpp objects/GMALSemaphore.h transitions/GMALSemaphoreTransition.cpp transitions/GMALSemaphoreTransition.h transitions/GMALSemPost.cpp transitions/GMALSemPost.h transitions/GMALSemInit.cpp transitions/GMALSemInit.h transitions/GMALSemWait.cpp transitions/GMALSemWait.h transitions/wrappers/GMALSemaphoreTransitionWrappers.cpp transitions/wrappers/GMALSemaphoreTransitionWrappers.h GMALDeferred.h transitions/GMALExitTransition.cpp transitions/GMALExitTransition.h)
 
 add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")

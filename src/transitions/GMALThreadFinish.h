@@ -18,6 +18,7 @@ public:
     bool enabledInState(const GMALState *) override;
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
+    bool ensuresDeadlockIsImpossible() override;
 
     void print() override;
 };

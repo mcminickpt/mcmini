@@ -28,7 +28,9 @@ public:
     virtual bool enabledInState(const GMALState *) { return thread->enabled(); }
     virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
+    virtual bool ensuresDeadlockIsImpossible() { return true; }
     inline tid_t getThreadId() const { return thread->tid; }
+
 
     virtual void print() {}
 };

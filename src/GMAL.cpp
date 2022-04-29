@@ -37,7 +37,7 @@ GMALDeferred<GMALState> programState;
 GMAL_CTOR void
 gmal_init()
 {
-    gmal_load_pthread_routines();
+    gmal_load_shadow_routines();
     gmal_create_program_state();
     gmal_initialize_shared_memory_region();
     gmal_create_thread_sleep_points();
@@ -49,7 +49,7 @@ gmal_init()
     if (GMAL_IS_SOURCE_PROGRAM(program)) return;
 
     puts("***** Model checking completed! *****");
-    exit(EXIT_SUCCESS);
+    __real_exit(EXIT_SUCCESS);
 }
 
 void
@@ -66,6 +66,7 @@ gmal_create_program_state()
     programState.get()->registerVisibleOperationType(typeid(GMALSemInit), &GMALReadSemInit);
     programState.get()->registerVisibleOperationType(typeid(GMALSemPost), &GMALReadSemPost);
     programState.get()->registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
+    programState.get()->registerVisibleOperationType(typeid(GMALExitTransition), &GMALReadExitTransition);
     programState.get()->start();
 }
 
@@ -86,7 +87,7 @@ gmal_scheduler_main()
 
     while (!programState.get()->stateStackIsEmpty()) {
         const uint32_t depth = programState.get()->getStateStackSize();
-//        printf("**** Backtracking from state %d ****\n", depth);
+        printf("**** Backtracking from state %d ****\n", depth);
 
         std::shared_ptr<GMALStateStackItem> sTop = programState.get()->getStateStackTop();
         if (sTop->hasThreadsToBacktrackOn()) {
@@ -100,10 +101,10 @@ gmal_scheduler_main()
             if (GMAL_IS_SOURCE_PROGRAM(program))
                 return GMAL_SOURCE_PROGRAM;
         } else {
-//            puts("**** ... Nothing to backtrack on... ****");
+            puts("**** ... Nothing to backtrack on... ****");
         }
         programState.get()->moveToPreviousState();
-//        printf("**** Backtracking completed at state %d ****\n", depth);
+        printf("**** Backtracking completed at state %d ****\n", depth);
     }
     return false;
 }
@@ -130,12 +131,12 @@ gmal_create_shared_memory_region()
         } else {
             perror("shm_open");
         }
-        exit(EXIT_FAILURE);
+        __real_exit(EXIT_FAILURE);
     }
     int rc = ftruncate(fd, shmAllocationSize);
     if (rc == -1) {
         perror("ftruncate");
-        exit(EXIT_FAILURE);
+        __real_exit(EXIT_FAILURE);
     }
     // We want stack at same address for each process.  Otherwise, a pointer
     //   to an address in the stack data structure will not work everywhere.
@@ -145,7 +146,7 @@ gmal_create_shared_memory_region()
                                         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
     if (shmStart == MAP_FAILED) {
         perror("mmap");
-        exit(EXIT_FAILURE);
+        __real_exit(EXIT_FAILURE);
     }
     // shm_unlink(dpor); // Don't unlink while child processes need to open this.
     fsync(fd);
@@ -193,6 +194,7 @@ sigusr1_handler_child(int sig)
 void
 sigusr1_handler_scheduler(int sig)
 {
+    gmal_child_kill();
     puts("******* Something went wrong in the source program... *******************");
     _Exit(1);
 }
@@ -215,7 +217,7 @@ gmal_spawn_child()
         printf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
         return GMAL_SOURCE_PROGRAM;
     } else {
-        signal(SIGUSR1, &sigusr1_handler_scheduler);
+        GMAL_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) != SIG_ERR);
         return GMAL_SCHEDULER;
     }
 }
@@ -299,6 +301,17 @@ gmal_child_kill()
     kill(cpid, SIGUSR1);
     waitpid(cpid, NULL, 0);
     cpid = -1;
+}
+
+void
+gmal_child_panic()
+{
+    pid_t schedpid = getppid();
+    kill(schedpid, SIGUSR1);
+
+    // The scheduler will kill the child
+    // process before being able to leave this function
+    waitpid(schedpid, NULL, 0);
 }
 
 void

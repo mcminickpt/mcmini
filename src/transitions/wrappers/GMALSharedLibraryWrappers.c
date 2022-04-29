@@ -12,8 +12,9 @@ typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
 typeof(&sem_init) sem_init_ptr;
+typeof(&exit) exit_ptr;
 
-void gmal_load_pthread_routines()
+void gmal_load_shadow_routines()
 {
 #if GMAL_SHARED_LIBRARY
     pthread_create_ptr = dlsym(RTLD_NEXT, "pthread_create");
@@ -24,6 +25,7 @@ void gmal_load_pthread_routines()
     sem_wait_ptr = dlsym(RTLD_NEXT, "sem_wait");
     sem_post_ptr = dlsym(RTLD_NEXT, "sem_post");
     sem_init_ptr = dlsym(RTLD_NEXT, "sem_init");
+    exit_ptr = dlsym(RTLD_NEXT, "exit");
 #else
     pthread_create_ptr = &pthread_create;
     pthread_join_ptr = &pthread_join;
@@ -33,12 +35,11 @@ void gmal_load_pthread_routines()
     sem_post_ptr = &sem_post;
     sem_wait_ptr = &sem_wait;
     sem_init_ptr = &sem_init;
+    exit_ptr = &exit;
 #endif
 }
 
 #if GMAL_SHARED_LIBRARY
-
-#include <stdio.h>
 
 int
 pthread_create(pthread_t *pthread, const pthread_attr_t *attr, void*(*routine)(void*), void *arg)
@@ -86,5 +87,11 @@ int
 sem_wait(sem_t *sem)
 {
     return gmal_sem_wait(sem);
+}
+
+void
+exit(int status)
+{
+    gmal_exit(status);
 }
 #endif
