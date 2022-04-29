@@ -3,6 +3,7 @@
 
 #include "GMALShared.h"
 #include "GMALSharedTransition.h"
+#include "GMALDeferred.h"
 
 extern "C" {
     #include <semaphore.h>
@@ -22,7 +23,7 @@ extern void *shmTransitionData;
 extern const size_t shmAllocationSize;
 
 /* State */
-extern GMALState programState;
+extern GMALDeferred<GMALState> programState;
 
 GMAL_CTOR void gmal_init();
 

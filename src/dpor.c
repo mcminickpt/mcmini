@@ -185,7 +185,7 @@ dpor_exhaust_threads(dynamic_transition_ref initial_transition)
         csystem_print_transition_stack(&csystem);
         csystem_print_next_transitions_stack(&csystem);
     } else {
-        puts("*** NO FAILURE DETECTED ***");
+//        puts("*** NO FAILURE DETECTED ***");
 //        csystem_print_transition_stack(&csystem);
     }
     dpor_child_kill();

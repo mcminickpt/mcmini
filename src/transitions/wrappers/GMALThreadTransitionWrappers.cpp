@@ -19,7 +19,7 @@ struct gmal_thread_routine_arg {
 void *
 gmal_thread_routine_wrapper(void * arg)
 {
-    tid_self = programState.createNewThread();
+    tid_self = programState.get()->createNewThread();
     __real_sem_post(&gmal_pthread_create_binary_sem);
 
     auto unwrapped_arg = (gmal_thread_routine_arg*)arg;

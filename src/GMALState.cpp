@@ -482,13 +482,3 @@ GMALState::printTransitionStack()
         this->getTransitionAtIndex(i)->print();
     }
 }
-
-GMALState::~GMALState()
-{
-    printf("DTOR %lu\n", nextThreadId);
-}
-
-GMALState::GMALState()
-{
-    printf("IN CTOR %lu\n", nextThreadId);
-}
