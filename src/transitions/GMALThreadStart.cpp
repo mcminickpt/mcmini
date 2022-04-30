@@ -61,3 +61,9 @@ GMALThreadStart::print()
     this->thread->print();
     puts("************************");
 }
+
+bool
+GMALThreadStart::countsAgainstThreadExecutionDepth()
+{
+    return false;
+}

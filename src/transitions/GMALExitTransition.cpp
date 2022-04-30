@@ -9,7 +9,6 @@ GMALTransition* GMALReadExitTransition(const GMALSharedTransition *shmTransition
 
 std::shared_ptr<GMALTransition>
 GMALExitTransition::staticCopy() {
-    // INVARIANT: Target and the thread itself are the same
     auto threadCpy=
             std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
     auto threadStartCpy = new GMALExitTransition(threadCpy, exitCode);
@@ -18,7 +17,6 @@ GMALExitTransition::staticCopy() {
 
 std::shared_ptr<GMALTransition>
 GMALExitTransition::dynamicCopyInState(const GMALState *state) {
-    // INVARIANT: Target and the thread itself are the same
     std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
     auto cpy = new GMALExitTransition(threadInState, exitCode);
     return std::shared_ptr<GMALTransition>(cpy);
@@ -49,5 +47,11 @@ bool
 GMALExitTransition::ensuresDeadlockIsImpossible()
 {
     return true;
+}
+
+bool
+GMALExitTransition::countsAgainstThreadExecutionDepth()
+{
+    return false;
 }
 

@@ -26,7 +26,7 @@ GMALThread::getState() const
 bool
 GMALThread::enabled() const
 {
-    return this->threadShadow.state == GMALThreadShadow::alive || this->threadShadow.state == GMALThreadShadow::embryo;
+    return this->threadShadow.state == GMALThreadShadow::alive;
 }
 
 void

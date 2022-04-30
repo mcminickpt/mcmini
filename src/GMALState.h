@@ -6,12 +6,12 @@ struct GMALSharedTransition;
 struct GMALState;
 typedef GMALTransition*(*GMALSharedMemoryHandler)(const GMALSharedTransition*, void*, GMALState*);
 
-#include <stdint.h>
-#include "GMALShared.h"
 #include "GMALMap.h"
-#include "GMALSharedTransition.h"
-#include "GMALStateStackItem.h"
 #include "GMALObjectStore.h"
+#include "GMALShared.h"
+#include "GMALSharedTransition.h"
+#include "GMALStateConfiguration.h"
+#include "GMALStateStackItem.h"
 #include "objects/GMALThread.h"
 #include <typeinfo>
 #include <functional>
@@ -38,8 +38,19 @@ class GMALState {
 private:
     GMALObjectStore objectStorage;
 
+    /**
+     * The maximum number of transitions that any given thread is allowed to execute
+     */
+    const GMALStateConfiguration configuration;
+
     tid_t nextThreadId = 0;
     std::shared_ptr<GMALTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
+
+    /**
+     * Maps, for each thread, the number of times in the current transition
+     * stack that thread has run for
+     */
+    uint32_t threadTransitionCounts[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
      * A pointer to the top-most element in the transition stack
@@ -67,32 +78,49 @@ private:
     std::unordered_map<tid_t, objid_t> threadIdMap;
 
 private:
-
     void growStateStack();
-    void virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition>&);
 
-    std::shared_ptr<GMALTransition> getTransitionAtIndex(int) const;
-    std::shared_ptr<GMALTransition> getTransitionStackTop() const;
-    std::shared_ptr<GMALTransition> getPendingTransitionForThread(tid_t) const;
+    bool transitionIsEnabled(const std::shared_ptr<GMALTransition>&);
+
+    void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
+    void virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition>&);
 
     bool happensBefore(int i, int j) const;
     bool happensBeforeThread(int i, const std::shared_ptr<GMALThread>&) const;
     bool happensBeforeThread(int i, tid_t) const;
     bool threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const;
 
+    void growStateStackWithTransition(const std::shared_ptr<GMALTransition>&);
+    void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
+    void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
+    void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
+
 public:
+
+    GMALState(GMALStateConfiguration config) : configuration(config) {}
+
+    tid_t getThreadRunningTransitionAtIndex(int) const;
+    std::shared_ptr<GMALTransition> getPendingTransitionForThread(tid_t) const;
+    std::shared_ptr<GMALTransition> getTransitionAtIndex(int) const;
+    std::shared_ptr<GMALTransition> getTransitionStackTop() const;
+    std::shared_ptr<GMALStateStackItem> getStateItemAtIndex(int) const;
+    std::shared_ptr<GMALStateStackItem> getStateStackTop() const;
+
     std::shared_ptr<GMALTransition> getNextTransitionForThread(GMALThread *thread);
     std::shared_ptr<GMALTransition> getNextTransitionForThread(tid_t thread);
-    std::shared_ptr<GMALTransition> getFirstEnabledTransitionFromNextStack();
+    void setNextTransitionForThread(GMALThread *, std::shared_ptr<GMALTransition>);
+    void setNextTransitionForThread(tid_t, std::shared_ptr<GMALTransition>);
+    void setNextTransitionForThread(tid_t, GMALSharedTransition*, void *);
 
-    bool programIsInDeadlock();
+    std::shared_ptr<GMALTransition> getFirstEnabledTransitionFromNextStack();
 
     objid_t createNewThread();
     objid_t createNewThread(GMALThreadShadow&);
     objid_t createMainThread();
-
     objid_t addNewThread(GMALThreadShadow&);
+
     objid_t registerNewObject(const std::shared_ptr<GMALVisibleObject>& object);
+    std::shared_ptr<GMALThread> getThreadWithId(tid_t id) const;
 
     template<typename Object>
     std::shared_ptr<Object>
@@ -101,50 +129,32 @@ public:
         return objectStorage.getObjectWithId<Object>(id);
     }
 
-    std::shared_ptr<GMALThread> getThreadWithId(tid_t id) const;
-
-    void setNextTransitionForThread(GMALThread *, std::shared_ptr<GMALTransition>);
-    void setNextTransitionForThread(tid_t, std::shared_ptr<GMALTransition>);
-    void setNextTransitionForThread(tid_t, GMALSharedTransition*, void *);
-
-    void growStateStackWithTransition(const std::shared_ptr<GMALTransition>&);
-    void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
-    void simulateRunningTransition(const std::shared_ptr<GMALTransition>&);
-    void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
-    void virtuallyRevertTransition(const std::shared_ptr<GMALTransition>&);
-
-    /**
-     * Computes the height of the transition stack
-     * @return the number of elements in the transition stack
-     */
-    uint64_t getTransitionStackSize() const;
-    uint64_t getStateStackSize() const;
-
-    bool transitionStackIsEmpty() const;
-    bool stateStackIsEmpty() const;
-    uint64_t getNumProgramThreads() const;
-
-    tid_t getThreadRunningTransitionAtIndex(int) const;
-    std::shared_ptr<GMALStateStackItem> getStateItemAtIndex(int) const;
-    std::shared_ptr<GMALStateStackItem> getStateStackTop() const;
-
-    // Registering new types
-    void registerVisibleOperationType(GMALType, GMALSharedMemoryHandler);
-    void registerVisibleObjectWithSystemIdentity(GMALSystemID, std::shared_ptr<GMALVisibleObject>);
-
     template<typename Object>
     std::shared_ptr<Object>
     getVisibleObjectWithSystemIdentity(GMALSystemID systemId) {
         return objectStorage.getObjectWithSystemAddress<Object>(systemId);
     }
 
+    void simulateRunningTransition(const std::shared_ptr<GMALTransition>&);
+
+    uint64_t getTransitionStackSize() const;
+    uint64_t getStateStackSize() const;
+    bool transitionStackIsEmpty() const;
+    bool stateStackIsEmpty() const;
+
+    // Registering new types
+    void registerVisibleOperationType(GMALType, GMALSharedMemoryHandler);
+    void registerVisibleObjectWithSystemIdentity(GMALSystemID, std::shared_ptr<GMALVisibleObject>);
+
     void dynamicallyUpdateBacktrackSets();
+
+    bool programIsInDeadlock();
+    uint64_t getNumProgramThreads() const;
 
     // Restarting
     void start();
     void reset();
     void moveToPreviousState();
-
     void printTransitionStack();
 };
 

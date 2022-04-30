@@ -14,7 +14,6 @@ protected:
     std::shared_ptr<GMALThread> thread;
 public:
     GMALTransition(std::shared_ptr<GMALThread> thread) : thread(thread) {}
-
     GMALTransition(const GMALTransition&) = default;
     GMALTransition &operator=(const GMALTransition&) = default;
 
@@ -28,11 +27,26 @@ public:
     virtual bool enabledInState(const GMALState *) { return thread->enabled(); }
     virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
-    virtual bool ensuresDeadlockIsImpossible() { return true; }
+
+    /**
+     *
+     * @return
+     */
+    virtual bool ensuresDeadlockIsImpossible() { return false; }
+
+    /**
+     * Determines whether or not this transition should be considered
+     * when determining the number of transitions run
+     * @return
+     */
+    virtual bool countsAgainstThreadExecutionDepth() { return true; }
+
+    // Printing
+    virtual void print() {}
+
     inline tid_t getThreadId() const { return thread->tid; }
 
 
-    virtual void print() {}
 };
 
 #endif //GMAL_GMALTRANSITION_H

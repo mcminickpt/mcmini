@@ -8,7 +8,7 @@ GMALReadThreadFinish(const GMALSharedTransition *shmTransition, void *shmData, G
 
 struct GMALThreadFinish : public GMALThreadTransition {
 public:
-    inline GMALThreadFinish(std::shared_ptr<GMALThread> threadRunning) :
+    inline explicit GMALThreadFinish(std::shared_ptr<GMALThread> threadRunning) :
     GMALThreadTransition(threadRunning, threadRunning) {}
 
     std::shared_ptr<GMALTransition> staticCopy() override;
@@ -19,7 +19,7 @@ public:
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
     bool ensuresDeadlockIsImpossible() override;
-
+    bool countsAgainstThreadExecutionDepth() override;
     void print() override;
 };
 

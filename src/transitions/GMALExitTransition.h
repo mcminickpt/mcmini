@@ -20,7 +20,7 @@ public:
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
     bool enabledInState(const GMALState *) override;
     bool ensuresDeadlockIsImpossible() override;
-
+    bool countsAgainstThreadExecutionDepth() override;
     void print() override;
 };
 

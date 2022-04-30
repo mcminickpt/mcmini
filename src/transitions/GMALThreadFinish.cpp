@@ -75,3 +75,9 @@ GMALThreadFinish::ensuresDeadlockIsImpossible()
 {
     return this->thread->tid == TID_MAIN_THREAD;
 }
+
+bool
+GMALThreadFinish::countsAgainstThreadExecutionDepth()
+{
+    return false;
+}

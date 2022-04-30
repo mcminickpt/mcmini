@@ -9,7 +9,7 @@ This program provides a possible solution for producer-consumer problem using mu
 I have used 5 producers and 5 consumers to demonstrate the solution. You can always play with these values.
 */
 
-#define NUM_PRODUCERS 2
+#define NUM_PRODUCERS 1
 #define NUM_CONSUMERS 1
 #define MaxItems 1 // Maximum items a producer can produce or a consumer can consume
 #define BufferSize 5 // Size of the buffer
@@ -23,7 +23,7 @@ pthread_mutex_t mutex;
 
 void *producer(void *pno)
 {
-    gmal_exit(0);
+//    gmal_exit(0);
     int i;
     int item;
     for( i = 0; i < MaxItems*2; i++) {
@@ -40,7 +40,7 @@ void *producer(void *pno)
 
 void *consumer(void *cno)
 {
-    gmal_exit(0);
+//    gmal_exit(0);
     int i;
     for( i = 0; i < MaxItems; i++) {
         gmal_sem_wait(&full);

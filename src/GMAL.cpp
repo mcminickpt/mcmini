@@ -55,7 +55,8 @@ gmal_init()
 void
 gmal_create_program_state()
 {
-    programState.Construct();
+    auto config = GMALStateConfiguration(5);
+    programState.Construct(config);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
@@ -333,7 +334,7 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
         puts("*** DEADLOCK DETECTED ***");
         programState.get()->printTransitionStack();
     } else {
-        //puts("*** NO FAILURE DETECTED ***");
+        puts("*** NO FAILURE DETECTED ***");
     }
     gmal_child_kill();
 }
