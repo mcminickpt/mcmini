@@ -1,6 +1,5 @@
 #include "GMAL.h"
 #include "GMALWrappers.h"
-#include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,7 +9,7 @@ This program provides a possible solution for producer-consumer problem using mu
 I have used 5 producers and 5 consumers to demonstrate the solution. You can always play with these values.
 */
 
-#define NUM_PRODUCERS 1
+#define NUM_PRODUCERS 2
 #define NUM_CONSUMERS 1
 #define MaxItems 1 // Maximum items a producer can produce or a consumer can consume
 #define BufferSize 5 // Size of the buffer

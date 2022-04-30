@@ -44,16 +44,20 @@ message("Linking object files...")
 # -pthread -> libpthread.so
 # -lm -> math library
 # -ldl -> dlsym etc.
-#target_compile_options(DPOR PUBLIC -fsanitize=undefined) -lubsan
 set(GMAL_LINK_TARGET_FLAGS -lrt -pthread -lm -ldl)
 target_link_libraries(GMAL PUBLIC ${GMAL_LINK_TARGET_FLAGS})
+
+# -g3 -> debug symbols
+#-fsanitize=undefined (-lubsan)
+target_compile_options(GMAL PUBLIC -g3)
 
 # Shared library
 add_library(gmalchecker SHARED ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
 target_compile_definitions(gmalchecker PUBLIC GMAL_SHARED_LIBRARY=1)
 target_link_libraries(gmalchecker PUBLIC ${GMAL_LINK_TARGET_FLAGS})
+target_compile_options(gmalchecker PUBLIC -g3)
 
 # Executable that loads the shared library
 set(MAIN_FUNCTION launch.c)
-add_executable(gmal ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
-target_link_libraries(gmal PUBLIC ${GMAL_LINK_TARGET_FLAGS})
+add_executable(gmal ${MAIN_FUNCTION})
+target_compile_options(gmal PUBLIC -g3)
