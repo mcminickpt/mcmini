@@ -16,7 +16,13 @@ struct GMALBarrierShadow {
 
 struct GMALBarrier : public GMALVisibleObject {
 private:
-    std::unordered_set<tid_t> threadsWaitingOnBarrier;
+    std::unordered_set<tid_t> threadsWaitingOnBarrierOdd;
+    std::unordered_set<tid_t> threadsWaitingOnBarrierEven;
+
+    std::unordered_set<tid_t> &waitingSetForParity();
+
+    bool isEven = false;
+
     GMALBarrierShadow barrierShadow;
     inline explicit GMALBarrier(GMALBarrierShadow shadow, objid_t id) : GMALVisibleObject(id), barrierShadow(shadow) {}
 
@@ -30,12 +36,13 @@ public:
     bool operator ==(const GMALBarrier&) const;
     bool operator !=(const GMALBarrier&) const;
 
-    bool wouldBlockIfWaitedOn();
+    bool wouldBlockIfWaitedOn(tid_t);
     void deinit();
     void init();
     void wait(tid_t);
     void leave(tid_t);
     bool isWaitingOnBarrier(tid_t);
+    bool hasEvenParity(tid_t);
 
     void print() override;
 };

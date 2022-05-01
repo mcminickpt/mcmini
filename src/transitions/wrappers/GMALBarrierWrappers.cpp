@@ -26,5 +26,9 @@ gmal_pthread_barrier_wait(pthread_barrier_t *barrier)
     auto newlyCreatedShadow = GMALBarrierShadow(barrier, 0);
     thread_post_visible_operation_hit<GMALBarrierShadow>(typeid(GMALBarrierWait), &newlyCreatedShadow);
     thread_await_gmal_scheduler();
-    return __real_pthread_barrier_wait(barrier);
+    
+    // We don't directly call pthread_barrier_wait here since we'd have to do so for
+    // ALL threads waiting on the barrier. Instead we can just feign a pthread_barrier_wait
+    // call by simply preventing any threads waiting on the barrier from being scheduled
+    return PTHREAD_BARRIER_SERIAL_THREAD;
 }

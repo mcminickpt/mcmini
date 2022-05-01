@@ -69,9 +69,9 @@ GMALBarrierWait::dependentWith(std::shared_ptr<GMALTransition> other)
 }
 
 bool
-GMALBarrierWait::enabledInState(const GMALState *)
+GMALBarrierWait::enabledInState(const GMALState *state)
 {
-    return !this->barrier->wouldBlockIfWaitedOn();
+    return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
 }
 
 void

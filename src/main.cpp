@@ -40,8 +40,26 @@ sem_t seatBelt;
 // have been serviced.
 int allDone = 0;
 
+pthread_barrier_t bar;
+
+void *
+test(void *unused)
+{
+    gmal_pthread_barrier_wait(&bar);
+    return nullptr;
+}
+
 int main(int argc, char *argv[]) {
     gmal_init();
+
+
+    pthread_t a;
+    gmal_pthread_barrier_init(&bar, NULL, 2);
+    gmal_pthread_create(&a, NULL, &test, NULL);
+    gmal_pthread_barrier_wait(&bar);
+
+    gmal_exit(0);
+
     pthread_t btid;
     pthread_t tid[MAX_CUSTOMERS];
     long RandSeed;
