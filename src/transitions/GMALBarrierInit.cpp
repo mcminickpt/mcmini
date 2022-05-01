@@ -70,9 +70,5 @@ GMALBarrierInit::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALBarrierInit::print()
 {
-    puts("************************");
-    puts(" -- BARRIER INIT -- ");
-    this->thread->print();
-    this->barrier->print();
-    puts("************************");
+    printf("thread %lu: pthread_barrier_init(%lu, _, %u)\n", this->thread->tid, this->barrier->getObjectId(), this->barrier->getCount());
 }

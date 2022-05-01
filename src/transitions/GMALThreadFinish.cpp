@@ -64,10 +64,7 @@ GMALThreadFinish::dependentWith(std::shared_ptr<GMALTransition> transition) {
 void
 GMALThreadFinish::print()
 {
-    puts("************************");
-    puts(" -- THREAD FINISH -- ");
-    this->thread->print();
-    puts("************************");
+    printf("thread %lu: exits\n", this->thread->tid);
 }
 
 bool

@@ -91,11 +91,5 @@ GMALThreadJoin::joinsOnThread(const std::shared_ptr<GMALThread>& thread) const
 void
 GMALThreadJoin::print()
 {
-    puts("************************");
-    puts(" -- THREAD JOIN -- ");
-    puts(" - Running Thread - ");
-    this->thread->print();
-    puts(" - Target Thread - ");
-    this->target->print();
-    puts("************************");
+    printf("thread %lu: pthread_join(%lu, _)\n", this->thread->tid, this->target->tid);
 }

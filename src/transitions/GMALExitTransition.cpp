@@ -37,10 +37,7 @@ GMALExitTransition::enabledInState(const GMALState *)
 void
 GMALExitTransition::print()
 {
-    puts("************************");
-    puts(" -- EXIT PROGRAM -- ");
-    this->thread->print();
-    puts("************************");
+    printf("thread %lu: exit(%u)\n", this->thread->tid, this->exitCode);
 }
 
 bool

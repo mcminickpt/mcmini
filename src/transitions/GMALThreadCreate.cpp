@@ -76,13 +76,5 @@ GMALThreadCreate::doesCreateThread(tid_t tid) const
 void
 GMALThreadCreate::print()
 {
-    puts("************************");
-    puts(" -- THREAD CREATE -- ");
-    puts(" - Running Thread - ");
-    this->thread->print();
-    puts(" - Target Thread - ");
-    this->target->print();
-    puts("************************");
-
-//    printf("thread %lu: pthread_create(%lu)\t\n", this->thread->tid, this->target->tid);
+    printf("thread %lu: pthread_create(%lu)\n", this->thread->tid, this->target->tid);
 }

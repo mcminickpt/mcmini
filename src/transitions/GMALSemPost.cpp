@@ -69,8 +69,5 @@ GMALSemPost::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALSemPost::print()
 {
-    puts("************************");
-    puts(" -- SEM POST -- ");
-    this->sem->print();
-    puts("************************");
+    printf("thread %lu: sem_post(%lu)\n", this->thread->tid, this->sem->getObjectId());
 }

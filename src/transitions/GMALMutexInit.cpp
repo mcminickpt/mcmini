@@ -70,9 +70,5 @@ GMALMutexInit::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALMutexInit::print()
 {
-    puts("************************");
-    puts(" -- MUTEX INIT -- ");
-    this->thread->print();
-    this->mutex->print();
-    puts("************************");
+    printf("thread %lu: pthread_mutex_init(%lu, _)\n", this->thread->tid, this->mutex->getObjectId());
 }

@@ -75,10 +75,7 @@ GMALSemWait::enabledInState(const GMALState *)
 void
 GMALSemWait::print()
 {
-    puts("************************");
-    puts(" -- SEM WAIT -- ");
-    this->sem->print();
-    puts("************************");
+    printf("thread %lu: sem_wait(%lu)\n", this->thread->tid, this->sem->getObjectId());
 }
 
 

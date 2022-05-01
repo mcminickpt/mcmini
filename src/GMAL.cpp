@@ -43,7 +43,6 @@ gmal_init()
     gmal_create_thread_sleep_points();
 
     GMAL_FATAL_ON_FAIL(__real_sem_init(&gmal_pthread_create_binary_sem, 0, 0) == 0);
-    GMAL_FATAL_ON_FAIL(atexit(&gmal_exit) == 0);
 
     GMAL_PROGRAM_TYPE program = gmal_scheduler_main();
     if (GMAL_IS_SOURCE_PROGRAM(program)) return;
@@ -110,12 +109,6 @@ gmal_scheduler_main()
         printf("**** Backtracking completed at state %d ****\n", depth);
     }
     return false;
-}
-
-void
-gmal_exit()
-{
-    puts("EXITING");
 }
 
 void*
@@ -275,6 +268,7 @@ gmal_begin_target_program_at_main()
         // keep the process alive to allow the model checker to
         // continue working
         //
+        //
         // NOTE: This does not handle the case where a
         // thread makes a call to exit(). This is a special case we need
         // to be able to handle
@@ -378,5 +372,6 @@ gmal_report_undefined_behavior(const char *msg)
     );
     printf("\t%s\t\n", msg);
     programState.get()->printTransitionStack();
+    programState.get()->printNextTransitions();
     exit(EXIT_FAILURE);
 }

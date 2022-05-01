@@ -105,3 +105,9 @@ GMALBarrier::hasEvenParity(tid_t tid)
     }
     return false;
 }
+
+unsigned int
+GMALBarrier::getCount()
+{
+    return this->barrierShadow.waitCount;
+}

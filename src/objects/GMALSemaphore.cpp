@@ -66,3 +66,9 @@ GMALSemaphore::isDestroyed() const
 {
     return this->semShadow.state == GMALSemaphoreShadow::destroyed;
 }
+
+unsigned int
+GMALSemaphore::getCount() const
+{
+    return this->semShadow.count;
+}

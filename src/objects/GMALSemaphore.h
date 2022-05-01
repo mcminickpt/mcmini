@@ -30,6 +30,7 @@ public:
     bool operator ==(const GMALSemaphore&) const;
     bool operator !=(const GMALSemaphore&) const;
 
+    unsigned int getCount() const;
     bool isDestroyed() const;
     bool wouldBlockIfWaitedOn();
     void deinit();

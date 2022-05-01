@@ -36,6 +36,7 @@ public:
     bool operator ==(const GMALBarrier&) const;
     bool operator !=(const GMALBarrier&) const;
 
+    unsigned int getCount();
     bool wouldBlockIfWaitedOn(tid_t);
     void deinit();
     void init();

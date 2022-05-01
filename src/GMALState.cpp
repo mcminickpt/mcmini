@@ -506,11 +506,23 @@ GMALState::registerVisibleObjectWithSystemIdentity(GMALSystemID systemId, std::s
     object->id = id;
 }
 
-
 void
-GMALState::printTransitionStack()
+GMALState::printTransitionStack() const
 {
+    printf("\t THREAD BACKTRACE\n");
     for (int i = 0; i <= this->transitionStackTop; i++) {
         this->getTransitionAtIndex(i)->print();
     }
+    printf("\t END\n");
+}
+
+void
+GMALState::printNextTransitions() const
+{
+    printf("\t THREAD STATES\n");
+    auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        this->getPendingTransitionForThread(i)->print();
+    }
+    printf("\t END\n");
 }

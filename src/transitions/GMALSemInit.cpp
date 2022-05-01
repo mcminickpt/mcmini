@@ -66,8 +66,5 @@ GMALSemInit::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALSemInit::print()
 {
-    puts("************************");
-    puts(" -- SEM INIT -- ");
-    this->sem->print();
-    puts("************************");
+    printf("thread %lu: sem_init(%lu, 0, %u)\n", this->thread->tid, this->sem->getObjectId(), this->sem->getCount());
 }

@@ -73,9 +73,5 @@ GMALMutexUnlock::dependentWith(std::shared_ptr<GMALTransition> transition)
 void
 GMALMutexUnlock::print()
 {
-    puts("************************");
-    puts(" -- MUTEX UNLOCK -- ");
-    this->thread->print();
-    this->mutex->print();
-    puts("************************");
+    printf("thread %lu: pthread_mutex_unlock(%lu)\n", this->thread->tid, this->mutex->getObjectId());
 }

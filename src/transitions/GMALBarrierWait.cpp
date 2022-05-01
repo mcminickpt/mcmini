@@ -77,10 +77,7 @@ GMALBarrierWait::enabledInState(const GMALState *state)
 void
 GMALBarrierWait::print()
 {
-    puts("************************");
-    puts(" -- BARRIER WAIT -- ");
-    this->barrier->print();
-    puts("************************");
+    printf("thread %lu: pthread_barrier_wait(%lu)\n", this->thread->tid, this->barrier->getObjectId());
 }
 
 

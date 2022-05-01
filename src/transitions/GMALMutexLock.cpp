@@ -94,9 +94,5 @@ GMALMutexLock::dependentWith(std::shared_ptr<GMALTransition> transition)
 void
 GMALMutexLock::print()
 {
-    puts("************************");
-    puts(" -- MUTEX LOCK -- ");
-    this->thread->print();
-    this->mutex->print();
-    puts("************************");
+    printf("thread %lu: pthread_mutex_lock(%lu)\n", this->thread->tid, this->mutex->getObjectId());
 }
