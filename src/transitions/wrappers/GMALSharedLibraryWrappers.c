@@ -3,6 +3,7 @@
 #include "GMALMutexTransitionWrappers.h"
 #include "GMALSemaphoreTransitionWrappers.h"
 #include "GMALThreadTransitionWrappers.h"
+#include "GMALBarrierWrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -13,6 +14,8 @@ typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
 typeof(&sem_init) sem_init_ptr;
 typeof(&exit) exit_ptr;
+typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
+typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 
 void gmal_load_shadow_routines()
 {
@@ -26,6 +29,8 @@ void gmal_load_shadow_routines()
     sem_post_ptr = dlsym(RTLD_NEXT, "sem_post");
     sem_init_ptr = dlsym(RTLD_NEXT, "sem_init");
     exit_ptr = dlsym(RTLD_NEXT, "exit");
+    pthread_barrier_init_ptr = dlsym(RTLD_NEXT, "pthread_barrier_init");
+    pthread_barrier_wait_ptr = dlsym(RTLD_NEXT, "pthread_barrier_wait");
 #else
     pthread_create_ptr = &pthread_create;
     pthread_join_ptr = &pthread_join;
@@ -36,6 +41,8 @@ void gmal_load_shadow_routines()
     sem_wait_ptr = &sem_wait;
     sem_init_ptr = &sem_init;
     exit_ptr = &exit;
+    pthread_barrier_init_ptr = &pthread_barrier_init;
+    pthread_barrier_wait_ptr = &pthread_barrier_wait;
 #endif
 }
 
@@ -93,5 +100,17 @@ void
 exit(int status)
 {
     gmal_exit(status);
+}
+
+int
+pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count)
+{
+    return gmal_pthread_barrier_init(barrier, attr, count);
+}
+
+int
+pthread_barrier_wait(pthread_barrier_t *barrier)
+{
+    return gmal_pthread_barrier_wait(barrier);
 }
 #endif

@@ -11,7 +11,7 @@ extern "C" {
 int
 gmal_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
-    // The join handler doesn't care about the other arguments
+    // The handler doesn't care about the other arguments
     auto newlyCreatedMutex = GMALMutexShadow(mutex);
     thread_post_visible_operation_hit<GMALMutexShadow>(typeid(GMALMutexInit), &newlyCreatedMutex);
     thread_await_gmal_scheduler();

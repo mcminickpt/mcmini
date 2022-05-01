@@ -15,6 +15,8 @@ extern typeof(&sem_wait) sem_wait_ptr;
 extern typeof(&sem_post) sem_post_ptr;
 extern typeof(&sem_init) sem_init_ptr;
 extern typeof(&exit) exit_ptr;
+extern typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
+extern typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 
 #define __real_pthread_create (*pthread_create_ptr)
 #define __real_pthread_join (*pthread_join_ptr)
@@ -25,6 +27,9 @@ extern typeof(&exit) exit_ptr;
 #define __real_sem_post (*sem_post_ptr)
 #define __real_sem_init (*sem_init_ptr)
 #define __real_exit (*exit_ptr)
+#define __real_pthread_barrier_init (*pthread_barrier_init_ptr)
+#define __real_pthread_barrier_wait (*pthread_barrier_wait_ptr)
+
 
 void gmal_load_shadow_routines();
 

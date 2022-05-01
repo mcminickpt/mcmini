@@ -55,7 +55,7 @@ gmal_init()
 void
 gmal_create_program_state()
 {
-    auto config = GMALStateConfiguration(5);
+    auto config = GMALStateConfiguration(10);
     programState.Construct(config);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
@@ -68,6 +68,8 @@ gmal_create_program_state()
     programState.get()->registerVisibleOperationType(typeid(GMALSemPost), &GMALReadSemPost);
     programState.get()->registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
     programState.get()->registerVisibleOperationType(typeid(GMALExitTransition), &GMALReadExitTransition);
+    programState.get()->registerVisibleOperationType(typeid(GMALBarrierInit), &GMALReadBarrierInit);
+    programState.get()->registerVisibleOperationType(typeid(GMALBarrierWait), &GMALReadBarrierWait);
     programState.get()->start();
 }
 

@@ -20,6 +20,8 @@ extern "C" {
 #include "transitions/GMALSemPost.h"
 #include "transitions/GMALSemWait.h"
 #include "transitions/GMALExitTransition.h"
+#include "transitions/GMALBarrierInit.h"
+#include "transitions/GMALBarrierWait.h"
 
 #include "GMAL.h"
 

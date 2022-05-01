@@ -3,6 +3,9 @@
 
 #include "GMALShared.h"
 
+/**
+ *
+ */
 #define GMAL_STATE_CONFIG_THREAD_NO_LIMIT UINT32_MAX
 
 
