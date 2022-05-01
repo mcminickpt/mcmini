@@ -192,6 +192,14 @@ GMALState::getFirstEnabledTransitionFromNextStack()
 bool
 GMALState::programIsInDeadlock()
 {
+    /*
+     * We artificially restrict deadlock reports to those in which the total
+     * thread depth is at most the total allowed by the program
+     */
+    if (this->totalThreadExecutionDepth() > this->configuration.maxThreadExecutionDepth) {
+        return false;
+    }
+
     const auto numThreads = this->getNumProgramThreads();
     for (tid_t tid = 0; tid < numThreads; tid++) {
         auto nextTransitionForTid = this->getNextTransitionForThread(tid);
@@ -439,6 +447,19 @@ GMALState::decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALT
         auto threadRunningTransition = transition->getThreadId();
         this->threadTransitionCounts[threadRunningTransition]--;
     }
+}
+
+uint32_t
+GMALState::totalThreadExecutionDepth() const
+{
+    /*
+     * The number of transitions total into the search we find ourselves -> we don't
+     * backtrack in the case that we are over the total depth allowed by the configuration
+    */
+    auto totalThreadTransitionDepth = static_cast<uint32_t>(0);
+    for (auto i = 0; i < this->nextThreadId; i++)
+        totalThreadTransitionDepth += this->threadTransitionCounts[i];
+    return totalThreadTransitionDepth;
 }
 
 void

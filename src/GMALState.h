@@ -93,6 +93,7 @@ private:
     void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
     void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
     void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
+    uint32_t totalThreadExecutionDepth() const;
 
 public:
 
