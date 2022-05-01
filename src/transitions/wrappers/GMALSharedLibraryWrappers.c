@@ -4,6 +4,7 @@
 #include "GMALSemaphoreTransitionWrappers.h"
 #include "GMALThreadTransitionWrappers.h"
 #include "GMALBarrierWrappers.h"
+#include "GMALConditionVariableWrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -125,4 +126,29 @@ pthread_barrier_wait(pthread_barrier_t *barrier)
 {
     return gmal_pthread_barrier_wait(barrier);
 }
+
+int
+pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
+{
+    return gmal_pthread_cond_init(cond, attr);
+}
+
+int
+pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{
+    return gmal_pthread_cond_wait(cond, mutex);
+}
+
+int
+pthread_cond_signal(pthread_cond_t *cond)
+{
+    return gmal_pthread_cond_signal(cond);
+}
+
+int
+pthread_cond_broadcast(pthread_cond_t *cond)
+{
+    return gmal_pthread_cond_broadcast(cond);
+}
+
 #endif

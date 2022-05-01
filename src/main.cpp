@@ -18,10 +18,8 @@ pthread_mutex_t dining_fork;
 
 void * philosopher_doit(void *forks_arg) {
     struct forks *forks = static_cast<struct forks*>(forks_arg);
-    gmal_pthread_mutex_lock(&dining_fork);
     gmal_pthread_mutex_lock(forks->left_fork);
     gmal_pthread_mutex_lock(forks->right_fork);
-
 
 //  printf("Philosopher %d just ate.\n", forks->philosopher);
     gmal_pthread_mutex_unlock(forks->left_fork);

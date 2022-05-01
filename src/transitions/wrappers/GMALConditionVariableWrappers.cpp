@@ -15,16 +15,18 @@ int
 gmal_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
     __real_pthread_mutex_unlock(mutex);
+
+    __real_pthread_mutex_lock(mutex);
 }
 
 int
-gmal_pthread_cond_signal(pthread_cond_t*)
+gmal_pthread_cond_signal(pthread_cond_t *cond)
 {
 
 }
 
 int
-gmal_pthread_cond_broadcast(pthread_cond_t*)
+gmal_pthread_cond_broadcast(pthread_cond_t *cond)
 {
 
 }

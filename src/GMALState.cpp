@@ -308,12 +308,12 @@ GMALState::dynamicallyUpdateBacktrackSets()
     // 3. Map which thread ids still need to be processed
     std::shared_ptr<GMALTransition> nextTransitionsAtLastS[MAX_TOTAL_THREADS_IN_PROGRAM];
     auto remainingThreadsToProcess = std::unordered_set<tid_t>();
+
     for (auto i = 0; i < numThreadsBeforeBacktracking; i++) {
         nextTransitionsAtLastS[i] = this->nextTransitions[i];
         remainingThreadsToProcess.insert(static_cast<tid_t>(i));
     }
 
-    //
     int detachedTransitionStackTop = transitionStackTopBeforeBacktracking + 1;
 
     // 4. Perform the actual backtracking here

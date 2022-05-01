@@ -54,7 +54,7 @@ gmal_init()
 void
 gmal_create_program_state()
 {
-    auto config = GMALStateConfiguration(10);
+    auto config = GMALStateConfiguration(6);
     programState.Construct(config);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
