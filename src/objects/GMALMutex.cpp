@@ -36,6 +36,13 @@ GMALMutex::isUnlocked() const
     return this->mutexShadow.state == GMALMutexShadow::unlocked;
 }
 
+
+bool
+GMALMutex::isDestroyed() const
+{
+    return this->mutexShadow.state == GMALMutexShadow::destroyed;
+}
+
 void
 GMALMutex::lock()
 {

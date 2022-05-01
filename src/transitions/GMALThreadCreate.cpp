@@ -83,4 +83,6 @@ GMALThreadCreate::print()
     puts(" - Target Thread - ");
     this->target->print();
     puts("************************");
+
+//    printf("thread %lu: pthread_create(%lu)\t\n", this->thread->tid, this->target->tid);
 }

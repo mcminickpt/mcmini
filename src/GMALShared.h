@@ -25,6 +25,12 @@ typedef void *GMALSystemID;
 #   define GMAL_THREAD_LOCAL __thread
 #endif
 
+#ifndef __cplusplus
+#   define GMAL_NO_RETURN
+#else
+#   define GMAL_NO_RETURN [[noreturn]]
+#endif
+
 #define GMAL_ASSERT(__X) assert(__X)
 #define GMAL_FAIL() GMAL_ASSERT(0)
 #define GMAL_FATAL_ON_FAIL(expr) \
@@ -32,8 +38,7 @@ do {                            \
     (static_cast <bool> (expr) ? void (0) : abort()); \
 } while(0)
 
-#define GMAL_FATAL() abort() \
-
+#define GMAL_FATAL() abort()
 #define GMAL_UNIMPLEMENTED() GMAL_ASSERT(false)
 
 #define GMAL_STRUCT_DECL(type)             \

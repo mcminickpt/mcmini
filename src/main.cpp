@@ -42,10 +42,13 @@ int allDone = 0;
 
 pthread_barrier_t bar;
 
+pthread_mutex_t fa;
+
 void *
 test(void *unused)
 {
-    gmal_pthread_barrier_wait(&bar);
+//    gmal_pthread_barrier_wait(&bar);
+    gmal_pthread_mutex_lock(&fa);
     return nullptr;
 }
 
@@ -53,10 +56,14 @@ int main(int argc, char *argv[]) {
     gmal_init();
 
 
+
+//
     pthread_t a;
-    gmal_pthread_barrier_init(&bar, NULL, 2);
+//    gmal_pthread_barrier_init(&bar, NULL, 2);
     gmal_pthread_create(&a, NULL, &test, NULL);
-    gmal_pthread_barrier_wait(&bar);
+
+//    gmal_pthread_mutex_init(&fa, NULL);
+//    gmal_pthread_barrier_wait(&bar);
 
     gmal_exit(0);
 

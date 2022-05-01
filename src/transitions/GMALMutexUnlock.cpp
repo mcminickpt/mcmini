@@ -1,3 +1,4 @@
+#include "GMAL.h"
 #include "GMALMutexUnlock.h"
 #include "GMALTransitionFactory.h"
 
@@ -6,9 +7,13 @@ GMALReadMutexUnlock(const GMALSharedTransition *shmTransition, void *shmData, GM
 {
     auto mutexInShm = static_cast<GMALMutexShadow*>(shmData);
     auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<GMALMutex>((GMALSystemID)mutexInShm->systemIdentity);
+    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(mutexThatExists != nullptr, "Attempting to unlock an uninitialized mutex");
 
-    // TODO: Figure out how to deal with undefined behavior
-    GMAL_ASSERT(mutexThatExists != nullptr);
+    if (mutexThatExists->isUnlocked()) {
+        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to unlock a mutex that is already unlocked");
+    } else if (mutexThatExists->isDestroyed()) {
+        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to unlock a mutex that has been destroyed");
+    }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);

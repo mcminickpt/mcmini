@@ -16,6 +16,10 @@ typeof(&sem_init) sem_init_ptr;
 typeof(&exit) exit_ptr;
 typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
 typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
+typeof(&pthread_cond_init) pthread_cond_init_ptr;
+typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
+typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
+typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 
 void gmal_load_shadow_routines()
 {
@@ -31,6 +35,10 @@ void gmal_load_shadow_routines()
     exit_ptr = dlsym(RTLD_NEXT, "exit");
     pthread_barrier_init_ptr = dlsym(RTLD_NEXT, "pthread_barrier_init");
     pthread_barrier_wait_ptr = dlsym(RTLD_NEXT, "pthread_barrier_wait");
+    pthread_cond_init_ptr = dlsym(RTLD_NEXT, "pthread_cond_init");
+    pthread_cond_wait_ptr = dlsym(RTLD_NEXT, "pthread_cond_wait");
+    pthread_cond_signal_ptr = dlsym(RTLD_NEXT, "pthread_cond_signal");
+    pthread_cond_broadcast_ptr = dlsym(RTLD_NEXT, "pthread_cond_broadcast");
 #else
     pthread_create_ptr = &pthread_create;
     pthread_join_ptr = &pthread_join;
@@ -43,6 +51,10 @@ void gmal_load_shadow_routines()
     exit_ptr = &exit;
     pthread_barrier_init_ptr = &pthread_barrier_init;
     pthread_barrier_wait_ptr = &pthread_barrier_wait;
+    pthread_cond_init_ptr = &pthread_cond_init;
+    pthread_cond_wait_ptr = &pthread_cond_wait;
+    pthread_cond_signal_ptr = &pthread_cond_signal;
+    pthread_cond_broadcast_ptr = &pthread_cond_broadcast;
 #endif
 }
 

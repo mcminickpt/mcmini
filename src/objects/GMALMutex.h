@@ -28,6 +28,7 @@ public:
 
     bool isLocked() const;
     bool isUnlocked() const;
+    bool isDestroyed() const;
 
     void lock();
     void unlock();

@@ -93,7 +93,7 @@ gmal_exit_main_thread()
     thread_await_gmal_scheduler();
 }
 
-void
+GMAL_NO_RETURN void
 gmal_exit(int status)
 {
     thread_post_visible_operation_hit(typeid(GMALExitTransition), &status);

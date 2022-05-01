@@ -27,5 +27,16 @@ extern GMALDeferred<GMALState> programState;
 
 GMAL_CTOR void gmal_init();
 void gmal_child_panic();
+void gmal_report_undefined_behavior(const char*);
+
+#define GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(x, str) \
+do {                                              \
+    if (!static_cast<bool>(x)) {                  \
+        gmal_report_undefined_behavior(static_cast<const char*>(str));      \
+    }                                             \
+} while(0)
+
+#define GMAL_REPORT_UNDEFINED_BEHAVIOR(str) GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(false, str)
+
 
 #endif //GMAL_GMAL_H

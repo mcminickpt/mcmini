@@ -60,3 +60,9 @@ GMALSemaphore::operator!=(const GMALSemaphore &other) const
 {
     return this->semShadow.sem != other.semShadow.sem;
 }
+
+bool
+GMALSemaphore::isDestroyed() const
+{
+    return this->semShadow.state == GMALSemaphoreShadow::destroyed;
+}

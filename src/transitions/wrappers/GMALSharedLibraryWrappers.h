@@ -17,6 +17,10 @@ extern typeof(&sem_init) sem_init_ptr;
 extern typeof(&exit) exit_ptr;
 extern typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
 extern typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
+extern typeof(&pthread_cond_init) pthread_cond_init_ptr;
+extern typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
+extern typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
+extern typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 
 #define __real_pthread_create (*pthread_create_ptr)
 #define __real_pthread_join (*pthread_join_ptr)
@@ -29,7 +33,10 @@ extern typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 #define __real_exit (*exit_ptr)
 #define __real_pthread_barrier_init (*pthread_barrier_init_ptr)
 #define __real_pthread_barrier_wait (*pthread_barrier_wait_ptr)
-
+#define __real_pthread_cond_init (*pthread_cond_init_ptr)
+#define __real_pthread_cond_wait (*pthread_cond_wait_ptr)
+#define __real_pthread_cond_signal (*pthread_cond_signal_ptr)
+#define __real_pthread_cond_broadcast (*pthread_cond_broadcast_ptr)
 
 void gmal_load_shadow_routines();
 

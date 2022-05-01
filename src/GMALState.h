@@ -6,7 +6,6 @@ struct GMALSharedTransition;
 struct GMALState;
 typedef GMALTransition*(*GMALSharedMemoryHandler)(const GMALSharedTransition*, void*, GMALState*);
 
-#include "GMALMap.h"
 #include "GMALObjectStore.h"
 #include "GMALShared.h"
 #include "GMALSharedTransition.h"

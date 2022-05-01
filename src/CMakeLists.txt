@@ -11,7 +11,6 @@ set(GMAL_C_FILES mc_shared_cv.c mc_shared_cv.h
         transitions/wrappers/GMALSharedLibraryWrappers.c transitions/wrappers/GMALSharedLibraryWrappers.h)
 set(GMAL_CPP_FILES
         GMALShared.h
-        GMALMap.cpp GMALMap.h
         objects/GMALThread.cpp objects/GMALThread.h
         objects/GMALVisibleObject.cpp objects/GMALVisibleObject.h
         GMALObjectStore.cpp GMALObjectStore.h
@@ -35,7 +34,7 @@ set(GMAL_CPP_FILES
         transitions/GMALMutexInit.cpp transitions/GMALMutexInit.h
         transitions/GMALMutexUnlock.cpp transitions/GMALMutexUnlock.h
         transitions/wrappers/GMALMutexTransitionWrappers.cpp transitions/wrappers/GMALMutexTransitionWrappers.h
-        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h objects/GMALSemaphore.cpp objects/GMALSemaphore.h transitions/GMALSemaphoreTransition.cpp transitions/GMALSemaphoreTransition.h transitions/GMALSemPost.cpp transitions/GMALSemPost.h transitions/GMALSemInit.cpp transitions/GMALSemInit.h transitions/GMALSemWait.cpp transitions/GMALSemWait.h transitions/wrappers/GMALSemaphoreTransitionWrappers.cpp transitions/wrappers/GMALSemaphoreTransitionWrappers.h GMALDeferred.h transitions/GMALExitTransition.cpp transitions/GMALExitTransition.h GMALStateConfiguration.cpp GMALStateConfiguration.h objects/GMALBarrier.cpp objects/GMALBarrier.h transitions/GMALBarrierInit.cpp transitions/GMALBarrierInit.h transitions/GMALBarrierWait.cpp transitions/GMALBarrierWait.h transitions/GMALBarrierTransition.cpp transitions/GMALBarrierTransition.h transitions/wrappers/GMALBarrierWrappers.cpp transitions/wrappers/GMALBarrierWrappers.h)
+        transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h objects/GMALSemaphore.cpp objects/GMALSemaphore.h transitions/GMALSemaphoreTransition.cpp transitions/GMALSemaphoreTransition.h transitions/GMALSemPost.cpp transitions/GMALSemPost.h transitions/GMALSemInit.cpp transitions/GMALSemInit.h transitions/GMALSemWait.cpp transitions/GMALSemWait.h transitions/wrappers/GMALSemaphoreTransitionWrappers.cpp transitions/wrappers/GMALSemaphoreTransitionWrappers.h GMALDeferred.h transitions/GMALExitTransition.cpp transitions/GMALExitTransition.h GMALStateConfiguration.cpp GMALStateConfiguration.h objects/GMALBarrier.cpp objects/GMALBarrier.h transitions/GMALBarrierInit.cpp transitions/GMALBarrierInit.h transitions/GMALBarrierWait.cpp transitions/GMALBarrierWait.h transitions/GMALBarrierTransition.cpp transitions/GMALBarrierTransition.h transitions/wrappers/GMALBarrierWrappers.cpp transitions/wrappers/GMALBarrierWrappers.h transitions/wrappers/GMALConditionVariableWrappers.cpp transitions/wrappers/GMALConditionVariableWrappers.h)
 
 add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")

@@ -366,4 +366,17 @@ gmal_register_main_thread()
     return newTid;
 }
 
-// ****** CHILD FUNCTIONS END **** //
+void
+gmal_report_undefined_behavior(const char *msg)
+{
+    gmal_child_kill();
+    printf("\t Undefined Behavior Detected! \t\n"
+            "\t ............................ \t\n"
+            "\t The model checker aborted the execution because\t\n"
+            "\t it detected undefined behavior.\t\n"
+            "\t ............................ \t\n"
+    );
+    printf("\t%s\t\n", msg);
+    programState.get()->printTransitionStack();
+    exit(EXIT_FAILURE);
+}

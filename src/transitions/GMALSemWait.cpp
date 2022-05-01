@@ -1,3 +1,4 @@
+#include "GMAL.h"
 #include "GMALSemWait.h"
 
 GMALTransition*
@@ -6,8 +7,11 @@ GMALReadSemWait(const GMALSharedTransition *shmTransition, void *shmData, GMALSt
     auto semInShm = static_cast<GMALSemaphoreShadow*>(shmData);
     auto semThatExists = state->getVisibleObjectWithSystemIdentity<GMALSemaphore>((GMALSystemID)semInShm->sem);
 
-    // TODO: Figure out how to deal with undefined behavior
-    GMAL_ASSERT(semThatExists != nullptr);
+    // Catch undefined behavior
+    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(semThatExists != nullptr, "Attempting to wait on an uninitialized semaphore");
+    if (semThatExists->isDestroyed()) {
+        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to wait on a semaphore that has been destroyed");
+    }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
