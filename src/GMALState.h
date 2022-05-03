@@ -15,6 +15,7 @@ typedef GMALTransition*(*GMALSharedMemoryHandler)(const GMALSharedTransition*, v
 #include <typeinfo>
 #include <functional>
 #include <unordered_map>
+#include <vector>
 
 using TypeInfoRef = std::reference_wrapper<const std::type_info>;
 using GMALType = const std::type_info&;
@@ -150,6 +151,9 @@ public:
 
     bool programIsInDeadlock();
     uint64_t getNumProgramThreads() const;
+
+    bool isTargetTraceIdForGDB(trid_t) const;
+    std::vector<tid_t> getThreadIdTraceOfTransitionStack() const;
 
     // Restarting
     void start();

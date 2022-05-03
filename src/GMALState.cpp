@@ -547,3 +547,19 @@ GMALState::printNextTransitions() const
     }
     printf("\t END\n");
 }
+
+bool
+GMALState::isTargetTraceIdForGDB(trid_t trid) const
+{
+    return this->configuration.gdbDebugTraceNumber == trid;
+}
+
+std::vector<tid_t>
+GMALState::getThreadIdTraceOfTransitionStack() const
+{
+    auto trace = std::vector<tid_t>();
+    const auto transitionStackHeight = this->getTransitionStackSize();
+    for (auto i = 0; i < transitionStackHeight; i++)
+        trace.push_back(this->getTransitionAtIndex(i)->getThreadId());
+    return trace;
+}

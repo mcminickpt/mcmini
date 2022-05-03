@@ -3,6 +3,7 @@
 #include "GMALSharedTransition.h"
 #include "GMALTransitionFactory.h"
 #include "transitions/GMALTransitionsShared.h"
+#include <vector>
 
 extern "C" {
     #include "mc_shared_cv.h"
@@ -54,7 +55,7 @@ gmal_init()
 void
 gmal_create_program_state()
 {
-    auto config = GMALStateConfiguration(6);
+    auto config = GMALStateConfiguration(GMAL_STATE_CONFIG_THREAD_NO_LIMIT, GMAL_STATE_CONFIG_NO_TRACE);
     programState.Construct(config);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
     programState.get()->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
@@ -75,17 +76,25 @@ gmal_create_program_state()
 GMAL_PROGRAM_TYPE
 gmal_scheduler_main()
 {
+    /*
+     * Identifies the trace number of this call
+     * Note that is we ever parallelized the program
+     * this would be highly unsafe and would need to be atomic
+     */
+    static trid_t traceId = 0;
+
     gmal_register_main_thread();
 
-    auto mainThread = programState.get()->getThreadWithId(tid_self);
+    auto mainThread = programState.get()->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
-    programState.get()->setNextTransitionForThread(tid_self, initialTransition);
+    programState.get()->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
-    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main();
+    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
     if (GMAL_IS_SOURCE_PROGRAM(program))
         return GMAL_SOURCE_PROGRAM;
 
     gmal_exhaust_threads(initialTransition);
+    program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
 
     while (!programState.get()->stateStackIsEmpty()) {
         const uint32_t depth = programState.get()->getStateStackSize();
@@ -99,6 +108,11 @@ gmal_scheduler_main()
             // DPOR ensures that any thread in the backtrack set is enabled in this state
             tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
             std::shared_ptr<GMALTransition> backtrackOperation = programState.get()->getNextTransitionForThread(backtrackThread);
+
+            program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
+            if (GMAL_IS_SOURCE_PROGRAM(program))
+                return GMAL_SOURCE_PROGRAM;
+
             program = gmal_readvance_main(backtrackOperation);
             if (GMAL_IS_SOURCE_PROGRAM(program))
                 return GMAL_SOURCE_PROGRAM;
@@ -222,7 +236,7 @@ GMAL_PROGRAM_TYPE
 gmal_spawn_child_following_transition_stack()
 {
     gmal_reset_cv_locks();
-    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main();
+    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
 
     if (GMAL_IS_SCHEDULER(program)) {
         const int transition_stack_height = programState.get()->getTransitionStackSize();
@@ -247,11 +261,10 @@ gmal_spawn_child_following_transition_stack()
     }
 
     return program;
-    return GMAL_SCHEDULER;
 }
 
 GMAL_PROGRAM_TYPE
-gmal_begin_target_program_at_main()
+gmal_begin_target_program_at_main(bool spawnDaemonThread)
 {
     GMAL_PROGRAM_TYPE program = gmal_spawn_child();
     if (GMAL_IS_SOURCE_PROGRAM(program)) {
@@ -277,7 +290,13 @@ gmal_begin_target_program_at_main()
         // library is unloaded. In the transparent target, we need
         // to be able to handle this case gracefully
         GMAL_FATAL_ON_FAIL(atexit(&gmal_exit_main_thread) == 0);
+
+        if (spawnDaemonThread)
+            gmal_spawn_daemon_thread();
+
+        puts("AWAIT SCHEDU");
         thread_await_gmal_scheduler_for_thread_start_transition();
+        puts("AWAIT SCHEDU after");
     }
     return program;
 }
@@ -296,8 +315,15 @@ gmal_child_kill()
 {
     if (cpid == -1) return; // No child
     kill(cpid, SIGUSR1);
-    waitpid(cpid, NULL, 0);
+    waitpid(cpid, nullptr, 0);
     cpid = -1;
+}
+
+void
+gmal_child_wait()
+{
+    GMAL_ASSERT(cpid != -1);
+    waitpid(cpid, nullptr, 0);
 }
 
 void
@@ -308,7 +334,7 @@ gmal_child_panic()
 
     // The scheduler will kill the child
     // process before being able to leave this function
-    waitpid(schedpid, NULL, 0);
+    waitpid(schedpid, nullptr, 0);
 }
 
 void
@@ -374,4 +400,74 @@ gmal_report_undefined_behavior(const char *msg)
     programState.get()->printTransitionStack();
     programState.get()->printNextTransitions();
     exit(EXIT_FAILURE);
+}
+
+/* GDB Interface */
+
+GMAL_PROGRAM_TYPE
+gmal_enter_gdb_debugging_session_if_necessary(trid_t trid)
+{
+    if (gmal_should_enter_gdb_debugging_session_with_trace_id(trid))
+        return gmal_enter_gdb_debugging_session();
+    return GMAL_SCHEDULER;
+}
+
+bool
+gmal_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
+{
+    return programState.get()->isTargetTraceIdForGDB(trid);
+}
+
+GMAL_PROGRAM_TYPE
+gmal_enter_gdb_debugging_session()
+{
+    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(true);
+    if (GMAL_IS_SCHEDULER(program)) {
+        gmal_child_wait(); /* The daemon thread will take the place of the parent process */
+        exit(0);
+    }
+
+    return program;
+}
+
+void
+gmal_spawn_daemon_thread()
+{
+    auto trace = new std::vector<tid_t>();
+    *trace = programState.get()->getThreadIdTraceOfTransitionStack();
+
+    pthread_t daemon;
+    pthread_attr_t attr;
+
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&daemon, nullptr, &gmal_daemon_thread_simulate_program, trace);
+    pthread_attr_destroy(&attr);
+}
+
+void*
+gmal_daemon_thread_simulate_program(void *trace)
+{
+    programState.get()->reset();
+    programState.get()->start();
+    gmal_register_main_thread();
+
+    auto mainThread = programState.get()->getThreadWithId(TID_MAIN_THREAD);
+    auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
+    programState.get()->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
+
+    auto tracePtr = static_cast<std::vector<tid_t>*>(trace);
+
+    puts("SRTA SIMULATON IN DAEMON");
+    for (auto &tid : *tracePtr) {
+        printf("%lu\n", tid);
+        auto t_next = programState.get()->getPendingTransitionForThread(tid);
+        t_next->print();
+        gmal_run_thread_to_next_visible_operation(tid);
+        programState.get()->simulateRunningTransition(t_next);
+        programState.get()->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
+    }
+    puts("FINISHED SIMULATON IN DAEMON");
+    delete tracePtr;
+    return nullptr; /* Ignored */
 }

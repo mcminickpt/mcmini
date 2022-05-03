@@ -13,6 +13,7 @@
 
 typedef uint64_t tid_t;
 typedef uint64_t mutid_t;
+typedef uint64_t trid_t;
 #define TID_MAIN_THREAD (0ul)
 #define TID_INVALID (-1ul) // ULONG_MAX
 #define TID_PTHREAD_CREATE_FAILED (-2ul) // ULONG_MAX - 1

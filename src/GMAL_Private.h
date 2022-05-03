@@ -19,6 +19,13 @@ GMAL_PROGRAM_TYPE gmal_readvance_main(std::shared_ptr<GMALTransition>);
 void gmal_create_initial_scheduler_state();
 void gmal_exit();
 
+/* GDB interface */
+bool gmal_should_enter_gdb_debugging_session_with_trace_id(trid_t);
+GMAL_PROGRAM_TYPE gmal_enter_gdb_debugging_session_if_necessary(trid_t);
+GMAL_PROGRAM_TYPE gmal_enter_gdb_debugging_session();
+void gmal_spawn_daemon_thread();
+void *gmal_daemon_thread_simulate_program(void*);
+
 /* Registering and accessing threads */
 tid_t gmal_register_thread();
 tid_t gmal_register_main_thread();
@@ -34,9 +41,10 @@ void gmal_reset_thread_sleep_points();
 /* Source program management */
 GMAL_PROGRAM_TYPE gmal_spawn_child();
 GMAL_PROGRAM_TYPE gmal_spawn_child_following_transition_stack();
-GMAL_PROGRAM_TYPE gmal_begin_target_program_at_main();
+GMAL_PROGRAM_TYPE gmal_begin_target_program_at_main(bool spawnDaemonThread);
 void gmal_run_thread_to_next_visible_operation(tid_t);
 void gmal_child_kill();
+void gmal_child_wait();
 
 /* Thread control */
 void thread_await_gmal_scheduler();
