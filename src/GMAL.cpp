@@ -85,9 +85,9 @@ gmal_scheduler_main()
 
     gmal_register_main_thread();
 
-    auto mainThread = programState.get()->getThreadWithId(TID_MAIN_THREAD);
+    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
-    programState.get()->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
+    programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
     if (GMAL_IS_SOURCE_PROGRAM(program))
@@ -250,13 +250,13 @@ gmal_spawn_child_following_transition_stack()
     GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
 
     if (GMAL_IS_SCHEDULER(program)) {
-        const int transition_stack_height = programState.get()->getTransitionStackSize();
+        const int transition_stack_height = programState->getTransitionStackSize();
         for (int i = 0; i < transition_stack_height; i++) {
             // NOTE: This is reliant on the fact
             // that threads are created in the same order
             // when we create them. This will always be consistent,
             // but we might need to look out for when a thread dies
-            tid_t nextTid = programState.get()->getThreadRunningTransitionAtIndex(i);
+            tid_t nextTid = programState->getThreadRunningTransitionAtIndex(i);
             gmal_run_thread_to_next_visible_operation(nextTid);
         }
     } else {
@@ -267,7 +267,7 @@ gmal_spawn_child_following_transition_stack()
         // re-simulate the system by running the transitions
         // in the transition stack; otherwise, shadow resource
         // allocations will be off
-        programState.get()->reset();
+        programState->reset();
         gmal_register_main_thread();
     }
 
@@ -350,7 +350,7 @@ void
 gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
 {
     puts("**** Exhausting threads... ****");
-    uint64_t debug_depth = programState.get()->getTransitionStackSize();
+    uint64_t debug_depth = programState->getTransitionStackSize();
     std::shared_ptr<GMALTransition> t_next = initialTransition;
     do {
         debug_depth++;
@@ -382,7 +382,7 @@ gmal_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
 tid_t
 gmal_register_thread()
 {
-    tid_t newTid = programState.get()->createNewThread();
+    tid_t newTid = programState->createNewThread();
     tid_self = newTid;
     return newTid;
 }
@@ -390,7 +390,7 @@ gmal_register_thread()
 tid_t
 gmal_register_main_thread()
 {
-    tid_t newTid = programState.get()->createMainThread();
+    tid_t newTid = programState->createMainThread();
     tid_self = newTid;
     return newTid;
 }
@@ -406,8 +406,8 @@ gmal_report_undefined_behavior(const char *msg)
             "\t ............................ \t\n"
     );
     printf("\t%s\t\n", msg);
-    programState.get()->printTransitionStack();
-    programState.get()->printNextTransitions();
+    programState->printTransitionStack();
+    programState->printNextTransitions();
     exit(EXIT_FAILURE);
 }
 
@@ -424,7 +424,7 @@ gmal_enter_gdb_debugging_session_if_necessary(trid_t trid)
 bool
 gmal_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
 {
-    return programState.get()->isTargetTraceIdForGDB(trid);
+    return programState->isTargetTraceIdForGDB(trid);
 }
 
 GMAL_PROGRAM_TYPE
@@ -443,7 +443,7 @@ void
 gmal_spawn_daemon_thread()
 {
     auto trace = new std::vector<tid_t>();
-    *trace = programState.get()->getThreadIdTraceOfTransitionStack();
+    *trace = programState->getThreadIdTraceOfTransitionStack();
 
     pthread_t daemon;
     pthread_attr_t attr;
@@ -457,21 +457,21 @@ gmal_spawn_daemon_thread()
 void*
 gmal_daemon_thread_simulate_program(void *trace)
 {
-    programState.get()->reset();
-    programState.get()->start();
+    programState->reset();
+    programState->start();
     gmal_register_main_thread();
 
-    auto mainThread = programState.get()->getThreadWithId(TID_MAIN_THREAD);
+    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
-    programState.get()->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
+    programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     auto tracePtr = static_cast<std::vector<tid_t>*>(trace);
 
     for (auto &tid : *tracePtr) {
-        auto t_next = programState.get()->getPendingTransitionForThread(tid);
+        auto t_next = programState->getPendingTransitionForThread(tid);
         t_next->print();
         gmal_run_thread_to_next_visible_operation(tid);
-        programState.get()->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
+        programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }
     delete tracePtr;
     return nullptr; /* Ignored */
