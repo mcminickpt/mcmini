@@ -25,14 +25,6 @@ private:
 
     GMALConditionVariableShadow condShadow;
 
-    // TODO: There is at some difficulty
-    // with condition variables in that to be able to
-    // undo e.g. a pthread_cond_broadcast(), we'd need to
-    // know the set of threads that that broadcast had awoken
-    // since it may blend in with the set of threads that *were*
-    // waiting before the broadcast. We couldn't simply put all
-    // of the waiting threads to sleep as this might not be
-    // equivalent to the state before calling broadcast()
     /**
      * The collection of threads are currently asleep waiting
      * to be awoken by this queue
@@ -64,8 +56,6 @@ public:
 
     void relinquish();
     void takeOwnership();
-
-    void print() override;
 };
 
 #endif //GMAL_GMALCONDITIONVARIABLE_H

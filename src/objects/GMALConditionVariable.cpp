@@ -42,9 +42,3 @@ GMALConditionVariable::takeOwnership()
 {
     this->mutex->lock();
 }
-
-void
-GMALConditionVariable::print()
-{
-
-}

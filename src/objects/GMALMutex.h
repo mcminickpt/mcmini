@@ -8,7 +8,7 @@ struct GMALMutexShadow {
     enum GMALMutexState {
         undefined, unlocked, locked, destroyed
     } state;
-    GMALMutexShadow(pthread_mutex_t *systemIdentity) : systemIdentity(systemIdentity), state(undefined) {}
+    explicit GMALMutexShadow(pthread_mutex_t *systemIdentity) : systemIdentity(systemIdentity), state(undefined) {}
 };
 
 struct GMALMutex : public GMALVisibleObject {
@@ -26,6 +26,7 @@ public:
     bool operator ==(const GMALMutex&) const;
     bool operator !=(const GMALMutex&) const;
 
+    bool canAcquire(tid_t) const;
     bool isLocked() const;
     bool isUnlocked() const;
     bool isDestroyed() const;
@@ -34,8 +35,6 @@ public:
     void unlock();
     void init();
     void deinit();
-
-    void print() override;
 };
 
 #endif //GMAL_GMALMUTEX_H

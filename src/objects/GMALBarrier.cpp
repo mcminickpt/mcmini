@@ -13,13 +13,6 @@ GMALBarrier::copy()
 }
 
 void
-GMALBarrier::print()
-{
-    printf("Barrier id: %lu pthread_barrier_t: %p, wait_count: %d\n", this->getObjectId(),
-           this->barrierShadow.systemIdentity, this->barrierShadow.waitCount);
-}
-
-void
 GMALBarrier::deinit()
 {
     this->barrierShadow.state = GMALBarrierShadow::undefined;

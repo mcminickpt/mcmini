@@ -46,9 +46,9 @@ GMALThreadJoin::applyToState(GMALState *state)
     if (target->isDead()) {
         thread->awaken();
     }
-//    else {
-//        thread->sleep();
-//    }
+    else {
+        thread->sleep();
+    }
 }
 
 bool

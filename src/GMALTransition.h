@@ -44,8 +44,6 @@ public:
     virtual void print() {}
 
     inline tid_t getThreadId() const { return thread->tid; }
-
-
 };
 
 #endif //GMAL_GMALTRANSITION_H

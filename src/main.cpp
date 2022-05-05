@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-// Naive dining philosophers solution, which leads to deadlock.
-
+//// Naive dining philosophers solution, which leads to deadlock.
+//
 //#include <stdio.h>
 //#include <unistd.h>
 //#include <pthread.h>

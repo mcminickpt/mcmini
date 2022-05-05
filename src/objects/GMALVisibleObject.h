@@ -19,8 +19,6 @@ public:
 
     virtual GMALSystemID getSystemId() = 0;
     objid_t getObjectId() const;
-
-    virtual void print() {}
 };
 
 #endif //GMAL_GMALVISIBLEOBJECT_H

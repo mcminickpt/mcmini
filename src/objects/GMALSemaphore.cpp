@@ -12,13 +12,6 @@ GMALSemaphore::copy()
     return std::shared_ptr<GMALVisibleObject>(new GMALSemaphore(*this));
 }
 
-void
-GMALSemaphore::print()
-{
-    printf("SEMAPHORE id: %lu sem_t: %p, count: %d\n", this->getObjectId(),
-           this->semShadow.sem, this->semShadow.count);
-}
-
 bool
 GMALSemaphore::wouldBlockIfWaitedOn()
 {

@@ -44,8 +44,6 @@ public:
     void leave(tid_t);
     bool isWaitingOnBarrier(tid_t);
     bool hasEvenParity(tid_t);
-
-    void print() override;
 };
 
 #endif //GMAL_GMALBARRIER_H

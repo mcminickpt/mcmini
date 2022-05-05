@@ -50,7 +50,7 @@ GMALMutexLock::applyToState(GMALState *state)
 bool
 GMALMutexLock::enabledInState(const GMALState *state)
 {
-    return this->thread->enabled() && this->mutex->isUnlocked();
+    return this->thread->enabled() && this->mutex->canAcquire(this->getThreadId());
 }
 
 bool
