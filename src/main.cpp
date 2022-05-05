@@ -6,7 +6,7 @@
 #include "GMAL.h"
 #include "GMALWrappers.h"
 
-#define NUM_THREADS 4
+#define NUM_THREADS 5
 
 struct forks {
     int philosopher;
@@ -55,3 +55,41 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
+// Naive dining philosophers solution, which leads to deadlock.
+
+//#include <stdio.h>
+//#include <unistd.h>
+//#include <pthread.h>
+//#include "GMAL.h"
+//#include "GMALWrappers.h"
+//
+//
+//pthread_mutex_t mutex1;
+//pthread_mutex_t mutex2;
+//pthread_t thread;
+//
+//void * philosopher_doit(void *forks_arg) {
+//    gmal_pthread_mutex_lock(&mutex2);
+//    gmal_pthread_mutex_lock(&mutex1);
+//    gmal_pthread_mutex_unlock(&mutex1);
+//    gmal_pthread_mutex_unlock(&mutex2);
+//    return nullptr;
+//}
+//
+//int main(int argc, char* argv[])
+//{
+//    gmal_init();
+//
+//    gmal_pthread_mutex_init(&mutex1, nullptr);
+//    gmal_pthread_mutex_init(&mutex2, nullptr);
+//
+//    gmal_pthread_create(&thread, NULL, &philosopher_doit, NULL);
+//
+//    gmal_pthread_mutex_lock(&mutex1);
+//    gmal_pthread_mutex_lock(&mutex2);
+//    gmal_pthread_mutex_unlock(&mutex2);
+//    gmal_pthread_mutex_unlock(&mutex1);
+//
+//    return 0;
+//}

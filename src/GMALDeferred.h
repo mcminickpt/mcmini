@@ -40,6 +40,8 @@ struct GMALDeferred
 
 public:
     T *get() { return value; }
+
+    T *operator->() { return value; }
 };
 
 #endif //GMAL_GMALDEFERRED_H

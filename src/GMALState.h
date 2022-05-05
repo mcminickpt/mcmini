@@ -78,20 +78,20 @@ private:
     std::unordered_map<tid_t, objid_t> threadIdMap;
 
 private:
-    void growStateStack();
 
     bool transitionIsEnabled(const std::shared_ptr<GMALTransition>&);
 
-    void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
-    void virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition>&);
 
     bool happensBefore(int i, int j) const;
     bool happensBeforeThread(int i, const std::shared_ptr<GMALThread>&) const;
     bool happensBeforeThread(int i, tid_t) const;
     bool threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const;
 
+    void growStateStack();
     void growStateStackWithTransition(const std::shared_ptr<GMALTransition>&);
     void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
+    void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
+
     void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
     void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
     uint32_t totalThreadExecutionDepth() const;
@@ -114,6 +114,7 @@ public:
     void setNextTransitionForThread(tid_t, GMALSharedTransition*, void *);
 
     std::shared_ptr<GMALTransition> getFirstEnabledTransitionFromNextStack();
+    std::unordered_set<tid_t> getEnabledThreadsInState();
 
     objid_t createNewThread();
     objid_t createNewThread(GMALThreadShadow&);
@@ -136,7 +137,7 @@ public:
         return objectStorage.getObjectWithSystemAddress<Object>(systemId);
     }
 
-    void simulateRunningTransition(const std::shared_ptr<GMALTransition>&);
+    void simulateRunningTransition(const std::shared_ptr<GMALTransition>&, GMALSharedTransition*, void *);
 
     uint64_t getTransitionStackSize() const;
     uint64_t getStateStackSize() const;
@@ -158,6 +159,9 @@ public:
     // Restarting
     void start();
     void reset();
+
+    void reflectStateAtTransitionDepth(uint32_t);
+
     void moveToPreviousState();
     void printTransitionStack() const;
     void printNextTransitions() const;

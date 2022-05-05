@@ -45,15 +45,10 @@ GMALThreadJoin::applyToState(GMALState *state)
 {
     if (target->isDead()) {
         thread->awaken();
-    } else {
-        thread->sleep();
     }
-}
-
-void
-GMALThreadJoin::unapplyToState(GMALState *state)
-{
-    thread->awaken();
+//    else {
+//        thread->sleep();
+//    }
 }
 
 bool

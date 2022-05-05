@@ -45,12 +45,6 @@ GMALCondInit::applyToState(GMALState *state)
     // TODO: Implement this
 }
 
-void
-GMALCondInit::unapplyToState(GMALState *state)
-{
-    // TODO: Implement this
-}
-
 bool
 GMALCondInit::coenabledWith(std::shared_ptr<GMALTransition> other)
 {

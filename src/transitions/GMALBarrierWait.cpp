@@ -42,15 +42,9 @@ GMALBarrierWait::dynamicCopyInState(const GMALState *state)
 void
 GMALBarrierWait::applyToState(GMALState *state)
 {
-    // Somewhat counterintuitive, but by exiting the barrier we are actually
-    // TODO: Apply state correctly here
+    // We don't actually need to do anything here
 }
 
-void
-GMALBarrierWait::unapplyToState(GMALState *state)
-{
-    // TODO: Apply state correctly here
-}
 
 bool
 GMALBarrierWait::coenabledWith(std::shared_ptr<GMALTransition> other)

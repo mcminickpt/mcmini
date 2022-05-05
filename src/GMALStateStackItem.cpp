@@ -33,3 +33,16 @@ GMALStateStackItem::popFirstThreadToBacktrackOn()
     this->markBacktrackThreadSearched(randomThreadInBacktrackSet);
     return randomThreadInBacktrackSet;
 }
+
+void
+GMALStateStackItem::markThreadsEnabledInState(const std::unordered_set<tid_t>& enabledThrds)
+{
+    for (const auto tid : enabledThrds)
+        this->enabledThreads.insert(tid);
+}
+
+std::unordered_set<tid_t>
+GMALStateStackItem::getEnabledThreadsInState()
+{
+    return this->enabledThreads;
+}

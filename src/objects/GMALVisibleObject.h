@@ -2,6 +2,7 @@
 #define GMAL_GMALVISIBLEOBJECT_H
 
 class GMALState;
+class GMALObjectStore;
 
 #include "GMALShared.h"
 #include "GMALVisibleObject.h"
@@ -9,14 +10,16 @@ class GMALState;
 
 class GMALVisibleObject {
     objid_t id;
-    virtual GMALSystemID getSystemId() = 0;
-    virtual std::shared_ptr<GMALVisibleObject> copy() = 0;
-    friend GMALState;
+    friend GMALObjectStore;
 protected:
     GMALVisibleObject() = default;
     GMALVisibleObject(objid_t id) : id(id) {}
 public:
+    virtual std::shared_ptr<GMALVisibleObject> copy() = 0;
+
+    virtual GMALSystemID getSystemId() = 0;
     objid_t getObjectId() const;
+
     virtual void print() {}
 };
 
