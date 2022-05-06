@@ -45,11 +45,11 @@ GMALBarrierWait::applyToState(GMALState *state)
     // We don't actually need to do anything here
 }
 
-
 bool
 GMALBarrierWait::coenabledWith(std::shared_ptr<GMALTransition> other)
 {
-    return true;
+    /* We're only co-enabled if we won't guarantee block */
+    return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
 }
 
 bool

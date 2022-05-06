@@ -3,8 +3,8 @@
 GMALTransition*
 GMALReadCondInit(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
 {
-    auto condInShm = static_cast<GMALConditionVariableShadow*>(shmData);
-    auto systemId = (GMALSystemID)condInShm->cond;
+    auto condInShm = static_cast<pthread_cond_t **>(shmData);
+    auto systemId = (GMALSystemID)*condInShm;
     auto condThatExists = state->getVisibleObjectWithSystemIdentity<GMALConditionVariable>(systemId);
 
     if (condThatExists == nullptr) {
@@ -42,7 +42,7 @@ GMALCondInit::dynamicCopyInState(const GMALState *state)
 void
 GMALCondInit::applyToState(GMALState *state)
 {
-    // TODO: Implement this
+    this->conditionVariable->initialize();
 }
 
 bool

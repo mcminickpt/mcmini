@@ -44,7 +44,7 @@ GMALMutex::isDestroyed() const
 }
 
 void
-GMALMutex::lock()
+GMALMutex::lock(tid_t newOwner)
 {
     this->mutexShadow.state = GMALMutexShadow::locked;
 }

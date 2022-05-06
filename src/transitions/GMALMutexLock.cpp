@@ -44,7 +44,7 @@ GMALMutexLock::dynamicCopyInState(const GMALState *state)
 void
 GMALMutexLock::applyToState(GMALState *state)
 {
-    this->mutex->lock();
+    this->mutex->lock(this->getThreadId());
 }
 
 bool
