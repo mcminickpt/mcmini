@@ -62,7 +62,12 @@ public:
             : GMALVisibleObject(), condShadow(condShadow), mutex(nullptr) {}
 
     inline GMALConditionVariable(const GMALConditionVariable &cond)
-    : GMALVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(cond.mutex) {}
+    : GMALVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(nullptr) {
+
+        if (cond.mutex != nullptr) {
+            mutex = std::static_pointer_cast<GMALMutex, GMALVisibleObject>(cond.mutex->copy());
+        }
+    }
 
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;

@@ -532,6 +532,9 @@ GMALState::reflectStateAtTransitionDepth(uint32_t depth)
     /* First, reset the state of all of the objects */
     this->objectStorage.resetObjectsToInitialStateInStore();
 
+    /* Zero the thread depth counts */
+    bzero(this->threadTransitionCounts, sizeof(this->threadTransitionCounts));
+
     /*
      * Then, replay the transitions in the transition stack forward in time
      * up until the specified depth
@@ -541,6 +544,7 @@ GMALState::reflectStateAtTransitionDepth(uint32_t depth)
         const auto transition = this->getTransitionAtIndex(i);
         const auto dynamicCpy = transition->dynamicCopyInState(this);
         dynamicCpy->applyToState(this);
+        this->incrementThreadTransitionCountIfNecessary(dynamicCpy);
     }
 
     {

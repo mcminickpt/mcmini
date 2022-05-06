@@ -58,7 +58,6 @@
 
 // Naive dining philosophers solution, which leads to deadlock.
 
-#include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "GMAL.h"
@@ -68,7 +67,7 @@
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
 pthread_cond_t cond;
-pthread_t thread;
+pthread_t thread, thread2;
 
 void * philosopher_doit(void *forks_arg) {
     gmal_pthread_mutex_lock(&mutex2);
@@ -82,7 +81,7 @@ void * test(void *unused)
 {
     gmal_pthread_mutex_lock(&mutex1);
     gmal_pthread_cond_wait(&cond, &mutex1);
-//    gmal_pthread_mutex_unlock(&mutex1);
+    gmal_pthread_mutex_unlock(&mutex1);
     return nullptr;
 }
 
@@ -94,6 +93,7 @@ int main(int argc, char* argv[])
     gmal_pthread_cond_init(&cond, NULL);
 
     gmal_pthread_create(&thread, NULL, &test, NULL);
+//    gmal_pthread_create(&thread2, NULL, &test, NULL);
 
     gmal_pthread_mutex_lock(&mutex1);
     gmal_pthread_cond_signal(&cond);

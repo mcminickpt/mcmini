@@ -42,6 +42,7 @@ GMALCondSignal::applyToState(GMALState *state)
 {
     /* Here's where the algorithm can change for signal */
     /* For simplicity, we assume that the first thread can be awoken */
+    this->conditionVariable->wakeFirstThreadIfPossible();
 }
 
 bool

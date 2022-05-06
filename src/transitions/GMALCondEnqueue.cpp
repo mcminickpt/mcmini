@@ -26,12 +26,10 @@ GMALReadCondEnqueue(const GMALSharedTransition *shmTransition, void *shmData, GM
         GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(*mutexThatExists == *mutexAssociatedWithConditionVariable,
                                                "A mutex has already been associated with this condition variable. Attempting "
                                                "to use another mutex with the same condition variable is undefined");
-    } else {
-        condThatExists->mutex = mutexThatExists;
     }
 
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALCondEnqueue(threadThatRan, condThatExists);
+    return new GMALCondEnqueue(threadThatRan, condThatExists, mutexThatExists);
 }
 
 std::shared_ptr<GMALTransition>
@@ -41,16 +39,19 @@ GMALCondEnqueue::staticCopy()
             std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
     auto condCpy =
             std::static_pointer_cast<GMALConditionVariable, GMALVisibleObject>(this->conditionVariable->copy());
-    auto cpy = new GMALCondEnqueue(threadCpy, condCpy);
+    auto mutCpy =
+            std::static_pointer_cast<GMALMutex, GMALVisibleObject>(this->mutex->copy());
+    auto cpy = new GMALCondEnqueue(threadCpy, condCpy, mutCpy);
     return std::shared_ptr<GMALTransition>(cpy);
 }
 
 std::shared_ptr<GMALTransition>
 GMALCondEnqueue::dynamicCopyInState(const GMALState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALConditionVariable> condInState = state->getObjectWithId<GMALConditionVariable>(conditionVariable->getObjectId());
-    auto cpy = new GMALCondEnqueue(threadInState, condInState);
+    auto threadInState = state->getThreadWithId(thread->tid);
+    auto condInState = state->getObjectWithId<GMALConditionVariable>(conditionVariable->getObjectId());
+    auto mutCpy = state->getObjectWithId<GMALMutex>(this->mutex->getObjectId());
+    auto cpy = new GMALCondEnqueue(threadInState, condInState, mutCpy);
     return std::shared_ptr<GMALTransition>(cpy);
 }
 
@@ -59,7 +60,8 @@ GMALCondEnqueue::applyToState(GMALState *state)
 {
     /* Insert this thread into the waiting queue */
     this->conditionVariable->enterSleepingQueue(this->getThreadId());
-    this->conditionVariable->mutex->unlock();
+    this->conditionVariable->mutex = this->mutex;
+    this->mutex->unlock();
 }
 
 bool
@@ -99,5 +101,5 @@ GMALCondEnqueue::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALCondEnqueue::print()
 {
-    printf("thread %lu: pthread_cond_wait(%lu, %lu) (awake)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->conditionVariable->mutex->getObjectId());
+    printf("thread %lu: pthread_cond_wait(%lu, %lu) (awake)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->mutex->getObjectId());
 }

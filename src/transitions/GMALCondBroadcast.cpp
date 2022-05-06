@@ -62,5 +62,5 @@ GMALCondBroadcast::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALCondBroadcast::print()
 {
-    printf("thread %lu: pthread_cond_wait(%lu, %lu)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->conditionVariable->mutex->getObjectId());
+    printf("thread %lu: pthread_cond_broadcast(%lu)\n", this->thread->tid, this->conditionVariable->getObjectId());
 }
