@@ -82,7 +82,7 @@ void * test(void *unused)
 {
     gmal_pthread_mutex_lock(&mutex1);
     gmal_pthread_cond_wait(&cond, &mutex1);
-    gmal_pthread_mutex_unlock(&mutex1);
+//    gmal_pthread_mutex_unlock(&mutex1);
     return nullptr;
 }
 
@@ -99,8 +99,10 @@ int main(int argc, char* argv[])
     gmal_pthread_cond_signal(&cond);
     gmal_pthread_mutex_unlock(&mutex1);
 
-    gmal_pthread_mutex_lock(&mutex1);
-    gmal_pthread_mutex_unlock(&mutex1);
+
+    gmal_pthread_join(thread, NULL);
+//    gmal_pthread_mutex_lock(&mutex1);
+//    gmal_pthread_mutex_unlock(&mutex1);
 
 //    gmal_pthread_mutex_init(&mutex1, nullptr);
 //    gmal_pthread_mutex_init(&mutex2, nullptr);

@@ -1,16 +1,13 @@
-#ifndef GMAL_GMALCONDWAIT_H
-#define GMAL_GMALCONDWAIT_H
+#ifndef GMAL_GMALCONDENQUEUE_H
+#define GMAL_GMALCONDENQUEUE_H
 
 #include "GMALCondTransition.h"
 
-GMALTransition* GMALReadCondWait(const GMALSharedTransition*, void*, GMALState*);
+GMALTransition* GMALReadCondEnqueue(const GMALSharedTransition*, void*, GMALState*);
 
-/**
- * Attempts to re-acquire the mutex/exit the thread queue
- */
-struct GMALCondWait : public GMALCondTransition {
+struct GMALCondEnqueue : public GMALCondTransition {
 public:
-    GMALCondWait(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALConditionVariable> cond) :
+    GMALCondEnqueue(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALConditionVariable> cond) :
             GMALCondTransition(running, cond) {}
 
     std::shared_ptr<GMALTransition> staticCopy() override;
@@ -18,8 +15,9 @@ public:
     void applyToState(GMALState *) override;
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
-    bool enabledInState(const GMALState *) override;
     void print() override;
+
+    bool countsAgainstThreadExecutionDepth() override { return false; }
 };
 
-#endif //GMAL_GMALCONDWAIT_H
+#endif //GMAL_GMALCONDENQUEUE_H

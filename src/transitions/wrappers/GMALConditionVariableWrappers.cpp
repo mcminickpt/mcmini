@@ -5,6 +5,7 @@
 #include "transitions/GMALCondWait.h"
 #include "transitions/GMALCondBroadcast.h"
 #include "transitions/GMALCondSignal.h"
+#include "transitions/GMALCondEnqueue.h"
 
 extern "C" {
     #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
@@ -21,11 +22,14 @@ gmal_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 int
 gmal_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    //__real_pthread_mutex_unlock(mutex);
+
     const auto condPlusMutex = GMALSharedMemoryConditionVariable(cond, mutex);
+    thread_post_visible_operation_hit(typeid(GMALCondEnqueue), &condPlusMutex);
+    thread_await_gmal_scheduler();
+    __real_pthread_mutex_unlock(mutex);
     thread_post_visible_operation_hit(typeid(GMALCondWait), &condPlusMutex);
     thread_await_gmal_scheduler();
-    //__real_pthread_mutex_lock(mutex);
+    __real_pthread_mutex_lock(mutex);
     return 0;
 }
 

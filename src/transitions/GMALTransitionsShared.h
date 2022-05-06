@@ -26,6 +26,7 @@ extern "C" {
 #include "transitions/GMALCondSignal.h"
 #include "transitions/GMALCondBroadcast.h"
 #include "transitions/GMALCondWait.h"
+#include "transitions/GMALCondEnqueue.h"
 
 #include "GMAL.h"
 
