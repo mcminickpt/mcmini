@@ -55,7 +55,7 @@ gmal_init()
 void
 gmal_create_program_state()
 {
-    auto config = GMALStateConfiguration(GMAL_STATE_CONFIG_THREAD_NO_LIMIT, GMAL_STATE_CONFIG_NO_TRACE);
+    auto config = get_config_for_execution_environment();
     programState.Construct(config);
     programState->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
     programState->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
@@ -102,7 +102,6 @@ gmal_scheduler_main()
     program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
     if (GMAL_IS_SOURCE_PROGRAM(program))
         return GMAL_SOURCE_PROGRAM;
-
 
     int curStateStackDepth = static_cast<int>(programState->getStateStackSize());
     int curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
@@ -404,13 +403,13 @@ void
 gmal_report_undefined_behavior(const char *msg)
 {
     gmal_child_kill();
-    printf("\t Undefined Behavior Detected! \t\n"
+    fprintf(stderr,"\t Undefined Behavior Detected! \t\n"
             "\t ............................ \t\n"
             "\t The model checker aborted the execution because\t\n"
             "\t it detected undefined behavior\t\n"
             "\t ............................ \t\n"
-    );
-    printf("\t%s\t\n", msg);
+            "\t %s \t\n",
+    msg);
     programState->printTransitionStack();
     programState->printNextTransitions();
     exit(EXIT_FAILURE);
@@ -452,10 +451,9 @@ gmal_spawn_daemon_thread()
 
     pthread_t daemon;
     pthread_attr_t attr;
-
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&daemon, nullptr, &gmal_daemon_thread_simulate_program, trace);
+    __real_pthread_create(&daemon, nullptr, &gmal_daemon_thread_simulate_program, trace);
     pthread_attr_destroy(&attr);
 }
 
@@ -479,5 +477,26 @@ gmal_daemon_thread_simulate_program(void *trace)
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }
     delete tracePtr;
+    gmal_child_panic();
     return nullptr; /* Ignored */
+}
+
+GMALStateConfiguration
+get_config_for_execution_environment()
+{
+    uint64_t maxThreadDepth = GMAL_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t gdbTraceNumber = GMAL_STATE_CONFIG_NO_TRACE;
+
+    /* Parse the max thread depth from the command line (if available) */
+    char *maxThreadDepthChar = getenv(ENV_THREAD_DEPTH);
+    char *gdbTraceNumberChar = getenv(ENV_GDB_EXECUTION_TRACE);
+
+    // TODO: Sanitize arguments (check errors of strtoul)
+    if (maxThreadDepthChar != nullptr)
+        maxThreadDepth = strtoul(maxThreadDepthChar, nullptr, 10);
+
+    if (gdbTraceNumberChar)
+        gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
+
+    return {maxThreadDepth, gdbTraceNumber};
 }

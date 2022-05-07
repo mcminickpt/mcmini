@@ -2,26 +2,11 @@
 #define GMAL_GMALDEFERRED_H
 
 // Solves static initialization fiasco in dynamic libraries
-//template<typename T>
-//struct GMALDeferred
-//{
-//    GMALDeferred(){}
-//    ~GMALDeferred(){ value.~T(); }
-//    template<typename...TArgs>
-//    void Construct(TArgs&&...args)
-//    {
-//        new(&value) T(std::forward<TArgs>(args)...);
-//    }
-//
-//    union
-//    {
-//        T value;
-//    };
-//
-//public:
-//    T get() { return value; }
-//};
-
+// C++ seems to invoke the constructor of a globally-defined
+// object AFTER exiting a dynamic library's constructor. This is
+// a problem as we only expect a global object to be constructed once
+// (once in the constructor). This clever workaround helps resolve this
+// issue by wrapping the underlying object in a union
 template<typename T>
 struct GMALDeferred
 {
@@ -41,6 +26,7 @@ struct GMALDeferred
 public:
     T *get() { return value; }
 
+    /* Conveniently access the underlying value */
     T *operator->() { return value; }
 };
 

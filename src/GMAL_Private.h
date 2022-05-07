@@ -6,7 +6,8 @@
 #include "GMALState.h"
 
 extern "C" {
-    #include "mc_shared_cv.h"
+#include "mc_shared_cv.h"
+#include "GMALEnv.h"
 }
 
 /* Scheduler state */
@@ -25,6 +26,7 @@ GMAL_PROGRAM_TYPE gmal_enter_gdb_debugging_session_if_necessary(trid_t);
 GMAL_PROGRAM_TYPE gmal_enter_gdb_debugging_session();
 void gmal_spawn_daemon_thread();
 void *gmal_daemon_thread_simulate_program(void*);
+GMALStateConfiguration get_config_for_execution_environment();
 
 /* Registering and accessing threads */
 tid_t gmal_register_thread();

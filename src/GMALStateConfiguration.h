@@ -8,7 +8,7 @@
  * may execute as many transitions as they would like (i.e. are
  * not limited to an execution depth)
  */
-#define GMAL_STATE_CONFIG_THREAD_NO_LIMIT UINT32_MAX
+#define GMAL_STATE_CONFIG_THREAD_NO_LIMIT UINT64_MAX
 #define GMAL_STATE_CONFIG_NO_TRACE UINT64_MAX
 
 /**
@@ -21,7 +21,7 @@ struct GMALStateConfiguration final {
      * The maximum number of transitions that can be run
      * by any single thread while running the model checker
      */
-    const uint32_t maxThreadExecutionDepth;
+    const uint64_t maxThreadExecutionDepth;
 
     /**
      * The trace id to stop the model checker at
@@ -29,7 +29,7 @@ struct GMALStateConfiguration final {
      */
     const trid_t gdbDebugTraceNumber;
 
-    GMALStateConfiguration(uint32_t maxThreadExecutionDepth, trid_t gdbDebugTraceNumber)
+    GMALStateConfiguration(uint64_t maxThreadExecutionDepth, trid_t gdbDebugTraceNumber)
     : maxThreadExecutionDepth(maxThreadExecutionDepth), gdbDebugTraceNumber(gdbDebugTraceNumber) {}
 };
 
