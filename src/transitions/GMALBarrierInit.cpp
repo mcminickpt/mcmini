@@ -45,12 +45,6 @@ GMALBarrierInit::applyToState(GMALState *state)
     this->barrier->init();
 }
 
-void
-GMALBarrierInit::unapplyToState(GMALState *state)
-{
-    this->barrier->deinit();
-}
-
 bool
 GMALBarrierInit::coenabledWith(std::shared_ptr<GMALTransition> other)
 {

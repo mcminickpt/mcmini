@@ -34,12 +34,6 @@ GMALThreadFinish::applyToState(GMALState *state)
     this->target->die();
 }
 
-void
-GMALThreadFinish::unapplyToState(GMALState *state)
-{
-    this->target->regenerate();
-}
-
 bool
 GMALThreadFinish::enabledInState(const GMALState *) {
     return thread->enabled() && thread->tid != TID_MAIN_THREAD;

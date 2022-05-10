@@ -44,7 +44,7 @@ GMALMutex::isDestroyed() const
 }
 
 void
-GMALMutex::lock()
+GMALMutex::lock(tid_t newOwner)
 {
     this->mutexShadow.state = GMALMutexShadow::locked;
 }
@@ -67,10 +67,8 @@ GMALMutex::deinit()
     this->mutexShadow.state = GMALMutexShadow::undefined;
 }
 
-
-void
-GMALMutex::print()
+bool
+GMALMutex::canAcquire(tid_t thread) const
 {
-    printf("MUTEX id: %lu pthread_mutex_t: %p, state: %d\n", this->getObjectId(),
-           this->mutexShadow.systemIdentity, this->mutexShadow.state);
+    return this->isUnlocked(); /* Eventually, more complicated logic with recursive mutexes */
 }

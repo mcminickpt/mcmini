@@ -1,14 +1,14 @@
-#ifndef GMAL_GMALCONDINIT_H
-#define GMAL_GMALCONDINIT_H
+#ifndef GMAL_GMALCONDSIGNAL_H
+#define GMAL_GMALCONDSIGNAL_H
 
 #include "GMALCondTransition.h"
 
-GMALTransition* GMALReadCondInit(const GMALSharedTransition*, void*, GMALState*);
+GMALTransition* GMALReadCondSignal(const GMALSharedTransition*, void*, GMALState*);
 
-struct GMALCondInit : public GMALCondTransition {
+struct GMALCondSignal : public GMALCondTransition {
 public:
-    GMALCondInit(std::shared_ptr<GMALThread> thread, std::shared_ptr<GMALConditionVariable> cond)
-            : GMALCondTransition(thread, cond) {}
+    GMALCondSignal(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALConditionVariable> cond) :
+            GMALCondTransition(running, cond) {}
 
     std::shared_ptr<GMALTransition> staticCopy() override;
     std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
@@ -18,4 +18,5 @@ public:
     void print() override;
 };
 
-#endif //GMAL_GMALCONDINIT_H
+
+#endif //GMAL_GMALCONDSIGNAL_H

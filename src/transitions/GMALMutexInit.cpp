@@ -45,12 +45,6 @@ GMALMutexInit::applyToState(GMALState *state)
     this->mutex->init();
 }
 
-void
-GMALMutexInit::unapplyToState(GMALState *state)
-{
-    this->mutex->deinit();
-}
-
 bool
 GMALMutexInit::coenabledWith(std::shared_ptr<GMALTransition> other)
 {

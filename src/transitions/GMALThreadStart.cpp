@@ -27,11 +27,7 @@ GMALThreadStart::dynamicCopyInState(const GMALState *state) {
 void
 GMALThreadStart::applyToState(GMALState *) {
     // Nothing to do
-}
-
-void
-GMALThreadStart::unapplyToState(GMALState *) {
-    // Nothing to do
+    this->thread->spawn();
 }
 
 bool

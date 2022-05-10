@@ -3,7 +3,17 @@
 
 #include "GMALVisibleObject.h"
 #include "GMALMutex.h"
+#include "misc/GMALOptional.h"
 #include <vector>
+#include <deque>
+
+struct GMALSharedMemoryConditionVariable {
+    pthread_cond_t *cond;
+    pthread_mutex_t *mutex;
+
+    GMALSharedMemoryConditionVariable(pthread_cond_t *cond, pthread_mutex_t *mutex)
+    : cond(cond), mutex(mutex) {}
+};
 
 struct GMALConditionVariableShadow {
     pthread_cond_t *cond;
@@ -15,6 +25,28 @@ struct GMALConditionVariableShadow {
 
 struct GMALConditionVariable : public GMALVisibleObject {
 private:
+
+    GMALConditionVariableShadow condShadow;
+
+    /**
+     * The collection of threads are currently asleep waiting
+     * to be awoken by this queue
+     */
+    std::deque<tid_t> sleepQueue;
+    std::deque<tid_t> wakeQueue;
+
+    void removeSleepingThread(tid_t);
+    void removeWakingThread(tid_t);
+    bool threadIsInWaitingQueue(tid_t);
+
+    inline explicit GMALConditionVariable(GMALConditionVariableShadow condShadow, std::shared_ptr<GMALMutex> mutex, objid_t id)
+    : GMALVisibleObject(id), condShadow(condShadow), mutex(mutex) {}
+
+public:
+
+    // TODO: Figure out how to make this API a bit neater. For now
+    // we avoid the best interface here to get condition variables to work
+
     // The lock that is used to gain access to this condition variable
     // This value may be NULL before the condition variable has received
     // a pthread_cond_wait call
@@ -23,27 +55,6 @@ private:
     // different locks
     std::shared_ptr<GMALMutex> mutex;
 
-    GMALConditionVariableShadow condShadow;
-
-    // TODO: There is at some difficulty
-    // with condition variables in that to be able to
-    // undo e.g. a pthread_cond_broadcast(), we'd need to
-    // know the set of threads that that broadcast had awoken
-    // since it may blend in with the set of threads that *were*
-    // waiting before the broadcast. We couldn't simply put all
-    // of the waiting threads to sleep as this might not be
-    // equivalent to the state before calling broadcast()
-    /**
-     * The collection of threads are currently asleep waiting
-     * to be awoken by this queue
-     */
-    std::vector<tid_t> sleepQueue;
-    std::vector<tid_t> wakeQueue;
-
-    inline explicit GMALConditionVariable(GMALConditionVariableShadow condShadow, std::shared_ptr<GMALMutex> mutex, objid_t id)
-    : GMALVisibleObject(id), condShadow(condShadow), mutex(mutex) {}
-
-public:
     inline explicit GMALConditionVariable(GMALConditionVariableShadow condShadow, std::shared_ptr<GMALMutex> mutex)
     : GMALVisibleObject(), condShadow(condShadow), mutex(mutex) {}
 
@@ -51,21 +62,31 @@ public:
             : GMALVisibleObject(), condShadow(condShadow), mutex(nullptr) {}
 
     inline GMALConditionVariable(const GMALConditionVariable &cond)
-    : GMALVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(cond.mutex) {}
+    : GMALVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(nullptr) {
+
+        if (cond.mutex != nullptr) {
+            mutex = std::static_pointer_cast<GMALMutex, GMALVisibleObject>(cond.mutex->copy());
+        }
+    }
 
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;
 
+
     bool operator ==(const GMALConditionVariable&) const;
     bool operator !=(const GMALConditionVariable&) const;
 
-    bool isOwned() const;
+    bool isInitialized() const;
     bool isDestroyed() const;
 
-    void relinquish();
-    void takeOwnership();
-
-    void print() override;
+    void initialize();
+    void destroy();
+    void enterSleepingQueue(tid_t);
+    void wakeThread(tid_t);
+    void wakeFirstThreadIfPossible();
+    void wakeAllSleepingThreads();
+    void removeThread(tid_t);
+    bool threadCanExit(tid_t);
 };
 
 #endif //GMAL_GMALCONDITIONVARIABLE_H

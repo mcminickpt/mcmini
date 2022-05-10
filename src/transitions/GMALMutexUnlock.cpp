@@ -46,12 +46,6 @@ GMALMutexUnlock::applyToState(GMALState *state)
     this->mutex->unlock();
 }
 
-void
-GMALMutexUnlock::unapplyToState(GMALState *state)
-{
-    this->mutex->lock();
-}
-
 bool
 GMALMutexUnlock::enabledInState(const GMALState *state)
 {

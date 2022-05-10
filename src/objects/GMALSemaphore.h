@@ -25,7 +25,6 @@ public:
 
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;
-    void print() override;
 
     bool operator ==(const GMALSemaphore&) const;
     bool operator !=(const GMALSemaphore&) const;

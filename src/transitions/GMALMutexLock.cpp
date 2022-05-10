@@ -44,19 +44,13 @@ GMALMutexLock::dynamicCopyInState(const GMALState *state)
 void
 GMALMutexLock::applyToState(GMALState *state)
 {
-    this->mutex->lock();
-}
-
-void
-GMALMutexLock::unapplyToState(GMALState *state)
-{
-    this->mutex->unlock();
+    this->mutex->lock(this->getThreadId());
 }
 
 bool
 GMALMutexLock::enabledInState(const GMALState *state)
 {
-    return this->thread->enabled() && this->mutex->isUnlocked();
+    return this->thread->enabled() && this->mutex->canAcquire(this->getThreadId());
 }
 
 bool

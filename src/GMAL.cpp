@@ -55,22 +55,27 @@ gmal_init()
 void
 gmal_create_program_state()
 {
-    auto config = GMALStateConfiguration(GMAL_STATE_CONFIG_THREAD_NO_LIMIT, GMAL_STATE_CONFIG_NO_TRACE);
+    auto config = get_config_for_execution_environment();
     programState.Construct(config);
-    programState.get()->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
-    programState.get()->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
-    programState.get()->registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
-    programState.get()->registerVisibleOperationType(typeid(GMALThreadJoin), &GMALReadThreadJoin);
-    programState.get()->registerVisibleOperationType(typeid(GMALMutexInit), &GMALReadMutexInit);
-    programState.get()->registerVisibleOperationType(typeid(GMALMutexUnlock), &GMALReadMutexUnlock);
-    programState.get()->registerVisibleOperationType(typeid(GMALMutexLock), &GMALReadMutexLock);
-    programState.get()->registerVisibleOperationType(typeid(GMALSemInit), &GMALReadSemInit);
-    programState.get()->registerVisibleOperationType(typeid(GMALSemPost), &GMALReadSemPost);
-    programState.get()->registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
-    programState.get()->registerVisibleOperationType(typeid(GMALExitTransition), &GMALReadExitTransition);
-    programState.get()->registerVisibleOperationType(typeid(GMALBarrierInit), &GMALReadBarrierInit);
-    programState.get()->registerVisibleOperationType(typeid(GMALBarrierWait), &GMALReadBarrierWait);
-    programState.get()->start();
+    programState->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
+    programState->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
+    programState->registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
+    programState->registerVisibleOperationType(typeid(GMALThreadJoin), &GMALReadThreadJoin);
+    programState->registerVisibleOperationType(typeid(GMALMutexInit), &GMALReadMutexInit);
+    programState->registerVisibleOperationType(typeid(GMALMutexUnlock), &GMALReadMutexUnlock);
+    programState->registerVisibleOperationType(typeid(GMALMutexLock), &GMALReadMutexLock);
+    programState->registerVisibleOperationType(typeid(GMALSemInit), &GMALReadSemInit);
+    programState->registerVisibleOperationType(typeid(GMALSemPost), &GMALReadSemPost);
+    programState->registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
+    programState->registerVisibleOperationType(typeid(GMALExitTransition), &GMALReadExitTransition);
+    programState->registerVisibleOperationType(typeid(GMALBarrierInit), &GMALReadBarrierInit);
+    programState->registerVisibleOperationType(typeid(GMALBarrierWait), &GMALReadBarrierWait);
+    programState->registerVisibleOperationType(typeid(GMALCondInit), &GMALReadCondInit);
+    programState->registerVisibleOperationType(typeid(GMALCondSignal), &GMALReadCondSignal);
+    programState->registerVisibleOperationType(typeid(GMALCondBroadcast), &GMALReadCondBroadcast);
+    programState->registerVisibleOperationType(typeid(GMALCondWait), &GMALReadCondWait);
+    programState->registerVisibleOperationType(typeid(GMALCondEnqueue), &GMALReadCondEnqueue);
+    programState->start();
 }
 
 GMAL_PROGRAM_TYPE
@@ -85,9 +90,9 @@ gmal_scheduler_main()
 
     gmal_register_main_thread();
 
-    auto mainThread = programState.get()->getThreadWithId(TID_MAIN_THREAD);
+    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
-    programState.get()->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
+    programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
     if (GMAL_IS_SOURCE_PROGRAM(program))
@@ -95,19 +100,25 @@ gmal_scheduler_main()
 
     gmal_exhaust_threads(initialTransition);
     program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
+    if (GMAL_IS_SOURCE_PROGRAM(program))
+        return GMAL_SOURCE_PROGRAM;
 
-    while (!programState.get()->stateStackIsEmpty()) {
-        const uint32_t depth = programState.get()->getStateStackSize();
-        printf("**** Backtracking from state %d ****\n", depth);
+    int curStateStackDepth = static_cast<int>(programState->getStateStackSize());
+    int curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
 
-        std::shared_ptr<GMALStateStackItem> sTop = programState.get()->getStateStackTop();
+    while (curStateStackDepth > 0) {
+
+        printf("**** Backtracking at state depth %d (%d transitions to reach this state) ****\n", curStateStackDepth, curTransitionStackDepth);
+
+        std::shared_ptr<GMALStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
         if (sTop->hasThreadsToBacktrackOn()) {
             // TODO: We can be smart here and only run a thread
             // if it is not already in a sleep set or lock set (eventually)
+            programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
 
             // DPOR ensures that any thread in the backtrack set is enabled in this state
             tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
-            std::shared_ptr<GMALTransition> backtrackOperation = programState.get()->getNextTransitionForThread(backtrackThread);
+            std::shared_ptr<GMALTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
             program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
             if (GMAL_IS_SOURCE_PROGRAM(program))
@@ -116,11 +127,15 @@ gmal_scheduler_main()
             program = gmal_readvance_main(backtrackOperation);
             if (GMAL_IS_SOURCE_PROGRAM(program))
                 return GMAL_SOURCE_PROGRAM;
+
+            curStateStackDepth = static_cast<int>(programState->getStateStackSize());
+            curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
         } else {
+            curStateStackDepth--;
+            curTransitionStackDepth--;
             puts("**** ... Nothing to backtrack on... ****");
         }
-        programState.get()->moveToPreviousState();
-        printf("**** Backtracking completed at state %d ****\n", depth);
+        printf("**** Backtracking at state depth %d ****\n", curStateStackDepth);
     }
     return false;
 }
@@ -239,13 +254,13 @@ gmal_spawn_child_following_transition_stack()
     GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
 
     if (GMAL_IS_SCHEDULER(program)) {
-        const int transition_stack_height = programState.get()->getTransitionStackSize();
+        const int transition_stack_height = programState->getTransitionStackSize();
         for (int i = 0; i < transition_stack_height; i++) {
             // NOTE: This is reliant on the fact
             // that threads are created in the same order
             // when we create them. This will always be consistent,
             // but we might need to look out for when a thread dies
-            tid_t nextTid = programState.get()->getThreadRunningTransitionAtIndex(i);
+            tid_t nextTid = programState->getThreadRunningTransitionAtIndex(i);
             gmal_run_thread_to_next_visible_operation(nextTid);
         }
     } else {
@@ -256,7 +271,7 @@ gmal_spawn_child_following_transition_stack()
         // re-simulate the system by running the transitions
         // in the transition stack; otherwise, shadow resource
         // allocations will be off
-        programState.get()->reset();
+        programState->reset();
         gmal_register_main_thread();
     }
 
@@ -294,9 +309,7 @@ gmal_begin_target_program_at_main(bool spawnDaemonThread)
         if (spawnDaemonThread)
             gmal_spawn_daemon_thread();
 
-        puts("AWAIT SCHEDU");
         thread_await_gmal_scheduler_for_thread_start_transition();
-        puts("AWAIT SCHEDU after");
     }
     return program;
 }
@@ -341,20 +354,20 @@ void
 gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
 {
     puts("**** Exhausting threads... ****");
-    uint64_t debug_depth = programState.get()->getTransitionStackSize();
+    uint64_t debug_depth = programState->getTransitionStackSize();
     std::shared_ptr<GMALTransition> t_next = initialTransition;
     do {
         debug_depth++;
         tid_t tid = t_next->getThreadId();
         gmal_run_thread_to_next_visible_operation(tid);
-        programState.get()->simulateRunningTransition(t_next);
-        programState.get()->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
-        programState.get()->dynamicallyUpdateBacktrackSets();
-    } while ((t_next = programState.get()->getFirstEnabledTransitionFromNextStack()) != nullptr);
+        programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
+        programState->dynamicallyUpdateBacktrackSets();
+    } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
 
-    if (programState.get()->programIsInDeadlock()) {
+    if (programState->programIsInDeadlock()) {
         puts("*** DEADLOCK DETECTED ***");
-        programState.get()->printTransitionStack();
+        programState->printTransitionStack();
+        programState->printNextTransitions();
     } else {
         puts("*** NO FAILURE DETECTED ***");
     }
@@ -373,7 +386,7 @@ gmal_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
 tid_t
 gmal_register_thread()
 {
-    tid_t newTid = programState.get()->createNewThread();
+    tid_t newTid = programState->createNewThread();
     tid_self = newTid;
     return newTid;
 }
@@ -381,7 +394,7 @@ gmal_register_thread()
 tid_t
 gmal_register_main_thread()
 {
-    tid_t newTid = programState.get()->createMainThread();
+    tid_t newTid = programState->createMainThread();
     tid_self = newTid;
     return newTid;
 }
@@ -390,15 +403,15 @@ void
 gmal_report_undefined_behavior(const char *msg)
 {
     gmal_child_kill();
-    printf("\t Undefined Behavior Detected! \t\n"
+    fprintf(stderr,"\t Undefined Behavior Detected! \t\n"
             "\t ............................ \t\n"
             "\t The model checker aborted the execution because\t\n"
-            "\t it detected undefined behavior.\t\n"
+            "\t it detected undefined behavior\t\n"
             "\t ............................ \t\n"
-    );
-    printf("\t%s\t\n", msg);
-    programState.get()->printTransitionStack();
-    programState.get()->printNextTransitions();
+            "\t %s \t\n",
+    msg);
+    programState->printTransitionStack();
+    programState->printNextTransitions();
     exit(EXIT_FAILURE);
 }
 
@@ -415,7 +428,7 @@ gmal_enter_gdb_debugging_session_if_necessary(trid_t trid)
 bool
 gmal_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
 {
-    return programState.get()->isTargetTraceIdForGDB(trid);
+    return programState->isTargetTraceIdForGDB(trid);
 }
 
 GMAL_PROGRAM_TYPE
@@ -434,40 +447,56 @@ void
 gmal_spawn_daemon_thread()
 {
     auto trace = new std::vector<tid_t>();
-    *trace = programState.get()->getThreadIdTraceOfTransitionStack();
+    *trace = programState->getThreadIdTraceOfTransitionStack();
 
     pthread_t daemon;
     pthread_attr_t attr;
-
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&daemon, nullptr, &gmal_daemon_thread_simulate_program, trace);
+    __real_pthread_create(&daemon, nullptr, &gmal_daemon_thread_simulate_program, trace);
     pthread_attr_destroy(&attr);
 }
 
 void*
 gmal_daemon_thread_simulate_program(void *trace)
 {
-    programState.get()->reset();
-    programState.get()->start();
+    programState->reset();
+    programState->start();
     gmal_register_main_thread();
 
-    auto mainThread = programState.get()->getThreadWithId(TID_MAIN_THREAD);
+    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
-    programState.get()->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
+    programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     auto tracePtr = static_cast<std::vector<tid_t>*>(trace);
 
-    puts("SRTA SIMULATON IN DAEMON");
     for (auto &tid : *tracePtr) {
-        printf("%lu\n", tid);
-        auto t_next = programState.get()->getPendingTransitionForThread(tid);
+        auto t_next = programState->getPendingTransitionForThread(tid);
         t_next->print();
         gmal_run_thread_to_next_visible_operation(tid);
-        programState.get()->simulateRunningTransition(t_next);
-        programState.get()->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
+        programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }
-    puts("FINISHED SIMULATON IN DAEMON");
     delete tracePtr;
+    gmal_child_panic();
     return nullptr; /* Ignored */
+}
+
+GMALStateConfiguration
+get_config_for_execution_environment()
+{
+    uint64_t maxThreadDepth = GMAL_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t gdbTraceNumber = GMAL_STATE_CONFIG_NO_TRACE;
+
+    /* Parse the max thread depth from the command line (if available) */
+    char *maxThreadDepthChar = getenv(ENV_THREAD_DEPTH);
+    char *gdbTraceNumberChar = getenv(ENV_GDB_EXECUTION_TRACE);
+
+    // TODO: Sanitize arguments (check errors of strtoul)
+    if (maxThreadDepthChar != nullptr)
+        maxThreadDepth = strtoul(maxThreadDepthChar, nullptr, 10);
+
+    if (gdbTraceNumberChar)
+        gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
+
+    return {maxThreadDepth, gdbTraceNumber};
 }

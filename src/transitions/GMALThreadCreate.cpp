@@ -41,12 +41,6 @@ GMALThreadCreate::applyToState(GMALState *state)
     this->target->spawn();
 }
 
-void
-GMALThreadCreate::unapplyToState(GMALState *state)
-{
-    this->target->despawn();
-}
-
 bool
 GMALThreadCreate::coenabledWith(std::shared_ptr<GMALTransition> transition)
 {

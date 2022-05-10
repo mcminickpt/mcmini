@@ -45,12 +45,6 @@ GMALSemInit::applyToState(GMALState *state)
     this->sem->init();
 }
 
-void
-GMALSemInit::unapplyToState(GMALState *state)
-{
-    this->sem->deinit();
-}
-
 bool
 GMALSemInit::coenabledWith(std::shared_ptr<GMALTransition> other)
 {

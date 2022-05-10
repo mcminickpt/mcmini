@@ -5,5 +5,6 @@
 #include "transitions/wrappers/GMALMutexTransitionWrappers.h"
 #include "transitions/wrappers/GMALSemaphoreTransitionWrappers.h"
 #include "transitions/wrappers/GMALBarrierWrappers.h"
+#include "transitions/wrappers/GMALConditionVariableWrappers.h"
 
 #endif //GMAL_GMALWRAPPERS_H

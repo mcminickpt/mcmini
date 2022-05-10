@@ -80,7 +80,7 @@ GMALState::createNewThread(GMALThreadShadow &shadow)
     objid_t newObjId = this->registerNewObject(thread);
 
     // TODO: Encapsulate transferring object ids
-    thread->id = newObjId;
+//    thread->id = newObjId;
     this->threadIdMap.insert({newTid, newObjId});
     return newTid;
 }
@@ -187,6 +187,18 @@ GMALState::getFirstEnabledTransitionFromNextStack()
         if (this->transitionIsEnabled(nextTransitionForI)) return nextTransitionForI;
     }
     return nullptr;
+}
+
+std::unordered_set<tid_t>
+GMALState::getEnabledThreadsInState()
+{
+    auto enabledThreadsInState = std::unordered_set<tid_t>();
+    const auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        if (this->nextTransitions[i]->enabledInState(this))
+            enabledThreadsInState.insert(i);
+    }
+    return enabledThreadsInState;
 }
 
 bool
@@ -305,61 +317,46 @@ void
 GMALState::dynamicallyUpdateBacktrackSets()
 {
     // 1. Save current state info
-    const int stateStackTopBeforeBacktracking = this->stateStackTop;
+//    const int stateStackTopBeforeBacktracking = this->stateStackTop;
     const int transitionStackTopBeforeBacktracking = this->transitionStackTop;
-    const uint64_t numThreadsBeforeBacktracking = this->getNumProgramThreads();
-    const uint64_t transitionStackHeight = this->getTransitionStackSize();
+
+//    const uint64_t transitionStackHeight = this->getTransitionStackSize();
 
     // 2. State assertions before continuing
-    GMAL_ASSERT(transitionStackHeight < MAX_TOTAL_TRANSITIONS_IN_PROGRAM);
+//    GMAL_ASSERT(transitionStackHeight < MAX_TOTAL_TRANSITIONS_IN_PROGRAM);
 
     // 3. Map which thread ids still need to be processed
-    std::shared_ptr<GMALTransition> nextTransitionsAtLastS[MAX_TOTAL_THREADS_IN_PROGRAM];
+    const uint64_t numThreadsBeforeBacktracking = this->getNumProgramThreads();
+//    std::shared_ptr<GMALTransition> nextTransitionsAtLastS[MAX_TOTAL_THREADS_IN_PROGRAM];
     auto remainingThreadsToProcess = std::unordered_set<tid_t>();
 
     for (auto i = 0; i < numThreadsBeforeBacktracking; i++) {
-        nextTransitionsAtLastS[i] = this->nextTransitions[i];
+//        nextTransitionsAtLastS[i] = this->nextTransitions[i];
         remainingThreadsToProcess.insert(static_cast<tid_t>(i));
     }
-
-    int detachedTransitionStackTop = transitionStackTopBeforeBacktracking + 1;
 
     // 4. Perform the actual backtracking here
 
     // Walk up the transition stack, starting at the top
-    for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--, detachedTransitionStackTop--) {
+    for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
 
         std::shared_ptr<GMALTransition> S_i = this->getTransitionAtIndex(i);
         std::shared_ptr<GMALStateStackItem> preSi = this->getStateItemAtIndex(i);
 
-        // Undo the transition so that the state reflects
-        this->virtuallyRevertTransitionForBacktracking(S_i);
-
         // The set of threads at pre(S, i) that are enabled. Lazily created
-        auto enabledThreadsAtPreSi = std::unordered_set<tid_t>();
+        auto enabledThreadsAtPreSi = preSi->getEnabledThreadsInState();
         auto processedThreads = std::unordered_set<tid_t>();
         const auto numThreadsAtDepthi = this->getNumProgramThreads();
 
         // for all processes p
         for (auto p : remainingThreadsToProcess) {
-            std::shared_ptr<GMALTransition> nextSP = nextTransitionsAtLastS[p];
+            std::shared_ptr<GMALTransition> nextSP = this->nextTransitions[p];
             const bool shouldProcess = GMALTransition::dependentTransitions(S_i, nextSP) && GMALTransition::coenabledTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
 
             // if there exists i such that ...
             if (shouldProcess) {
                 // This is the largest such i for tid -> no need to process it again
                 processedThreads.insert(p);
-
-                // Compute set E
-                if (enabledThreadsAtPreSi.empty()) {
-                    for (auto j = 0; j < numThreadsAtDepthi; j++) {
-                        auto nextAtPreSi = this->getPendingTransitionForThread(j);
-
-                        // We use the enabled wrapper function here since we should try to run
-                        // a thread that has already run the maximum number of times
-                        if (this->transitionIsEnabled(nextAtPreSi)) enabledThreadsAtPreSi.insert(j);
-                    }
-                }
 
                 bool EIsEmpty = true;
                 for (auto q : enabledThreadsAtPreSi) {
@@ -389,16 +386,16 @@ GMALState::dynamicallyUpdateBacktrackSets()
     }
 
     // Restore the previous state
-    {
-        for (auto i = detachedTransitionStackTop; i <= transitionStackTopBeforeBacktracking; i++)
-            this->virtuallyRunTransition(this->getTransitionAtIndex(i));
-
-        for (auto i = 0; i < numThreadsBeforeBacktracking; i++)
-            this->nextTransitions[i] = nextTransitionsAtLastS[i];
-
-        this->stateStackTop = stateStackTopBeforeBacktracking;
-        this->transitionStackTop = transitionStackTopBeforeBacktracking;
-    }
+//    {
+//        for (auto i = detachedTransitionStackTop; i <= transitionStackTopBeforeBacktracking; i++)
+//            this->virtuallyRunTransition(this->getTransitionAtIndex(i));
+//
+//        for (auto i = 0; i < numThreadsBeforeBacktracking; i++)
+//            this->nextTransitions[i] = nextTransitionsAtLastS[i];
+//
+//        this->stateStackTop = stateStackTopBeforeBacktracking;
+//        this->transitionStackTop = transitionStackTopBeforeBacktracking;
+//    }
 }
 
 void
@@ -411,24 +408,14 @@ GMALState::virtuallyRunTransition(const std::shared_ptr<GMALTransition> &transit
 }
 
 void
-GMALState::virtuallyRevertTransitionForBacktracking(const std::shared_ptr<GMALTransition> &transition)
-{
-    std::shared_ptr<GMALTransition> dynamicCopy = transition->dynamicCopyInState(this);
-    dynamicCopy->unapplyToState(this);
-
-    // Do other state update here
-    this->decrementThreadTransitionCountIfNecessary(transition);
-
-    tid_t threadRunningTransition = dynamicCopy->getThreadId();
-    this->nextTransitions[threadRunningTransition] = dynamicCopy;
-}
-
-void
-GMALState::simulateRunningTransition(const std::shared_ptr<GMALTransition> &transition)
+GMALState::simulateRunningTransition(const std::shared_ptr<GMALTransition> &transition, GMALSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
 {
     this->growStateStackWithTransition(transition);
     this->growTransitionStackRunning(transition);
     this->virtuallyRunTransition(transition);
+
+    auto tid = transition->getThreadId();
+    this->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
 }
 
 void
@@ -466,7 +453,6 @@ void
 GMALState::growTransitionStackRunning(const std::shared_ptr<GMALTransition> &transition)
 {
     auto transitionCopy = transition->staticCopy();
-    auto threadRunningTransition = transition->getThreadId();
     this->transitionStackTop++;
     this->transitionStack[this->transitionStackTop] = transitionCopy;
 }
@@ -489,7 +475,11 @@ GMALState::growStateStackWithTransition(const std::shared_ptr<GMALTransition> &t
     // done set of the current top-most state
     auto oldStop = this->stateStack[this->stateStackTop];
     auto threadRunningTransition = transition->getThreadId();
+    auto enabledThreadsInState = this->getEnabledThreadsInState();;
+
     oldStop->markBacktrackThreadSearched(threadRunningTransition);
+    oldStop->markThreadsEnabledInState(enabledThreadsInState);
+
     this->growStateStack();
 }
 
@@ -502,20 +492,102 @@ GMALState::start()
 void
 GMALState::reset()
 {
+    // NOTE:!!!! DO NOT clear out the transition stack's contents
+    // in this method. If you eventually decide to, remember that
+    // backtrackin now relies on the fact that the transition stack
+    // remains unchanged to resimulate the simulation
+    // back to the current state
     this->stateStackTop = -1;
     this->transitionStackTop = -1;
     this->nextThreadId = 0;
 }
 
+//void
+//GMALState::moveToPreviousState()
+//{
+//    if (!transitionStackIsEmpty()) {
+//        const auto curTransitionStackTop = this->getTransitionStackTop();
+//
+//        /* This transition takes the place of h*/
+//
+//        this->transitionStackTop--;
+//    }
+//    this->stateStackTop--;
+//}
+
 void
-GMALState::moveToPreviousState()
+GMALState::reflectStateAtTransitionDepth(uint32_t depth)
 {
-    if (!transitionStackIsEmpty()) {
-        std::shared_ptr<GMALTransition> transitionTop = this->getTransitionStackTop();
-        this->virtuallyRevertTransitionForBacktracking(transitionTop);
-        this->transitionStackTop--;
+    GMAL_ASSERT(depth <= this->transitionStackTop);
+
+    /*
+     * Note that this is the number of threads at the *current* (last(S)) state
+     * It's possible that some of these threads will be in the embryo state
+     * at depth _depth_
+     */
+    const auto numThreadsToProcess = this->getNumProgramThreads();
+
+    /* The transition stack at this point is not touched */
+
+    /* First, reset the state of all of the objects */
+    this->objectStorage.resetObjectsToInitialStateInStore();
+
+    /* Zero the thread depth counts */
+    bzero(this->threadTransitionCounts, sizeof(this->threadTransitionCounts));
+
+    /*
+     * Then, replay the transitions in the transition stack forward in time
+     * up until the specified depth
+     */
+    /* Note we include the _depth_ value itself */
+    for (auto i = 0u; i <= depth; i ++) {
+        const auto transition = this->getTransitionAtIndex(i);
+        const auto dynamicCpy = transition->dynamicCopyInState(this);
+        dynamicCpy->applyToState(this);
+        this->incrementThreadTransitionCountIfNecessary(dynamicCpy);
     }
-    this->stateStackTop--;
+
+    {
+        /*
+         * Finally, fill in the set of next transitions by
+         * following the transition stack from the top to _depth_ since
+         * this implicitly holds what each thread *was* doing next
+         */
+
+        // To reduce the number of dynamic copies, we can simply keep track
+        // of the _smallest_ index in the transition stack *greater than _depth_*
+        // for each thread, as that would have to be the most recent transition that
+        // that thread would have wanted to run next at transition depth _depth_
+        std::unordered_map<tid_t, uint32_t> mapThreadToClosestTransitionIndexToDepth;
+
+        for (auto i = this->transitionStackTop; i > depth; i--) {
+            const auto tid = this->getThreadRunningTransitionAtIndex(i);
+            mapThreadToClosestTransitionIndexToDepth[tid] = i;
+        }
+
+        for (const auto &elem : mapThreadToClosestTransitionIndexToDepth) {
+            auto tid = elem.first;
+            auto tStackIndex = elem.second;
+            this->nextTransitions[tid] = this->getTransitionAtIndex(tStackIndex)->dynamicCopyInState(this);
+        }
+
+        /*
+         * For threads that didn't run after depth _depth_, we still need to update
+         * those transitions to reflect the new dynamic state since the objects
+         * those transitions refer to are no longer valid
+         */
+        for (auto tid = 0; tid < numThreadsToProcess; tid++) {
+            if (mapThreadToClosestTransitionIndexToDepth.count(tid) == 0) {
+                this->nextTransitions[tid] = this->nextTransitions[tid]->dynamicCopyInState(this);
+            }
+        }
+    }
+
+    {
+        /* Reset where we now are in the transition/state stacks */
+        this->transitionStackTop = depth;
+        this->stateStackTop = depth + 1;
+    }
 }
 
 void
@@ -524,7 +596,7 @@ GMALState::registerVisibleObjectWithSystemIdentity(GMALSystemID systemId, std::s
     // TODO: This can be simplified easily
     objid_t id = this->objectStorage.registerNewObject(object);
     this->objectStorage.mapSystemAddressToShadow(systemId, id);
-    object->id = id;
+//    object->id = id;
 }
 
 void

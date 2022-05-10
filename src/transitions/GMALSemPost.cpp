@@ -44,12 +44,6 @@ GMALSemPost::applyToState(GMALState *state)
     this->sem->post();
 }
 
-void
-GMALSemPost::unapplyToState(GMALState *state)
-{
-    this->sem->wait();
-}
-
 bool
 GMALSemPost::coenabledWith(std::shared_ptr<GMALTransition> other)
 {

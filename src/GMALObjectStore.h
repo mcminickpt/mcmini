@@ -24,8 +24,16 @@ struct PointersEqual {
 class GMALObjectStore {
 private:
 
-    objid_t storageTop = 0;
-    std::shared_ptr<GMALVisibleObject> storage[MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM];
+    struct StorageObject final {
+        std::shared_ptr<GMALVisibleObject> current;
+        const std::shared_ptr<GMALVisibleObject> initialState;
+
+        StorageObject(std::shared_ptr<GMALVisibleObject> current, std::shared_ptr<GMALVisibleObject> initialState)
+        : current(current), initialState(initialState) {}
+    };
+
+    objid_t storageTop = -1; /* Points to the most recent item in the storage */
+    std::shared_ptr<StorageObject> storage[MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM];
 
     /**
      * Maps identities of visible objects given by the system to their
@@ -36,9 +44,11 @@ private:
     inline objid_t
     _registerNewObject(std::shared_ptr<GMALVisibleObject> object)
     {
-        objid_t newObjectId = storageTop++;
+        objid_t newObjectId = ++storageTop;
         GMAL_ASSERT(newObjectId < MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM);
-        storage[newObjectId] = object;
+        object->id = newObjectId;
+        const auto initialState = object->copy();
+        storage[newObjectId] = std::make_shared<StorageObject>(object, initialState);
         return newObjectId;
     }
 
@@ -56,7 +66,7 @@ public:
     inline std::shared_ptr<Object>
     getObjectWithId(objid_t id) const
     {
-        return std::static_pointer_cast<Object, GMALVisibleObject>(this->storage[id]);
+        return std::static_pointer_cast<Object, GMALVisibleObject>(this->storage[id]->current);
     }
 
     inline void
@@ -78,6 +88,8 @@ public:
             return nullptr;
         }
     }
+
+    void resetObjectsToInitialStateInStore();
 };
 
 #endif //GMAL_GMALOBJECTSTORE_H

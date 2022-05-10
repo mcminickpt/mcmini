@@ -14,7 +14,6 @@ public:
     std::shared_ptr<GMALTransition> staticCopy() override;
     std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
     void applyToState(GMALState *) override;
-    void unapplyToState(GMALState *) override;
     bool coenabledWith(std::shared_ptr<GMALTransition>) override;
     bool dependentWith(std::shared_ptr<GMALTransition>) override;
     bool enabledInState(const GMALState *) override;

@@ -42,20 +42,14 @@ GMALBarrierWait::dynamicCopyInState(const GMALState *state)
 void
 GMALBarrierWait::applyToState(GMALState *state)
 {
-    // Somewhat counterintuitive, but by exiting the barrier we are actually
-    // TODO: Apply state correctly here
-}
-
-void
-GMALBarrierWait::unapplyToState(GMALState *state)
-{
-    // TODO: Apply state correctly here
+    // We don't actually need to do anything here
 }
 
 bool
 GMALBarrierWait::coenabledWith(std::shared_ptr<GMALTransition> other)
 {
-    return true;
+    /* We're only co-enabled if we won't guarantee block */
+    return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
 }
 
 bool

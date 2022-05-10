@@ -2,17 +2,19 @@
 #define GMAL_GMALMUTEX_H
 
 #include "GMALVisibleObject.h"
+#include "misc/GMALOptional.h"
 
 struct GMALMutexShadow {
     pthread_mutex_t *systemIdentity;
-    enum GMALMutexState {
+    enum State {
         undefined, unlocked, locked, destroyed
     } state;
-    GMALMutexShadow(pthread_mutex_t *systemIdentity) : systemIdentity(systemIdentity), state(undefined) {}
+    explicit GMALMutexShadow(pthread_mutex_t *systemIdentity) : systemIdentity(systemIdentity), state(undefined) {}
 };
 
 struct GMALMutex : public GMALVisibleObject {
 private:
+
     GMALMutexShadow mutexShadow;
     inline explicit GMALMutex(GMALMutexShadow shadow, objid_t id) : GMALVisibleObject(id), mutexShadow(shadow) {}
 
@@ -26,16 +28,15 @@ public:
     bool operator ==(const GMALMutex&) const;
     bool operator !=(const GMALMutex&) const;
 
+    bool canAcquire(tid_t) const;
     bool isLocked() const;
     bool isUnlocked() const;
     bool isDestroyed() const;
 
-    void lock();
+    void lock(tid_t);
     void unlock();
     void init();
     void deinit();
-
-    void print() override;
 };
 
 #endif //GMAL_GMALMUTEX_H
