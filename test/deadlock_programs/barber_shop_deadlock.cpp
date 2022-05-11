@@ -11,7 +11,7 @@
 #include "GMALWrappers.h"
 
 // The maximum number of customer threads.
-#define MAX_CUSTOMERS 25
+#define MAX_CUSTOMERS 10
 
 // Define the semaphores.
 
@@ -104,6 +104,7 @@ void *barber(void *junk) {
 }
 
 int main(int argc, char *argv[]) {
+    gmal_init();
     pthread_t btid;
     pthread_t tid[MAX_CUSTOMERS];
     long RandSeed;
@@ -111,18 +112,11 @@ int main(int argc, char *argv[]) {
     int Number[MAX_CUSTOMERS];
 
 
-    // Check to make sure there are the right number of
-    // command line arguments.
-    if (argc != 4) {
-        printf("Use: SleepBarber <Num Customers> <Num Chairs> <rand seed>\n");
-        exit(-1);
-    }
-
     // Get the command line arguments and convert them
     // into integers.
-    numCustomers = atoi(argv[1]);
-    numChairs = atoi(argv[2]);
-    RandSeed = atol(argv[3]);
+    numCustomers = 4;//atoi(argv[1]);
+    numChairs = 2;//atoi(argv[2]);
+    RandSeed = 0;//atol(argv[3]);
 
     // Make sure the number of threads is less than the number of
     // customers we can support.
@@ -149,7 +143,7 @@ int main(int argc, char *argv[]) {
     gmal_sem_init(&seatBelt, 0, 0);
 
     // Create the barber.
-    pthread_create(&btid, NULL, barber, NULL);
+    gmal_pthread_create(&btid, NULL, barber, NULL);
 
     // Create the customers.
     for (i=0; i<numCustomers; i++) {

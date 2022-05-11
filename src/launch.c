@@ -13,19 +13,23 @@ main(int argc, const char **argv)
     char **cur_arg = argv+1;
     if (argc == 1) { cur_arg[0] = "--help"; cur_arg[1] = NULL; }
     while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
-        if (strcmp(cur_arg[0], "--max-trace-depth") == 0) {
-            setenv(ENV_THREAD_DEPTH, cur_arg[1], 1);
+        if (strcmp(cur_arg[0], "--max-trace-depth") == 0 || strcmp(cur_arg[0], "-m") == 0) {
+            setenv(ENV_MAX_THREAD_DEPTH, cur_arg[1], 1);
             cur_arg += 2;
-        } else if (strcmp(cur_arg[0], "--debug-at-trace") == 0) {
-            setenv(ENV_GDB_EXECUTION_TRACE, cur_arg[1], 1);
+        } else if (strcmp(cur_arg[0], "--debug-at-trace") == 0 || strcmp(cur_arg[0], "-d") == 0) {
+            setenv(ENV_DEBUG_AT_TRACE, cur_arg[1], 1);
             cur_arg += 2;
         } else if (strcmp(cur_arg[0], "--verbose") == 0 || strcmp(cur_arg[0], "-v") == 0) {
             setenv(ENV_VERBOSE, "1", 1);
             cur_arg++;
+        } else if (strcmp(cur_arg[0], "--verbose") == 0 || strcmp(cur_arg[0], "-v") == 0) {
+            setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
+            cur_arg++;
         } else if (strcmp(cur_arg[0], "--help") == 0 ||
                    strcmp(cur_arg[0], "-h") == 0) {
-            fprintf(stderr, "Usage: gmal [--max-trace-depth <num>] "
-                            "[--debug-at-trace <num>]\n"
+            fprintf(stderr, "Usage: gmal [--max-trace-depth|-m <num>] "
+                            "[--debug-at-trace|-d <num>]\n"
+                            "[--first-deadlock|-first]\n"
                             "[--verbose|-v] [--help|-h] target_executable\n");
             exit(1);
         } else {

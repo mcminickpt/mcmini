@@ -221,7 +221,7 @@ sigusr1_handler_scheduler(int sig)
 {
     gmal_child_kill();
     puts("******* Something went wrong in the source program... *******************");
-    _Exit(1);
+    _exit(1);
 }
 
 GMAL_PROGRAM_TYPE
@@ -446,6 +446,11 @@ gmal_enter_gdb_debugging_session()
 void
 gmal_spawn_daemon_thread()
 {
+    /*
+     * Make sure to copy the transition sequence since we
+     * will eventually reset the `programState` before
+     * rerunning the trace/schedule
+     */
     auto trace = new std::vector<tid_t>();
     *trace = programState->getThreadIdTraceOfTransitionStack();
 
@@ -488,8 +493,8 @@ get_config_for_execution_environment()
     uint64_t gdbTraceNumber = GMAL_STATE_CONFIG_NO_TRACE;
 
     /* Parse the max thread depth from the command line (if available) */
-    char *maxThreadDepthChar = getenv(ENV_THREAD_DEPTH);
-    char *gdbTraceNumberChar = getenv(ENV_GDB_EXECUTION_TRACE);
+    char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
+    char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
 
     // TODO: Sanitize arguments (check errors of strtoul)
     if (maxThreadDepthChar != nullptr)

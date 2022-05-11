@@ -1,118 +1,163 @@
-//// Naive dining philosophers solution, which leads to deadlock.
-//
-//#include <stdio.h>
-//#include <unistd.h>
-//#include <pthread.h>
-//#include "GMAL.h"
-//#include "GMALWrappers.h"
-//
-//#define NUM_THREADS 5
-//
-//struct forks {
-//    int philosopher;
-//    pthread_mutex_t *left_fork;
-//    pthread_mutex_t *right_fork;
-//} forks[NUM_THREADS];
-//
-//pthread_mutex_t dining_fork;
-//
-//void * philosopher_doit(void *forks_arg) {
-//    struct forks *forks = static_cast<struct forks*>(forks_arg);
-//    gmal_pthread_mutex_lock(forks->left_fork);
-//    gmal_pthread_mutex_lock(forks->right_fork);
-//
-////  printf("Philosopher %d just ate.\n", forks->philosopher);
-//    gmal_pthread_mutex_unlock(forks->left_fork);
-//    gmal_pthread_mutex_unlock(forks->right_fork);
-//    return NULL;
-//}
-//
-//int main(int argc, char* argv[])
-//{
-//    gmal_init();
-//    pthread_t thread[NUM_THREADS];
-//    pthread_mutex_t mutex_resource[NUM_THREADS];
-//
-//    gmal_pthread_mutex_init(&dining_fork, NULL);
-//
-//    int i;
-//    for (i = 0; i < NUM_THREADS; i++) {
-//        // ANSI C/C++ require the cast to pthread_mutex_t, 'struct forks',
-//        //  respectively, because these are runtime statements, and not declarations
-////    mutex_resource[i] = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-//        gmal_pthread_mutex_init(&mutex_resource[i], NULL);
-//        forks[i] = (struct forks){i,
-//                                  &mutex_resource[i], &mutex_resource[(i+1) % NUM_THREADS]};
-//    }
-//
-//    for (i = 0; i < NUM_THREADS; i++) {
-//        gmal_pthread_create(&thread[i], NULL, &philosopher_doit, &forks[i]);
-//    }
-//
-//    for (i = 0; i < NUM_THREADS; i++) {
-//        gmal_pthread_join(thread[i], NULL);
-//    }
-//
-//    return 0;
-//}
+#define _REENTRANT
 
-// Naive dining philosophers solution, which leads to deadlock.
-
+#include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
+
 #include <pthread.h>
+#include <semaphore.h>
+
 #include "GMAL.h"
 #include "GMALWrappers.h"
 
+// The maximum number of customer threads.
+#define MAX_CUSTOMERS 10
 
-pthread_mutex_t mutex1;
-pthread_mutex_t mutex2;
-pthread_cond_t cond;
-pthread_t thread, thread2;
+// Define the semaphores.
 
-void * philosopher_doit(void *forks_arg) {
-    gmal_pthread_mutex_lock(&mutex2);
-    gmal_pthread_mutex_lock(&mutex1);
-    gmal_pthread_mutex_unlock(&mutex1);
-    gmal_pthread_mutex_unlock(&mutex2);
-    return nullptr;
+// waitingRoom Limits the # of customers allowed
+// to enter the waiting room at one time.
+sem_t waitingRoom;
+
+// barberChair ensures mutually exclusive access to
+// the barber chair.
+sem_t barberChair;
+
+// barberPillow is used to allow the barber to sleep
+// until a customer arrives.
+sem_t barberPillow;
+
+// seatBelt is used to make the customer to wait until
+// the barber is done cutting his/her hair.
+sem_t seatBelt;
+
+// Flag to stop the barber thread when all customers
+// have been serviced.
+int allDone = 0;
+
+void randwait(int secs) {
+    int len;
+
+    // Generate a random number...
+    len = (int) ((drand48() * secs) + 1);
+//    sleep(len);
 }
 
-void * test(void *unused)
-{
-    gmal_pthread_mutex_lock(&mutex1);
-    gmal_pthread_cond_wait(&cond, &mutex1);
-    gmal_pthread_mutex_unlock(&mutex1);
-    return nullptr;
+void *customer(void *number) {
+    int num = *(int *)number;
+
+    // Leave for the shop and take some random amount of
+    // time to arrive.
+    printf("Customer %d leaving for barber shop.\n", num);
+    randwait(5);
+    printf("Customer %d arrived at barber shop.\n", num);
+
+    // Wait for space to open up in the waiting room...
+    gmal_sem_wait(&waitingRoom);
+    printf("Customer %d entering waiting room.\n", num);
+
+    // Wait for the barber chair to become free.
+    gmal_sem_wait(&barberChair);
+
+    // The chair is free but you don't give up your spot in the
+    // waiting room.
+    //gmal_sem_post(&waitingRoom);
+
+    // Wake up the barber...
+    printf("Customer %d waking the barber.\n", num);
+    gmal_sem_post(&barberPillow);
+
+    // Wait for the barber to finish cutting your hair.
+    gmal_sem_wait(&seatBelt);
+
+    // Give up the chair.
+    gmal_sem_post(&barberChair);
+    printf("Customer %d leaving barber shop.\n", num);
 }
 
-int main(int argc, char* argv[])
-{
+void *barber(void *junk) {
+    // While there are still customers to be serviced...
+    // Our barber is omnicient and can tell if there are
+    // customers still on the way to his shop.
+    while (!allDone) {
+
+        // Sleep until someone arrives and wakes you..
+        printf("The barber is sleeping\n");
+        gmal_sem_wait(&barberPillow);
+
+        // Skip this stuff at the end...
+        if (!allDone) {
+
+            // Take a random amount of time to cut the
+            // customer's hair.
+            printf("The barber is cutting hair\n");
+            randwait(3);
+            printf("The barber has finished cutting hair.\n");
+
+            // Release the customer when done cutting...
+            gmal_sem_post(&seatBelt);
+        }
+        else {
+            printf("The barber is going home for the day.\n");
+        }
+    }
+}
+
+int main(int argc, char *argv[]) {
     gmal_init();
-
-    gmal_pthread_mutex_init(&mutex1, NULL);
-    gmal_pthread_cond_init(&cond, NULL);
-
-    gmal_pthread_create(&thread, NULL, &test, NULL);
-//    gmal_pthread_create(&thread2, NULL, &test, NULL);
-
-    gmal_pthread_mutex_lock(&mutex1);
-    gmal_pthread_cond_signal(&cond);
-    gmal_pthread_mutex_unlock(&mutex1);
+    pthread_t btid;
+    pthread_t tid[MAX_CUSTOMERS];
+    long RandSeed;
+    int i, numCustomers, numChairs;
+    int Number[MAX_CUSTOMERS];
 
 
-    gmal_pthread_join(thread, NULL);
-//    gmal_pthread_mutex_lock(&mutex1);
-//    gmal_pthread_mutex_unlock(&mutex1);
+    // Get the command line arguments and convert them
+    // into integers.
+    numCustomers = 10;//atoi(argv[1]);
+    numChairs = 2;//atoi(argv[2]);
+    RandSeed = 0;//atol(argv[3]);
 
-//    gmal_pthread_mutex_init(&mutex1, nullptr);
-//    gmal_pthread_mutex_init(&mutex2, nullptr);
-//
-//    gmal_pthread_create(&thread, NULL, &philosopher_doit, NULL);
-//
-//    gmal_pthread_mutex_lock(&mutex1);
-//    gmal_pthread_mutex_lock(&mutex2);
-//    gmal_pthread_mutex_unlock(&mutex2);
-//    gmal_pthread_mutex_unlock(&mutex1);
+    // Make sure the number of threads is less than the number of
+    // customers we can support.
+    if (numCustomers > MAX_CUSTOMERS) {
+        printf("The maximum number of Customers is %d.\n", MAX_CUSTOMERS);
+        exit(-1);
+    }
 
-    return 0;
+    printf("\nSleepBarber.c\n\n");
+    printf("A solution to the sleeping barber problem using semaphores.\n");
+
+    // Initialize the random number generator with a new seed.
+    srand48(RandSeed);
+
+    // Initialize the numbers array.
+    for (i=0; i<MAX_CUSTOMERS; i++) {
+        Number[i] = i;
+    }
+
+    // Initialize the semaphores with initial values...
+    gmal_sem_init(&waitingRoom, 0, numChairs);
+    gmal_sem_init(&barberChair, 0, 1);
+    gmal_sem_init(&barberPillow, 0, 0);
+    gmal_sem_init(&seatBelt, 0, 0);
+
+    // Create the barber.
+    gmal_pthread_create(&btid, NULL, barber, NULL);
+
+    // Create the customers.
+    for (i=0; i<numCustomers; i++) {
+        gmal_pthread_create(&tid[i], NULL, customer, (void *)&Number[i]);
+    }
+
+    // Join each of the threads to wait for them to finish.
+    for (i=0; i<numCustomers; i++) {
+        gmal_pthread_join(tid[i],NULL);
+    }
+
+    // When all of the customers are finished, kill the
+    // barber thread.
+    allDone = 1;
+    gmal_sem_post(&barberPillow);  // Wake the barber so he will exit.
+    gmal_pthread_join(btid,NULL);
 }

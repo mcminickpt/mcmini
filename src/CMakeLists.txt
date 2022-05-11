@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(GMAL C CXX)
 message("***** GMAL MODEL CHECKER *****")
 
+set(CMAKE_GENERATOR "Unix Makefiles" CACHE INTERNAL "" FORCE)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
