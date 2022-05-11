@@ -5,10 +5,11 @@
 #include "GMAL.h"
 #include "GMALWrappers.h"
 
+#define THREAD_NUM 5
 
 pthread_mutex_t mutex, mutex_start;
 pthread_cond_t cond;
-pthread_t thread;
+pthread_t thread[THREAD_NUM];
 
 void * thread_doit(void *unused)
 {
@@ -28,17 +29,24 @@ int main(int argc, char* argv[])
 
     gmal_pthread_cond_init(&cond, NULL);
 
-    gmal_pthread_create(&thread, NULL, &thread_doit, NULL);
+    for(int i = 0; i < THREAD_NUM; i++) {
+        gmal_pthread_create(&thread[i], NULL, &thread_doit, NULL);
+    }
 
     gmal_pthread_mutex_lock(&mutex_start);
-    gmal_pthread_mutex_lock(&mutex_start);
+    for(int i = 0; i < THREAD_NUM; i++) {
+        gmal_pthread_mutex_lock(&mutex_start);
+    }
     gmal_pthread_mutex_unlock(&mutex_start);
 
     gmal_pthread_mutex_lock(&mutex);
     gmal_pthread_cond_signal(&cond);
     gmal_pthread_mutex_unlock(&mutex);
 
-    gmal_pthread_join(thread, NULL);
+    for(int i = 0; i < THREAD_NUM; i++) {
+        gmal_pthread_join(thread[i], NULL);
+    }
+
 
     return 0;
 }

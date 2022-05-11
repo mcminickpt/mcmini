@@ -7,7 +7,6 @@ pthread_mutex_t mutex2;
 
 int main(int argc, char* argv[])
 {
-
     gmal_init();
 
     gmal_pthread_mutex_init(&mutex1, NULL);

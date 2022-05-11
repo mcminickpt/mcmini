@@ -5,7 +5,6 @@ class GMALState;
 class GMALObjectStore;
 
 #include "GMALShared.h"
-#include "GMALVisibleObject.h"
 #include <memory>
 
 class GMALVisibleObject {
