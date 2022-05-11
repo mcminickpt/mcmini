@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     gmal_pthread_mutex_unlock(&mutex_start);
 
     gmal_pthread_mutex_lock(&mutex);
-    gmal_pthread_cond_signal(&cond);
+    gmal_pthread_cond_broadcast(&cond);
     gmal_pthread_mutex_unlock(&mutex);
 
     for(int i = 0; i < THREAD_NUM; i++) {
