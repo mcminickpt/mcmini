@@ -30,11 +30,11 @@ int main(int argc, char* argv[])
 
     gmal_pthread_cond_init(&cond, NULL);
 
-    for(int i = 0; i < THREAD_NUM + 1; i++) {
+    for(int i = 0; i < THREAD_NUM; i++) {
         gmal_pthread_create(&thread[i], NULL, &thread_doit, NULL);
     }
 
-    for( int i = 0; i < THREAD_NUM; i++) {
+    for( int i = 0; i < THREAD_NUM + 1; i++) {
         gmal_sem_wait(&sem);
     }
 
