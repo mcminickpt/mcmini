@@ -28,6 +28,8 @@ extern "C" {
 #include "transitions/GMALCondBroadcast.h"
 #include "transitions/GMALCondWait.h"
 #include "transitions/GMALCondEnqueue.h"
+#include "transitions/GMALGlobalVariableWrite.h"
+#include "transitions/GMALGlobalVariableRead.h"
 
 #include "GMAL.h"
 

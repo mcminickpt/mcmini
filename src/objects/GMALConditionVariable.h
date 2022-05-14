@@ -26,7 +26,6 @@ struct GMALConditionVariable : public GMALVisibleObject {
 private:
 
     GMALConditionVariableShadow condShadow;
-
     /**
      * The collection of threads are currently asleep waiting
      * to be awoken by this queue

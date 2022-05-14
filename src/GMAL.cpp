@@ -76,6 +76,8 @@ gmal_create_program_state()
     programState->registerVisibleOperationType(typeid(GMALCondBroadcast), &GMALReadCondBroadcast);
     programState->registerVisibleOperationType(typeid(GMALCondWait), &GMALReadCondWait);
     programState->registerVisibleOperationType(typeid(GMALCondEnqueue), &GMALReadCondEnqueue);
+    programState->registerVisibleOperationType(typeid(GMALGlobalVariableRead), &GMALReadGlobalRead);
+    programState->registerVisibleOperationType(typeid(GMALGlobalVariableWrite), &GMALReadGlobalWrite);
     programState->start();
 }
 
