@@ -21,6 +21,7 @@ extern "C" {
 #include "transitions/GMALSemWait.h"
 #include "transitions/GMALExitTransition.h"
 #include "transitions/GMALBarrierInit.h"
+#include "transitions/GMALBarrierEnqueue.h"
 #include "transitions/GMALBarrierWait.h"
 #include "transitions/GMALCondInit.h"
 #include "transitions/GMALCondSignal.h"

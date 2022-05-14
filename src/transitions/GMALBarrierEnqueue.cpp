@@ -1,8 +1,8 @@
-#include "GMALBarrierWait.h"
+#include "GMALBarrierEnqueue.h"
 #include "GMAL.h"
 
 GMALTransition*
-GMALReadBarrierWait(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+GMALReadBarrierEnqueue(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
 {
     auto barrierInShm = static_cast<GMALBarrierShadow*>(shmData);
     auto barrierThatExists = state->getVisibleObjectWithSystemIdentity<GMALBarrier>((GMALSystemID)barrierInShm->systemIdentity);
@@ -11,44 +11,44 @@ GMALReadBarrierWait(const GMALSharedTransition *shmTransition, void *shmData, GM
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALBarrierWait(threadThatRan, barrierThatExists);
+    return new GMALBarrierEnqueue(threadThatRan, barrierThatExists);
 }
 
 std::shared_ptr<GMALTransition>
-GMALBarrierWait::staticCopy()
+GMALBarrierEnqueue::staticCopy()
 {
     auto threadCpy=
             std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
     auto barrierCpy =
             std::static_pointer_cast<GMALBarrier, GMALVisibleObject>(this->barrier->copy());
-    auto cpy = new GMALBarrierWait(threadCpy, barrierCpy);
+    auto cpy = new GMALBarrierEnqueue(threadCpy, barrierCpy);
     return std::shared_ptr<GMALTransition>(cpy);
 }
 
 std::shared_ptr<GMALTransition>
-GMALBarrierWait::dynamicCopyInState(const GMALState *state)
+GMALBarrierEnqueue::dynamicCopyInState(const GMALState *state)
 {
     std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<GMALBarrier> barrierInState = state->getObjectWithId<GMALBarrier>(barrier->getObjectId());
-    auto cpy = new GMALBarrierWait(threadInState, barrierInState);
+    auto cpy = new GMALBarrierEnqueue(threadInState, barrierInState);
     return std::shared_ptr<GMALTransition>(cpy);
 }
 
 void
-GMALBarrierWait::applyToState(GMALState *state)
+GMALBarrierEnqueue::applyToState(GMALState *state)
 {
-    this->barrier->leave(this->getThreadId());
+    auto executor = this->getThreadId();
+    barrier->wait(executor); // Add this thread to the waiting queue -> potentially unblocks threads waiting on the barrier
 }
 
 bool
-GMALBarrierWait::coenabledWith(std::shared_ptr<GMALTransition> other)
+GMALBarrierEnqueue::coenabledWith(std::shared_ptr<GMALTransition> other)
 {
-    /* We're only co-enabled if we won't guarantee block */
-    return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
+    return true;
 }
 
 bool
-GMALBarrierWait::dependentWith(std::shared_ptr<GMALTransition> other)
+GMALBarrierEnqueue::dependentWith(std::shared_ptr<GMALTransition> other)
 {
     auto maybeBarrierOperation = std::dynamic_pointer_cast<GMALBarrierTransition, GMALTransition>(other);
     if (maybeBarrierOperation) {
@@ -57,16 +57,10 @@ GMALBarrierWait::dependentWith(std::shared_ptr<GMALTransition> other)
     return false;
 }
 
-bool
-GMALBarrierWait::enabledInState(const GMALState *state)
-{
-    return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
-}
-
 void
-GMALBarrierWait::print()
+GMALBarrierEnqueue::print()
 {
-    printf("thread %lu: pthread_barrier_wait(%lu) (asleep) \n", this->thread->tid, this->barrier->getObjectId());
+    printf("thread %lu: pthread_barrier_wait(%lu) (enqueue)\n", this->thread->tid, this->barrier->getObjectId());
 }
 
 

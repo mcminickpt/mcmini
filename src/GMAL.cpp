@@ -69,6 +69,7 @@ gmal_create_program_state()
     programState->registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
     programState->registerVisibleOperationType(typeid(GMALExitTransition), &GMALReadExitTransition);
     programState->registerVisibleOperationType(typeid(GMALBarrierInit), &GMALReadBarrierInit);
+    programState->registerVisibleOperationType(typeid(GMALBarrierEnqueue), &GMALReadBarrierEnqueue);
     programState->registerVisibleOperationType(typeid(GMALBarrierWait), &GMALReadBarrierWait);
     programState->registerVisibleOperationType(typeid(GMALCondInit), &GMALReadCondInit);
     programState->registerVisibleOperationType(typeid(GMALCondSignal), &GMALReadCondSignal);

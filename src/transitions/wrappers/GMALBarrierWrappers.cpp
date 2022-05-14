@@ -2,6 +2,7 @@
 #include "transitions/GMALTransitionsShared.h"
 #include "transitions/GMALBarrierInit.h"
 #include "transitions/GMALBarrierWait.h"
+#include "transitions/GMALBarrierEnqueue.h"
 
 extern "C" {
     #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
@@ -24,6 +25,9 @@ gmal_pthread_barrier_wait(pthread_barrier_t *barrier)
     // a corresponding read on the other side. This can be done in
     // other wrapper functions as well
     auto newlyCreatedShadow = GMALBarrierShadow(barrier, 0);
+    thread_post_visible_operation_hit<GMALBarrierShadow>(typeid(GMALBarrierEnqueue), &newlyCreatedShadow);
+    thread_await_gmal_scheduler();
+
     thread_post_visible_operation_hit<GMALBarrierShadow>(typeid(GMALBarrierWait), &newlyCreatedShadow);
     thread_await_gmal_scheduler();
 

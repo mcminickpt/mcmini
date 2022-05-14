@@ -27,6 +27,9 @@ GMALBarrier::init()
 void
 GMALBarrier::wait(tid_t tid)
 {
+    if (this->isWaitingOnBarrier(tid)) {
+        return; /* Nothing to do in the case the thread is already waiting */
+    }
     auto &waitingSet = this->waitingSetForParity();
     waitingSet.insert(tid);
 
