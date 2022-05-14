@@ -4,7 +4,6 @@
 #include "GMALVisibleObject.h"
 #include "GMALMutex.h"
 #include "misc/GMALOptional.h"
-#include <vector>
 #include <deque>
 
 struct GMALSharedMemoryConditionVariable {

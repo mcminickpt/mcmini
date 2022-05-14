@@ -101,5 +101,5 @@ GMALCondEnqueue::dependentWith(std::shared_ptr<GMALTransition> other)
 void
 GMALCondEnqueue::print()
 {
-    printf("thread %lu: pthread_cond_wait(%lu, %lu) (awake)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->mutex->getObjectId());
+    printf("thread %lu: pthread_cond_wait(%lu, %lu) (enter)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->mutex->getObjectId());
 }

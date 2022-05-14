@@ -66,13 +66,17 @@ GMALConditionVariable::wakeThread(tid_t tid)
 void
 GMALConditionVariable::removeSleepingThread(tid_t tid)
 {
-    auto _ = std::remove(this->sleepQueue.begin(), this->sleepQueue.end(), tid);
+    auto index = std::find(this->sleepQueue.begin(), this->sleepQueue.end(), tid);
+    if (index != this->sleepQueue.end())
+        this->sleepQueue.erase(index);
 }
 
 void
 GMALConditionVariable::removeWakingThread(tid_t tid)
 {
-    auto _ = std::remove(this->wakeQueue.begin(), this->wakeQueue.end(), tid);
+    auto index = std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid);
+    if (index != this->wakeQueue.end())
+        this->wakeQueue.erase(index);
 }
 
 void
@@ -109,5 +113,12 @@ GMALConditionVariable::threadIsInWaitingQueue(tid_t tid)
 bool
 GMALConditionVariable::threadCanExit(tid_t tid)
 {
-    return this->threadIsInWaitingQueue(tid);
+    ///* Strategy A: Thread can exit if it was around when a signal/broadcast happened */
+    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) != this->wakeQueue.end();
+
+    ///* Strategy B: Thread can exit if it was around when a signal/broadcast happened and is first in line */
+//    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.begin();
+
+    ///* Strategy C: Thread can exit if it was around when a signal/broadcast happened and is last in line */
+//    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.end() - 1;
 }
