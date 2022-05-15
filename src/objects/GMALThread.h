@@ -21,6 +21,9 @@ struct GMALThreadShadow {
 struct GMALThread : public GMALVisibleObject {
 private:
     GMALThreadShadow threadShadow;
+
+    bool _hasEncounteredThreadProgressGoal;
+
 public:
     /* Threads are unique in that they have *two* ids */
     const tid_t tid;
@@ -36,8 +39,6 @@ public:
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;
 
-    bool operator ==(const GMALThread&) const;
-
     // Managing thread state
     GMALThreadShadow::GMALThreadState getState() const;
 
@@ -52,6 +53,18 @@ public:
     void die();
     void spawn();
     void despawn();
+
+    inline void
+    markEncounteredThreadProgressPost()
+    {
+        _hasEncounteredThreadProgressGoal = true;
+    }
+
+    inline bool
+    hasEncounteredThreadProgressGoal()
+    {
+        return _hasEncounteredThreadProgressGoal;
+    }
 };
 
 #endif //GMAL_GMALTHREAD_H

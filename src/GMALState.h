@@ -47,10 +47,9 @@ private:
     std::shared_ptr<GMALTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
-     * Maps, for each thread, the number of times in the current transition
-     * stack that thread has run for
+     * Maps, for each thread, data associated with the given thread
      */
-    uint32_t threadTransitionCounts[MAX_TOTAL_THREADS_IN_PROGRAM];
+    uint32_t threadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
      * A pointer to the top-most element in the transition stack
@@ -108,7 +107,7 @@ public:
     std::shared_ptr<GMALStateStackItem> getStateStackTop() const;
 
     std::shared_ptr<GMALTransition> getNextTransitionForThread(GMALThread *thread);
-    std::shared_ptr<GMALTransition> getNextTransitionForThread(tid_t thread);
+    std::shared_ptr<GMALTransition> getNextTransitionForThread(tid_t thread) const;
     void setNextTransitionForThread(GMALThread *, std::shared_ptr<GMALTransition>);
     void setNextTransitionForThread(tid_t, std::shared_ptr<GMALTransition>);
     void setNextTransitionForThread(tid_t, GMALSharedTransition*, void *);
@@ -150,7 +149,8 @@ public:
 
     void dynamicallyUpdateBacktrackSets();
 
-    bool programIsInDeadlock();
+    bool programIsInDeadlock() const;
+    bool programAchievedForwardProgressGoals() const;
     uint64_t getNumProgramThreads() const;
 
     bool isTargetTraceIdForGDB(trid_t) const;
@@ -163,8 +163,12 @@ public:
     void reflectStateAtTransitionDepth(uint32_t);
 
     void moveToPreviousState();
+
+    // TODO: De-couple priting from the state stack + transitions somehow
+    /* Printing */
     void printTransitionStack() const;
     void printNextTransitions() const;
+    void printForwardProgressViolations() const;
 };
 
 #endif //GMAL_GMALSTATE_H

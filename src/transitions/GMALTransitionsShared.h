@@ -13,6 +13,7 @@ extern "C" {
 #include "transitions/GMALThreadStart.h"
 #include "transitions/GMALThreadFinish.h"
 #include "transitions/GMALThreadJoin.h"
+#include "transitions/GMALThreadReachGoal.h"
 #include "transitions/GMALMutexInit.h"
 #include "transitions/GMALMutexLock.h"
 #include "transitions/GMALMutexUnlock.h"

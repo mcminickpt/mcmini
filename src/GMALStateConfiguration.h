@@ -29,8 +29,25 @@ struct GMALStateConfiguration final {
      */
     const trid_t gdbDebugTraceNumber;
 
-    GMALStateConfiguration(uint64_t maxThreadExecutionDepth, trid_t gdbDebugTraceNumber)
-    : maxThreadExecutionDepth(maxThreadExecutionDepth), gdbDebugTraceNumber(gdbDebugTraceNumber) {}
+    /**
+     * Whether or not this model checking session is
+     * being used to check for starvation to make statements
+     * about forward progress
+     *
+     * In order that the model checker can check for forward progress,
+     * the target program must be modified with calls to GOAL(), which
+     * act as marker for where we wish to ensure threads reach after
+     * a fixed number of steps. When this option is set, it should be coupled
+     * with a reasonable value for `maxThreadExecutionDepth`
+     */
+    const bool expectForwardProgressOfThreads;
+
+    GMALStateConfiguration(uint64_t maxThreadExecutionDepth,
+                           trid_t gdbDebugTraceNumber,
+                           bool expectForwardProgressOfThreads)
+    : maxThreadExecutionDepth(maxThreadExecutionDepth),
+    gdbDebugTraceNumber(gdbDebugTraceNumber),
+    expectForwardProgressOfThreads(expectForwardProgressOfThreads) {}
 };
 
 #endif //GMAL_GMALSTATECONFIGURATION_H

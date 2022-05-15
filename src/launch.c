@@ -12,6 +12,8 @@ main(int argc, const char **argv)
 {
     char **cur_arg = argv+1;
     if (argc == 1) { cur_arg[0] = "--help"; cur_arg[1] = NULL; }
+
+    // TODO: Use argp.h instead (more options, better descriptions, etc)
     while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
         if (strcmp(cur_arg[0], "--max-trace-depth") == 0 || strcmp(cur_arg[0], "-m") == 0) {
             setenv(ENV_MAX_THREAD_DEPTH, cur_arg[1], 1);
@@ -22,7 +24,7 @@ main(int argc, const char **argv)
         } else if (strcmp(cur_arg[0], "--verbose") == 0 || strcmp(cur_arg[0], "-v") == 0) {
             setenv(ENV_VERBOSE, "1", 1);
             cur_arg++;
-        } else if (strcmp(cur_arg[0], "--verbose") == 0 || strcmp(cur_arg[0], "-v") == 0) {
+        } else if (strcmp(cur_arg[0], "--first-deadlock") == 0 || strcmp(cur_arg[0], "-first") == 0) {
             setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
             cur_arg++;
         } else if (strcmp(cur_arg[0], "--help") == 0 ||

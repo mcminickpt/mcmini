@@ -61,6 +61,7 @@ gmal_create_program_state()
     programState->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
     programState->registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
     programState->registerVisibleOperationType(typeid(GMALThreadJoin), &GMALReadThreadJoin);
+    programState->registerVisibleOperationType(typeid(GMALThreadReachGoal), &GMALReadThreadReachGoal);
     programState->registerVisibleOperationType(typeid(GMALMutexInit), &GMALReadMutexInit);
     programState->registerVisibleOperationType(typeid(GMALMutexUnlock), &GMALReadMutexUnlock);
     programState->registerVisibleOperationType(typeid(GMALMutexLock), &GMALReadMutexLock);
@@ -372,7 +373,14 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
         puts("*** DEADLOCK DETECTED ***");
         programState->printTransitionStack();
         programState->printNextTransitions();
-    } else {
+    }
+    else if (!programState->programAchievedForwardProgressGoals()) {
+        puts("*** FORWARD PROGRESS VIOLATION DETECTED ***");
+        programState->printTransitionStack();
+        programState->printNextTransitions();
+        programState->printForwardProgressViolations();
+    }
+    else {
         puts("*** NO FAILURE DETECTED ***");
     }
     gmal_child_kill();
@@ -495,6 +503,7 @@ get_config_for_execution_environment()
 {
     uint64_t maxThreadDepth = GMAL_STATE_CONFIG_THREAD_NO_LIMIT;
     uint64_t gdbTraceNumber = GMAL_STATE_CONFIG_NO_TRACE;
+    bool expectForwardProgressOfThreads = false;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
@@ -504,8 +513,8 @@ get_config_for_execution_environment()
     if (maxThreadDepthChar != nullptr)
         maxThreadDepth = strtoul(maxThreadDepthChar, nullptr, 10);
 
-    if (gdbTraceNumberChar)
+    if (gdbTraceNumberChar != nullptr)
         gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
 
-    return {maxThreadDepth, gdbTraceNumber};
+    return {maxThreadDepth, gdbTraceNumber, expectForwardProgressOfThreads};
 }

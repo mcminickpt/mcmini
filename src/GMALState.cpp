@@ -9,7 +9,7 @@ GMALState::transitionIsEnabled(const std::shared_ptr<GMALTransition> &transition
 {
     // Decorator
     auto threadRunningTransition = transition->getThreadId();
-    auto numExecutionsOfTransitionInState = this->threadTransitionCounts[threadRunningTransition];
+    auto numExecutionsOfTransitionInState = this->threadDepthData[threadRunningTransition];
     auto threadEnabledAccordingToConfig = numExecutionsOfTransitionInState < this->configuration.maxThreadExecutionDepth;
     return threadEnabledAccordingToConfig && transition->enabledInState(this);
 }
@@ -21,7 +21,7 @@ GMALState::getNextTransitionForThread(GMALThread *thread)
 }
 
 std::shared_ptr<GMALTransition>
-GMALState::getNextTransitionForThread(tid_t thread)
+GMALState::getNextTransitionForThread(tid_t thread) const
 {
     return nextTransitions[thread];
 }
@@ -202,7 +202,7 @@ GMALState::getEnabledThreadsInState()
 }
 
 bool
-GMALState::programIsInDeadlock()
+GMALState::programIsInDeadlock() const
 {
     /*
      * We artificially restrict deadlock reports to those in which the total
@@ -224,6 +224,23 @@ GMALState::programIsInDeadlock()
         // we wouldn't be in deadlock if we artificially restricted the threads
         if (nextTransitionForTid->enabledInState(this))
             return false;
+    }
+    return true;
+}
+
+bool
+GMALState::programAchievedForwardProgressGoals() const
+{
+    /* We've only need to check forward progress conditions when enabled */
+    if (!configuration.expectForwardProgressOfThreads) return true;
+
+    const auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        const auto thread = this->getThreadWithId(i);
+
+        if (!thread->hasEncounteredThreadProgressGoal()) {
+            return false;
+        }
     }
     return true;
 }
@@ -317,25 +334,17 @@ void
 GMALState::dynamicallyUpdateBacktrackSets()
 {
     // 1. Save current state info
-//    const int stateStackTopBeforeBacktracking = this->stateStackTop;
     const int transitionStackTopBeforeBacktracking = this->transitionStackTop;
 
-//    const uint64_t transitionStackHeight = this->getTransitionStackSize();
-
-    // 2. State assertions before continuing
-//    GMAL_ASSERT(transitionStackHeight < MAX_TOTAL_TRANSITIONS_IN_PROGRAM);
-
-    // 3. Map which thread ids still need to be processed
+    // 2. Map which thread ids still need to be processed
     const uint64_t numThreadsBeforeBacktracking = this->getNumProgramThreads();
-//    std::shared_ptr<GMALTransition> nextTransitionsAtLastS[MAX_TOTAL_THREADS_IN_PROGRAM];
     auto remainingThreadsToProcess = std::unordered_set<tid_t>();
 
     for (auto i = 0; i < numThreadsBeforeBacktracking; i++) {
-//        nextTransitionsAtLastS[i] = this->nextTransitions[i];
         remainingThreadsToProcess.insert(static_cast<tid_t>(i));
     }
 
-    // 4. Perform the actual backtracking here
+    // 3. Perform the actual backtracking here
 
     // Walk up the transition stack, starting at the top
     for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
@@ -384,18 +393,6 @@ GMALState::dynamicallyUpdateBacktrackSets()
             remainingThreadsToProcess.erase(p);
         }
     }
-
-    // Restore the previous state
-//    {
-//        for (auto i = detachedTransitionStackTop; i <= transitionStackTopBeforeBacktracking; i++)
-//            this->virtuallyRunTransition(this->getTransitionAtIndex(i));
-//
-//        for (auto i = 0; i < numThreadsBeforeBacktracking; i++)
-//            this->nextTransitions[i] = nextTransitionsAtLastS[i];
-//
-//        this->stateStackTop = stateStackTopBeforeBacktracking;
-//        this->transitionStackTop = transitionStackTopBeforeBacktracking;
-//    }
 }
 
 void
@@ -423,7 +420,7 @@ GMALState::incrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALT
 {
     if (transition->countsAgainstThreadExecutionDepth()) {
         auto threadRunningTransition = transition->getThreadId();
-        this->threadTransitionCounts[threadRunningTransition]++;
+        this->threadDepthData[threadRunningTransition]++;
     }
 }
 
@@ -432,7 +429,7 @@ GMALState::decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALT
 {
     if (transition->countsAgainstThreadExecutionDepth()) {
         auto threadRunningTransition = transition->getThreadId();
-        this->threadTransitionCounts[threadRunningTransition]--;
+        this->threadDepthData[threadRunningTransition]--;
     }
 }
 
@@ -445,7 +442,7 @@ GMALState::totalThreadExecutionDepth() const
     */
     auto totalThreadTransitionDepth = static_cast<uint32_t>(0);
     for (auto i = 0; i < this->nextThreadId; i++)
-        totalThreadTransitionDepth += this->threadTransitionCounts[i];
+        totalThreadTransitionDepth += this->threadDepthData[i];
     return totalThreadTransitionDepth;
 }
 
@@ -502,19 +499,6 @@ GMALState::reset()
     this->nextThreadId = 0;
 }
 
-//void
-//GMALState::moveToPreviousState()
-//{
-//    if (!transitionStackIsEmpty()) {
-//        const auto curTransitionStackTop = this->getTransitionStackTop();
-//
-//        /* This transition takes the place of h*/
-//
-//        this->transitionStackTop--;
-//    }
-//    this->stateStackTop--;
-//}
-
 void
 GMALState::reflectStateAtTransitionDepth(uint32_t depth)
 {
@@ -533,7 +517,7 @@ GMALState::reflectStateAtTransitionDepth(uint32_t depth)
     this->objectStorage.resetObjectsToInitialStateInStore();
 
     /* Zero the thread depth counts */
-    bzero(this->threadTransitionCounts, sizeof(this->threadTransitionCounts));
+    memset(this->threadDepthData, 0, sizeof(this->threadDepthData));
 
     /*
      * Then, replay the transitions in the transition stack forward in time
@@ -602,22 +586,33 @@ GMALState::registerVisibleObjectWithSystemIdentity(GMALSystemID systemId, std::s
 void
 GMALState::printTransitionStack() const
 {
-    printf("\t THREAD BACKTRACE\n");
+    printf("THREAD BACKTRACE\n");
     for (int i = 0; i <= this->transitionStackTop; i++) {
         this->getTransitionAtIndex(i)->print();
     }
-    printf("\t END\n");
+    printf("END\n");
 }
 
 void
 GMALState::printNextTransitions() const
 {
-    printf("\t THREAD STATES\n");
+    printf("THREAD STATES\n");
     auto numThreads = this->getNumProgramThreads();
     for (auto i = 0; i < numThreads; i++) {
         this->getPendingTransitionForThread(i)->print();
     }
-    printf("\t END\n");
+    printf("END\n");
+}
+
+void
+GMALState::printForwardProgressViolations() const
+{
+    printf("VIOLATIONS\n");
+    auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        printf("thread %lu\n", (tid_t)i);
+    }
+    printf("END\n");
 }
 
 bool

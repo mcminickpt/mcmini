@@ -6,7 +6,7 @@
 #include "transitions/GMALThreadJoin.h"
 #include "transitions/GMALTransitionsShared.h"
 #include "transitions/GMALExitTransition.h"
-#include <typeinfo>
+#include "transitions/GMALThreadReachGoal.h"
 
 extern "C" {
     #include "GMALSharedLibraryWrappers.h"
@@ -48,7 +48,7 @@ gmal_thread_routine_wrapper(void * arg)
 int
 gmal_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routine)(void *), void *arg)
 {
-    // TODO: For now, we don't support attributes. This should be added in the future
+    // TODO: For now, we don't support attributes. This should be added in the future (wouldn't be too difficult [simply add more state to GMALThread])
     if (attr != nullptr) {
         gmal_child_panic();
     }
@@ -88,8 +88,8 @@ gmal_pthread_join(pthread_t thread, void **output)
 void
 gmal_exit_main_thread()
 {
-    auto newlyCreatedThread = GMALThreadShadow(nullptr, nullptr, pthread_self());
-    thread_post_visible_operation_hit(typeid(GMALThreadFinish), &newlyCreatedThread);
+    auto thread = GMALThreadShadow(nullptr, nullptr, pthread_self());
+    thread_post_visible_operation_hit(typeid(GMALThreadFinish), &thread);
     thread_await_gmal_scheduler();
 }
 
@@ -99,4 +99,12 @@ gmal_exit(int status)
     thread_post_visible_operation_hit(typeid(GMALExitTransition), &status);
     thread_await_gmal_scheduler();
     __real_exit(status);
+}
+
+void
+gmal_pthread_reach_goal()
+{
+    auto thread = GMALThreadShadow(nullptr, nullptr, pthread_self());
+    thread_post_visible_operation_hit(typeid(GMALThreadReachGoal), &thread);
+    thread_await_gmal_scheduler();
 }
