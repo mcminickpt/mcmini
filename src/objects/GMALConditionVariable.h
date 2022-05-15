@@ -70,7 +70,6 @@ public:
     std::shared_ptr<GMALVisibleObject> copy() override;
     GMALSystemID getSystemId() override;
 
-
     bool operator ==(const GMALConditionVariable&) const;
     bool operator !=(const GMALConditionVariable&) const;
 

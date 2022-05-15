@@ -22,10 +22,7 @@ gmal_sem_init(sem_t *sem, int pshared, unsigned int count)
 int
 gmal_sem_post(sem_t *sem)
 {
-    // NOTE: GMALReadSemPost doesn't use the count passed by the child; any
-    // value suffices
-    auto newlyCreatedSemaphore = GMALSemaphoreShadow(sem, 0);
-    thread_post_visible_operation_hit<GMALSemaphoreShadow>(typeid(GMALSemPost), &newlyCreatedSemaphore);
+    thread_post_visible_operation_hit<sem_t*>(typeid(GMALSemPost), &sem);
     thread_await_gmal_scheduler();
     return __real_sem_post(sem);
 }
@@ -33,10 +30,10 @@ gmal_sem_post(sem_t *sem)
 int
 gmal_sem_wait(sem_t *sem)
 {
-    // NOTE: GMALReadSemWait doesn't use the count passed by the child; any
-    // value suffices
-    auto newlyCreatedSemaphore = GMALSemaphoreShadow(sem, 0);
-    thread_post_visible_operation_hit<GMALSemaphoreShadow>(typeid(GMALSemWait), &newlyCreatedSemaphore);
+    thread_post_visible_operation_hit<sem_t*>(typeid(GMALSemEnqueue), &sem);
+    thread_await_gmal_scheduler();
+
+    thread_post_visible_operation_hit<sem_t*>(typeid(GMALSemWait), &sem);
     thread_await_gmal_scheduler();
     return __real_sem_wait(sem);
 }

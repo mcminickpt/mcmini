@@ -113,7 +113,7 @@ GMALConditionVariable::threadIsInWaitingQueue(tid_t tid)
 bool
 GMALConditionVariable::threadCanExit(tid_t tid)
 {
-    ///* Strategy A: Thread can exit if it was around when a signal/broadcast happened */
+    /* Strategy A: Thread can exit if it was around when a signal/broadcast happened */
     return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) != this->wakeQueue.end();
 
     ///* Strategy B: Thread can exit if it was around when a signal/broadcast happened and is first in line */

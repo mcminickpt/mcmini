@@ -1,4 +1,5 @@
 #include "GMALSemaphore.h"
+#include <algorithm>
 
 GMALSystemID
 GMALSemaphore::getSystemId()
@@ -16,6 +17,38 @@ bool
 GMALSemaphore::wouldBlockIfWaitedOn()
 {
     return this->semShadow.count == 0;
+}
+
+bool
+GMALSemaphore::threadCanExit(tid_t tid)
+{
+    if (wouldBlockIfWaitedOn())
+        return false;
+
+    /* Different strategies */
+
+    /* Strategy A: Thread can exit if it is waiting at all */
+    return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) != this->waitingQueue.end();
+
+    /* Strategy B: Thread can exit if it was the first one waiting (FIFO) */
+    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
+
+    /* Strategy B: Thread can exit if it was the first one waiting (FIFO) */
+    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
+}
+
+void
+GMALSemaphore::leaveWaitingQueue(tid_t tid)
+{
+    auto index = std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid);
+    if (index != this->waitingQueue.end())
+        this->waitingQueue.erase(index);
+}
+
+void
+GMALSemaphore::enterWaitingQueue(tid_t tid)
+{
+    this->waitingQueue.push_back(tid);
 }
 
 void

@@ -18,6 +18,7 @@ extern "C" {
 #include "transitions/GMALMutexUnlock.h"
 #include "transitions/GMALSemInit.h"
 #include "transitions/GMALSemPost.h"
+#include "transitions/GMALSemEnqueue.h"
 #include "transitions/GMALSemWait.h"
 #include "transitions/GMALExitTransition.h"
 #include "transitions/GMALBarrierInit.h"

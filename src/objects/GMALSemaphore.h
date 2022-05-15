@@ -2,6 +2,7 @@
 #define GMAL_GMALSEMAPHORE_H
 
 #include <semaphore.h>
+#include <deque>
 #include "GMALVisibleObject.h"
 
 struct GMALSemaphoreShadow {
@@ -16,6 +17,10 @@ struct GMALSemaphoreShadow {
 
 class GMALSemaphore : public GMALVisibleObject {
 private:
+
+    /* */
+    std::deque<tid_t> waitingQueue;
+
     GMALSemaphoreShadow semShadow;
     inline explicit GMALSemaphore(GMALSemaphoreShadow shadow, objid_t id) : GMALVisibleObject(id), semShadow(shadow) {}
 
@@ -32,6 +37,10 @@ public:
     unsigned int getCount() const;
     bool isDestroyed() const;
     bool wouldBlockIfWaitedOn();
+    bool threadCanExit(tid_t);
+    void leaveWaitingQueue(tid_t);
+    void enterWaitingQueue(tid_t);
+
     void deinit();
     void init();
     void post();

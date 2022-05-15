@@ -4,8 +4,8 @@
 GMALTransition*
 GMALReadSemWait(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
 {
-    auto semInShm = static_cast<GMALSemaphoreShadow*>(shmData);
-    auto semThatExists = state->getVisibleObjectWithSystemIdentity<GMALSemaphore>((GMALSystemID)semInShm->sem);
+    auto semInShm = *static_cast<sem_t**>(shmData);
+    auto semThatExists = state->getVisibleObjectWithSystemIdentity<GMALSemaphore>((GMALSystemID)semInShm);
 
     // Catch undefined behavior
     GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(semThatExists != nullptr, "Attempting to wait on an uninitialized semaphore");
@@ -42,6 +42,7 @@ void
 GMALSemWait::applyToState(GMALState *state)
 {
     this->sem->wait();
+    this->sem->leaveWaitingQueue(this->getThreadId());
 }
 
 bool
@@ -63,13 +64,13 @@ GMALSemWait::dependentWith(std::shared_ptr<GMALTransition> other)
 bool
 GMALSemWait::enabledInState(const GMALState *)
 {
-    return !this->sem->wouldBlockIfWaitedOn();
+    return this->sem->threadCanExit(this->getThreadId());
 }
 
 void
 GMALSemWait::print()
 {
-    printf("thread %lu: sem_wait(%lu)\n", this->thread->tid, this->sem->getObjectId());
+    printf("thread %lu: sem_wait(%lu) (asleep)\n", this->thread->tid, this->sem->getObjectId());
 }
 
 
