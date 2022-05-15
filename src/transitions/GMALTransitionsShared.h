@@ -3,37 +3,18 @@
 
 #include <pthread.h>
 #include <typeinfo>
-#include "../GMALShared.h"
+#include "GMALShared.h"
+#include "GMAL.h"
+#include "transitions/threads/GMALThreadDefs.h"
+#include "transitions/mutex/GMALMutexDefs.h"
+#include "transitions/semaphore/GMALSemaphoreDefs.h"
+#include "transitions/barrier/GMALBarrierDefs.h"
+#include "transitions/cond/GMALCondDefs.h"
+#include "transitions/misc/GMALMiscDefs.h"
 
 extern "C" {
-    #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
+#include "transitions/wrappers/GMALSharedLibraryWrappers.h"
 }
-
-#include "transitions/GMALThreadCreate.h"
-#include "transitions/GMALThreadStart.h"
-#include "transitions/GMALThreadFinish.h"
-#include "transitions/GMALThreadJoin.h"
-#include "transitions/GMALThreadReachGoal.h"
-#include "transitions/GMALMutexInit.h"
-#include "transitions/GMALMutexLock.h"
-#include "transitions/GMALMutexUnlock.h"
-#include "transitions/GMALSemInit.h"
-#include "transitions/GMALSemPost.h"
-#include "transitions/GMALSemEnqueue.h"
-#include "transitions/GMALSemWait.h"
-#include "transitions/GMALExitTransition.h"
-#include "transitions/GMALBarrierInit.h"
-#include "transitions/GMALBarrierEnqueue.h"
-#include "transitions/GMALBarrierWait.h"
-#include "transitions/GMALCondInit.h"
-#include "transitions/GMALCondSignal.h"
-#include "transitions/GMALCondBroadcast.h"
-#include "transitions/GMALCondWait.h"
-#include "transitions/GMALCondEnqueue.h"
-#include "transitions/GMALGlobalVariableWrite.h"
-#include "transitions/GMALGlobalVariableRead.h"
-
-#include "GMAL.h"
 
 /* Source program thread control */
 template<typename SharedMemoryData> void

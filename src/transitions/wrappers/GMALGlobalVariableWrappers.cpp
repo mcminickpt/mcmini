@@ -1,7 +1,7 @@
 #include "GMALGlobalVariableWrappers.h"
 #include "transitions/GMALTransitionsShared.h"
-#include "transitions/GMALGlobalVariableRead.h"
-#include "transitions/GMALGlobalVariableWrite.h"
+#include "transitions/misc/GMALGlobalVariableRead.h"
+#include "transitions/misc/GMALGlobalVariableWrite.h"
 
 extern "C" {
 #include "transitions/wrappers/GMALSharedLibraryWrappers.h"

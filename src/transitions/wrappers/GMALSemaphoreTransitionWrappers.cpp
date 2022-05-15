@@ -1,8 +1,8 @@
 #include "GMALSemaphoreTransitionWrappers.h"
 #include "transitions/GMALTransitionsShared.h"
-#include "transitions/GMALSemWait.h"
-#include "transitions/GMALSemPost.h"
-#include "transitions/GMALSemInit.h"
+#include "transitions/semaphore/GMALSemWait.h"
+#include "transitions/semaphore/GMALSemPost.h"
+#include "transitions/semaphore/GMALSemInit.h"
 
 extern "C" {
     #include "GMALSharedLibraryWrappers.h"

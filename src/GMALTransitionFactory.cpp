@@ -1,6 +1,6 @@
 #include "GMALTransitionFactory.h"
-#include "transitions/GMALThreadCreate.h"
-#include "transitions/GMALThreadJoin.h"
+#include "transitions/threads/GMALThreadCreate.h"
+#include "transitions/threads/GMALThreadJoin.h"
 
 std::shared_ptr<GMALTransition>
 GMALTransitionFactory::createInitialTransitionForThread(std::shared_ptr<GMALThread> thread)

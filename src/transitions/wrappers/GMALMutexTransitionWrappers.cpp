@@ -1,8 +1,8 @@
 #include "GMALMutexTransitionWrappers.h"
 #include "transitions/GMALTransitionsShared.h"
-#include "transitions/GMALMutexLock.h"
-#include "transitions/GMALMutexUnlock.h"
-#include "transitions/GMALMutexInit.h"
+#include "transitions/mutex/GMALMutexLock.h"
+#include "transitions/mutex/GMALMutexUnlock.h"
+#include "transitions/mutex/GMALMutexInit.h"
 
 extern "C" {
     #include "transitions/wrappers/GMALSharedLibraryWrappers.h"

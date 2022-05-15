@@ -1,12 +1,12 @@
 #include "GMALThreadTransitionWrappers.h"
 #include "GMAL.h"
 #include "objects/GMALThread.h"
-#include "transitions/GMALThreadCreate.h"
-#include "transitions/GMALThreadFinish.h"
-#include "transitions/GMALThreadJoin.h"
+#include "transitions/threads/GMALThreadCreate.h"
+#include "transitions/threads/GMALThreadFinish.h"
+#include "transitions/threads/GMALThreadJoin.h"
 #include "transitions/GMALTransitionsShared.h"
-#include "transitions/GMALExitTransition.h"
-#include "transitions/GMALThreadReachGoal.h"
+#include "transitions/misc/GMALExitTransition.h"
+#include "transitions/threads/GMALThreadReachGoal.h"
 
 extern "C" {
     #include "GMALSharedLibraryWrappers.h"

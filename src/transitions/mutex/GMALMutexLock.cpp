@@ -1,7 +1,5 @@
 #include "GMAL.h"
 #include "GMALMutexLock.h"
-#include "GMALThreadCreate.h"
-#include "GMALThreadJoin.h"
 #include "GMALMutexUnlock.h"
 #include <memory>
 

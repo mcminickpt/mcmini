@@ -3,7 +3,7 @@
 
 #include "GMALShared.h"
 #include "GMALTransition.h"
-#include "transitions/GMALThreadStart.h"
+#include "transitions/threads/GMALThreadStart.h"
 
 class GMALTransitionFactory final {
 public:

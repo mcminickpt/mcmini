@@ -1,11 +1,11 @@
 #include "GMALConditionVariableWrappers.h"
 
 #include "transitions/GMALTransitionsShared.h"
-#include "transitions/GMALCondInit.h"
-#include "transitions/GMALCondWait.h"
-#include "transitions/GMALCondBroadcast.h"
-#include "transitions/GMALCondSignal.h"
-#include "transitions/GMALCondEnqueue.h"
+#include "transitions/cond/GMALCondInit.h"
+#include "transitions/cond/GMALCondWait.h"
+#include "transitions/cond/GMALCondBroadcast.h"
+#include "transitions/cond/GMALCondSignal.h"
+#include "transitions/cond/GMALCondEnqueue.h"
 
 extern "C" {
     #include "transitions/wrappers/GMALSharedLibraryWrappers.h"

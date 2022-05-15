@@ -1,11 +1,11 @@
-#include "GMALCondEnqueue.h"
+#include "GMALCondWait.h"
 #include "GMAL.h"
-#include "GMALMutexTransition.h"
-#include "GMALMutexUnlock.h"
+#include "transitions/mutex/GMALMutexTransition.h"
+#include "transitions/mutex/GMALMutexLock.h"
 #include "GMALTransitionFactory.h"
 
 GMALTransition*
-GMALReadCondEnqueue(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+GMALReadCondWait(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
 {
     const auto shmCond = static_cast<GMALSharedMemoryConditionVariable*>(shmData);
     const auto condInShm = shmCond->cond;
@@ -21,7 +21,7 @@ GMALReadCondEnqueue(const GMALSharedTransition *shmTransition, void *shmData, GM
 
     const auto threadThatRanId = shmTransition->executor;
     const auto mutexAssociatedWithConditionVariable = condThatExists->mutex;
-    
+
     if (mutexAssociatedWithConditionVariable != nullptr) {
         GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(*mutexThatExists == *mutexAssociatedWithConditionVariable,
                                                "A mutex has already been associated with this condition variable. Attempting "
@@ -29,45 +29,50 @@ GMALReadCondEnqueue(const GMALSharedTransition *shmTransition, void *shmData, GM
     }
 
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALCondEnqueue(threadThatRan, condThatExists, mutexThatExists);
+    return new GMALCondWait(threadThatRan, condThatExists);
 }
 
 std::shared_ptr<GMALTransition>
-GMALCondEnqueue::staticCopy()
+GMALCondWait::staticCopy()
 {
     auto threadCpy=
             std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
     auto condCpy =
             std::static_pointer_cast<GMALConditionVariable, GMALVisibleObject>(this->conditionVariable->copy());
-    auto mutCpy =
-            std::static_pointer_cast<GMALMutex, GMALVisibleObject>(this->mutex->copy());
-    auto cpy = new GMALCondEnqueue(threadCpy, condCpy, mutCpy);
+    auto cpy = new GMALCondWait(threadCpy, condCpy);
     return std::shared_ptr<GMALTransition>(cpy);
 }
 
 std::shared_ptr<GMALTransition>
-GMALCondEnqueue::dynamicCopyInState(const GMALState *state)
+GMALCondWait::dynamicCopyInState(const GMALState *state)
 {
-    auto threadInState = state->getThreadWithId(thread->tid);
-    auto condInState = state->getObjectWithId<GMALConditionVariable>(conditionVariable->getObjectId());
-    auto mutCpy = state->getObjectWithId<GMALMutex>(this->mutex->getObjectId());
-    auto cpy = new GMALCondEnqueue(threadInState, condInState, mutCpy);
+    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<GMALConditionVariable> condInState = state->getObjectWithId<GMALConditionVariable>(conditionVariable->getObjectId());
+    auto cpy = new GMALCondWait(threadInState, condInState);
     return std::shared_ptr<GMALTransition>(cpy);
 }
 
 void
-GMALCondEnqueue::applyToState(GMALState *state)
+GMALCondWait::applyToState(GMALState *state)
 {
-    /* Insert this thread into the waiting queue */
-    this->conditionVariable->enterSleepingQueue(this->getThreadId());
-    this->conditionVariable->mutex = this->mutex;
-    this->mutex->unlock();
+    const auto threadId = this->getThreadId();
+    this->conditionVariable->mutex->lock(threadId);
+    this->conditionVariable->removeThread(threadId); /* When we actually apply the wait, we are moving out of it */
+}
+
+
+bool
+GMALCondWait::enabledInState(const GMALState *) {
+    const auto threadId = this->getThreadId();
+    return this->thread->enabled() &&
+            this->conditionVariable->threadCanExit(threadId) &&
+            this->conditionVariable->mutex->canAcquire(threadId);
 }
 
 bool
-GMALCondEnqueue::coenabledWith(std::shared_ptr<GMALTransition> other)
+GMALCondWait::coenabledWith(std::shared_ptr<GMALTransition> other)
 {
-    auto maybeCondWaitOperation = std::dynamic_pointer_cast<GMALCondEnqueue, GMALTransition>(other);
+    auto maybeCondWaitOperation = std::dynamic_pointer_cast<GMALCondWait, GMALTransition>(other);
     if (maybeCondWaitOperation) {
         /* Only one cond_wait will be able to acquire the mutex */
         return *maybeCondWaitOperation->conditionVariable != *this->conditionVariable;
@@ -75,15 +80,15 @@ GMALCondEnqueue::coenabledWith(std::shared_ptr<GMALTransition> other)
 
     auto maybeMutexOperation = std::dynamic_pointer_cast<GMALMutexTransition, GMALTransition>(other);
     if (maybeMutexOperation) {
-        auto unlockMutex = std::make_shared<GMALMutexUnlock>(this->thread, this->conditionVariable->mutex);
-        return GMALTransitionFactory::transitionsCoenabledCommon(unlockMutex, maybeMutexOperation);
+        auto lockMutex = std::make_shared<GMALMutexLock>(this->thread, this->conditionVariable->mutex);
+        return GMALTransitionFactory::transitionsCoenabledCommon(lockMutex, maybeMutexOperation);
     }
 
     return true;
 }
 
 bool
-GMALCondEnqueue::dependentWith(std::shared_ptr<GMALTransition> other)
+GMALCondWait::dependentWith(std::shared_ptr<GMALTransition> other)
 {
     auto maybeCondOperation = std::dynamic_pointer_cast<GMALCondTransition, GMALTransition>(other);
     if (maybeCondOperation) {
@@ -92,14 +97,14 @@ GMALCondEnqueue::dependentWith(std::shared_ptr<GMALTransition> other)
 
     auto maybeMutexOperation = std::dynamic_pointer_cast<GMALMutexTransition, GMALTransition>(other);
     if (maybeMutexOperation) {
-        auto unlockMutex = std::make_shared<GMALMutexUnlock>(this->thread, this->conditionVariable->mutex);
-        return GMALTransitionFactory::transitionsCoenabledCommon(unlockMutex, maybeMutexOperation);
+        auto lockMutex = std::make_shared<GMALMutexLock>(this->thread, this->conditionVariable->mutex);
+        return GMALTransitionFactory::transitionsDependentCommon(lockMutex, maybeMutexOperation);
     }
     return false;
 }
 
 void
-GMALCondEnqueue::print()
+GMALCondWait::print()
 {
-    printf("thread %lu: pthread_cond_wait(%lu, %lu) (enter)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->mutex->getObjectId());
+    printf("thread %lu: pthread_cond_wait(%lu, %lu) (asleep)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->conditionVariable->mutex->getObjectId());
 }

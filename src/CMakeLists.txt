@@ -20,55 +20,55 @@ set(GMAL_CPP_FILES
         GMALTransition.cpp GMALTransition.h
         GMAL.cpp GMAL.h
         GMALState.cpp GMALState.h GMAL_Private.h GMALConstants.h
-        transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h
+        transitions/threads/GMALThreadStart.cpp transitions/threads/GMALThreadStart.h
         GMALTransitionFactory.cpp GMALTransitionFactory.h
         transitions/wrappers/GMALThreadTransitionWrappers.cpp
         transitions/wrappers/GMALThreadTransitionWrappers.h
         GMALStateStackItem.cpp GMALStateStackItem.h
-        transitions/GMALThreadCreate.cpp transitions/GMALThreadCreate.h
-        transitions/GMALThreadTransition.cpp transitions/GMALThreadTransition.h
-        transitions/GMALThreadFinish.cpp transitions/GMALThreadFinish.h
-        transitions/GMALThreadJoin.cpp transitions/GMALThreadJoin.h
+        transitions/threads/GMALThreadCreate.cpp transitions/threads/GMALThreadCreate.h
+        transitions/threads/GMALThreadTransition.h
+        transitions/threads/GMALThreadFinish.cpp transitions/threads/GMALThreadFinish.h
+        transitions/threads/GMALThreadJoin.cpp transitions/threads/GMALThreadJoin.h
         objects/GMALMutex.cpp objects/GMALMutex.h
-        transitions/GMALMutexTransition.cpp transitions/GMALMutexTransition.h
-        transitions/GMALMutexLock.cpp transitions/GMALMutexLock.h
-        transitions/GMALMutexInit.cpp transitions/GMALMutexInit.h
-        transitions/GMALMutexUnlock.cpp transitions/GMALMutexUnlock.h
+        transitions/mutex/GMALMutexTransition.h
+        transitions/mutex/GMALMutexLock.cpp transitions/mutex/GMALMutexLock.h
+        transitions/mutex/GMALMutexInit.cpp transitions/mutex/GMALMutexInit.h
+        transitions/mutex/GMALMutexUnlock.cpp transitions/mutex/GMALMutexUnlock.h
         transitions/wrappers/GMALMutexTransitionWrappers.cpp transitions/wrappers/GMALMutexTransitionWrappers.h
         transitions/GMALTransitionsShared.cpp transitions/GMALTransitionsShared.h
         objects/GMALSemaphore.cpp objects/GMALSemaphore.h
-        transitions/GMALSemaphoreTransition.cpp transitions/GMALSemaphoreTransition.h
-        transitions/GMALSemPost.cpp transitions/GMALSemPost.h
-        transitions/GMALSemInit.cpp transitions/GMALSemInit.h
-        transitions/GMALSemWait.cpp transitions/GMALSemWait.h
+        transitions/semaphore/GMALSemaphoreTransition.h
+        transitions/semaphore/GMALSemPost.cpp transitions/semaphore/GMALSemPost.h
+        transitions/semaphore/GMALSemInit.cpp transitions/semaphore/GMALSemInit.h
+        transitions/semaphore/GMALSemWait.cpp transitions/semaphore/GMALSemWait.h
         transitions/wrappers/GMALSemaphoreTransitionWrappers.cpp
         transitions/wrappers/GMALSemaphoreTransitionWrappers.h
         GMALDeferred.h
-        transitions/GMALExitTransition.cpp transitions/GMALExitTransition.h
+        transitions/misc/GMALExitTransition.cpp transitions/misc/GMALExitTransition.h
         GMALStateConfiguration.cpp GMALStateConfiguration.h
         objects/GMALBarrier.cpp objects/GMALBarrier.h
-        transitions/GMALBarrierInit.cpp transitions/GMALBarrierInit.h
-        transitions/GMALBarrierWait.cpp transitions/GMALBarrierWait.h
-        transitions/GMALBarrierTransition.cpp transitions/GMALBarrierTransition.h
+        transitions/barrier/GMALBarrierInit.cpp transitions/barrier/GMALBarrierInit.h
+        transitions/barrier/GMALBarrierWait.cpp transitions/barrier/GMALBarrierWait.h
+        transitions/barrier/GMALBarrierTransition.h
         transitions/wrappers/GMALBarrierWrappers.cpp transitions/wrappers/GMALBarrierWrappers.h
         transitions/wrappers/GMALConditionVariableWrappers.cpp transitions/wrappers/GMALConditionVariableWrappers.h
         objects/GMALConditionVariable.cpp objects/GMALConditionVariable.h
-        transitions/GMALCondInit.cpp transitions/GMALCondInit.h
-        transitions/GMALCondTransition.cpp transitions/GMALCondTransition.h
-        transitions/GMALCondWait.cpp transitions/GMALCondWait.h misc/GMALOptional.h
-        transitions/GMALCondBroadcast.cpp transitions/GMALCondBroadcast.h
-        transitions/GMALCondSignal.cpp transitions/GMALCondSignal.h
-        transitions/GMALCondEnqueue.cpp transitions/GMALCondEnqueue.h
+        transitions/cond/GMALCondInit.cpp transitions/cond/GMALCondInit.h
+        transitions/cond/GMALCondTransition.h
+        transitions/cond/GMALCondWait.cpp transitions/cond/GMALCondWait.h misc/GMALOptional.h
+        transitions/cond/GMALCondBroadcast.cpp transitions/cond/GMALCondBroadcast.h
+        transitions/cond/GMALCondSignal.cpp transitions/cond/GMALCondSignal.h
+        transitions/cond/GMALCondEnqueue.cpp transitions/cond/GMALCondEnqueue.h
         GMALEnv.h objects/GMALGlobalVariable.cpp objects/GMALGlobalVariable.h
-        transitions/GMALBarrierEnqueue.cpp transitions/GMALBarrierEnqueue.h
-        transitions/GMALGlobalVariableTransition.cpp transitions/GMALGlobalVariableTransition.h
-        transitions/GMALGlobalVariableRead.cpp transitions/GMALGlobalVariableRead.h
-        transitions/GMALGlobalVariableWrite.cpp transitions/GMALGlobalVariableWrite.h
+        transitions/barrier/GMALBarrierEnqueue.cpp transitions/barrier/GMALBarrierEnqueue.h
+        transitions/misc/GMALGlobalVariableTransition.h
+        transitions/misc/GMALGlobalVariableRead.cpp transitions/misc/GMALGlobalVariableRead.h
+        transitions/misc/GMALGlobalVariableWrite.cpp transitions/misc/GMALGlobalVariableWrite.h
         transitions/wrappers/GMALGlobalVariableWrappers.cpp
         transitions/wrappers/GMALGlobalVariableWrappers.h
-        transitions/GMALSemEnqueue.cpp transitions/GMALSemEnqueue.h transitions/GMALThreadReachGoal.cpp transitions/GMALThreadReachGoal.h)
+        transitions/semaphore/GMALSemEnqueue.cpp transitions/semaphore/GMALSemEnqueue.h transitions/threads/GMALThreadReachGoal.cpp transitions/threads/GMALThreadReachGoal.h transitions/barrier/GMALBarrierDefs.h transitions/threads/GMALThreadDefs.h transitions/semaphore/GMALSemaphoreDefs.h transitions/mutex/GMALMutexDefs.h transitions/cond/GMALCondDefs.h transitions/misc/GMALMiscDefs.h)
 
-add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION} transitions/GMALSemEnqueue.cpp transitions/GMALSemEnqueue.h)
+add_executable(GMAL ${GMAL_CPP_FILES} ${GMAL_C_FILES} ${MAIN_FUNCTION} transitions/semaphore/GMALSemEnqueue.cpp transitions/semaphore/GMALSemEnqueue.h)
 message("Linking object files...")
 
 # -lrt -> shared memory

@@ -1,8 +1,8 @@
 #include "GMALBarrierWrappers.h"
 #include "transitions/GMALTransitionsShared.h"
-#include "transitions/GMALBarrierInit.h"
-#include "transitions/GMALBarrierWait.h"
-#include "transitions/GMALBarrierEnqueue.h"
+#include "transitions/barrier/GMALBarrierInit.h"
+#include "transitions/barrier/GMALBarrierWait.h"
+#include "transitions/barrier/GMALBarrierEnqueue.h"
 
 extern "C" {
     #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
