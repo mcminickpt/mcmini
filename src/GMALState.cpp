@@ -333,6 +333,50 @@ GMALState::threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const
 void
 GMALState::dynamicallyUpdateBacktrackSets()
 {
+    /*
+     * Updating the backtrack sets is accomplished as follows
+     * (under the given assumptions)
+     *
+     * ASSUMPTIONS
+     *
+     * 1. The state reflects last(S) for the transition stack
+     * 2. The next transition for the thread that ran the most
+     * recent transition in the transition stack (the transition at the
+     * top of the stack) has been properly updated to reflect what that
+     * thread will do next
+     * 3. The thread that ran last was the one that is at the top
+     * of the transition stack (this should always be true)
+     *
+     * WLOG, assume there are `n` transitions in the transition stack
+     * and `k` threads that are known to exist at the time of updating
+     * the backtrack sets. Note this implies that there are `n+1` items
+     * in the state stack (since there is always the initial state + 1 for
+     * every subsequent transition thereafter)
+     *
+     * Let
+     *  S_i = ith backtracking state item
+     *  T_i = ith transition
+     *  N_p = the next transition for thread p (next(s, p))
+     *
+     *
+     * ALGORITHM:
+     *
+     * 1. First, get a reference to the transition at the top
+     * of the transition stack (i.e. the most recent transition)
+     * as well as the thread that ran that transition. WLOG suppose that
+     * thread has a thread id `i`.
+     *
+     * This transition will be used to test against the transitions
+     * queued as running "next" for all of the **other** threads
+     * that exist
+     *
+     * 2. Test whether a backtracking point is needed at state
+     * S_n for the other threads by comparing N_p, for all p != i.
+     *
+     * 3. Get a reference to N_i and traverse the transition stack
+     * to determine if a backtracking is needed anywhere for thread `i`
+     */
+
     // 1. Save current state info
     const int transitionStackTopBeforeBacktracking = this->transitionStackTop;
 
@@ -344,53 +388,73 @@ GMALState::dynamicallyUpdateBacktrackSets()
         remainingThreadsToProcess.insert(static_cast<tid_t>(i));
     }
 
-    // 3. Perform the actual backtracking here
+    // 3. Determine the i
+    const auto transitionStackTop = this->getTransitionStackTop();
+    const auto mostRecentThreadId = transitionStackTop->getThreadId();
+    const auto nextTransitionForMostRecentThread = this->getPendingTransitionForThread(mostRecentThreadId);
+    remainingThreadsToProcess.erase(mostRecentThreadId);
 
-    // Walk up the transition stack, starting at the top
-    for (int i = transitionStackTopBeforeBacktracking; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
+    // O(# threads)
+    {
+        auto S_n = this->getTransitionStackTop();
+        auto s_n = this->getStateItemAtIndex(transitionStackTopBeforeBacktracking);
+        const auto enabledThreadsAt_s_n = s_n->getEnabledThreadsInState();
 
-        std::shared_ptr<GMALTransition> S_i = this->getTransitionAtIndex(i);
-        std::shared_ptr<GMALStateStackItem> preSi = this->getStateItemAtIndex(i);
+        for (auto &tid : remainingThreadsToProcess) {
+            auto nextSP = this->getPendingTransitionForThread(tid);
+            this->dynamicallyUpdateBacktrackSetsHelper(S_n, s_n,
+                                                       nextSP, enabledThreadsAt_s_n,
+                                                       transitionStackTopBeforeBacktracking,(int)tid);
+
+        }
+    }
+
+    // O(transition stack size)
+
+    // It only remains to add backtracking points at the necessary points for thread `mostRecentThreadId`
+    // We start at one step below the top since we know that transition to not be co-enabled (since it was
+    // by assumption run by `mostRecentThreadId`
+    for (int i = transitionStackTopBeforeBacktracking - 1; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
+        const auto S_i = this->getTransitionAtIndex(i);
+        const auto preSi = this->getStateItemAtIndex(i);
 
         // The set of threads at pre(S, i) that are enabled. Lazily created
-        auto enabledThreadsAtPreSi = preSi->getEnabledThreadsInState();
-        auto processedThreads = std::unordered_set<tid_t>();
-        const auto numThreadsAtDepthi = this->getNumProgramThreads();
+        const auto enabledThreadsAtPreSi = preSi->getEnabledThreadsInState();
+        this->dynamicallyUpdateBacktrackSetsHelper(S_i, preSi,
+                                                   nextTransitionForMostRecentThread, enabledThreadsAtPreSi,
+                                                   i, (int)mostRecentThreadId);
+    }
+}
 
-        // for all processes p
-        for (auto p : remainingThreadsToProcess) {
-            std::shared_ptr<GMALTransition> nextSP = this->nextTransitions[p];
-            const bool shouldProcess = GMALTransition::dependentTransitions(S_i, nextSP) && GMALTransition::coenabledTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
+void
+GMALState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<GMALTransition> &S_i,
+                                                const std::shared_ptr<GMALStateStackItem> &preSi,
+                                                const std::shared_ptr<GMALTransition> &nextSP,
+                                                const std::unordered_set<tid_t> &enabledThreadsAtPreSi,
+                                                int i, int p)
+{
+    const bool shouldProcess = GMALTransition::dependentTransitions(S_i, nextSP) && GMALTransition::coenabledTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
 
-            // if there exists i such that ...
-            if (shouldProcess) {
-                // This is the largest such i for tid -> no need to process it again
-                processedThreads.insert(p);
+    // if there exists i such that ...
+    if (shouldProcess) {
 
-                bool EIsEmpty = true;
-                for (auto q : enabledThreadsAtPreSi) {
-                    const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
+        bool EIsEmpty = true;
+        for (auto q : enabledThreadsAtPreSi) {
+            const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
 
-                    // If E != empty set
-                    if (inE) {
-                        // Add any element in E
-                        // TODO: We can selectively pick here to reduce the number of times we backtrack
-                        preSi->addBacktrackingThreadIfUnsearched(q);
-                        EIsEmpty = false;
-                        break;
-                    }
-                }
-                if (EIsEmpty) {
-                    // E is the empty set -> add every enabled thread at pre(S, i)
-                    for (auto q : enabledThreadsAtPreSi)
-                        preSi->addBacktrackingThreadIfUnsearched(q);
-                }
+            // If E != empty set
+            if (inE) {
+                // Add any element in E
+                // TODO: We can selectively pick here to reduce the number of times we backtrack
+                preSi->addBacktrackingThreadIfUnsearched(q);
+                EIsEmpty = false;
+                break;
             }
         }
-
-        // Filter out the processed threads from those we still have to process
-        for (auto &p : processedThreads) {
-            remainingThreadsToProcess.erase(p);
+        if (EIsEmpty) {
+            // E is the empty set -> add every enabled thread at pre(S, i)
+            for (auto q : enabledThreadsAtPreSi)
+                preSi->addBacktrackingThreadIfUnsearched(q);
         }
     }
 }

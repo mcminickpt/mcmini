@@ -91,6 +91,17 @@ private:
     void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
     void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
 
+
+    /**
+     * Inserts a backtracking point given a context of insertion (where in
+     * the transition/state stacks to insert into etc.)
+     */
+    void dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<GMALTransition> &S_i,
+                                              const std::shared_ptr<GMALStateStackItem> &preSi,
+                                              const std::shared_ptr<GMALTransition> &nextSP,
+                                              const std::unordered_set<tid_t> &enabledThreadsAtPreSi,
+                                              int i, int p);
+
     void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
     void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
     uint32_t totalThreadExecutionDepth() const;
