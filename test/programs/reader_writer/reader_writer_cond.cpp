@@ -3,8 +3,8 @@
 #include "GMAL.h"
 #include "GMALWrappers.h"
 
-#define NUM_READERS 3
-#define NUM_WRITERS 3
+#define NUM_READERS 5
+#define NUM_WRITERS 2
 #define NUM_LOOP 2
 
 pthread_mutex_t mutex;
@@ -16,12 +16,12 @@ int num_readers_waiting = 0;
 int num_writers_waiting = 0;
 
 int read_condition() {
-  // (num_writers - num_writers_waiting) is the number of _active_ writers.
-  return num_writers == 0;
+    // (num_writers - num_writers_waiting) is the number of _active_ writers.
+    return (num_writers - num_writers_waiting) == 0;
 }
 
 int write_condition() {
-  return (num_readers - num_readers_waiting) == 0 && (num_writers - num_writers_waiting) == 1; // This thread is the 1 writer
+    return (num_readers - num_readers_waiting) == 0 && (num_writers - num_writers_waiting) == 1; // This thread is the 1 writer
 }
 
 void *reader(void *unused) {
@@ -30,10 +30,10 @@ void *reader(void *unused) {
         gmal_pthread_mutex_lock(&mutex);
         num_readers++;
         while (! read_condition()) {
-            num_readers_waiting++;
-            gmal_pthread_cond_wait(&cond, &mutex); // wait on cond
-            num_readers_waiting--;
-        }
+             num_readers_waiting++;
+             gmal_pthread_cond_wait(&cond, &mutex); // wait on cond
+             num_readers_waiting--;
+         }
         gmal_pthread_mutex_unlock(&mutex);
         // use resource (we fake this by sleeping)
         printf("reader is reading\n");
@@ -46,7 +46,6 @@ void *reader(void *unused) {
     }
     return nullptr;
 }
-
 
 void *writer(void *unused) {
     for( int i=0; i<NUM_LOOP; i++){

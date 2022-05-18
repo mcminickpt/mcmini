@@ -3,8 +3,8 @@
 #include "GMAL.h"
 #include "GMALWrappers.h"
 
-#define NUM_READERS 3
-#define NUM_WRITERS 3
+#define NUM_READERS 5
+#define NUM_WRITERS 2
 #define NUM_LOOP 2
 
 pthread_mutex_t mutex;
@@ -17,11 +17,11 @@ int num_writers_waiting = 0;
 
 int read_condition() {
   // (num_writers - num_writers_waiting) is the number of _active_ writers.
-  return num_writers == 0;
+  return num_writers == 0 || ((num_writers - num_writers_waiting) == 0 && num_readers_waiting == NUM_READERS - 1);
 }
 
 int write_condition() {
-  return (num_readers - num_readers_waiting) == 0 && (num_writers - num_writers_waiting) == 1; // This thread is the 1 writer
+  return num_readers_waiting != NUM_READERS && (num_readers - num_readers_waiting) == 0 && (num_writers - num_writers_waiting) == 1; // This thread is the 1 writer
 }
 
 void *reader(void *unused) {
@@ -41,12 +41,11 @@ void *reader(void *unused) {
         // release resource
         gmal_pthread_mutex_lock(&mutex);
         num_readers--;
-        gmal_pthread_cond_broadcast(&cond); // wake up everyone and let them try again
+        gmal_pthread_cond_signal(&cond); // wake up everyone and let them try again
         gmal_pthread_mutex_unlock(&mutex);
     }
     return nullptr;
 }
-
 
 void *writer(void *unused) {
     for( int i=0; i<NUM_LOOP; i++){

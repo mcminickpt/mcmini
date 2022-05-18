@@ -1,50 +1,33 @@
-// Simple cond example
-
-#include <unistd.h>
 #include <pthread.h>
 #include "GMAL.h"
 #include "GMALWrappers.h"
 
-#define THREAD_NUM 5
+pthread_mutex_t mutex1;
+pthread_mutex_t mutex2;
+pthread_t thread1, thread2;
 
-pthread_mutex_t mutex;
-sem_t sem;
-pthread_cond_t cond;
-pthread_t thread[THREAD_NUM];
-
-void * thread_doit(void *unused)
-{
-    gmal_pthread_mutex_lock(&mutex);
-    gmal_sem_post(&sem);
-    gmal_pthread_cond_wait(&cond, &mutex);
-    gmal_pthread_mutex_unlock(&mutex);
+void * thread_doit(void *forks_arg) {
+    gmal_pthread_mutex_lock(&mutex1);
+    gmal_pthread_mutex_lock(&mutex2);
+    gmal_pthread_mutex_unlock(&mutex2);
+    gmal_pthread_mutex_unlock(&mutex1);
     return nullptr;
 }
+
 
 int main(int argc, char* argv[])
 {
     gmal_init();
 
-    gmal_pthread_mutex_init(&mutex, NULL);
-    gmal_sem_init(&sem, 0, 0);
+    gmal_pthread_mutex_init(&mutex1, NULL);
+    gmal_pthread_mutex_init(&mutex2, NULL);
 
-    gmal_pthread_cond_init(&cond, NULL);
+    gmal_pthread_create(&thread1, NULL, &thread_doit, NULL);
+    gmal_pthread_create(&thread2, NULL, &thread_doit, NULL);
 
-    for(int i = 0; i < THREAD_NUM; i++) {
-        gmal_pthread_create(&thread[i], NULL, &thread_doit, NULL);
-    }
-
-    for( int i = 0; i < THREAD_NUM - 1; i++) {
-        gmal_sem_wait(&sem);
-    }
-
-    gmal_pthread_mutex_lock(&mutex);
-    gmal_pthread_cond_broadcast(&cond);
-    gmal_pthread_mutex_unlock(&mutex);
-
-    for(int i = 0; i < THREAD_NUM; i++) {
-        gmal_pthread_join(thread[i], NULL);
-    }
+    gmal_pthread_join(thread1, NULL);
+    gmal_pthread_join(thread2, NULL);
 
     return 0;
 }
+

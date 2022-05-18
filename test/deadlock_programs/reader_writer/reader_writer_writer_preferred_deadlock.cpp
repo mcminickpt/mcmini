@@ -66,7 +66,6 @@ void *writer(void *unused) {
         gmal_pthread_mutex_lock(&mutex);
         num_writers--;
         gmal_pthread_cond_broadcast(&cond); // wake up everyone and let them try again
-        gmal_pthread_mutex_unlock(&mutex);
     }
     return nullptr;
 }
