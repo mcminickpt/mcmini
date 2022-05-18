@@ -23,8 +23,8 @@ void *producer(void *pno)
     int item;
     for(int i = 0; i < MaxItems; i++) {
         item = rand(); // Produce an random item
-        gmal_sem_wait(&empty);
         gmal_pthread_mutex_lock(&mutex);
+        gmal_sem_wait(&empty);
         buffer[in] = item;
         printf("Producer %d: Insert Item %d at %d\n", *((int *)pno),buffer[in],in);
         in = (in+1)%BufferSize;
@@ -36,8 +36,8 @@ void *producer(void *pno)
 void *consumer(void *cno)
 {
     for(int i = 0; i < MaxItems; i++) {
-        gmal_sem_wait(&full);
         gmal_pthread_mutex_lock(&mutex);
+        gmal_sem_wait(&full);
         int item = buffer[out];
         printf("Consumer %d: Remove Item %d from %d\n",*((int *)cno),item, out);
         out = (out+1)%BufferSize;
