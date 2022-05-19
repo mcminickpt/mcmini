@@ -271,6 +271,7 @@ GMALState::happensBefore(int i, int j) const
 
     const uint64_t stackCount = this->getTransitionStackSize();
     auto dfs_stack = std::vector<int>();
+    auto dfs_searched = std::unordered_set<tid_t>();
     dfs_stack.push_back(i);
 
     while (!dfs_stack.empty()) {
@@ -286,11 +287,16 @@ GMALState::happensBefore(int i, int j) const
         }
         else {
             for (int k = i_search + 1; k < stackCount; k++) {
-                std::shared_ptr<GMALTransition> tk_search = this->getTransitionAtIndex(k);
-                if (GMALTransition::dependentTransitions(ti_search, tk_search))
-                    dfs_stack.push_back(k);
+                if (dfs_searched.count(k) == 0) {
+                    std::shared_ptr<GMALTransition> tk_search = this->getTransitionAtIndex(k);
+                    if (GMALTransition::dependentTransitions(ti_search, tk_search))
+                        dfs_stack.push_back(k);
+                }
             }
         }
+
+        /* We've looked at i_search */
+        dfs_searched.insert(i_search);
     }
     return false;
 }
