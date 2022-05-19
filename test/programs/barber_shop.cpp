@@ -149,7 +149,7 @@ int main(int argc, char *argv[]) {
     gmal_sem_init(&seatBelt, 0, 0);
     
     // Create the barber.
-    pthread_create(&btid, NULL, barber, NULL);
+    gmal_pthread_create(&btid, NULL, barber, NULL);
 
     // Create the customers.
     for (i=0; i<numCustomers; i++) {
