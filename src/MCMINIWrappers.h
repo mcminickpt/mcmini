@@ -7,4 +7,4 @@
 #include "transitions/wrappers/GMALBarrierWrappers.h"
 #include "transitions/wrappers/GMALConditionVariableWrappers.h"
 
-#endif //MC_MCMiNIWRAPPERS_H
+#endif //MC_MCMINIWRAPPERS_H

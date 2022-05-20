@@ -31,50 +31,50 @@ int write_condition(int writer_ticket_number){
 void *reader(void *notused) {
   while (1) {
     // acquire resource
-    gmal_pthread_mutex_lock(&mutex);
+    mc_pthread_mutex_lock(&mutex);
     int local_reader_ticket_number = ticket_number;
     ticket_number++;
     num_readers++;
     while (! read_condition(local_reader_ticket_number)) {
       num_readers_waiting++;
-      gmal_pthread_cond_wait(&cond, &mutex); // wait on cond
+      mc_pthread_cond_wait(&cond, &mutex); // wait on cond
       num_readers_waiting--;
     }
     next_ticket_to_be_served++;
-    gmal_pthread_mutex_unlock(&mutex);
+    mc_pthread_mutex_unlock(&mutex);
     // use resource (we fake this by sleeping)
     printf("reader is reading\n");
     sleep(1);
     // release resource
-    gmal_pthread_mutex_lock(&mutex);
+    mc_pthread_mutex_lock(&mutex);
     num_readers--;
-    gmal_pthread_cond_broadcast(&cond); // wake up everyone and let them try again
-    gmal_pthread_mutex_unlock(&mutex);
+    mc_pthread_cond_broadcast(&cond); // wake up everyone and let them try again
+    mc_pthread_mutex_unlock(&mutex);
   }
 }
 
 void *writer(void *notused) {
   while (1) {
     // acquire resource
-    gmal_pthread_mutex_lock(&mutex);
+    mc_pthread_mutex_lock(&mutex);
     int local_writer_ticket_number = ticket_number;
     ticket_number++;
     num_writers++;
     while (!write_condition(local_writer_ticket_number)) {
       num_writers_waiting++;
-      gmal_pthread_cond_wait(&cond, &mutex); // wait on cond
+      mc_pthread_cond_wait(&cond, &mutex); // wait on cond
       num_writers_waiting--;
     }
-    gmal_pthread_mutex_unlock(&mutex);
+    mc_pthread_mutex_unlock(&mutex);
     // use resource (we fake this by sleeping)
     printf("writer is writing\n");
     sleep(5);
     // release resource
-    gmal_pthread_mutex_lock(&mutex);
+    mc_pthread_mutex_lock(&mutex);
     num_writers--;
     next_ticket_to_be_served++;
-    gmal_pthread_cond_broadcast(&cond);
-    gmal_pthread_mutex_unlock(&mutex);
+    mc_pthread_cond_broadcast(&cond);
+    mc_pthread_mutex_unlock(&mutex);
   }
 }
 
@@ -82,24 +82,24 @@ int main() {
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
 
-    gmal_init();
-    gmal_pthread_mutex_init(&mutex, nullptr);
-    gmal_pthread_cond_init(&cond, nullptr);
+    mc_init();
+    mc_pthread_mutex_init(&mutex, nullptr);
+    mc_pthread_cond_init(&cond, nullptr);
 
     int i;
 
     for (i = 0; i < NUM_READERS; i++) {
-        gmal_pthread_create(&read_thread[i], nullptr, reader, nullptr);
+        mc_pthread_create(&read_thread[i], nullptr, reader, nullptr);
     }
     for (i = 0; i < NUM_WRITERS; i++) {
-        gmal_pthread_create(&write_thread[i], nullptr, writer, nullptr);
+        mc_pthread_create(&write_thread[i], nullptr, writer, nullptr);
     }
 
     for (i = 0; i < NUM_READERS; i++) {
-        gmal_pthread_join(read_thread[i], nullptr);
+        mc_pthread_join(read_thread[i], nullptr);
     }
     for (i = 0; i < NUM_WRITERS; i++) {
-        gmal_pthread_join(write_thread[i], nullptr);
+        mc_pthread_join(write_thread[i], nullptr);
     }
     return 0;
 }

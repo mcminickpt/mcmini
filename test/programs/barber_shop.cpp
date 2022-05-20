@@ -53,25 +53,25 @@ void *customer(void *number) {
     printf("Customer %d arrived at barber shop.\n", num);
 
     // Wait for space to open up in the waiting room...
-    gmal_sem_wait(&waitingRoom);
+    mc_sem_wait(&waitingRoom);
     printf("Customer %d entering waiting room.\n", num);
 
     // Wait for the barber chair to become free.
-    gmal_sem_wait(&barberChair);
+    mc_sem_wait(&barberChair);
 
     // The chair is free so give up your spot in the
     // waiting room.
-    gmal_sem_post(&waitingRoom);
+    mc_sem_post(&waitingRoom);
 
     // Wake up the barber...
     printf("Customer %d waking the barber.\n", num);
-    gmal_sem_post(&barberPillow);
+    mc_sem_post(&barberPillow);
 
     // Wait for the barber to finish cutting your hair.
-    gmal_sem_wait(&seatBelt);
+    mc_sem_wait(&seatBelt);
 
     // Give up the chair.
-    gmal_sem_post(&barberChair);
+    mc_sem_post(&barberChair);
     printf("Customer %d leaving barber shop.\n", num);
 }
 
@@ -83,7 +83,7 @@ void *barber(void *junk) {
 
         // Sleep until someone arrives and wakes you..
         printf("The barber is sleeping\n");
-        gmal_sem_wait(&barberPillow);
+        mc_sem_wait(&barberPillow);
 
         // Skip this stuff at the end...
         if (!allDone) {
@@ -95,7 +95,7 @@ void *barber(void *junk) {
             printf("The barber has finished cutting hair.\n");
 
             // Release the customer when done cutting...
-            gmal_sem_post(&seatBelt);
+            mc_sem_post(&seatBelt);
         }
         else {
             printf("The barber is going home for the day.\n");
@@ -143,29 +143,29 @@ int main(int argc, char *argv[]) {
     }
 		
     // Initialize the semaphores with initial values...
-    gmal_sem_init(&waitingRoom, 0, numChairs);
-    gmal_sem_init(&barberChair, 0, 1);
-    gmal_sem_init(&barberPillow, 0, 0);
-    gmal_sem_init(&seatBelt, 0, 0);
+    mc_sem_init(&waitingRoom, 0, numChairs);
+    mc_sem_init(&barberChair, 0, 1);
+    mc_sem_init(&barberPillow, 0, 0);
+    mc_sem_init(&seatBelt, 0, 0);
     
     // Create the barber.
-    gmal_pthread_create(&btid, NULL, barber, NULL);
+    mc_pthread_create(&btid, NULL, barber, NULL);
 
     // Create the customers.
     for (i=0; i<numCustomers; i++) {
-	gmal_pthread_create(&tid[i], NULL, customer, (void *)&Number[i]);
+	mc_pthread_create(&tid[i], NULL, customer, (void *)&Number[i]);
     }
 
     // Join each of the threads to wait for them to finish.
     for (i=0; i<numCustomers; i++) {
-	    gmal_pthread_join(tid[i],NULL);
+	    mc_pthread_join(tid[i],NULL);
     }
 
     // When all of the customers are finished, kill the
     // barber thread.
     allDone = 1;
-    gmal_sem_post(&barberPillow);  // Wake the barber so he will exit.
-    gmal_pthread_join(btid,NULL);
+    mc_sem_post(&barberPillow);  // Wake the barber so he will exit.
+    mc_pthread_join(btid,NULL);
 }
 
 

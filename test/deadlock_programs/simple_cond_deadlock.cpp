@@ -13,26 +13,26 @@ pthread_t thread;
 
 void * thread_doit(void *unused)
 {
-    gmal_pthread_mutex_lock(&mutex);
-    gmal_pthread_cond_wait(&cond, &mutex);
-    gmal_pthread_mutex_unlock(&mutex);
+    mc_pthread_mutex_lock(&mutex);
+    mc_pthread_cond_wait(&cond, &mutex);
+    mc_pthread_mutex_unlock(&mutex);
     return nullptr;
 }
 
 int main(int argc, char* argv[])
 {
-    gmal_init();
+    mc_init();
 
-    gmal_pthread_mutex_init(&mutex, NULL);
-    gmal_pthread_cond_init(&cond, NULL);
+    mc_pthread_mutex_init(&mutex, NULL);
+    mc_pthread_cond_init(&cond, NULL);
 
-    gmal_pthread_create(&thread, NULL, &thread_doit, NULL);
+    mc_pthread_create(&thread, NULL, &thread_doit, NULL);
 
-    gmal_pthread_mutex_lock(&mutex);
-    gmal_pthread_cond_signal(&cond);
-    gmal_pthread_mutex_unlock(&mutex);
+    mc_pthread_mutex_lock(&mutex);
+    mc_pthread_cond_signal(&cond);
+    mc_pthread_mutex_unlock(&mutex);
 
-    gmal_pthread_join(thread, NULL);
+    mc_pthread_join(thread, NULL);
 
     return 0;
 }

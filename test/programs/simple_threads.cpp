@@ -17,13 +17,13 @@ void * thread_doit(void *forks_arg) {
 
 int main(int argc, char* argv[])
 {
-    gmal_init();
+    mc_init();
 
-    gmal_pthread_create(&thread1, NULL, &thread_doit, NULL);
-    gmal_pthread_create(&thread2, NULL, &thread_doit, NULL);
+    mc_pthread_create(&thread1, NULL, &thread_doit, NULL);
+    mc_pthread_create(&thread2, NULL, &thread_doit, NULL);
 
-    gmal_pthread_join(thread1, NULL);
-    gmal_pthread_join(thread2, NULL);
+    mc_pthread_join(thread1, NULL);
+    mc_pthread_join(thread2, NULL);
 
     return 0;
 }

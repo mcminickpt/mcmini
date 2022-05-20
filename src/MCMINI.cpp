@@ -1,4 +1,4 @@
-#include "GMAL.h"
+#include "MCMINI.h"
 #include "GMAL_Private.h"
 #include "GMALSharedTransition.h"
 #include "GMALTransitionFactory.h"
@@ -24,7 +24,7 @@ extern "C" {
 GMAL_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t cpid = -1;
 mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM] = nullptr;
-sem_t gmal_pthread_create_binary_sem;
+sem_t mc_pthread_create_binary_sem;
 
 /* Data transfer */
 void *shmStart = nullptr;
@@ -36,16 +36,16 @@ const size_t shmAllocationSize =  sizeof(*threadQueue) + (sizeof(*shmTransitionT
 GMALDeferred<GMALState> programState;
 
 GMAL_CTOR void
-gmal_init()
+mc_init()
 {
-    gmal_load_shadow_routines();
-    gmal_create_program_state();
-    gmal_initialize_shared_memory_region();
-    gmal_create_thread_sleep_points();
+    mc_load_shadow_routines();
+    mc_create_program_state();
+    mc_initialize_shared_memory_region();
+    mc_create_thread_sleep_points();
 
-    GMAL_FATAL_ON_FAIL(__real_sem_init(&gmal_pthread_create_binary_sem, 0, 0) == 0);
+    GMAL_FATAL_ON_FAIL(__real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
-    GMAL_PROGRAM_TYPE program = gmal_scheduler_main();
+    GMAL_PROGRAM_TYPE program = mc_scheduler_main();
     if (GMAL_IS_SOURCE_PROGRAM(program)) return;
 
     puts("***** Model checking completed! *****");
@@ -53,7 +53,7 @@ gmal_init()
 }
 
 void
-gmal_create_program_state()
+mc_create_program_state()
 {
     auto config = get_config_for_execution_environment();
     programState.Construct(config);
@@ -79,7 +79,7 @@ gmal_create_program_state()
 }
 
 GMAL_PROGRAM_TYPE
-gmal_scheduler_main()
+mc_scheduler_main()
 {
     /*
      * Identifies the trace number of this call
@@ -88,18 +88,18 @@ gmal_scheduler_main()
      */
     static trid_t traceId = 0;
 
-    gmal_register_main_thread();
+    mc_register_main_thread();
 
     auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
     programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
-    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
+    GMAL_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
     if (GMAL_IS_SOURCE_PROGRAM(program))
         return GMAL_SOURCE_PROGRAM;
 
-    gmal_exhaust_threads(initialTransition);
-    program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
+    mc_exhaust_threads(initialTransition);
+    program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
     if (GMAL_IS_SOURCE_PROGRAM(program))
         return GMAL_SOURCE_PROGRAM;
 
@@ -120,11 +120,11 @@ gmal_scheduler_main()
             tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
             std::shared_ptr<GMALTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
-            program = gmal_enter_gdb_debugging_session_if_necessary(traceId++);
+            program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
             if (GMAL_IS_SOURCE_PROGRAM(program))
                 return GMAL_SOURCE_PROGRAM;
 
-            program = gmal_readvance_main(backtrackOperation);
+            program = mc_readvance_main(backtrackOperation);
             if (GMAL_IS_SOURCE_PROGRAM(program))
                 return GMAL_SOURCE_PROGRAM;
 
@@ -141,7 +141,7 @@ gmal_scheduler_main()
 }
 
 void*
-gmal_create_shared_memory_region()
+mc_create_shared_memory_region()
 {
     //  If the region exists, then this returns a fd for the existing region.
     //  Otherwise, it creates a new shared memory region.
@@ -180,9 +180,9 @@ gmal_create_shared_memory_region()
 }
 
 void
-gmal_initialize_shared_memory_region()
+mc_initialize_shared_memory_region()
 {
-    void *shm = gmal_create_shared_memory_region();
+    void *shm = mc_create_shared_memory_region();
     void *threadQueueStart = shm;
     void *shmTransitionTypeInfoStart = (char*)threadQueueStart + sizeof(*threadQueue);
     void *shmTransitionDataStart = (char*)shmTransitionTypeInfoStart + sizeof(*shmTransitionTypeInfo);
@@ -194,14 +194,14 @@ gmal_initialize_shared_memory_region()
 }
 
 void
-gmal_create_thread_sleep_points()
+mc_create_thread_sleep_points()
 {
     for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
         mc_shared_cv_init(&(*threadQueue)[i]);
 }
 
 void
-gmal_reset_cv_locks()
+mc_reset_cv_locks()
 {
     for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
         mc_shared_cv_destroy(&(*threadQueue)[i]);
@@ -219,13 +219,13 @@ sigusr1_handler_child(int sig)
 void
 sigusr1_handler_scheduler(int sig)
 {
-    gmal_child_kill();
+    mc_child_kill();
     puts("******* Something went wrong in the source program... *******************");
     _exit(1);
 }
 
 GMAL_PROGRAM_TYPE
-gmal_spawn_child()
+mc_spawn_child()
 {
     // Ensure that a child does not already exist to prevent fork bombing
     GMAL_ASSERT(cpid == -1);
@@ -248,10 +248,10 @@ gmal_spawn_child()
 }
 
 GMAL_PROGRAM_TYPE
-gmal_spawn_child_following_transition_stack()
+mc_spawn_child_following_transition_stack()
 {
-    gmal_reset_cv_locks();
-    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(false);
+    mc_reset_cv_locks();
+    GMAL_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
 
     if (GMAL_IS_SCHEDULER(program)) {
         const int transition_stack_height = programState->getTransitionStackSize();
@@ -261,7 +261,7 @@ gmal_spawn_child_following_transition_stack()
             // when we create them. This will always be consistent,
             // but we might need to look out for when a thread dies
             tid_t nextTid = programState->getThreadRunningTransitionAtIndex(i);
-            gmal_run_thread_to_next_visible_operation(nextTid);
+            mc_run_thread_to_next_visible_operation(nextTid);
         }
     } else {
         // We need to reset the concurrent system
@@ -272,16 +272,16 @@ gmal_spawn_child_following_transition_stack()
         // in the transition stack; otherwise, shadow resource
         // allocations will be off
         programState->reset();
-        gmal_register_main_thread();
+        mc_register_main_thread();
     }
 
     return program;
 }
 
 GMAL_PROGRAM_TYPE
-gmal_begin_target_program_at_main(bool spawnDaemonThread)
+mc_begin_target_program_at_main(bool spawnDaemonThread)
 {
-    GMAL_PROGRAM_TYPE program = gmal_spawn_child();
+    GMAL_PROGRAM_TYPE program = mc_spawn_child();
     if (GMAL_IS_SOURCE_PROGRAM(program)) {
         // NOTE: Technically, the child will be frozen
         // inside of dpor_init until it is scheduled. But
@@ -289,7 +289,7 @@ gmal_begin_target_program_at_main(bool spawnDaemonThread)
         // matter where the child spawns so long as it reaches
         // the actual source program
         tid_self = 0;
-        gmal_initialize_shared_memory_region();
+        mc_initialize_shared_memory_region();
 
         // This is important to handle the case when the
         // main thread hits return 0; in that case, we
@@ -304,18 +304,18 @@ gmal_begin_target_program_at_main(bool spawnDaemonThread)
         // NOTE!!: atexit handlers can be invoked when a dynamic
         // library is unloaded. In the transparent target, we need
         // to be able to handle this case gracefully
-        GMAL_FATAL_ON_FAIL(atexit(&gmal_exit_main_thread) == 0);
+        GMAL_FATAL_ON_FAIL(atexit(&mc_exit_main_thread) == 0);
 
         if (spawnDaemonThread)
-            gmal_spawn_daemon_thread();
+            mc_spawn_daemon_thread();
 
-        thread_await_gmal_scheduler_for_thread_start_transition();
+        thread_await_mc_scheduler_for_thread_start_transition();
     }
     return program;
 }
 
 void
-gmal_run_thread_to_next_visible_operation(tid_t tid)
+mc_run_thread_to_next_visible_operation(tid_t tid)
 {
     GMAL_ASSERT(tid != TID_INVALID);
     mc_shared_cv_ref cv = &(*threadQueue)[tid];
@@ -324,7 +324,7 @@ gmal_run_thread_to_next_visible_operation(tid_t tid)
 }
 
 void
-gmal_child_kill()
+mc_child_kill()
 {
     if (cpid == -1) return; // No child
     kill(cpid, SIGUSR1);
@@ -333,14 +333,14 @@ gmal_child_kill()
 }
 
 void
-gmal_child_wait()
+mc_child_wait()
 {
     GMAL_ASSERT(cpid != -1);
     waitpid(cpid, nullptr, 0);
 }
 
 void
-gmal_child_panic()
+mc_child_panic()
 {
     pid_t schedpid = getppid();
     kill(schedpid, SIGUSR1);
@@ -351,7 +351,7 @@ gmal_child_panic()
 }
 
 void
-gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
+mc_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
 {
     puts("**** Exhausting threads... ****");
     uint64_t debug_depth = programState->getTransitionStackSize();
@@ -359,7 +359,7 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
     do {
         debug_depth++;
         tid_t tid = t_next->getThreadId();
-        gmal_run_thread_to_next_visible_operation(tid);
+        mc_run_thread_to_next_visible_operation(tid);
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
         programState->dynamicallyUpdateBacktrackSets();
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
@@ -371,20 +371,20 @@ gmal_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
     } else {
         puts("*** NO FAILURE DETECTED ***");
     }
-    gmal_child_kill();
+    mc_child_kill();
 }
 
 GMAL_PROGRAM_TYPE
-gmal_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
+mc_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
 {
-    GMAL_PROGRAM_TYPE program = gmal_spawn_child_following_transition_stack();
+    GMAL_PROGRAM_TYPE program = mc_spawn_child_following_transition_stack();
     if (GMAL_IS_SOURCE_PROGRAM(program)) return GMAL_SOURCE_PROGRAM;
-    gmal_exhaust_threads(nextTransitionToTest);
+    mc_exhaust_threads(nextTransitionToTest);
     return GMAL_SCHEDULER;
 }
 
 tid_t
-gmal_register_thread()
+mc_register_thread()
 {
     tid_t newTid = programState->createNewThread();
     tid_self = newTid;
@@ -392,7 +392,7 @@ gmal_register_thread()
 }
 
 tid_t
-gmal_register_main_thread()
+mc_register_main_thread()
 {
     tid_t newTid = programState->createMainThread();
     tid_self = newTid;
@@ -400,9 +400,9 @@ gmal_register_main_thread()
 }
 
 void
-gmal_report_undefined_behavior(const char *msg)
+mc_report_undefined_behavior(const char *msg)
 {
-    gmal_child_kill();
+    mc_child_kill();
     fprintf(stderr,"\t Undefined Behavior Detected! \t\n"
             "\t ............................ \t\n"
             "\t The model checker aborted the execution because\t\n"
@@ -418,25 +418,25 @@ gmal_report_undefined_behavior(const char *msg)
 /* GDB Interface */
 
 GMAL_PROGRAM_TYPE
-gmal_enter_gdb_debugging_session_if_necessary(trid_t trid)
+mc_enter_gdb_debugging_session_if_necessary(trid_t trid)
 {
-    if (gmal_should_enter_gdb_debugging_session_with_trace_id(trid))
-        return gmal_enter_gdb_debugging_session();
+    if (mc_should_enter_gdb_debugging_session_with_trace_id(trid))
+        return mc_enter_gdb_debugging_session();
     return GMAL_SCHEDULER;
 }
 
 bool
-gmal_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
+mc_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
 {
     return programState->isTargetTraceIdForGDB(trid);
 }
 
 GMAL_PROGRAM_TYPE
-gmal_enter_gdb_debugging_session()
+mc_enter_gdb_debugging_session()
 {
-    GMAL_PROGRAM_TYPE program = gmal_begin_target_program_at_main(true);
+    GMAL_PROGRAM_TYPE program = mc_begin_target_program_at_main(true);
     if (GMAL_IS_SCHEDULER(program)) {
-        gmal_child_wait(); /* The daemon thread will take the place of the parent process */
+        mc_child_wait(); /* The daemon thread will take the place of the parent process */
         exit(0);
     }
 
@@ -444,7 +444,7 @@ gmal_enter_gdb_debugging_session()
 }
 
 void
-gmal_spawn_daemon_thread()
+mc_spawn_daemon_thread()
 {
     /*
      * Make sure to copy the transition sequence since we
@@ -458,16 +458,16 @@ gmal_spawn_daemon_thread()
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    __real_pthread_create(&daemon, nullptr, &gmal_daemon_thread_simulate_program, trace);
+    __real_pthread_create(&daemon, nullptr, &mc_daemon_thread_simulate_program, trace);
     pthread_attr_destroy(&attr);
 }
 
 void*
-gmal_daemon_thread_simulate_program(void *trace)
+mc_daemon_thread_simulate_program(void *trace)
 {
     programState->reset();
     programState->start();
-    gmal_register_main_thread();
+    mc_register_main_thread();
 
     auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
     auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
@@ -478,11 +478,11 @@ gmal_daemon_thread_simulate_program(void *trace)
     for (auto &tid : *tracePtr) {
         auto t_next = programState->getPendingTransitionForThread(tid);
         t_next->print();
-        gmal_run_thread_to_next_visible_operation(tid);
+        mc_run_thread_to_next_visible_operation(tid);
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }
     delete tracePtr;
-    gmal_child_panic();
+    mc_child_panic();
     return nullptr; /* Ignored */
 }
 
