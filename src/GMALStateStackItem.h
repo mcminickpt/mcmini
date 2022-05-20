@@ -1,11 +1,11 @@
-#ifndef GMAL_GMALSTATESTACKITEM_H
-#define GMAL_GMALSTATESTACKITEM_H
+#ifndef MC_MCSTATESTACKITEM_H
+#define MC_MCSTATESTACKITEM_H
 
-#include "GMALShared.h"
+#include "MCShared.h"
 #include <unordered_set>
 #include <utility>
 
-struct GMALStateStackItem final {
+struct MCStateStackItem final {
 private:
     std::unordered_set<tid_t> backtrackSet;
     std::unordered_set<tid_t> doneSet;
@@ -22,4 +22,4 @@ public:
     tid_t popFirstThreadToBacktrackOn();
 };
 
-#endif //GMAL_GMALSTATESTACKITEM_H
+#endif //MC_MCSTATESTACKITEM_H

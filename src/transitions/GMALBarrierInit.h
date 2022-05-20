@@ -1,21 +1,21 @@
-#ifndef GMAL_GMALBARRIERINIT_H
-#define GMAL_GMALBARRIERINIT_H
+#ifndef MC_MCBARRIERINIT_H
+#define MC_MCBARRIERINIT_H
 
-#include "GMALBarrierTransition.h"
+#include "MCBarrierTransition.h"
 
-GMALTransition* GMALReadBarrierInit(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadBarrierInit(const MCSharedTransition*, void*, MCState*);
 
-struct GMALBarrierInit : public GMALBarrierTransition {
+struct MCBarrierInit : public MCBarrierTransition {
 public:
-    GMALBarrierInit(std::shared_ptr<GMALThread> thread, std::shared_ptr<GMALBarrier> barrier)
-    : GMALBarrierTransition(thread, barrier) {}
+    MCBarrierInit(std::shared_ptr<MCThread> thread, std::shared_ptr<MCBarrier> barrier)
+    : MCBarrierTransition(thread, barrier) {}
 
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
-    void applyToState(GMALState *) override;
-    bool coenabledWith(std::shared_ptr<GMALTransition>) override;
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    void applyToState(MCState *) override;
+    bool coenabledWith(std::shared_ptr<MCTransition>) override;
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
     void print() override;
 };
 
-#endif //GMAL_GMALBARRIERINIT_H
+#endif //MC_MCBARRIERINIT_H

@@ -1,57 +1,57 @@
-#ifndef GMAL_GMAL_PRIVATE_H
-#define GMAL_GMAL_PRIVATE_H
+#ifndef MC_MC_PRIVATE_H
+#define MC_MC_PRIVATE_H
 
-#include "GMALShared.h"
-#include "GMALSharedTransition.h"
-#include "GMALState.h"
+#include "MCShared.h"
+#include "MCSharedTransition.h"
+#include "MCState.h"
 
 extern "C" {
 #include "mc_shared_cv.h"
-#include "GMALEnv.h"
+#include "MCEnv.h"
 }
 
 /* Scheduler state */
-void gmal_create_program_state();
+void mc_create_program_state();
 
 /* Scheduler control */
-GMAL_PROGRAM_TYPE gmal_scheduler_main();
-void gmal_exhaust_threads(std::shared_ptr<GMALTransition>);
-GMAL_PROGRAM_TYPE gmal_readvance_main(std::shared_ptr<GMALTransition>);
-void gmal_create_initial_scheduler_state();
-void gmal_exit();
+MC_PROGRAM_TYPE mc_scheduler_main();
+void mc_exhaust_threads(std::shared_ptr<MCTransition>);
+MC_PROGRAM_TYPE mc_readvance_main(std::shared_ptr<MCTransition>);
+void mc_create_initial_scheduler_state();
+void mc_exit();
 
 /* GDB interface */
-bool gmal_should_enter_gdb_debugging_session_with_trace_id(trid_t);
-GMAL_PROGRAM_TYPE gmal_enter_gdb_debugging_session_if_necessary(trid_t);
-GMAL_PROGRAM_TYPE gmal_enter_gdb_debugging_session();
-void gmal_spawn_daemon_thread();
-void *gmal_daemon_thread_simulate_program(void*);
-GMALStateConfiguration get_config_for_execution_environment();
+bool mc_should_enter_gdb_debugging_session_with_trace_id(trid_t);
+MC_PROGRAM_TYPE mc_enter_gdb_debugging_session_if_necessary(trid_t);
+MC_PROGRAM_TYPE mc_enter_gdb_debugging_session();
+void mc_spawn_daemon_thread();
+void *mc_daemon_thread_simulate_program(void*);
+MCStateConfiguration get_config_for_execution_environment();
 
 /* Registering and accessing threads */
-tid_t gmal_register_thread();
-tid_t gmal_register_main_thread();
+tid_t mc_register_thread();
+tid_t mc_register_main_thread();
 tid_t thread_get_self();
 
 /* Shared memory management */
-void* gmal_create_shared_memory_region();
-void gmal_initialize_shared_memory_region();
+void* mc_create_shared_memory_region();
+void mc_initialize_shared_memory_region();
 
-void gmal_create_thread_sleep_points();
-void gmal_reset_thread_sleep_points();
+void mc_create_thread_sleep_points();
+void mc_reset_thread_sleep_points();
 
 /* Source program management */
-GMAL_PROGRAM_TYPE gmal_spawn_child();
-GMAL_PROGRAM_TYPE gmal_spawn_child_following_transition_stack();
-GMAL_PROGRAM_TYPE gmal_begin_target_program_at_main(bool spawnDaemonThread);
-void gmal_run_thread_to_next_visible_operation(tid_t);
-void gmal_child_kill();
-void gmal_child_wait();
+MC_PROGRAM_TYPE mc_spawn_child();
+MC_PROGRAM_TYPE mc_spawn_child_following_transition_stack();
+MC_PROGRAM_TYPE mc_begin_target_program_at_main(bool spawnDaemonThread);
+void mc_run_thread_to_next_visible_operation(tid_t);
+void mc_child_kill();
+void mc_child_wait();
 
 /* Thread control */
-void thread_await_gmal_scheduler();
-void thread_await_gmal_scheduler_for_thread_start_transition();
-void thread_awake_gmal_scheduler_for_thread_finish_transition();
+void thread_await_mc_scheduler();
+void thread_await_mc_scheduler_for_thread_start_transition();
+void thread_awake_mc_scheduler_for_thread_finish_transition();
 
 
-#endif //GMAL_GMAL_PRIVATE_H
+#endif //MC_MC_PRIVATE_H

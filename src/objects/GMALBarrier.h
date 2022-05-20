@@ -1,20 +1,20 @@
-#ifndef GMAL_GMALBARRIER_H
-#define GMAL_GMALBARRIER_H
+#ifndef MC_MCBARRIER_H
+#define MC_MCBARRIER_H
 
-#include "GMALVisibleObject.h"
+#include "MCVisibleObject.h"
 #include <unordered_set>
 
-struct GMALBarrierShadow {
+struct MCBarrierShadow {
     pthread_barrier_t *systemIdentity;
     const unsigned int waitCount;
-    enum GMALBarrierState {
+    enum MCBarrierState {
         undefined, initialized, destroyed
     } state;
 
-    GMALBarrierShadow(pthread_barrier_t *systemIdentity, unsigned int waitCount) : systemIdentity(systemIdentity), waitCount(waitCount), state(undefined) {}
+    MCBarrierShadow(pthread_barrier_t *systemIdentity, unsigned int waitCount) : systemIdentity(systemIdentity), waitCount(waitCount), state(undefined) {}
 };
 
-struct GMALBarrier : public GMALVisibleObject {
+struct MCBarrier : public MCVisibleObject {
 private:
     std::unordered_set<tid_t> threadsWaitingOnBarrierOdd;
     std::unordered_set<tid_t> threadsWaitingOnBarrierEven;
@@ -23,18 +23,18 @@ private:
 
     bool isEven = false;
 
-    GMALBarrierShadow barrierShadow;
-    inline explicit GMALBarrier(GMALBarrierShadow shadow, objid_t id) : GMALVisibleObject(id), barrierShadow(shadow) {}
+    MCBarrierShadow barrierShadow;
+    inline explicit MCBarrier(MCBarrierShadow shadow, objid_t id) : MCVisibleObject(id), barrierShadow(shadow) {}
 
 public:
-    inline explicit GMALBarrier(GMALBarrierShadow shadow) : GMALVisibleObject(), barrierShadow(shadow) {}
-    inline GMALBarrier(const GMALBarrier &barrier) : GMALVisibleObject(barrier.getObjectId()), barrierShadow(barrier.barrierShadow) {}
+    inline explicit MCBarrier(MCBarrierShadow shadow) : MCVisibleObject(), barrierShadow(shadow) {}
+    inline MCBarrier(const MCBarrier &barrier) : MCVisibleObject(barrier.getObjectId()), barrierShadow(barrier.barrierShadow) {}
 
-    std::shared_ptr<GMALVisibleObject> copy() override;
-    GMALSystemID getSystemId() override;
+    std::shared_ptr<MCVisibleObject> copy() override;
+    MCSystemID getSystemId() override;
 
-    bool operator ==(const GMALBarrier&) const;
-    bool operator !=(const GMALBarrier&) const;
+    bool operator ==(const MCBarrier&) const;
+    bool operator !=(const MCBarrier&) const;
 
     unsigned int getCount();
     bool wouldBlockIfWaitedOn(tid_t);
@@ -46,4 +46,4 @@ public:
     bool hasEvenParity(tid_t);
 };
 
-#endif //GMAL_GMALBARRIER_H
+#endif //MC_MCBARRIER_H

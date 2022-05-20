@@ -1,5 +1,5 @@
 #include "mc_shared_cv.h"
-#include "transitions/wrappers/GMALSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 
 //PRETTY_PRINT_DEF_DECL(mc_shared_cv)
 

@@ -1,22 +1,22 @@
-#ifndef GMAL_GMALSHAREDTRANSITION_H
-#define GMAL_GMALSHAREDTRANSITION_H
+#ifndef MC_MCSHAREDTRANSITION_H
+#define MC_MCSHAREDTRANSITION_H
 
-#include "GMALShared.h"
-#include "GMALTransition.h"
+#include "MCShared.h"
+#include "MCTransition.h"
 
-struct GMALSharedTransition {
+struct MCSharedTransition {
 public:
     const std::type_info &type;
     tid_t executor;
-    GMALSharedTransition(tid_t executor, const std::type_info &type) : executor(executor), type(type) {}
+    MCSharedTransition(tid_t executor, const std::type_info &type) : executor(executor), type(type) {}
 };
 
-void GMALSharedTransitionReplace(GMALSharedTransition *, GMALSharedTransition *);
+void MCSharedTransitionReplace(MCSharedTransition *, MCSharedTransition *);
 
-static_assert(std::is_trivially_copyable<GMALSharedTransition>::value,
+static_assert(std::is_trivially_copyable<MCSharedTransition>::value,
         "The shared transition is not trivially copiable. Performing a memcpy of this type "
         "is undefined behavior according to the C++ standard. We need to add a fallback to "
         "writing the typeid hashcodes into shared memory and map to types instead"
         "This is currently unsupported at the moment");
 
-#endif //GMAL_GMALSHAREDTRANSITION_H
+#endif //MC_MCSHAREDTRANSITION_H

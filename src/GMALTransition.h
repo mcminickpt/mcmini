@@ -1,31 +1,31 @@
-#ifndef GMAL_GMALTRANSITION_H
-#define GMAL_GMALTRANSITION_H
+#ifndef MC_MCTRANSITION_H
+#define MC_MCTRANSITION_H
 
-struct GMALState;
+struct MCState;
 
-#include "GMALShared.h"
-#include "GMALState.h"
-#include "objects/GMALThread.h"
+#include "MCShared.h"
+#include "MCState.h"
+#include "objects/MCThread.h"
 #include <memory>
 #include <utility>
 
-struct GMALTransition {
+struct MCTransition {
 protected:
-    std::shared_ptr<GMALThread> thread;
+    std::shared_ptr<MCThread> thread;
 public:
-    GMALTransition(std::shared_ptr<GMALThread> thread) : thread(thread) {}
-    GMALTransition(const GMALTransition&) = default;
-    GMALTransition &operator=(const GMALTransition&) = default;
+    MCTransition(std::shared_ptr<MCThread> thread) : thread(thread) {}
+    MCTransition(const MCTransition&) = default;
+    MCTransition &operator=(const MCTransition&) = default;
 
-    static bool dependentTransitions(const std::shared_ptr<GMALTransition>&, const std::shared_ptr<GMALTransition>&);
-    static bool coenabledTransitions(const std::shared_ptr<GMALTransition>&, const std::shared_ptr<GMALTransition>&);
+    static bool dependentTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
+    static bool coenabledTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
 
-    virtual std::shared_ptr<GMALTransition> staticCopy() = 0;
-    virtual std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) = 0;
-    virtual void applyToState(GMALState *) = 0;
-    virtual bool enabledInState(const GMALState *) { return thread->enabled(); }
-    virtual bool coenabledWith(std::shared_ptr<GMALTransition>) { return true; }
-    virtual bool dependentWith(std::shared_ptr<GMALTransition>) { return true; }
+    virtual std::shared_ptr<MCTransition> staticCopy() = 0;
+    virtual std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) = 0;
+    virtual void applyToState(MCState *) = 0;
+    virtual bool enabledInState(const MCState *) { return thread->enabled(); }
+    virtual bool coenabledWith(std::shared_ptr<MCTransition>) { return true; }
+    virtual bool dependentWith(std::shared_ptr<MCTransition>) { return true; }
 
     /**
      *
@@ -46,4 +46,4 @@ public:
     inline tid_t getThreadId() const { return thread->tid; }
 };
 
-#endif //GMAL_GMALTRANSITION_H
+#endif //MC_MCTRANSITION_H

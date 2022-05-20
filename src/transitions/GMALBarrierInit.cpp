@@ -1,60 +1,60 @@
-#include "GMALBarrierInit.h"
+#include "MCBarrierInit.h"
 
-GMALTransition*
-GMALReadBarrierInit(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadBarrierInit(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
-    auto barrierInShm = static_cast<GMALBarrierShadow*>(shmData);
-    auto systemId = (GMALSystemID)barrierInShm->systemIdentity;
-    auto barrierThatExists = state->getVisibleObjectWithSystemIdentity<GMALBarrier>(systemId);
+    auto barrierInShm = static_cast<MCBarrierShadow*>(shmData);
+    auto systemId = (MCSystemID)barrierInShm->systemIdentity;
+    auto barrierThatExists = state->getVisibleObjectWithSystemIdentity<MCBarrier>(systemId);
 
     if (barrierThatExists == nullptr) {
-        auto newBarrier = new GMALBarrier(*barrierInShm);
-        auto newBarrierSharedPtr = std::shared_ptr<GMALVisibleObject>(newBarrier);
+        auto newBarrier = new MCBarrier(*barrierInShm);
+        auto newBarrierSharedPtr = std::shared_ptr<MCVisibleObject>(newBarrier);
         state->registerVisibleObjectWithSystemIdentity(systemId, newBarrierSharedPtr);
-        barrierThatExists = std::static_pointer_cast<GMALBarrier, GMALVisibleObject>(newBarrierSharedPtr);
+        barrierThatExists = std::static_pointer_cast<MCBarrier, MCVisibleObject>(newBarrierSharedPtr);
     }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALBarrierInit(threadThatRan, barrierThatExists);
+    return new MCBarrierInit(threadThatRan, barrierThatExists);
 }
 
-std::shared_ptr<GMALTransition>
-GMALBarrierInit::staticCopy()
+std::shared_ptr<MCTransition>
+MCBarrierInit::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto mutexCpy =
-            std::static_pointer_cast<GMALBarrier, GMALVisibleObject>(this->barrier->copy());
-    auto mutexInit = new GMALBarrierInit(threadCpy, mutexCpy);
-    return std::shared_ptr<GMALTransition>(mutexInit);
+            std::static_pointer_cast<MCBarrier, MCVisibleObject>(this->barrier->copy());
+    auto mutexInit = new MCBarrierInit(threadCpy, mutexCpy);
+    return std::shared_ptr<MCTransition>(mutexInit);
 }
 
-std::shared_ptr<GMALTransition>
-GMALBarrierInit::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCBarrierInit::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALBarrier> mutexInState = state->getObjectWithId<GMALBarrier>(barrier->getObjectId());
-    auto cpy = new GMALBarrierInit(threadInState, mutexInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCBarrier> mutexInState = state->getObjectWithId<MCBarrier>(barrier->getObjectId());
+    auto cpy = new MCBarrierInit(threadInState, mutexInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALBarrierInit::applyToState(GMALState *state)
+MCBarrierInit::applyToState(MCState *state)
 {
     this->barrier->init();
 }
 
 bool
-GMALBarrierInit::coenabledWith(std::shared_ptr<GMALTransition> other)
+MCBarrierInit::coenabledWith(std::shared_ptr<MCTransition> other)
 {
     return true;
 }
 
 bool
-GMALBarrierInit::dependentWith(std::shared_ptr<GMALTransition> other)
+MCBarrierInit::dependentWith(std::shared_ptr<MCTransition> other)
 {
-    auto maybeBarrierOperation = std::dynamic_pointer_cast<GMALBarrierTransition, GMALTransition>(other);
+    auto maybeBarrierOperation = std::dynamic_pointer_cast<MCBarrierTransition, MCTransition>(other);
     if (maybeBarrierOperation) {
         return *maybeBarrierOperation->barrier == *this->barrier;
     }
@@ -62,7 +62,7 @@ GMALBarrierInit::dependentWith(std::shared_ptr<GMALTransition> other)
 }
 
 void
-GMALBarrierInit::print()
+MCBarrierInit::print()
 {
     printf("thread %lu: pthread_barrier_init(%lu, _, %u)\n", this->thread->tid, this->barrier->getObjectId(), this->barrier->getCount());
 }

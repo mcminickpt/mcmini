@@ -1,24 +1,24 @@
-#ifndef GMAL_GMALSTATE_H
-#define GMAL_GMALSTATE_H
+#ifndef MC_MCSTATE_H
+#define MC_MCSTATE_H
 
-struct GMALTransition;
-struct GMALSharedTransition;
-struct GMALState;
-typedef GMALTransition*(*GMALSharedMemoryHandler)(const GMALSharedTransition*, void*, GMALState*);
+struct MCTransition;
+struct MCSharedTransition;
+struct MCState;
+typedef MCTransition*(*MCSharedMemoryHandler)(const MCSharedTransition*, void*, MCState*);
 
-#include "GMALObjectStore.h"
-#include "GMALShared.h"
-#include "GMALSharedTransition.h"
-#include "GMALStateConfiguration.h"
-#include "GMALStateStackItem.h"
-#include "objects/GMALThread.h"
+#include "MCObjectStore.h"
+#include "MCShared.h"
+#include "MCSharedTransition.h"
+#include "MCStateConfiguration.h"
+#include "MCStateStackItem.h"
+#include "objects/MCThread.h"
 #include <typeinfo>
 #include <functional>
 #include <unordered_map>
 #include <vector>
 
 using TypeInfoRef = std::reference_wrapper<const std::type_info>;
-using GMALType = const std::type_info&;
+using MCType = const std::type_info&;
 
 struct TypeHasher {
     std::size_t operator()(TypeInfoRef code) const
@@ -34,17 +34,17 @@ struct TypesEqual {
     }
 };
 
-class GMALState {
+class MCState {
 private:
-    GMALObjectStore objectStorage;
+    MCObjectStore objectStorage;
 
     /**
      * The maximum number of transitions that any given thread is allowed to execute
      */
-    const GMALStateConfiguration configuration;
+    const MCStateConfiguration configuration;
 
     tid_t nextThreadId = 0;
-    std::shared_ptr<GMALTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
+    std::shared_ptr<MCTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
      * Maps, for each thread, the number of times in the current transition
@@ -56,7 +56,7 @@ private:
      * A pointer to the top-most element in the transition stack
      */
     int transitionStackTop = -1;
-    std::shared_ptr<GMALTransition> transitionStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
+    std::shared_ptr<MCTransition> transitionStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
 
     /**
      * A pointer to the top-most element in the state stack
@@ -66,12 +66,12 @@ private:
     /**
      * The current backtracking states at this particular moment in time
      */
-    std::shared_ptr<GMALStateStackItem> stateStack[MAX_TOTAL_STATES_IN_STATE_STACK];
+    std::shared_ptr<MCStateStackItem> stateStack[MAX_TOTAL_STATES_IN_STATE_STACK];
 
     /**
      * A collection of shared object types that the scheduler knows how to handle
      */
-    std::unordered_map<TypeInfoRef, GMALSharedMemoryHandler, TypeHasher, TypesEqual>
+    std::unordered_map<TypeInfoRef, MCSharedMemoryHandler, TypeHasher, TypesEqual>
     sharedMemoryHandlerTypeMap;
 
     /* Maps thread ids to their respective object ids */
@@ -79,50 +79,50 @@ private:
 
 private:
 
-    bool transitionIsEnabled(const std::shared_ptr<GMALTransition>&);
+    bool transitionIsEnabled(const std::shared_ptr<MCTransition>&);
 
 
     bool happensBefore(int i, int j) const;
-    bool happensBeforeThread(int i, const std::shared_ptr<GMALThread>&) const;
+    bool happensBeforeThread(int i, const std::shared_ptr<MCThread>&) const;
     bool happensBeforeThread(int i, tid_t) const;
     bool threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const;
 
     void growStateStack();
-    void growStateStackWithTransition(const std::shared_ptr<GMALTransition>&);
-    void growTransitionStackRunning(const std::shared_ptr<GMALTransition>&);
-    void virtuallyRunTransition(const std::shared_ptr<GMALTransition>&);
+    void growStateStackWithTransition(const std::shared_ptr<MCTransition>&);
+    void growTransitionStackRunning(const std::shared_ptr<MCTransition>&);
+    void virtuallyRunTransition(const std::shared_ptr<MCTransition>&);
 
-    void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
-    void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<GMALTransition>&);
+    void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
+    void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
     uint32_t totalThreadExecutionDepth() const;
 
 public:
 
-    GMALState(GMALStateConfiguration config) : configuration(config) {}
+    MCState(MCStateConfiguration config) : configuration(config) {}
 
     tid_t getThreadRunningTransitionAtIndex(int) const;
-    std::shared_ptr<GMALTransition> getPendingTransitionForThread(tid_t) const;
-    std::shared_ptr<GMALTransition> getTransitionAtIndex(int) const;
-    std::shared_ptr<GMALTransition> getTransitionStackTop() const;
-    std::shared_ptr<GMALStateStackItem> getStateItemAtIndex(int) const;
-    std::shared_ptr<GMALStateStackItem> getStateStackTop() const;
+    std::shared_ptr<MCTransition> getPendingTransitionForThread(tid_t) const;
+    std::shared_ptr<MCTransition> getTransitionAtIndex(int) const;
+    std::shared_ptr<MCTransition> getTransitionStackTop() const;
+    std::shared_ptr<MCStateStackItem> getStateItemAtIndex(int) const;
+    std::shared_ptr<MCStateStackItem> getStateStackTop() const;
 
-    std::shared_ptr<GMALTransition> getNextTransitionForThread(GMALThread *thread);
-    std::shared_ptr<GMALTransition> getNextTransitionForThread(tid_t thread);
-    void setNextTransitionForThread(GMALThread *, std::shared_ptr<GMALTransition>);
-    void setNextTransitionForThread(tid_t, std::shared_ptr<GMALTransition>);
-    void setNextTransitionForThread(tid_t, GMALSharedTransition*, void *);
+    std::shared_ptr<MCTransition> getNextTransitionForThread(MCThread *thread);
+    std::shared_ptr<MCTransition> getNextTransitionForThread(tid_t thread);
+    void setNextTransitionForThread(MCThread *, std::shared_ptr<MCTransition>);
+    void setNextTransitionForThread(tid_t, std::shared_ptr<MCTransition>);
+    void setNextTransitionForThread(tid_t, MCSharedTransition*, void *);
 
-    std::shared_ptr<GMALTransition> getFirstEnabledTransitionFromNextStack();
+    std::shared_ptr<MCTransition> getFirstEnabledTransitionFromNextStack();
     std::unordered_set<tid_t> getEnabledThreadsInState();
 
     objid_t createNewThread();
-    objid_t createNewThread(GMALThreadShadow&);
+    objid_t createNewThread(MCThreadShadow&);
     objid_t createMainThread();
-    objid_t addNewThread(GMALThreadShadow&);
+    objid_t addNewThread(MCThreadShadow&);
 
-    objid_t registerNewObject(const std::shared_ptr<GMALVisibleObject>& object);
-    std::shared_ptr<GMALThread> getThreadWithId(tid_t id) const;
+    objid_t registerNewObject(const std::shared_ptr<MCVisibleObject>& object);
+    std::shared_ptr<MCThread> getThreadWithId(tid_t id) const;
 
     template<typename Object>
     std::shared_ptr<Object>
@@ -133,11 +133,11 @@ public:
 
     template<typename Object>
     std::shared_ptr<Object>
-    getVisibleObjectWithSystemIdentity(GMALSystemID systemId) {
+    getVisibleObjectWithSystemIdentity(MCSystemID systemId) {
         return objectStorage.getObjectWithSystemAddress<Object>(systemId);
     }
 
-    void simulateRunningTransition(const std::shared_ptr<GMALTransition>&, GMALSharedTransition*, void *);
+    void simulateRunningTransition(const std::shared_ptr<MCTransition>&, MCSharedTransition*, void *);
 
     uint64_t getTransitionStackSize() const;
     uint64_t getStateStackSize() const;
@@ -145,8 +145,8 @@ public:
     bool stateStackIsEmpty() const;
 
     // Registering new types
-    void registerVisibleOperationType(GMALType, GMALSharedMemoryHandler);
-    void registerVisibleObjectWithSystemIdentity(GMALSystemID, std::shared_ptr<GMALVisibleObject>);
+    void registerVisibleOperationType(MCType, MCSharedMemoryHandler);
+    void registerVisibleObjectWithSystemIdentity(MCSystemID, std::shared_ptr<MCVisibleObject>);
 
     void dynamicallyUpdateBacktrackSets();
 
@@ -167,4 +167,4 @@ public:
     void printNextTransitions() const;
 };
 
-#endif //GMAL_GMALSTATE_H
+#endif //MC_MCSTATE_H

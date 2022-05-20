@@ -1,60 +1,60 @@
-#include "GMALMutexInit.h"
+#include "MCMutexInit.h"
 
-GMALTransition*
-GMALReadMutexInit(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadMutexInit(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
-    auto mutexInShm = static_cast<GMALMutexShadow*>(shmData);
-    auto systemId = (GMALSystemID)mutexInShm->systemIdentity;
-    auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<GMALMutex>(systemId);
+    auto mutexInShm = static_cast<MCMutexShadow*>(shmData);
+    auto systemId = (MCSystemID)mutexInShm->systemIdentity;
+    auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<MCMutex>(systemId);
 
     if (mutexThatExists == nullptr) {
-        auto newMutex = new GMALMutex(*mutexInShm);
-        auto newMutexSharedPtr = std::shared_ptr<GMALVisibleObject>(newMutex);
+        auto newMutex = new MCMutex(*mutexInShm);
+        auto newMutexSharedPtr = std::shared_ptr<MCVisibleObject>(newMutex);
         state->registerVisibleObjectWithSystemIdentity(systemId, newMutexSharedPtr);
-        mutexThatExists = std::static_pointer_cast<GMALMutex, GMALVisibleObject>(newMutexSharedPtr);
+        mutexThatExists = std::static_pointer_cast<MCMutex, MCVisibleObject>(newMutexSharedPtr);
     }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALMutexInit(threadThatRan, mutexThatExists);
+    return new MCMutexInit(threadThatRan, mutexThatExists);
 }
 
-std::shared_ptr<GMALTransition>
-GMALMutexInit::staticCopy()
+std::shared_ptr<MCTransition>
+MCMutexInit::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto mutexCpy =
-            std::static_pointer_cast<GMALMutex, GMALVisibleObject>(this->mutex->copy());
-    auto mutexInit = new GMALMutexInit(threadCpy, mutexCpy);
-    return std::shared_ptr<GMALTransition>(mutexInit);
+            std::static_pointer_cast<MCMutex, MCVisibleObject>(this->mutex->copy());
+    auto mutexInit = new MCMutexInit(threadCpy, mutexCpy);
+    return std::shared_ptr<MCTransition>(mutexInit);
 }
 
-std::shared_ptr<GMALTransition>
-GMALMutexInit::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCMutexInit::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALMutex> mutexInState = state->getObjectWithId<GMALMutex>(mutex->getObjectId());
-    auto cpy = new GMALMutexInit(threadInState, mutexInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
+    auto cpy = new MCMutexInit(threadInState, mutexInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALMutexInit::applyToState(GMALState *state)
+MCMutexInit::applyToState(MCState *state)
 {
     this->mutex->init();
 }
 
 bool
-GMALMutexInit::coenabledWith(std::shared_ptr<GMALTransition> other)
+MCMutexInit::coenabledWith(std::shared_ptr<MCTransition> other)
 {
     return true;
 }
 
 bool
-GMALMutexInit::dependentWith(std::shared_ptr<GMALTransition> other)
+MCMutexInit::dependentWith(std::shared_ptr<MCTransition> other)
 {
-    auto maybeMutexOperation = std::dynamic_pointer_cast<GMALMutexTransition, GMALTransition>(other);
+    auto maybeMutexOperation = std::dynamic_pointer_cast<MCMutexTransition, MCTransition>(other);
     if (maybeMutexOperation) {
         return *maybeMutexOperation->mutex == *this->mutex;
     }
@@ -62,7 +62,7 @@ GMALMutexInit::dependentWith(std::shared_ptr<GMALTransition> other)
 }
 
 void
-GMALMutexInit::print()
+MCMutexInit::print()
 {
     printf("thread %lu: pthread_mutex_init(%lu, _)\n", this->thread->tid, this->mutex->getObjectId());
 }

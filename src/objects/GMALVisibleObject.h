@@ -1,23 +1,23 @@
-#ifndef GMAL_GMALVISIBLEOBJECT_H
-#define GMAL_GMALVISIBLEOBJECT_H
+#ifndef MC_MCVISIBLEOBJECT_H
+#define MC_MCVISIBLEOBJECT_H
 
-class GMALState;
-class GMALObjectStore;
+class MCState;
+class MCObjectStore;
 
-#include "GMALShared.h"
+#include "MCShared.h"
 #include <memory>
 
-class GMALVisibleObject {
+class MCVisibleObject {
     objid_t id;
-    friend GMALObjectStore;
+    friend MCObjectStore;
 protected:
-    GMALVisibleObject() = default;
-    GMALVisibleObject(objid_t id) : id(id) {}
+    MCVisibleObject() = default;
+    MCVisibleObject(objid_t id) : id(id) {}
 public:
-    virtual std::shared_ptr<GMALVisibleObject> copy() = 0;
+    virtual std::shared_ptr<MCVisibleObject> copy() = 0;
 
-    virtual GMALSystemID getSystemId() = 0;
+    virtual MCSystemID getSystemId() = 0;
     objid_t getObjectId() const;
 };
 
-#endif //GMAL_GMALVISIBLEOBJECT_H
+#endif //MC_MCVISIBLEOBJECT_H

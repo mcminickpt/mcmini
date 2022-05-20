@@ -1,23 +1,23 @@
-#ifndef GMAL_GMALMUTEXUNLOCK_H
-#define GMAL_GMALMUTEXUNLOCK_H
+#ifndef MC_MCMUTEXUNLOCK_H
+#define MC_MCMUTEXUNLOCK_H
 
-#include "GMALMutexTransition.h"
+#include "MCMutexTransition.h"
 #include <memory>
 
-GMALTransition* GMALReadMutexUnlock(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadMutexUnlock(const MCSharedTransition*, void*, MCState*);
 
-struct GMALMutexUnlock : public GMALMutexTransition {
+struct MCMutexUnlock : public MCMutexTransition {
 public:
 
-    GMALMutexUnlock(std::shared_ptr<GMALThread> thread, std::shared_ptr<GMALMutex> mutex) : GMALMutexTransition(thread, mutex) {}
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
-    void applyToState(GMALState *) override;
-    bool coenabledWith(std::shared_ptr<GMALTransition>) override;
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
-    bool enabledInState(const GMALState *) override;
+    MCMutexUnlock(std::shared_ptr<MCThread> thread, std::shared_ptr<MCMutex> mutex) : MCMutexTransition(thread, mutex) {}
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    void applyToState(MCState *) override;
+    bool coenabledWith(std::shared_ptr<MCTransition>) override;
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
+    bool enabledInState(const MCState *) override;
 
     void print() override;
 };
 
-#endif //GMAL_GMALMUTEXUNLOCK_H
+#endif //MC_MCMUTEXUNLOCK_H

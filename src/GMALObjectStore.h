@@ -1,8 +1,8 @@
-#ifndef GMAL_GMALOBJECTSTORE_H
-#define GMAL_GMALOBJECTSTORE_H
+#ifndef MC_MCOBJECTSTORE_H
+#define MC_MCOBJECTSTORE_H
 
-#include "objects/GMALVisibleObject.h"
-#include "GMALShared.h"
+#include "objects/MCVisibleObject.h"
+#include "MCShared.h"
 #include <memory>
 #include <unordered_map>
 #include <string.h>
@@ -21,14 +21,14 @@ struct PointersEqual {
     }
 };
 
-class GMALObjectStore {
+class MCObjectStore {
 private:
 
     struct StorageObject final {
-        std::shared_ptr<GMALVisibleObject> current;
-        const std::shared_ptr<GMALVisibleObject> initialState;
+        std::shared_ptr<MCVisibleObject> current;
+        const std::shared_ptr<MCVisibleObject> initialState;
 
-        StorageObject(std::shared_ptr<GMALVisibleObject> current, std::shared_ptr<GMALVisibleObject> initialState)
+        StorageObject(std::shared_ptr<MCVisibleObject> current, std::shared_ptr<MCVisibleObject> initialState)
         : current(current), initialState(initialState) {}
     };
 
@@ -39,13 +39,13 @@ private:
      * Maps identities of visible objects given by the system to their
      * shadow-struct counterparts in
      */
-    std::unordered_map<GMALSystemID, objid_t, PointerHasher, PointersEqual> systemVisibleObjectMap;
+    std::unordered_map<MCSystemID, objid_t, PointerHasher, PointersEqual> systemVisibleObjectMap;
 
     inline objid_t
-    _registerNewObject(std::shared_ptr<GMALVisibleObject> object)
+    _registerNewObject(std::shared_ptr<MCVisibleObject> object)
     {
         objid_t newObjectId = ++storageTop;
-        GMAL_ASSERT(newObjectId < MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM);
+        MC_ASSERT(newObjectId < MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM);
         object->id = newObjectId;
         const auto initialState = object->copy();
         storage[newObjectId] = std::make_shared<StorageObject>(object, initialState);
@@ -54,10 +54,10 @@ private:
 
 public:
 
-    inline GMALObjectStore() { bzero(storage, sizeof(storage)); }
+    inline MCObjectStore() { bzero(storage, sizeof(storage)); }
 
     inline objid_t
-    registerNewObject(std::shared_ptr<GMALVisibleObject> object)
+    registerNewObject(std::shared_ptr<MCVisibleObject> object)
     {
         return this->_registerNewObject(object);
     }
@@ -66,11 +66,11 @@ public:
     inline std::shared_ptr<Object>
     getObjectWithId(objid_t id) const
     {
-        return std::static_pointer_cast<Object, GMALVisibleObject>(this->storage[id]->current);
+        return std::static_pointer_cast<Object, MCVisibleObject>(this->storage[id]->current);
     }
 
     inline void
-    mapSystemAddressToShadow(GMALSystemID systemAddress, objid_t shadowId)
+    mapSystemAddressToShadow(MCSystemID systemAddress, objid_t shadowId)
     {
         systemVisibleObjectMap.insert({systemAddress, shadowId});
     }
@@ -92,4 +92,4 @@ public:
     void resetObjectsToInitialStateInStore();
 };
 
-#endif //GMAL_GMALOBJECTSTORE_H
+#endif //MC_MCOBJECTSTORE_H

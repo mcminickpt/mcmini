@@ -1,14 +1,14 @@
-#ifndef GMAL_GMALSEMAPHORETRANSITION_H
-#define GMAL_GMALSEMAPHORETRANSITION_H
+#ifndef MC_MCSEMAPHORETRANSITION_H
+#define MC_MCSEMAPHORETRANSITION_H
 
-#include "objects/GMALSemaphore.h"
-#include "GMALTransition.h"
+#include "objects/MCSemaphore.h"
+#include "MCTransition.h"
 
-struct GMALSemaphoreTransition : public GMALTransition {
+struct MCSemaphoreTransition : public MCTransition {
 public:
-    std::shared_ptr<GMALSemaphore> sem;
-    GMALSemaphoreTransition(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALSemaphore> sem) :
-            GMALTransition(running), sem(sem) {}
+    std::shared_ptr<MCSemaphore> sem;
+    MCSemaphoreTransition(std::shared_ptr<MCThread> running, std::shared_ptr<MCSemaphore> sem) :
+            MCTransition(running), sem(sem) {}
 };
 
-#endif //GMAL_GMALSEMAPHORETRANSITION_H
+#endif //MC_MCSEMAPHORETRANSITION_H

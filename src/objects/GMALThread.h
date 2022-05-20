@@ -1,45 +1,45 @@
-#ifndef GMAL_GMALTHREAD_H
-#define GMAL_GMALTHREAD_H
+#ifndef MC_MCTHREAD_H
+#define MC_MCTHREAD_H
 
 #include <pthread.h>
-#include "GMALVisibleObject.h"
-#include "GMALShared.h"
+#include "MCVisibleObject.h"
+#include "MCShared.h"
 #include <memory>
 
-struct GMALThreadShadow {
+struct MCThreadShadow {
     void * arg;
     thread_routine startRoutine;
     pthread_t systemIdentity;
-    enum GMALThreadState {
+    enum MCThreadState {
         embryo, alive, sleeping, dead
     } state;
 
-    GMALThreadShadow(void *arg, thread_routine startRoutine, pthread_t systemIdentity) :
+    MCThreadShadow(void *arg, thread_routine startRoutine, pthread_t systemIdentity) :
             arg(arg), startRoutine(startRoutine), systemIdentity(systemIdentity), state(embryo) {}
 };
 
-struct GMALThread : public GMALVisibleObject {
+struct MCThread : public MCVisibleObject {
 private:
-    GMALThreadShadow threadShadow;
+    MCThreadShadow threadShadow;
 public:
     /* Threads are unique in that they have *two* ids */
     const tid_t tid;
 
     inline
-    GMALThread(tid_t tid, void *arg, thread_routine startRoutine, pthread_t systemIdentity) :
-    GMALVisibleObject(), threadShadow(GMALThreadShadow(arg, startRoutine, systemIdentity)), tid(tid) {}
+    MCThread(tid_t tid, void *arg, thread_routine startRoutine, pthread_t systemIdentity) :
+    MCVisibleObject(), threadShadow(MCThreadShadow(arg, startRoutine, systemIdentity)), tid(tid) {}
 
-    inline explicit GMALThread(tid_t tid, GMALThreadShadow shadow) : GMALVisibleObject(), threadShadow(shadow), tid(tid) {}
-    inline GMALThread(const GMALThread &thread)
-    : GMALVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid) {}
+    inline explicit MCThread(tid_t tid, MCThreadShadow shadow) : MCVisibleObject(), threadShadow(shadow), tid(tid) {}
+    inline MCThread(const MCThread &thread)
+    : MCVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid) {}
 
-    std::shared_ptr<GMALVisibleObject> copy() override;
-    GMALSystemID getSystemId() override;
+    std::shared_ptr<MCVisibleObject> copy() override;
+    MCSystemID getSystemId() override;
 
-    bool operator ==(const GMALThread&) const;
+    bool operator ==(const MCThread&) const;
 
     // Managing thread state
-    GMALThreadShadow::GMALThreadState getState() const;
+    MCThreadShadow::MCThreadState getState() const;
 
     bool enabled() const;
     bool isAlive() const;
@@ -54,4 +54,4 @@ public:
     void despawn();
 };
 
-#endif //GMAL_GMALTHREAD_H
+#endif //MC_MCTHREAD_H

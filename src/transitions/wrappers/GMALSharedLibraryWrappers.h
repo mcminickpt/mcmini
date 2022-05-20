@@ -1,5 +1,5 @@
-#ifndef GMAL_GMALSHAREDLIBRARYWRAPPERS_H
-#define GMAL_GMALSHAREDLIBRARYWRAPPERS_H
+#ifndef MC_MCSHAREDLIBRARYWRAPPERS_H
+#define MC_MCSHAREDLIBRARYWRAPPERS_H
 
 #include <stdlib.h>
 #include <dlfcn.h>
@@ -38,6 +38,6 @@ extern typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 #define __real_pthread_cond_signal (*pthread_cond_signal_ptr)
 #define __real_pthread_cond_broadcast (*pthread_cond_broadcast_ptr)
 
-void gmal_load_shadow_routines();
+void mc_load_shadow_routines();
 
-#endif //GMAL_GMALSHAREDLIBRARYWRAPPERS_H
+#endif //MC_MCSHAREDLIBRARYWRAPPERS_H

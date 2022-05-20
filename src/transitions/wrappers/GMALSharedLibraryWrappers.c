@@ -1,10 +1,10 @@
 #define _GNU_SOURCE
-#include "GMALSharedLibraryWrappers.h"
-#include "GMALMutexTransitionWrappers.h"
-#include "GMALSemaphoreTransitionWrappers.h"
-#include "GMALThreadTransitionWrappers.h"
-#include "GMALBarrierWrappers.h"
-#include "GMALConditionVariableWrappers.h"
+#include "MCSharedLibraryWrappers.h"
+#include "MCMutexTransitionWrappers.h"
+#include "MCSemaphoreTransitionWrappers.h"
+#include "MCThreadTransitionWrappers.h"
+#include "MCBarrierWrappers.h"
+#include "MCConditionVariableWrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -22,9 +22,9 @@ typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
 typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
 typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 
-void gmal_load_shadow_routines()
+void mc_load_shadow_routines()
 {
-#if GMAL_SHARED_LIBRARY
+#if MC_SHARED_LIBRARY
     pthread_create_ptr = dlsym(RTLD_NEXT, "pthread_create");
     pthread_join_ptr = dlsym(RTLD_NEXT, "pthread_join");
     pthread_mutex_init_ptr = dlsym(RTLD_NEXT, "pthread_mutex_init");
@@ -59,96 +59,96 @@ void gmal_load_shadow_routines()
 #endif
 }
 
-#if GMAL_SHARED_LIBRARY
+#if MC_SHARED_LIBRARY
 
 int
 pthread_create(pthread_t *pthread, const pthread_attr_t *attr, void*(*routine)(void*), void *arg)
 {
-    return gmal_pthread_create(pthread, attr, routine, arg);
+    return mc_pthread_create(pthread, attr, routine, arg);
 }
 
 int
 pthread_join(pthread_t pthread, void **result)
 {
-    return gmal_pthread_join(pthread, result);
+    return mc_pthread_join(pthread, result);
 }
 
 int
 pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr)
 {
-    return gmal_pthread_mutex_init(mutex, mutexattr);
+    return mc_pthread_mutex_init(mutex, mutexattr);
 }
 
 int
 pthread_mutex_lock(pthread_mutex_t *mutex)
 {
-    return gmal_pthread_mutex_lock(mutex);
+    return mc_pthread_mutex_lock(mutex);
 }
 
 int
 pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    return gmal_pthread_mutex_unlock(mutex);
+    return mc_pthread_mutex_unlock(mutex);
 }
 
 int
 sem_init(sem_t *sem, int pshared, unsigned int value)
 {
-    return gmal_sem_init(sem, pshared, value);
+    return mc_sem_init(sem, pshared, value);
 }
 
 int
 sem_post(sem_t *sem)
 {
-    return gmal_sem_post(sem);
+    return mc_sem_post(sem);
 }
 
 int
 sem_wait(sem_t *sem)
 {
-    return gmal_sem_wait(sem);
+    return mc_sem_wait(sem);
 }
 
 void
 exit(int status)
 {
-    gmal_exit(status);
+    mc_exit(status);
 }
 
 int
 pthread_barrier_init(pthread_barrier_t *barrier, const pthread_barrierattr_t *attr, unsigned int count)
 {
-    return gmal_pthread_barrier_init(barrier, attr, count);
+    return mc_pthread_barrier_init(barrier, attr, count);
 }
 
 int
 pthread_barrier_wait(pthread_barrier_t *barrier)
 {
-    return gmal_pthread_barrier_wait(barrier);
+    return mc_pthread_barrier_wait(barrier);
 }
 
 int
 pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr)
 {
-    return gmal_pthread_cond_init(cond, attr);
+    return mc_pthread_cond_init(cond, attr);
 }
 
 int
 pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
-    return gmal_pthread_cond_wait(cond, mutex);
+    return mc_pthread_cond_wait(cond, mutex);
 }
 
 int
 pthread_cond_signal(pthread_cond_t *cond)
 {
-    return gmal_pthread_cond_signal(cond);
+    return mc_pthread_cond_signal(cond);
 }
 
 int
 pthread_cond_broadcast(pthread_cond_t *cond)
 {
-    return gmal_pthread_cond_broadcast(cond);
+    return mc_pthread_cond_broadcast(cond);
 }
 
 #endif

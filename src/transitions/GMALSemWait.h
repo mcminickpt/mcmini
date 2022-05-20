@@ -1,23 +1,23 @@
-#ifndef GMAL_GMALSEMWAIT_H
-#define GMAL_GMALSEMWAIT_H
+#ifndef MC_MCSEMWAIT_H
+#define MC_MCSEMWAIT_H
 
-#include "GMALSemaphoreTransition.h"
+#include "MCSemaphoreTransition.h"
 
-GMALTransition* GMALReadSemWait(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadSemWait(const MCSharedTransition*, void*, MCState*);
 
-struct GMALSemWait : public GMALSemaphoreTransition {
+struct MCSemWait : public MCSemaphoreTransition {
 public:
-    GMALSemWait(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALSemaphore> sem) :
-            GMALSemaphoreTransition(running, sem) {}
+    MCSemWait(std::shared_ptr<MCThread> running, std::shared_ptr<MCSemaphore> sem) :
+            MCSemaphoreTransition(running, sem) {}
 
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
-    void applyToState(GMALState *) override;
-    bool coenabledWith(std::shared_ptr<GMALTransition>) override;
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
-    bool enabledInState(const GMALState *) override;
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    void applyToState(MCState *) override;
+    bool coenabledWith(std::shared_ptr<MCTransition>) override;
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
+    bool enabledInState(const MCState *) override;
     void print() override;
 };
 
 
-#endif //GMAL_GMALSEMWAIT_H
+#endif //MC_MCSEMWAIT_H

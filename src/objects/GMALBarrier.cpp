@@ -1,31 +1,31 @@
-#include "GMALBarrier.h"
+#include "MCBarrier.h"
 
-GMALSystemID
-GMALBarrier::getSystemId()
+MCSystemID
+MCBarrier::getSystemId()
 {
     return this->barrierShadow.systemIdentity;
 }
 
-std::shared_ptr<GMALVisibleObject>
-GMALBarrier::copy()
+std::shared_ptr<MCVisibleObject>
+MCBarrier::copy()
 {
-    return std::shared_ptr<GMALVisibleObject>(new GMALBarrier(*this));
+    return std::shared_ptr<MCVisibleObject>(new MCBarrier(*this));
 }
 
 void
-GMALBarrier::deinit()
+MCBarrier::deinit()
 {
-    this->barrierShadow.state = GMALBarrierShadow::undefined;
+    this->barrierShadow.state = MCBarrierShadow::undefined;
 }
 
 void
-GMALBarrier::init()
+MCBarrier::init()
 {
-    this->barrierShadow.state = GMALBarrierShadow::initialized;
+    this->barrierShadow.state = MCBarrierShadow::initialized;
 }
 
 void
-GMALBarrier::wait(tid_t tid)
+MCBarrier::wait(tid_t tid)
 {
     auto &waitingSet = this->waitingSetForParity();
     waitingSet.insert(tid);
@@ -36,7 +36,7 @@ GMALBarrier::wait(tid_t tid)
 }
 
 void
-GMALBarrier::leave(tid_t tid)
+MCBarrier::leave(tid_t tid)
 {
     // A thread will be waiting in one of the two sets...
     // Which one is unclear but we don't really care so long
@@ -46,25 +46,25 @@ GMALBarrier::leave(tid_t tid)
 }
 
 bool
-GMALBarrier::operator==(const GMALBarrier &other) const
+MCBarrier::operator==(const MCBarrier &other) const
 {
     return this->barrierShadow.systemIdentity == other.barrierShadow.systemIdentity;
 }
 
 bool
-GMALBarrier::operator!=(const GMALBarrier &other) const
+MCBarrier::operator!=(const MCBarrier &other) const
 {
     return this->barrierShadow.systemIdentity != other.barrierShadow.systemIdentity;
 }
 
 std::unordered_set<tid_t>&
-GMALBarrier::waitingSetForParity()
+MCBarrier::waitingSetForParity()
 {
     return isEven ? this->threadsWaitingOnBarrierEven : this->threadsWaitingOnBarrierOdd;
 }
 
 bool
-GMALBarrier::wouldBlockIfWaitedOn(tid_t tid)
+MCBarrier::wouldBlockIfWaitedOn(tid_t tid)
 {
     // TODO: This logic doesn't work if more than N threads
     // are interacting with the barrier. A possible solution
@@ -85,13 +85,13 @@ GMALBarrier::wouldBlockIfWaitedOn(tid_t tid)
 }
 
 bool
-GMALBarrier::isWaitingOnBarrier(tid_t tid)
+MCBarrier::isWaitingOnBarrier(tid_t tid)
 {
     return this->threadsWaitingOnBarrierEven.count(tid) > 0 || this->threadsWaitingOnBarrierOdd.count(tid) > 0;
 }
 
 bool
-GMALBarrier::hasEvenParity(tid_t tid)
+MCBarrier::hasEvenParity(tid_t tid)
 {
     if (this->threadsWaitingOnBarrierEven.count(tid) > 0) {
         return true;
@@ -100,7 +100,7 @@ GMALBarrier::hasEvenParity(tid_t tid)
 }
 
 unsigned int
-GMALBarrier::getCount()
+MCBarrier::getCount()
 {
     return this->barrierShadow.waitCount;
 }

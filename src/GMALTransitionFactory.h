@@ -1,18 +1,18 @@
-#ifndef GMAL_GMALTRANSITIONFACTORY_H
-#define GMAL_GMALTRANSITIONFACTORY_H
+#ifndef MC_MCTRANSITIONFACTORY_H
+#define MC_MCTRANSITIONFACTORY_H
 
-#include "GMALShared.h"
-#include "GMALTransition.h"
-#include "transitions/GMALThreadStart.h"
+#include "MCShared.h"
+#include "MCTransition.h"
+#include "transitions/MCThreadStart.h"
 
-class GMALTransitionFactory final {
+class MCTransitionFactory final {
 public:
-    GMALTransitionFactory() = delete;
+    MCTransitionFactory() = delete;
 
     // Factory methods
-    static std::shared_ptr<GMALTransition> createInitialTransitionForThread(std::shared_ptr<GMALThread> thread);
-    static bool transitionsCoenabledCommon(const std::shared_ptr<GMALTransition> &t1, const std::shared_ptr<GMALTransition> &t2);
-    static bool transitionsDependentCommon(const std::shared_ptr<GMALTransition> &t1, const std::shared_ptr<GMALTransition> &t2);
+    static std::shared_ptr<MCTransition> createInitialTransitionForThread(std::shared_ptr<MCThread> thread);
+    static bool transitionsCoenabledCommon(const std::shared_ptr<MCTransition> &t1, const std::shared_ptr<MCTransition> &t2);
+    static bool transitionsDependentCommon(const std::shared_ptr<MCTransition> &t1, const std::shared_ptr<MCTransition> &t2);
 };
 
-#endif //GMAL_GMALTRANSITIONFACTORY_H
+#endif //MC_MCTRANSITIONFACTORY_H

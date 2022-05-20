@@ -1,21 +1,21 @@
-#ifndef GMAL_GMALSTATECONFIGURATION_H
-#define GMAL_GMALSTATECONFIGURATION_H
+#ifndef MC_MCSTATECONFIGURATION_H
+#define MC_MCSTATECONFIGURATION_H
 
-#include "GMALShared.h"
+#include "MCShared.h"
 
 /**
  * A configuration constant which specifies that threads
  * may execute as many transitions as they would like (i.e. are
  * not limited to an execution depth)
  */
-#define GMAL_STATE_CONFIG_THREAD_NO_LIMIT UINT64_MAX
-#define GMAL_STATE_CONFIG_NO_TRACE UINT64_MAX
+#define MC_STATE_CONFIG_THREAD_NO_LIMIT UINT64_MAX
+#define MC_STATE_CONFIG_NO_TRACE UINT64_MAX
 
 /**
  * A struct which describes the configurable parameters
  * of the model checking execution
  */
-struct GMALStateConfiguration final {
+struct MCStateConfiguration final {
 
     /**
      * The maximum number of transitions that can be run
@@ -29,8 +29,8 @@ struct GMALStateConfiguration final {
      */
     const trid_t gdbDebugTraceNumber;
 
-    GMALStateConfiguration(uint64_t maxThreadExecutionDepth, trid_t gdbDebugTraceNumber)
+    MCStateConfiguration(uint64_t maxThreadExecutionDepth, trid_t gdbDebugTraceNumber)
     : maxThreadExecutionDepth(maxThreadExecutionDepth), gdbDebugTraceNumber(gdbDebugTraceNumber) {}
 };
 
-#endif //GMAL_GMALSTATECONFIGURATION_H
+#endif //MC_MCSTATECONFIGURATION_H

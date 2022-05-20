@@ -1,11 +1,11 @@
-#ifndef GMALOPTIONAL_H
-#define GMALOPTIONAL_H
+#ifndef MCOPTIONAL_H
+#define MCOPTIONAL_H
 
 #include <cstdint>
 #include <stdexcept>
 
 template<typename Value>
-class GMALOptional final {
+class MCOptional final {
     bool _hasValue;
 
     union {
@@ -15,22 +15,22 @@ class GMALOptional final {
     };
 
     /* Construct the `nil` value */
-    GMALOptional() : _hasValue(false) {}
-    GMALOptional(Value value) : value(value), _hasValue(true) {}
+    MCOptional() : _hasValue(false) {}
+    MCOptional(Value value) : value(value), _hasValue(true) {}
 
 
 public:
 
-    static GMALOptional<Value>
+    static MCOptional<Value>
     some(Value value)
     {
-        return GMALOptional<Value>(value);
+        return MCOptional<Value>(value);
     }
 
-    static GMALOptional<Value>
+    static MCOptional<Value>
     nil()
     {
-        return GMALOptional<Value>();
+        return MCOptional<Value>();
     }
 
     /**

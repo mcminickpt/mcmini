@@ -1,48 +1,48 @@
-#include "GMALThreadCreate.h"
+#include "MCThreadCreate.h"
 
-GMALTransition*
-GMALReadThreadCreate(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadThreadCreate(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
     // TODO: Potentially add asserts that the thread that just ran exists!
-    auto newThreadData = static_cast<GMALThreadShadow *>(shmData);
+    auto newThreadData = static_cast<MCThreadShadow *>(shmData);
 
-    auto threadThatExists = state->getVisibleObjectWithSystemIdentity<GMALThread>((GMALSystemID)newThreadData->systemIdentity);
+    auto threadThatExists = state->getVisibleObjectWithSystemIdentity<MCThread>((MCSystemID)newThreadData->systemIdentity);
     tid_t newThreadId = threadThatExists != nullptr ? threadThatExists->tid : state->addNewThread(*newThreadData);
     tid_t threadThatRanId = shmTransition->executor;
 
     auto newThread = state->getThreadWithId(newThreadId);
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALThreadCreate(threadThatRan, newThread);
+    return new MCThreadCreate(threadThatRan, newThread);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadCreate::staticCopy()
+std::shared_ptr<MCTransition>
+MCThreadCreate::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto targetThreadCpy =
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->target->copy());
-    auto threadStartCpy = new GMALThreadCreate(threadCpy, targetThreadCpy);
-    return std::shared_ptr<GMALTransition>(threadStartCpy);
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->target->copy());
+    auto threadStartCpy = new MCThreadCreate(threadCpy, targetThreadCpy);
+    return std::shared_ptr<MCTransition>(threadStartCpy);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadCreate::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCThreadCreate::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALThread> targetInState = state->getThreadWithId(target->tid);
-    auto cpy = new GMALThreadCreate(threadInState, targetInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCThread> targetInState = state->getThreadWithId(target->tid);
+    auto cpy = new MCThreadCreate(threadInState, targetInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALThreadCreate::applyToState(GMALState *state)
+MCThreadCreate::applyToState(MCState *state)
 {
     this->target->spawn();
 }
 
 bool
-GMALThreadCreate::coenabledWith(std::shared_ptr<GMALTransition> transition)
+MCThreadCreate::coenabledWith(std::shared_ptr<MCTransition> transition)
 {
     tid_t targetThreadId = transition->getThreadId();
     if (this->thread->tid == targetThreadId || this->target->tid == targetThreadId) {
@@ -52,7 +52,7 @@ GMALThreadCreate::coenabledWith(std::shared_ptr<GMALTransition> transition)
 }
 
 bool
-GMALThreadCreate::dependentWith(std::shared_ptr<GMALTransition> transition)
+MCThreadCreate::dependentWith(std::shared_ptr<MCTransition> transition)
 {
     tid_t targetThreadId = transition->getThreadId();
     if (this->thread->tid == targetThreadId || this->target->tid == targetThreadId) {
@@ -62,13 +62,13 @@ GMALThreadCreate::dependentWith(std::shared_ptr<GMALTransition> transition)
 }
 
 bool
-GMALThreadCreate::doesCreateThread(tid_t tid) const
+MCThreadCreate::doesCreateThread(tid_t tid) const
 {
     return this->target->tid == tid;
 }
 
 void
-GMALThreadCreate::print()
+MCThreadCreate::print()
 {
     printf("thread %lu: pthread_create(%lu)\n", this->thread->tid, this->target->tid);
 }

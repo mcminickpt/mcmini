@@ -1,15 +1,15 @@
-#ifndef GMAL_GMALCONDTRANSITION_H
-#define GMAL_GMALCONDTRANSITION_H
+#ifndef MC_MCCONDTRANSITION_H
+#define MC_MCCONDTRANSITION_H
 
-#include "GMALTransition.h"
-#include "objects/GMALConditionVariable.h"
+#include "MCTransition.h"
+#include "objects/MCConditionVariable.h"
 
-struct GMALCondTransition : public GMALTransition {
+struct MCCondTransition : public MCTransition {
 public:
-    std::shared_ptr<GMALConditionVariable> conditionVariable;
-    GMALCondTransition(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALConditionVariable> conditionVariable) :
-            GMALTransition(running), conditionVariable(conditionVariable) {}
+    std::shared_ptr<MCConditionVariable> conditionVariable;
+    MCCondTransition(std::shared_ptr<MCThread> running, std::shared_ptr<MCConditionVariable> conditionVariable) :
+            MCTransition(running), conditionVariable(conditionVariable) {}
 };
 
 
-#endif //GMAL_GMALCONDTRANSITION_H
+#endif //MC_MCCONDTRANSITION_H

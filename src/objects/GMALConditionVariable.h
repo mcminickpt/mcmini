@@ -1,32 +1,32 @@
-#ifndef GMAL_GMALCONDITIONVARIABLE_H
-#define GMAL_GMALCONDITIONVARIABLE_H
+#ifndef MC_MCCONDITIONVARIABLE_H
+#define MC_MCCONDITIONVARIABLE_H
 
-#include "GMALVisibleObject.h"
-#include "GMALMutex.h"
-#include "misc/GMALOptional.h"
+#include "MCVisibleObject.h"
+#include "MCMutex.h"
+#include "misc/MCOptional.h"
 #include <vector>
 #include <deque>
 
-struct GMALSharedMemoryConditionVariable {
+struct MCSharedMemoryConditionVariable {
     pthread_cond_t *cond;
     pthread_mutex_t *mutex;
 
-    GMALSharedMemoryConditionVariable(pthread_cond_t *cond, pthread_mutex_t *mutex)
+    MCSharedMemoryConditionVariable(pthread_cond_t *cond, pthread_mutex_t *mutex)
     : cond(cond), mutex(mutex) {}
 };
 
-struct GMALConditionVariableShadow {
+struct MCConditionVariableShadow {
     pthread_cond_t *cond;
-    enum GMALConditionVariableState {
+    enum MCConditionVariableState {
         undefined, initialized, destroyed
     } state;
-    GMALConditionVariableShadow(pthread_cond_t *cond) : cond(cond), state(undefined) {}
+    MCConditionVariableShadow(pthread_cond_t *cond) : cond(cond), state(undefined) {}
 };
 
-struct GMALConditionVariable : public GMALVisibleObject {
+struct MCConditionVariable : public MCVisibleObject {
 private:
 
-    GMALConditionVariableShadow condShadow;
+    MCConditionVariableShadow condShadow;
 
     /**
      * The collection of threads are currently asleep waiting
@@ -39,8 +39,8 @@ private:
     void removeWakingThread(tid_t);
     bool threadIsInWaitingQueue(tid_t);
 
-    inline explicit GMALConditionVariable(GMALConditionVariableShadow condShadow, std::shared_ptr<GMALMutex> mutex, objid_t id)
-    : GMALVisibleObject(id), condShadow(condShadow), mutex(mutex) {}
+    inline explicit MCConditionVariable(MCConditionVariableShadow condShadow, std::shared_ptr<MCMutex> mutex, objid_t id)
+    : MCVisibleObject(id), condShadow(condShadow), mutex(mutex) {}
 
 public:
 
@@ -53,28 +53,28 @@ public:
     //
     // Note it is undefined to access a single condition variable with two
     // different locks
-    std::shared_ptr<GMALMutex> mutex;
+    std::shared_ptr<MCMutex> mutex;
 
-    inline explicit GMALConditionVariable(GMALConditionVariableShadow condShadow, std::shared_ptr<GMALMutex> mutex)
-    : GMALVisibleObject(), condShadow(condShadow), mutex(mutex) {}
+    inline explicit MCConditionVariable(MCConditionVariableShadow condShadow, std::shared_ptr<MCMutex> mutex)
+    : MCVisibleObject(), condShadow(condShadow), mutex(mutex) {}
 
-    inline explicit GMALConditionVariable(GMALConditionVariableShadow condShadow)
-            : GMALVisibleObject(), condShadow(condShadow), mutex(nullptr) {}
+    inline explicit MCConditionVariable(MCConditionVariableShadow condShadow)
+            : MCVisibleObject(), condShadow(condShadow), mutex(nullptr) {}
 
-    inline GMALConditionVariable(const GMALConditionVariable &cond)
-    : GMALVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(nullptr) {
+    inline MCConditionVariable(const MCConditionVariable &cond)
+    : MCVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(nullptr) {
 
         if (cond.mutex != nullptr) {
-            mutex = std::static_pointer_cast<GMALMutex, GMALVisibleObject>(cond.mutex->copy());
+            mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(cond.mutex->copy());
         }
     }
 
-    std::shared_ptr<GMALVisibleObject> copy() override;
-    GMALSystemID getSystemId() override;
+    std::shared_ptr<MCVisibleObject> copy() override;
+    MCSystemID getSystemId() override;
 
 
-    bool operator ==(const GMALConditionVariable&) const;
-    bool operator !=(const GMALConditionVariable&) const;
+    bool operator ==(const MCConditionVariable&) const;
+    bool operator !=(const MCConditionVariable&) const;
 
     bool isInitialized() const;
     bool isDestroyed() const;
@@ -89,4 +89,4 @@ public:
     bool threadCanExit(tid_t);
 };
 
-#endif //GMAL_GMALCONDITIONVARIABLE_H
+#endif //MC_MCCONDITIONVARIABLE_H

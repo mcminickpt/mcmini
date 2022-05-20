@@ -1,51 +1,51 @@
-#ifndef GMAL_GMALTRANSITIONSSHARED_H
-#define GMAL_GMALTRANSITIONSSHARED_H
+#ifndef MC_MCTRANSITIONSSHARED_H
+#define MC_MCTRANSITIONSSHARED_H
 
 #include <pthread.h>
 #include <typeinfo>
-#include "../GMALShared.h"
+#include "../MCShared.h"
 
 extern "C" {
-    #include "transitions/wrappers/GMALSharedLibraryWrappers.h"
+    #include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
-#include "transitions/GMALThreadCreate.h"
-#include "transitions/GMALThreadStart.h"
-#include "transitions/GMALThreadFinish.h"
-#include "transitions/GMALThreadJoin.h"
-#include "transitions/GMALMutexInit.h"
-#include "transitions/GMALMutexLock.h"
-#include "transitions/GMALMutexUnlock.h"
-#include "transitions/GMALSemInit.h"
-#include "transitions/GMALSemPost.h"
-#include "transitions/GMALSemWait.h"
-#include "transitions/GMALExitTransition.h"
-#include "transitions/GMALBarrierInit.h"
-#include "transitions/GMALBarrierWait.h"
-#include "transitions/GMALCondInit.h"
-#include "transitions/GMALCondSignal.h"
-#include "transitions/GMALCondBroadcast.h"
-#include "transitions/GMALCondWait.h"
-#include "transitions/GMALCondEnqueue.h"
+#include "transitions/MCThreadCreate.h"
+#include "transitions/MCThreadStart.h"
+#include "transitions/MCThreadFinish.h"
+#include "transitions/MCThreadJoin.h"
+#include "transitions/MCMutexInit.h"
+#include "transitions/MCMutexLock.h"
+#include "transitions/MCMutexUnlock.h"
+#include "transitions/MCSemInit.h"
+#include "transitions/MCSemPost.h"
+#include "transitions/MCSemWait.h"
+#include "transitions/MCExitTransition.h"
+#include "transitions/MCBarrierInit.h"
+#include "transitions/MCBarrierWait.h"
+#include "transitions/MCCondInit.h"
+#include "transitions/MCCondSignal.h"
+#include "transitions/MCCondBroadcast.h"
+#include "transitions/MCCondWait.h"
+#include "transitions/MCCondEnqueue.h"
 
-#include "GMAL.h"
+#include "MC.h"
 
 /* Source program thread control */
 template<typename SharedMemoryData> void
 thread_post_visible_operation_hit(const std::type_info &type, SharedMemoryData * shmData)
 {
-    auto newTypeInfo = GMALSharedTransition(tid_self, type);
+    auto newTypeInfo = MCSharedTransition(tid_self, type);
     auto newShmData = shmData;
-    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
+    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(MCSharedTransition));
     memcpy(shmTransitionData, newShmData, sizeof(SharedMemoryData));
 }
 
 void thread_post_visible_operation_hit(const std::type_info &type);
 
-void thread_await_gmal_scheduler();
-void thread_await_gmal_scheduler_for_thread_start_transition();
-void thread_awake_gmal_scheduler_for_thread_finish_transition();
-void gmal_exit_main_thread();
+void thread_await_mc_scheduler();
+void thread_await_mc_scheduler_for_thread_start_transition();
+void thread_awake_mc_scheduler_for_thread_finish_transition();
+void mc_exit_main_thread();
 
 
-#endif //GMAL_GMALTRANSITIONSSHARED_H
+#endif //MC_MCTRANSITIONSSHARED_H

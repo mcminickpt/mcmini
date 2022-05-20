@@ -1,82 +1,82 @@
-#include "GMALConditionVariable.h"
+#include "MCConditionVariable.h"
 #include <algorithm>
 
-std::shared_ptr<GMALVisibleObject>
-GMALConditionVariable::copy()
+std::shared_ptr<MCVisibleObject>
+MCConditionVariable::copy()
 {
-    return std::shared_ptr<GMALVisibleObject>(new GMALConditionVariable(*this));
+    return std::shared_ptr<MCVisibleObject>(new MCConditionVariable(*this));
 }
 
-GMALSystemID
-GMALConditionVariable::getSystemId()
+MCSystemID
+MCConditionVariable::getSystemId()
 {
     return this->condShadow.cond;
 }
 
 bool
-GMALConditionVariable::operator==(const GMALConditionVariable &other) const
+MCConditionVariable::operator==(const MCConditionVariable &other) const
 {
     return this->condShadow.cond == other.condShadow.cond;
 }
 
 bool
-GMALConditionVariable::operator!=(const GMALConditionVariable &other) const
+MCConditionVariable::operator!=(const MCConditionVariable &other) const
 {
     return this->condShadow.cond != other.condShadow.cond;
 }
 
 bool
-GMALConditionVariable::isInitialized() const
+MCConditionVariable::isInitialized() const
 {
-    return this->condShadow.state == GMALConditionVariableShadow::initialized;
+    return this->condShadow.state == MCConditionVariableShadow::initialized;
 }
 
 bool
-GMALConditionVariable::isDestroyed() const
+MCConditionVariable::isDestroyed() const
 {
-    return this->condShadow.state == GMALConditionVariableShadow::destroyed;
+    return this->condShadow.state == MCConditionVariableShadow::destroyed;
 }
 
 void
-GMALConditionVariable::initialize()
+MCConditionVariable::initialize()
 {
-    this->condShadow.state = GMALConditionVariableShadow::initialized;
+    this->condShadow.state = MCConditionVariableShadow::initialized;
 }
 
 void
-GMALConditionVariable::destroy()
+MCConditionVariable::destroy()
 {
-    this->condShadow.state = GMALConditionVariableShadow::destroyed;
+    this->condShadow.state = MCConditionVariableShadow::destroyed;
 }
 
 void
-GMALConditionVariable::enterSleepingQueue(tid_t tid)
+MCConditionVariable::enterSleepingQueue(tid_t tid)
 {
     /* Ensure that the thread is not already in the queue */
     this->sleepQueue.push_back(tid);
 }
 
 void
-GMALConditionVariable::wakeThread(tid_t tid)
+MCConditionVariable::wakeThread(tid_t tid)
 {
     this->removeSleepingThread(tid);
     this->wakeQueue.push_back(tid);
 }
 
 void
-GMALConditionVariable::removeSleepingThread(tid_t tid)
+MCConditionVariable::removeSleepingThread(tid_t tid)
 {
     auto _ = std::remove(this->sleepQueue.begin(), this->sleepQueue.end(), tid);
 }
 
 void
-GMALConditionVariable::removeWakingThread(tid_t tid)
+MCConditionVariable::removeWakingThread(tid_t tid)
 {
     auto _ = std::remove(this->wakeQueue.begin(), this->wakeQueue.end(), tid);
 }
 
 void
-GMALConditionVariable::wakeFirstThreadIfPossible()
+MCConditionVariable::wakeFirstThreadIfPossible()
 {
     if (this->sleepQueue.empty()) return;
 
@@ -86,7 +86,7 @@ GMALConditionVariable::wakeFirstThreadIfPossible()
 }
 
 void
-GMALConditionVariable::wakeAllSleepingThreads()
+MCConditionVariable::wakeAllSleepingThreads()
 {
     for (const auto tid : this->sleepQueue)
         this->wakeQueue.push_back(tid);
@@ -94,20 +94,20 @@ GMALConditionVariable::wakeAllSleepingThreads()
 }
 
 void
-GMALConditionVariable::removeThread(tid_t tid)
+MCConditionVariable::removeThread(tid_t tid)
 {
     this->removeSleepingThread(tid);
     this->removeWakingThread(tid);
 }
 
 bool
-GMALConditionVariable::threadIsInWaitingQueue(tid_t tid)
+MCConditionVariable::threadIsInWaitingQueue(tid_t tid)
 {
     return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) != this->wakeQueue.end();
 }
 
 bool
-GMALConditionVariable::threadCanExit(tid_t tid)
+MCConditionVariable::threadCanExit(tid_t tid)
 {
     return this->threadIsInWaitingQueue(tid);
 }

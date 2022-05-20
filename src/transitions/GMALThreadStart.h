@@ -1,22 +1,22 @@
-#ifndef GMAL_GMALTHREADSTART_H
-#define GMAL_GMALTHREADSTART_H
+#ifndef MC_MCTHREADSTART_H
+#define MC_MCTHREADSTART_H
 
-#include "GMALShared.h"
-#include "GMALThreadTransition.h"
+#include "MCShared.h"
+#include "MCThreadTransition.h"
 
-GMALTransition* GMALReadThreadStart(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadThreadStart(const MCSharedTransition*, void*, MCState*);
 
-struct GMALThreadStart : public GMALThreadTransition {
+struct MCThreadStart : public MCThreadTransition {
 public:
-    inline explicit GMALThreadStart(std::shared_ptr<GMALThread> thread) : GMALThreadTransition(thread) {}
+    inline explicit MCThreadStart(std::shared_ptr<MCThread> thread) : MCThreadTransition(thread) {}
 
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
-    void applyToState(GMALState *) override;
-    bool coenabledWith(std::shared_ptr<GMALTransition>) override;
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    void applyToState(MCState *) override;
+    bool coenabledWith(std::shared_ptr<MCTransition>) override;
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
     bool countsAgainstThreadExecutionDepth() override;
     void print() override;
 };
 
-#endif //GMAL_GMALTHREADSTART_H
+#endif //MC_MCTHREADSTART_H

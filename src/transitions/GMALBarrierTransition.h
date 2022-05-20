@@ -1,14 +1,14 @@
-#ifndef GMAL_GMALBARRIERTRANSITION_H
-#define GMAL_GMALBARRIERTRANSITION_H
+#ifndef MC_MCBARRIERTRANSITION_H
+#define MC_MCBARRIERTRANSITION_H
 
-#include "GMALTransition.h"
-#include "objects/GMALBarrier.h"
+#include "MCTransition.h"
+#include "objects/MCBarrier.h"
 
-struct GMALBarrierTransition : public GMALTransition {
+struct MCBarrierTransition : public MCTransition {
 public:
-    std::shared_ptr<GMALBarrier> barrier;
-    GMALBarrierTransition(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALBarrier> barrier) :
-            GMALTransition(running), barrier(barrier) {}
+    std::shared_ptr<MCBarrier> barrier;
+    MCBarrierTransition(std::shared_ptr<MCThread> running, std::shared_ptr<MCBarrier> barrier) :
+            MCTransition(running), barrier(barrier) {}
 };
 
-#endif //GMAL_GMALBARRIERTRANSITION_H
+#endif //MC_MCBARRIERTRANSITION_H

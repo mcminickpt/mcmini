@@ -1,5 +1,5 @@
-#ifndef GMAL_GMALCONSTANTS_H
-#define GMAL_GMALCONSTANTS_H
+#ifndef MC_MCCONSTANTS_H
+#define MC_MCCONSTANTS_H
 
 #include <stdint.h>
 
@@ -22,16 +22,16 @@ typedef uint64_t trid_t;
 #define FORK_IS_CHILD_PID(pid) ((pid) == 0)
 #define FORK_IS_PARENT_PID(pid) (!(FORK_IS_CHILD_PID(pid)))
 
-#define GMAL_PROGRAM_TYPE bool
-#define GMAL_SCHEDULER (false)
-#define GMAL_SOURCE_PROGRAM (true)
-#define GMAL_IS_SCHEDULER(expr) (static_cast<bool>(expr) == GMAL_SCHEDULER)
-#define GMAL_IS_SOURCE_PROGRAM(expr) (static_cast<bool>(expr) == GMAL_SOURCE_PROGRAM)
+#define MC_PROGRAM_TYPE bool
+#define MC_SCHEDULER (false)
+#define MC_SOURCE_PROGRAM (true)
+#define MC_IS_SCHEDULER(expr) (static_cast<bool>(expr) == MC_SCHEDULER)
+#define MC_IS_SOURCE_PROGRAM(expr) (static_cast<bool>(expr) == MC_SOURCE_PROGRAM)
 
-#ifdef GMAL_SHARED_LIBRARY
-#define GMAL_CTOR __attribute__((constructor))
+#ifdef MC_SHARED_LIBRARY
+#define MC_CTOR __attribute__((constructor))
 #else
-#define GMAL_CTOR
+#define MC_CTOR
 #endif
 
 #define PTHREAD_SUCCESS (0)
@@ -40,4 +40,4 @@ typedef uint64_t trid_t;
 typedef void*(*thread_routine)(void*);
 typedef void(*free_function)(void*);
 
-#endif //GMAL_GMALCONSTANTS_H
+#endif //MC_MCCONSTANTS_H

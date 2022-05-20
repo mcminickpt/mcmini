@@ -1,63 +1,63 @@
-#include "GMAL.h"
-#include "GMALMutexLock.h"
-#include "GMALThreadCreate.h"
-#include "GMALThreadJoin.h"
-#include "GMALMutexUnlock.h"
+#include "MC.h"
+#include "MCMutexLock.h"
+#include "MCThreadCreate.h"
+#include "MCThreadJoin.h"
+#include "MCMutexUnlock.h"
 #include <memory>
 
-GMALTransition*
-GMALReadMutexLock(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadMutexLock(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
-    auto mutexInShm = static_cast<GMALMutexShadow*>(shmData);
-    auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<GMALMutex>((GMALSystemID)mutexInShm->systemIdentity);
+    auto mutexInShm = static_cast<MCMutexShadow*>(shmData);
+    auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<MCMutex>((MCSystemID)mutexInShm->systemIdentity);
 
-    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(mutexThatExists != nullptr, "Attempting to lock an uninitialized mutex");
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(mutexThatExists != nullptr, "Attempting to lock an uninitialized mutex");
     if (mutexThatExists->isDestroyed()) {
-        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to lock a mutex that has been destroyed");
+        MC_REPORT_UNDEFINED_BEHAVIOR("Attempting to lock a mutex that has been destroyed");
     }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALMutexLock(threadThatRan, mutexThatExists);
+    return new MCMutexLock(threadThatRan, mutexThatExists);
 }
 
-std::shared_ptr<GMALTransition>
-GMALMutexLock::staticCopy()
+std::shared_ptr<MCTransition>
+MCMutexLock::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto mutexCpy =
-            std::static_pointer_cast<GMALMutex, GMALVisibleObject>(this->mutex->copy());
-    auto mutexLock = new GMALMutexLock(threadCpy, mutexCpy);
-    return std::shared_ptr<GMALTransition>(mutexLock);
+            std::static_pointer_cast<MCMutex, MCVisibleObject>(this->mutex->copy());
+    auto mutexLock = new MCMutexLock(threadCpy, mutexCpy);
+    return std::shared_ptr<MCTransition>(mutexLock);
 }
 
-std::shared_ptr<GMALTransition>
-GMALMutexLock::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCMutexLock::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALMutex> mutexInState = state->getObjectWithId<GMALMutex>(mutex->getObjectId());
-    auto cpy = new GMALMutexLock(threadInState, mutexInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
+    auto cpy = new MCMutexLock(threadInState, mutexInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALMutexLock::applyToState(GMALState *state)
+MCMutexLock::applyToState(MCState *state)
 {
     this->mutex->lock(this->getThreadId());
 }
 
 bool
-GMALMutexLock::enabledInState(const GMALState *state)
+MCMutexLock::enabledInState(const MCState *state)
 {
     return this->thread->enabled() && this->mutex->canAcquire(this->getThreadId());
 }
 
 bool
-GMALMutexLock::coenabledWith(std::shared_ptr<GMALTransition> transition)
+MCMutexLock::coenabledWith(std::shared_ptr<MCTransition> transition)
 {
     {
-        auto maybeMutexUnlock = std::dynamic_pointer_cast<GMALMutexUnlock, GMALTransition>(transition);
+        auto maybeMutexUnlock = std::dynamic_pointer_cast<MCMutexUnlock, MCTransition>(transition);
         if (maybeMutexUnlock) {
             return *maybeMutexUnlock->mutex != *this->mutex;
         }
@@ -66,17 +66,17 @@ GMALMutexLock::coenabledWith(std::shared_ptr<GMALTransition> transition)
 }
 
 bool
-GMALMutexLock::dependentWith(std::shared_ptr<GMALTransition> transition)
+MCMutexLock::dependentWith(std::shared_ptr<MCTransition> transition)
 {
     {
-        auto maybeMutexLock = std::dynamic_pointer_cast<GMALMutexLock, GMALTransition>(transition);
+        auto maybeMutexLock = std::dynamic_pointer_cast<MCMutexLock, MCTransition>(transition);
         if (maybeMutexLock) {
             return *maybeMutexLock->mutex == *this->mutex;
         }
     }
 
     {
-        auto maybeMutexUnlock = std::dynamic_pointer_cast<GMALMutexUnlock, GMALTransition>(transition);
+        auto maybeMutexUnlock = std::dynamic_pointer_cast<MCMutexUnlock, MCTransition>(transition);
         if (maybeMutexUnlock) {
             return *maybeMutexUnlock->mutex == *this->mutex;
         }
@@ -86,7 +86,7 @@ GMALMutexLock::dependentWith(std::shared_ptr<GMALTransition> transition)
 }
 
 void
-GMALMutexLock::print()
+MCMutexLock::print()
 {
     printf("thread %lu: pthread_mutex_lock(%lu)\n", this->thread->tid, this->mutex->getObjectId());
 }

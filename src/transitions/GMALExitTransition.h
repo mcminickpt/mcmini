@@ -1,26 +1,26 @@
-#ifndef GMAL_GMALEXITTRANSITION_H
-#define GMAL_GMALEXITTRANSITION_H
+#ifndef MC_MCEXITTRANSITION_H
+#define MC_MCEXITTRANSITION_H
 
-#include "GMALTransition.h"
+#include "MCTransition.h"
 
-GMALTransition* GMALReadExitTransition(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadExitTransition(const MCSharedTransition*, void*, MCState*);
 
-struct GMALExitTransition : public GMALTransition {
+struct MCExitTransition : public MCTransition {
 private:
     const int exitCode;
 public:
-    GMALExitTransition(std::shared_ptr<GMALThread> thread, int exitCode)
-    : GMALTransition(thread), exitCode(exitCode) {}
+    MCExitTransition(std::shared_ptr<MCThread> thread, int exitCode)
+    : MCTransition(thread), exitCode(exitCode) {}
 
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
 
-    void applyToState(GMALState *) override {}
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
-    bool enabledInState(const GMALState *) override;
+    void applyToState(MCState *) override {}
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
+    bool enabledInState(const MCState *) override;
     bool ensuresDeadlockIsImpossible() override;
     bool countsAgainstThreadExecutionDepth() override;
     void print() override;
 };
 
-#endif //GMAL_GMALEXITTRANSITION_H
+#endif //MC_MCEXITTRANSITION_H

@@ -1,59 +1,59 @@
-#include "GMAL.h"
-#include "GMALSemPost.h"
+#include "MC.h"
+#include "MCSemPost.h"
 
-GMALTransition*
-GMALReadSemPost(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadSemPost(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
-    auto semInShm = static_cast<GMALSemaphoreShadow*>(shmData);
-    auto semThatExists = state->getVisibleObjectWithSystemIdentity<GMALSemaphore>((GMALSystemID)semInShm->sem);
+    auto semInShm = static_cast<MCSemaphoreShadow*>(shmData);
+    auto semThatExists = state->getVisibleObjectWithSystemIdentity<MCSemaphore>((MCSystemID)semInShm->sem);
 
     // Catch undefined behavior
-    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(semThatExists != nullptr, "Attempting to post to an uninitialized semaphore");
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(semThatExists != nullptr, "Attempting to post to an uninitialized semaphore");
     if (semThatExists->isDestroyed()) {
-        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to post to a semaphore that has been destroyed");
+        MC_REPORT_UNDEFINED_BEHAVIOR("Attempting to post to a semaphore that has been destroyed");
     }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALSemPost(threadThatRan, semThatExists);
+    return new MCSemPost(threadThatRan, semThatExists);
 }
 
-std::shared_ptr<GMALTransition>
-GMALSemPost::staticCopy()
+std::shared_ptr<MCTransition>
+MCSemPost::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto semCpy =
-            std::static_pointer_cast<GMALSemaphore, GMALVisibleObject>(this->sem->copy());
-    auto mutexInit = new GMALSemPost(threadCpy, semCpy);
-    return std::shared_ptr<GMALTransition>(mutexInit);
+            std::static_pointer_cast<MCSemaphore, MCVisibleObject>(this->sem->copy());
+    auto mutexInit = new MCSemPost(threadCpy, semCpy);
+    return std::shared_ptr<MCTransition>(mutexInit);
 }
 
-std::shared_ptr<GMALTransition>
-GMALSemPost::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCSemPost::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALSemaphore> semInState = state->getObjectWithId<GMALSemaphore>(sem->getObjectId());
-    auto cpy = new GMALSemPost(threadInState, semInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCSemaphore> semInState = state->getObjectWithId<MCSemaphore>(sem->getObjectId());
+    auto cpy = new MCSemPost(threadInState, semInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALSemPost::applyToState(GMALState *state)
+MCSemPost::applyToState(MCState *state)
 {
     this->sem->post();
 }
 
 bool
-GMALSemPost::coenabledWith(std::shared_ptr<GMALTransition> other)
+MCSemPost::coenabledWith(std::shared_ptr<MCTransition> other)
 {
     return true;
 }
 
 bool
-GMALSemPost::dependentWith(std::shared_ptr<GMALTransition> other)
+MCSemPost::dependentWith(std::shared_ptr<MCTransition> other)
 {
-    auto maybeSemaphoreOperation = std::dynamic_pointer_cast<GMALSemaphoreTransition, GMALTransition>(other);
+    auto maybeSemaphoreOperation = std::dynamic_pointer_cast<MCSemaphoreTransition, MCTransition>(other);
     if (maybeSemaphoreOperation) {
         return *maybeSemaphoreOperation->sem == *this->sem;
     }
@@ -61,7 +61,7 @@ GMALSemPost::dependentWith(std::shared_ptr<GMALTransition> other)
 }
 
 void
-GMALSemPost::print()
+MCSemPost::print()
 {
     printf("thread %lu: sem_post(%lu)\n", this->thread->tid, this->sem->getObjectId());
 }

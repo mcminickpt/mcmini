@@ -1,33 +1,33 @@
-#ifndef GMAL_GMALSEMAPHORE_H
-#define GMAL_GMALSEMAPHORE_H
+#ifndef MC_MCSEMAPHORE_H
+#define MC_MCSEMAPHORE_H
 
 #include <semaphore.h>
-#include "GMALVisibleObject.h"
+#include "MCVisibleObject.h"
 
-struct GMALSemaphoreShadow {
+struct MCSemaphoreShadow {
     sem_t *sem;
     unsigned int count;
     enum State {
         undefined, initialized, destroyed
     } state;
 
-    GMALSemaphoreShadow(sem_t *sem, unsigned int count) : sem(sem), count(count), state(undefined) {}
+    MCSemaphoreShadow(sem_t *sem, unsigned int count) : sem(sem), count(count), state(undefined) {}
 };
 
-class GMALSemaphore : public GMALVisibleObject {
+class MCSemaphore : public MCVisibleObject {
 private:
-    GMALSemaphoreShadow semShadow;
-    inline explicit GMALSemaphore(GMALSemaphoreShadow shadow, objid_t id) : GMALVisibleObject(id), semShadow(shadow) {}
+    MCSemaphoreShadow semShadow;
+    inline explicit MCSemaphore(MCSemaphoreShadow shadow, objid_t id) : MCVisibleObject(id), semShadow(shadow) {}
 
 public:
-    inline explicit GMALSemaphore(GMALSemaphoreShadow shadow) : GMALVisibleObject(), semShadow(shadow) {}
-    inline GMALSemaphore(const GMALSemaphore &sem) : GMALVisibleObject(sem.getObjectId()), semShadow(sem.semShadow) {}
+    inline explicit MCSemaphore(MCSemaphoreShadow shadow) : MCVisibleObject(), semShadow(shadow) {}
+    inline MCSemaphore(const MCSemaphore &sem) : MCVisibleObject(sem.getObjectId()), semShadow(sem.semShadow) {}
 
-    std::shared_ptr<GMALVisibleObject> copy() override;
-    GMALSystemID getSystemId() override;
+    std::shared_ptr<MCVisibleObject> copy() override;
+    MCSystemID getSystemId() override;
 
-    bool operator ==(const GMALSemaphore&) const;
-    bool operator !=(const GMALSemaphore&) const;
+    bool operator ==(const MCSemaphore&) const;
+    bool operator !=(const MCSemaphore&) const;
 
     unsigned int getCount() const;
     bool isDestroyed() const;
@@ -39,4 +39,4 @@ public:
 };
 
 
-#endif //GMAL_GMALSEMAPHORE_H
+#endif //MC_MCSEMAPHORE_H

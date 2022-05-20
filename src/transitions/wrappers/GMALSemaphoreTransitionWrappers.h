@@ -1,11 +1,11 @@
-#ifndef GMAL_GMALSEMAPHORETRANSITIONWRAPPERS_H
-#define GMAL_GMALSEMAPHORETRANSITIONWRAPPERS_H
+#ifndef MC_MCSEMAPHORETRANSITIONWRAPPERS_H
+#define MC_MCSEMAPHORETRANSITIONWRAPPERS_H
 
 #include <semaphore.h>
-#include "GMALShared.h"
+#include "MCShared.h"
 
-GMAL_EXTERN int gmal_sem_init(sem_t*, int, unsigned int);
-GMAL_EXTERN int gmal_sem_post(sem_t*);
-GMAL_EXTERN int gmal_sem_wait(sem_t*);
+MC_EXTERN int mc_sem_init(sem_t*, int, unsigned int);
+MC_EXTERN int mc_sem_post(sem_t*);
+MC_EXTERN int mc_sem_wait(sem_t*);
 
-#endif //GMAL_GMALSEMAPHORETRANSITIONWRAPPERS_H
+#endif //MC_MCSEMAPHORETRANSITIONWRAPPERS_H

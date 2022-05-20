@@ -1,5 +1,5 @@
-#ifndef GMAL_GMALDEFERRED_H
-#define GMAL_GMALDEFERRED_H
+#ifndef MC_MCDEFERRED_H
+#define MC_MCDEFERRED_H
 
 // Solves static initialization fiasco in dynamic libraries
 // C++ seems to invoke the constructor of a globally-defined
@@ -8,10 +8,10 @@
 // (once in the constructor). This clever workaround helps resolve this
 // issue by wrapping the underlying object in a union
 template<typename T>
-struct GMALDeferred
+struct MCDeferred
 {
-    GMALDeferred(){}
-    ~GMALDeferred(){ value->~T(); }
+    MCDeferred(){}
+    ~MCDeferred(){ value->~T(); }
     template<typename...TArgs>
     void Construct(TArgs&&...args)
     {
@@ -30,4 +30,4 @@ public:
     T *operator->() { return value; }
 };
 
-#endif //GMAL_GMALDEFERRED_H
+#endif //MC_MCDEFERRED_H

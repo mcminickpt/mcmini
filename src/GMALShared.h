@@ -1,51 +1,51 @@
-#ifndef DPOR_GMALSHARED_H
-#define DPOR_GMALSHARED_H
+#ifndef DPOR_MCSHARED_H
+#define DPOR_MCSHARED_H
 
 #include <assert.h>
-#include "GMALConstants.h"
+#include "MCConstants.h"
 
 typedef uint64_t objid_t;
-typedef objid_t GMALObjectID;
-typedef uint64_t GMALTypeID;
-typedef void *GMALSystemID;
+typedef objid_t MCObjectID;
+typedef uint64_t MCTypeID;
+typedef void *MCSystemID;
 
 #ifndef __cplusplus
-#   define GMAL_EXTERN
-#   define GMAL_EXTERN_DECLS_BEGIN
-#   define GMAL_EXTERN_DECLS_END
+#   define MC_EXTERN
+#   define MC_EXTERN_DECLS_BEGIN
+#   define MC_EXTERN_DECLS_END
 #else
-#   define GMAL_EXTERN extern "C"
-#   define GMAL_EXTERN_DECLS_BEGIN extern "C" {
-#   define GMAL_EXTERN_DECLS_END }
+#   define MC_EXTERN extern "C"
+#   define MC_EXTERN_DECLS_BEGIN extern "C" {
+#   define MC_EXTERN_DECLS_END }
 #endif
 
 #ifndef __cplusplus
-#   define GMAL_THREAD_LOCAL thread_local
+#   define MC_THREAD_LOCAL thread_local
 #else
-#   define GMAL_THREAD_LOCAL __thread
+#   define MC_THREAD_LOCAL __thread
 #endif
 
 #ifndef __cplusplus
-#   define GMAL_NO_RETURN
+#   define MC_NO_RETURN
 #else
-#   define GMAL_NO_RETURN [[noreturn]]
+#   define MC_NO_RETURN [[noreturn]]
 #endif
 
-#define GMAL_ASSERT(__X) assert(__X)
-#define GMAL_FAIL() GMAL_ASSERT(0)
-#define GMAL_FATAL_ON_FAIL(expr) \
+#define MC_ASSERT(__X) assert(__X)
+#define MC_FAIL() MC_ASSERT(0)
+#define MCMINI_FATAL_ON_FAIL(expr) \
 do {                            \
     (static_cast <bool> (expr) ? void (0) : abort()); \
 } while(0)
 
-#define GMAL_FATAL() abort()
-#define GMAL_UNIMPLEMENTED() GMAL_ASSERT(false)
+#define MCMINI_FATAL() abort()
+#define MC_UNIMPLEMENTED() MC_ASSERT(false)
 
-#define GMAL_STRUCT_DECL(type)             \
+#define MC_STRUCT_DECL(type)             \
 typedef struct type type;           \
 typedef struct type *type##_t;      \
 typedef struct type *type##_ref;    \
 typedef const struct type *type##_refc;
 
 
-#endif //DPOR_GMALSHARED_H
+#endif //DPOR_MCSHARED_H

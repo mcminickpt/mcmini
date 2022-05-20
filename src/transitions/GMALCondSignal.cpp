@@ -1,44 +1,44 @@
-#include "GMALCondSignal.h"
-#include "GMAL.h"
-#include "GMALMutexTransition.h"
+#include "MCCondSignal.h"
+#include "MC.h"
+#include "MCMutexTransition.h"
 
-GMALTransition*
-GMALReadCondSignal(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadCondSignal(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
     const auto condInShm = static_cast<pthread_cond_t **>(shmData);
-    const auto condSystemId = (GMALSystemID)*condInShm;
-    const auto condThatExists = state->getVisibleObjectWithSystemIdentity<GMALConditionVariable>(condSystemId);
+    const auto condSystemId = (MCSystemID)*condInShm;
+    const auto condThatExists = state->getVisibleObjectWithSystemIdentity<MCConditionVariable>(condSystemId);
 
-    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(condThatExists != nullptr, "Attempting to signal a condition variable that is uninitialized");
-    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(!condThatExists->isDestroyed(), "Attempting to signal a destroyed condition variable");
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(condThatExists != nullptr, "Attempting to signal a condition variable that is uninitialized");
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(!condThatExists->isDestroyed(), "Attempting to signal a destroyed condition variable");
     
     const auto threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALCondSignal(threadThatRan, condThatExists);
+    return new MCCondSignal(threadThatRan, condThatExists);
 }
 
-std::shared_ptr<GMALTransition>
-GMALCondSignal::staticCopy()
+std::shared_ptr<MCTransition>
+MCCondSignal::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto condCpy =
-            std::static_pointer_cast<GMALConditionVariable, GMALVisibleObject>(this->conditionVariable->copy());
-    auto cpy = new GMALCondSignal(threadCpy, condCpy);
-    return std::shared_ptr<GMALTransition>(cpy);
+            std::static_pointer_cast<MCConditionVariable, MCVisibleObject>(this->conditionVariable->copy());
+    auto cpy = new MCCondSignal(threadCpy, condCpy);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
-std::shared_ptr<GMALTransition>
-GMALCondSignal::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCCondSignal::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALConditionVariable> condInState = state->getObjectWithId<GMALConditionVariable>(conditionVariable->getObjectId());
-    auto cpy = new GMALCondSignal(threadInState, condInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCConditionVariable> condInState = state->getObjectWithId<MCConditionVariable>(conditionVariable->getObjectId());
+    auto cpy = new MCCondSignal(threadInState, condInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALCondSignal::applyToState(GMALState *state)
+MCCondSignal::applyToState(MCState *state)
 {
     /* Here's where the algorithm can change for signal */
     /* For simplicity, we assume that the first thread can be awoken */
@@ -46,15 +46,15 @@ GMALCondSignal::applyToState(GMALState *state)
 }
 
 bool
-GMALCondSignal::coenabledWith(std::shared_ptr<GMALTransition> other)
+MCCondSignal::coenabledWith(std::shared_ptr<MCTransition> other)
 {
     return true;
 }
 
 bool
-GMALCondSignal::dependentWith(std::shared_ptr<GMALTransition> other)
+MCCondSignal::dependentWith(std::shared_ptr<MCTransition> other)
 {
-    auto maybeCondOperation = std::dynamic_pointer_cast<GMALCondTransition, GMALTransition>(other);
+    auto maybeCondOperation = std::dynamic_pointer_cast<MCCondTransition, MCTransition>(other);
     if (maybeCondOperation) {
         return *maybeCondOperation->conditionVariable == *this->conditionVariable;
     }
@@ -62,7 +62,7 @@ GMALCondSignal::dependentWith(std::shared_ptr<GMALTransition> other)
 }
 
 void
-GMALCondSignal::print()
+MCCondSignal::print()
 {
     printf("thread %lu: pthread_cond_signal(%lu)\n", this->thread->tid, this->conditionVariable->getObjectId());
 }

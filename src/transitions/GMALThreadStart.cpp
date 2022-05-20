@@ -1,37 +1,37 @@
-#include "GMALThreadStart.h"
+#include "MCThreadStart.h"
 
-GMALTransition*
-GMALReadThreadStart(const GMALSharedTransition *shmTransition, void *shmData, GMALState *programState)
+MCTransition*
+MCReadThreadStart(const MCSharedTransition *shmTransition, void *shmData, MCState *programState)
 {
     // Should never be called
-    GMAL_FATAL();
+    MCMINI_FATAL();
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadStart::staticCopy() {
+std::shared_ptr<MCTransition>
+MCThreadStart::staticCopy() {
     // INVARIANT: Target and the thread itself are the same
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
-    auto threadStartCpy = new GMALThreadStart(threadCpy);
-    return std::shared_ptr<GMALTransition>(threadStartCpy);
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
+    auto threadStartCpy = new MCThreadStart(threadCpy);
+    return std::shared_ptr<MCTransition>(threadStartCpy);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadStart::dynamicCopyInState(const GMALState *state) {
+std::shared_ptr<MCTransition>
+MCThreadStart::dynamicCopyInState(const MCState *state) {
     // INVARIANT: Target and the thread itself are the same
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    auto cpy = new GMALThreadStart(threadInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    auto cpy = new MCThreadStart(threadInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALThreadStart::applyToState(GMALState *) {
+MCThreadStart::applyToState(MCState *) {
     // Nothing to do
     this->thread->spawn();
 }
 
 bool
-GMALThreadStart::coenabledWith(std::shared_ptr<GMALTransition> transition)
+MCThreadStart::coenabledWith(std::shared_ptr<MCTransition> transition)
 {
     if (this->thread->tid == transition->getThreadId()) {
         return false;
@@ -44,19 +44,19 @@ GMALThreadStart::coenabledWith(std::shared_ptr<GMALTransition> transition)
 }
 
 bool
-GMALThreadStart::dependentWith(std::shared_ptr<GMALTransition> transition)
+MCThreadStart::dependentWith(std::shared_ptr<MCTransition> transition)
 {
     return this->thread->tid == transition->getThreadId();
 }
 
 void
-GMALThreadStart::print()
+MCThreadStart::print()
 {
     printf("thread %lu: starts\n", this->thread->tid);
 }
 
 bool
-GMALThreadStart::countsAgainstThreadExecutionDepth()
+MCThreadStart::countsAgainstThreadExecutionDepth()
 {
     return false;
 }

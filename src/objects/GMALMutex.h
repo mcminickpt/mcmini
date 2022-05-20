@@ -1,32 +1,32 @@
-#ifndef GMAL_GMALMUTEX_H
-#define GMAL_GMALMUTEX_H
+#ifndef MC_MCMUTEX_H
+#define MC_MCMUTEX_H
 
-#include "GMALVisibleObject.h"
-#include "misc/GMALOptional.h"
+#include "MCVisibleObject.h"
+#include "misc/MCOptional.h"
 
-struct GMALMutexShadow {
+struct MCMutexShadow {
     pthread_mutex_t *systemIdentity;
     enum State {
         undefined, unlocked, locked, destroyed
     } state;
-    explicit GMALMutexShadow(pthread_mutex_t *systemIdentity) : systemIdentity(systemIdentity), state(undefined) {}
+    explicit MCMutexShadow(pthread_mutex_t *systemIdentity) : systemIdentity(systemIdentity), state(undefined) {}
 };
 
-struct GMALMutex : public GMALVisibleObject {
+struct MCMutex : public MCVisibleObject {
 private:
 
-    GMALMutexShadow mutexShadow;
-    inline explicit GMALMutex(GMALMutexShadow shadow, objid_t id) : GMALVisibleObject(id), mutexShadow(shadow) {}
+    MCMutexShadow mutexShadow;
+    inline explicit MCMutex(MCMutexShadow shadow, objid_t id) : MCVisibleObject(id), mutexShadow(shadow) {}
 
 public:
-    inline explicit GMALMutex(GMALMutexShadow shadow) : GMALVisibleObject(), mutexShadow(shadow) {}
-    inline GMALMutex(const GMALMutex &mutex) : GMALVisibleObject(mutex.getObjectId()), mutexShadow(mutex.mutexShadow) {}
+    inline explicit MCMutex(MCMutexShadow shadow) : MCVisibleObject(), mutexShadow(shadow) {}
+    inline MCMutex(const MCMutex &mutex) : MCVisibleObject(mutex.getObjectId()), mutexShadow(mutex.mutexShadow) {}
 
-    std::shared_ptr<GMALVisibleObject> copy() override;
-    GMALSystemID getSystemId() override;
+    std::shared_ptr<MCVisibleObject> copy() override;
+    MCSystemID getSystemId() override;
 
-    bool operator ==(const GMALMutex&) const;
-    bool operator !=(const GMALMutex&) const;
+    bool operator ==(const MCMutex&) const;
+    bool operator !=(const MCMutex&) const;
 
     bool canAcquire(tid_t) const;
     bool isLocked() const;
@@ -39,4 +39,4 @@ public:
     void deinit();
 };
 
-#endif //GMAL_GMALMUTEX_H
+#endif //MC_MCMUTEX_H

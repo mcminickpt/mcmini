@@ -1,10 +1,10 @@
-#ifndef GMAL_GMALBARRIERWRAPPERS_H
-#define GMAL_GMALBARRIERWRAPPERS_H
+#ifndef MC_MCBARRIERWRAPPERS_H
+#define MC_MCBARRIERWRAPPERS_H
 
 #include <pthread.h>
-#include "GMALShared.h"
+#include "MCShared.h"
 
-GMAL_EXTERN int gmal_pthread_barrier_init(pthread_barrier_t*, const pthread_barrierattr_t*, unsigned int);
-GMAL_EXTERN int gmal_pthread_barrier_wait(pthread_barrier_t *);
+MC_EXTERN int mc_pthread_barrier_init(pthread_barrier_t*, const pthread_barrierattr_t*, unsigned int);
+MC_EXTERN int mc_pthread_barrier_wait(pthread_barrier_t *);
 
-#endif //GMAL_GMALBARRIERWRAPPERS_H
+#endif //MC_MCBARRIERWRAPPERS_H

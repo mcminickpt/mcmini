@@ -1,80 +1,80 @@
-#include "GMALThread.h"
+#include "MCThread.h"
 
-static_assert(std::is_trivially_copyable<GMALThreadShadow>::value,
+static_assert(std::is_trivially_copyable<MCThreadShadow>::value,
               "The shared transition is not trivially copiable. Performing a memcpy of this type "
               "is undefined behavior according to the C++ standard.");
 
-std::shared_ptr<GMALVisibleObject>
-GMALThread::copy()
+std::shared_ptr<MCVisibleObject>
+MCThread::copy()
 {
-    return std::shared_ptr<GMALVisibleObject>(new GMALThread(*this));
+    return std::shared_ptr<MCVisibleObject>(new MCThread(*this));
 }
 
-GMALSystemID
-GMALThread::getSystemId() {
+MCSystemID
+MCThread::getSystemId() {
     // TODO: This is unsafe -> we cannot rely on the identity of pthread_t
-    return (GMALSystemID)threadShadow.systemIdentity;
+    return (MCSystemID)threadShadow.systemIdentity;
 }
 
 
-GMALThreadShadow::GMALThreadState
-GMALThread::getState() const
+MCThreadShadow::MCThreadState
+MCThread::getState() const
 {
     return threadShadow.state;
 }
 
 bool
-GMALThread::enabled() const
+MCThread::enabled() const
 {
-    return this->threadShadow.state == GMALThreadShadow::alive;
+    return this->threadShadow.state == MCThreadShadow::alive;
 }
 
 void
-GMALThread::awaken()
+MCThread::awaken()
 {
-    this->threadShadow.state = GMALThreadShadow::alive;
+    this->threadShadow.state = MCThreadShadow::alive;
 }
 
 void
-GMALThread::die()
+MCThread::die()
 {
-    this->threadShadow.state = GMALThreadShadow::dead;
+    this->threadShadow.state = MCThreadShadow::dead;
 }
 
 void
-GMALThread::sleep()
+MCThread::sleep()
 {
-    this->threadShadow.state = GMALThreadShadow::sleeping;
+    this->threadShadow.state = MCThreadShadow::sleeping;
 }
 
 void
-GMALThread::spawn()
+MCThread::spawn()
 {
-    this->threadShadow.state = GMALThreadShadow::alive;
+    this->threadShadow.state = MCThreadShadow::alive;
 }
 
 void
-GMALThread::despawn()
+MCThread::despawn()
 {
-    this->threadShadow.state = GMALThreadShadow::embryo;
+    this->threadShadow.state = MCThreadShadow::embryo;
 }
 
 void
-GMALThread::regenerate()
+MCThread::regenerate()
 {
-    this->threadShadow.state = GMALThreadShadow::alive;
+    this->threadShadow.state = MCThreadShadow::alive;
 }
 
 bool
-GMALThread::isAlive() const
+MCThread::isAlive() const
 {
     // Note this is NOT equivalent to
-    // threadShadow.state == GMALThreadShadow::alive;
-    return threadShadow.state == GMALThreadShadow::alive || threadShadow.state == GMALThreadShadow::sleeping;
+    // threadShadow.state == MCThreadShadow::alive;
+    return threadShadow.state == MCThreadShadow::alive || threadShadow.state == MCThreadShadow::sleeping;
 }
 
 bool
-GMALThread::isDead() const
+MCThread::isDead() const
 {
-    return threadShadow.state == GMALThreadShadow::dead;
+    return threadShadow.state == MCThreadShadow::dead;
 }

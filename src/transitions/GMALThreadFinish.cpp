@@ -1,46 +1,46 @@
-#include "GMALThreadFinish.h"
+#include "MCThreadFinish.h"
 
-GMALTransition*
-GMALReadThreadFinish(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadThreadFinish(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
     // TODO: Potentially add asserts that the thread that just ran exists!
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALThreadFinish(threadThatRan);
+    return new MCThreadFinish(threadThatRan);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadFinish::staticCopy()
+std::shared_ptr<MCTransition>
+MCThreadFinish::staticCopy()
 {
     // INVARIANT: Target and the thread itself are the same
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
-    auto threadStartCpy = new GMALThreadFinish(threadCpy);
-    return std::shared_ptr<GMALTransition>(threadStartCpy);
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
+    auto threadStartCpy = new MCThreadFinish(threadCpy);
+    return std::shared_ptr<MCTransition>(threadStartCpy);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadFinish::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCThreadFinish::dynamicCopyInState(const MCState *state)
 {
     // INVARIANT: Target and the thread itself are the same
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    auto cpy = new GMALThreadFinish(threadInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    auto cpy = new MCThreadFinish(threadInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALThreadFinish::applyToState(GMALState *state)
+MCThreadFinish::applyToState(MCState *state)
 {
     this->target->die();
 }
 
 bool
-GMALThreadFinish::enabledInState(const GMALState *) {
+MCThreadFinish::enabledInState(const MCState *) {
     return thread->enabled() && thread->tid != TID_MAIN_THREAD;
 }
 
 bool
-GMALThreadFinish::coenabledWith(std::shared_ptr<GMALTransition> transition) {
+MCThreadFinish::coenabledWith(std::shared_ptr<MCTransition> transition) {
     if (this->thread->tid == transition->getThreadId()) {
         return false;
     }
@@ -48,7 +48,7 @@ GMALThreadFinish::coenabledWith(std::shared_ptr<GMALTransition> transition) {
 }
 
 bool
-GMALThreadFinish::dependentWith(std::shared_ptr<GMALTransition> transition) {
+MCThreadFinish::dependentWith(std::shared_ptr<MCTransition> transition) {
     if (this->thread->tid == transition->getThreadId()) {
         return true;
     }
@@ -56,19 +56,19 @@ GMALThreadFinish::dependentWith(std::shared_ptr<GMALTransition> transition) {
 }
 
 void
-GMALThreadFinish::print()
+MCThreadFinish::print()
 {
     printf("thread %lu: exits\n", this->thread->tid);
 }
 
 bool
-GMALThreadFinish::ensuresDeadlockIsImpossible()
+MCThreadFinish::ensuresDeadlockIsImpossible()
 {
     return this->thread->tid == TID_MAIN_THREAD;
 }
 
 bool
-GMALThreadFinish::countsAgainstThreadExecutionDepth()
+MCThreadFinish::countsAgainstThreadExecutionDepth()
 {
     return false;
 }

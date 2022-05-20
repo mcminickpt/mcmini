@@ -1,74 +1,74 @@
-#include "GMALMutex.h"
+#include "MCMutex.h"
 
 bool
-GMALMutex::operator==(const GMALMutex &other) const
+MCMutex::operator==(const MCMutex &other) const
 {
     return this->mutexShadow.systemIdentity == other.mutexShadow.systemIdentity;
 }
 
 bool
-GMALMutex::operator!=(const GMALMutex &other) const
+MCMutex::operator!=(const MCMutex &other) const
 {
     return this->mutexShadow.systemIdentity != other.mutexShadow.systemIdentity;
 }
 
-GMALSystemID
-GMALMutex::getSystemId()
+MCSystemID
+MCMutex::getSystemId()
 {
-    return (GMALSystemID)mutexShadow.systemIdentity;
+    return (MCSystemID)mutexShadow.systemIdentity;
 }
 
-std::shared_ptr<GMALVisibleObject>
-GMALMutex::copy()
+std::shared_ptr<MCVisibleObject>
+MCMutex::copy()
 {
-    return std::shared_ptr<GMALVisibleObject>(new GMALMutex(*this));
-}
-
-bool
-GMALMutex::isLocked() const
-{
-    return this->mutexShadow.state == GMALMutexShadow::locked;
+    return std::shared_ptr<MCVisibleObject>(new MCMutex(*this));
 }
 
 bool
-GMALMutex::isUnlocked() const
+MCMutex::isLocked() const
 {
-    return this->mutexShadow.state == GMALMutexShadow::unlocked;
+    return this->mutexShadow.state == MCMutexShadow::locked;
+}
+
+bool
+MCMutex::isUnlocked() const
+{
+    return this->mutexShadow.state == MCMutexShadow::unlocked;
 }
 
 
 bool
-GMALMutex::isDestroyed() const
+MCMutex::isDestroyed() const
 {
-    return this->mutexShadow.state == GMALMutexShadow::destroyed;
+    return this->mutexShadow.state == MCMutexShadow::destroyed;
 }
 
 void
-GMALMutex::lock(tid_t newOwner)
+MCMutex::lock(tid_t newOwner)
 {
-    this->mutexShadow.state = GMALMutexShadow::locked;
+    this->mutexShadow.state = MCMutexShadow::locked;
 }
 
 void
-GMALMutex::unlock()
+MCMutex::unlock()
 {
-    this->mutexShadow.state = GMALMutexShadow::unlocked;
+    this->mutexShadow.state = MCMutexShadow::unlocked;
 }
 
 void
-GMALMutex::init()
+MCMutex::init()
 {
-    this->mutexShadow.state = GMALMutexShadow::unlocked;
+    this->mutexShadow.state = MCMutexShadow::unlocked;
 }
 
 void
-GMALMutex::deinit()
+MCMutex::deinit()
 {
-    this->mutexShadow.state = GMALMutexShadow::undefined;
+    this->mutexShadow.state = MCMutexShadow::undefined;
 }
 
 bool
-GMALMutex::canAcquire(tid_t thread) const
+MCMutex::canAcquire(tid_t thread) const
 {
     return this->isUnlocked(); /* Eventually, more complicated logic with recursive mutexes */
 }

@@ -1,71 +1,71 @@
-#include "GMAL.h"
-#include "GMALMutexUnlock.h"
-#include "GMALTransitionFactory.h"
+#include "MC.h"
+#include "MCMutexUnlock.h"
+#include "MCTransitionFactory.h"
 
-GMALTransition*
-GMALReadMutexUnlock(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadMutexUnlock(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
-    auto mutexInShm = static_cast<GMALMutexShadow*>(shmData);
-    auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<GMALMutex>((GMALSystemID)mutexInShm->systemIdentity);
-    GMAL_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(mutexThatExists != nullptr, "Attempting to unlock an uninitialized mutex");
+    auto mutexInShm = static_cast<MCMutexShadow*>(shmData);
+    auto mutexThatExists = state->getVisibleObjectWithSystemIdentity<MCMutex>((MCSystemID)mutexInShm->systemIdentity);
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(mutexThatExists != nullptr, "Attempting to unlock an uninitialized mutex");
 
     if (mutexThatExists->isUnlocked()) {
-        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to unlock a mutex that is already unlocked");
+        MC_REPORT_UNDEFINED_BEHAVIOR("Attempting to unlock a mutex that is already unlocked");
     } else if (mutexThatExists->isDestroyed()) {
-        GMAL_REPORT_UNDEFINED_BEHAVIOR("Attempting to unlock a mutex that has been destroyed");
+        MC_REPORT_UNDEFINED_BEHAVIOR("Attempting to unlock a mutex that has been destroyed");
     }
 
     tid_t threadThatRanId = shmTransition->executor;
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALMutexUnlock(threadThatRan, mutexThatExists);
+    return new MCMutexUnlock(threadThatRan, mutexThatExists);
 }
 
-std::shared_ptr<GMALTransition>
-GMALMutexUnlock::staticCopy()
+std::shared_ptr<MCTransition>
+MCMutexUnlock::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto mutexCpy =
-            std::static_pointer_cast<GMALMutex, GMALVisibleObject>(this->mutex->copy());
-    auto mutexUnlock = new GMALMutexUnlock(threadCpy, mutexCpy);
-    return std::shared_ptr<GMALTransition>(mutexUnlock);
+            std::static_pointer_cast<MCMutex, MCVisibleObject>(this->mutex->copy());
+    auto mutexUnlock = new MCMutexUnlock(threadCpy, mutexCpy);
+    return std::shared_ptr<MCTransition>(mutexUnlock);
 }
 
-std::shared_ptr<GMALTransition>
-GMALMutexUnlock::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCMutexUnlock::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALMutex> mutexInState = state->getObjectWithId<GMALMutex>(mutex->getObjectId());
-    auto cpy = new GMALMutexUnlock(threadInState, mutexInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
+    auto cpy = new MCMutexUnlock(threadInState, mutexInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
-GMALMutexUnlock::applyToState(GMALState *state)
+MCMutexUnlock::applyToState(MCState *state)
 {
     this->mutex->unlock();
 }
 
 bool
-GMALMutexUnlock::enabledInState(const GMALState *state)
+MCMutexUnlock::enabledInState(const MCState *state)
 {
     return this->thread->enabled();
 }
 
 bool
-GMALMutexUnlock::coenabledWith(std::shared_ptr<GMALTransition> transition)
+MCMutexUnlock::coenabledWith(std::shared_ptr<MCTransition> transition)
 {
     return true;
 }
 
 bool
-GMALMutexUnlock::dependentWith(std::shared_ptr<GMALTransition> transition)
+MCMutexUnlock::dependentWith(std::shared_ptr<MCTransition> transition)
 {
     return false;
 }
 
 void
-GMALMutexUnlock::print()
+MCMutexUnlock::print()
 {
     printf("thread %lu: pthread_mutex_unlock(%lu)\n", this->thread->tid, this->mutex->getObjectId());
 }

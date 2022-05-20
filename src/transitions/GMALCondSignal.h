@@ -1,22 +1,22 @@
-#ifndef GMAL_GMALCONDSIGNAL_H
-#define GMAL_GMALCONDSIGNAL_H
+#ifndef MC_MCCONDSIGNAL_H
+#define MC_MCCONDSIGNAL_H
 
-#include "GMALCondTransition.h"
+#include "MCCondTransition.h"
 
-GMALTransition* GMALReadCondSignal(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadCondSignal(const MCSharedTransition*, void*, MCState*);
 
-struct GMALCondSignal : public GMALCondTransition {
+struct MCCondSignal : public MCCondTransition {
 public:
-    GMALCondSignal(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALConditionVariable> cond) :
-            GMALCondTransition(running, cond) {}
+    MCCondSignal(std::shared_ptr<MCThread> running, std::shared_ptr<MCConditionVariable> cond) :
+            MCCondTransition(running, cond) {}
 
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
-    void applyToState(GMALState *) override;
-    bool coenabledWith(std::shared_ptr<GMALTransition>) override;
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    void applyToState(MCState *) override;
+    bool coenabledWith(std::shared_ptr<MCTransition>) override;
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
     void print() override;
 };
 
 
-#endif //GMAL_GMALCONDSIGNAL_H
+#endif //MC_MCCONDSIGNAL_H

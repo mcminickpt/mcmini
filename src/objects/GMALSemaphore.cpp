@@ -1,67 +1,67 @@
-#include "GMALSemaphore.h"
+#include "MCSemaphore.h"
 
-GMALSystemID
-GMALSemaphore::getSystemId()
+MCSystemID
+MCSemaphore::getSystemId()
 {
     return this->semShadow.sem;
 }
 
-std::shared_ptr<GMALVisibleObject>
-GMALSemaphore::copy()
+std::shared_ptr<MCVisibleObject>
+MCSemaphore::copy()
 {
-    return std::shared_ptr<GMALVisibleObject>(new GMALSemaphore(*this));
+    return std::shared_ptr<MCVisibleObject>(new MCSemaphore(*this));
 }
 
 bool
-GMALSemaphore::wouldBlockIfWaitedOn()
+MCSemaphore::wouldBlockIfWaitedOn()
 {
     return this->semShadow.count == 0;
 }
 
 void
-GMALSemaphore::deinit()
+MCSemaphore::deinit()
 {
-    this->semShadow.state = GMALSemaphoreShadow::undefined;
+    this->semShadow.state = MCSemaphoreShadow::undefined;
 }
 
 void
-GMALSemaphore::init()
+MCSemaphore::init()
 {
-    this->semShadow.state = GMALSemaphoreShadow::initialized;
+    this->semShadow.state = MCSemaphoreShadow::initialized;
 }
 
 void
-GMALSemaphore::post()
+MCSemaphore::post()
 {
     this->semShadow.count++;
 }
 
 void
-GMALSemaphore::wait()
+MCSemaphore::wait()
 {
     this->semShadow.count--;
 }
 
 bool
-GMALSemaphore::operator==(const GMALSemaphore &other) const
+MCSemaphore::operator==(const MCSemaphore &other) const
 {
     return this->semShadow.sem == other.semShadow.sem;
 }
 
 bool
-GMALSemaphore::operator!=(const GMALSemaphore &other) const
+MCSemaphore::operator!=(const MCSemaphore &other) const
 {
     return this->semShadow.sem != other.semShadow.sem;
 }
 
 bool
-GMALSemaphore::isDestroyed() const
+MCSemaphore::isDestroyed() const
 {
-    return this->semShadow.state == GMALSemaphoreShadow::destroyed;
+    return this->semShadow.state == MCSemaphoreShadow::destroyed;
 }
 
 unsigned int
-GMALSemaphore::getCount() const
+MCSemaphore::getCount() const
 {
     return this->semShadow.count;
 }

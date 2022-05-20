@@ -1,7 +1,7 @@
-#include "GMALStateStackItem.h"
+#include "MCStateStackItem.h"
 
 void
-GMALStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
+MCStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
 {
     bool containedInDoneSet = this->doneSet.count(tid) > 0;
     if (!containedInDoneSet) {
@@ -10,22 +10,22 @@ GMALStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
 }
 
 void
-GMALStateStackItem::markBacktrackThreadSearched(tid_t tid)
+MCStateStackItem::markBacktrackThreadSearched(tid_t tid)
 {
     this->doneSet.insert(tid);
     this->backtrackSet.erase(tid);
 }
 
 bool
-GMALStateStackItem::hasThreadsToBacktrackOn() const
+MCStateStackItem::hasThreadsToBacktrackOn() const
 {
     return !backtrackSet.empty();
 }
 
 tid_t
-GMALStateStackItem::popFirstThreadToBacktrackOn()
+MCStateStackItem::popFirstThreadToBacktrackOn()
 {
-    GMAL_ASSERT(this->hasThreadsToBacktrackOn());
+    MC_ASSERT(this->hasThreadsToBacktrackOn());
 
     tid_t randomThreadInBacktrackSet = *this->backtrackSet.begin();
     this->backtrackSet.erase(this->backtrackSet.begin());
@@ -35,14 +35,14 @@ GMALStateStackItem::popFirstThreadToBacktrackOn()
 }
 
 void
-GMALStateStackItem::markThreadsEnabledInState(const std::unordered_set<tid_t>& enabledThrds)
+MCStateStackItem::markThreadsEnabledInState(const std::unordered_set<tid_t>& enabledThrds)
 {
     for (const auto tid : enabledThrds)
         this->enabledThreads.insert(tid);
 }
 
 std::unordered_set<tid_t>
-GMALStateStackItem::getEnabledThreadsInState()
+MCStateStackItem::getEnabledThreadsInState()
 {
     return this->enabledThreads;
 }

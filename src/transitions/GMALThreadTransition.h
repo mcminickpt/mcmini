@@ -1,15 +1,15 @@
-#ifndef GMAL_GMALTHREADTRANSITION_H
-#define GMAL_GMALTHREADTRANSITION_H
+#ifndef MC_MCTHREADTRANSITION_H
+#define MC_MCTHREADTRANSITION_H
 
-#include "GMALTransition.h"
+#include "MCTransition.h"
 
-struct GMALThreadTransition : public GMALTransition {
+struct MCThreadTransition : public MCTransition {
 protected:
-    std::shared_ptr<GMALThread> target;
+    std::shared_ptr<MCThread> target;
 public:
-    GMALThreadTransition(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALThread> target) : GMALTransition(running), target(target) {}
-    GMALThreadTransition(std::shared_ptr<GMALThread> runningThread) : GMALThreadTransition(runningThread, runningThread) {}
+    MCThreadTransition(std::shared_ptr<MCThread> running, std::shared_ptr<MCThread> target) : MCTransition(running), target(target) {}
+    MCThreadTransition(std::shared_ptr<MCThread> runningThread) : MCThreadTransition(runningThread, runningThread) {}
 };
 
 
-#endif //GMAL_GMALTHREADTRANSITION_H
+#endif //MC_MCTHREADTRANSITION_H

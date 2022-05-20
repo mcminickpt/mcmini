@@ -1,25 +1,25 @@
-#ifndef GMAL_GMALCONDWAIT_H
-#define GMAL_GMALCONDWAIT_H
+#ifndef MC_MCCONDWAIT_H
+#define MC_MCCONDWAIT_H
 
-#include "GMALCondTransition.h"
+#include "MCCondTransition.h"
 
-GMALTransition* GMALReadCondWait(const GMALSharedTransition*, void*, GMALState*);
+MCTransition* MCReadCondWait(const MCSharedTransition*, void*, MCState*);
 
 /**
  * Attempts to re-acquire the mutex/exit the thread queue
  */
-struct GMALCondWait : public GMALCondTransition {
+struct MCCondWait : public MCCondTransition {
 public:
-    GMALCondWait(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALConditionVariable> cond) :
-            GMALCondTransition(running, cond) {}
+    MCCondWait(std::shared_ptr<MCThread> running, std::shared_ptr<MCConditionVariable> cond) :
+            MCCondTransition(running, cond) {}
 
-    std::shared_ptr<GMALTransition> staticCopy() override;
-    std::shared_ptr<GMALTransition> dynamicCopyInState(const GMALState*) override;
-    void applyToState(GMALState *) override;
-    bool coenabledWith(std::shared_ptr<GMALTransition>) override;
-    bool dependentWith(std::shared_ptr<GMALTransition>) override;
-    bool enabledInState(const GMALState *) override;
+    std::shared_ptr<MCTransition> staticCopy() override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    void applyToState(MCState *) override;
+    bool coenabledWith(std::shared_ptr<MCTransition>) override;
+    bool dependentWith(std::shared_ptr<MCTransition>) override;
+    bool enabledInState(const MCState *) override;
     void print() override;
 };
 
-#endif //GMAL_GMALCONDWAIT_H
+#endif //MC_MCCONDWAIT_H

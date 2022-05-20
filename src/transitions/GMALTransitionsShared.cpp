@@ -1,13 +1,13 @@
-#include "GMALTransitionsShared.h"
-#include "../GMAL.h"
+#include "MCTransitionsShared.h"
+#include "../MC.h"
 
 // NOTE: Assumes that the parent process
 // is asleep (called dpor_run_thread_to_next_visible_operation); the behavior
 // is undefined otherwise
 void
-thread_await_gmal_scheduler()
+thread_await_mc_scheduler()
 {
-    GMAL_ASSERT(tid_self != TID_INVALID);
+    MC_ASSERT(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
     mc_shared_cv_wake_scheduler(cv);
     mc_shared_cv_wait_for_scheduler(cv);
@@ -20,16 +20,16 @@ thread_await_gmal_scheduler()
 // the scheduler (parent) process is asleep; but upon
 // initialization this is not true. Hence, this method is invoked instead
 void
-thread_await_gmal_scheduler_for_thread_start_transition()
+thread_await_mc_scheduler_for_thread_start_transition()
 {
-    GMAL_ASSERT(tid_self != TID_INVALID);
+    MC_ASSERT(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
     mc_shared_cv_wait_for_scheduler(cv);
 }
 
 void
-thread_awake_gmal_scheduler_for_thread_finish_transition() {
-    GMAL_ASSERT(tid_self != TID_INVALID);
+thread_awake_mc_scheduler_for_thread_finish_transition() {
+    MC_ASSERT(tid_self != TID_INVALID);
     mc_shared_cv_ref cv = &(*threadQueue)[tid_self];
     mc_shared_cv_wake_scheduler(cv);
 }
@@ -37,6 +37,6 @@ thread_awake_gmal_scheduler_for_thread_finish_transition() {
 void
 thread_post_visible_operation_hit(const std::type_info &type)
 {
-    auto newTypeInfo = GMALSharedTransition(tid_self, type);
-    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(GMALSharedTransition));
+    auto newTypeInfo = MCSharedTransition(tid_self, type);
+    memcpy(shmTransitionTypeInfo, &newTypeInfo, sizeof(MCSharedTransition));
 }

@@ -1,1 +1,1 @@
-#include "GMALSemaphoreTransition.h"
+#include "MCSemaphoreTransition.h"

@@ -1,47 +1,47 @@
-#include "GMALThreadJoin.h"
+#include "MCThreadJoin.h"
 
-GMALTransition*
-GMALReadThreadJoin(const GMALSharedTransition *shmTransition, void *shmData, GMALState *state)
+MCTransition*
+MCReadThreadJoin(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
 {
     // TODO: Potentially add asserts that the thread that just ran exists!
-    auto newThreadData = static_cast<GMALThreadShadow *>(shmData);
+    auto newThreadData = static_cast<MCThreadShadow *>(shmData);
 
-    auto threadThatExists = state->getVisibleObjectWithSystemIdentity<GMALThread>((GMALSystemID)newThreadData->systemIdentity);
+    auto threadThatExists = state->getVisibleObjectWithSystemIdentity<MCThread>((MCSystemID)newThreadData->systemIdentity);
     tid_t newThreadId = threadThatExists != nullptr ? threadThatExists->tid : state->addNewThread(*newThreadData);
     tid_t threadThatRanId = shmTransition->executor;
 
     auto joinThread = state->getThreadWithId(newThreadId);
     auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new GMALThreadJoin(threadThatRan, joinThread);
+    return new MCThreadJoin(threadThatRan, joinThread);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadJoin::staticCopy()
+std::shared_ptr<MCTransition>
+MCThreadJoin::staticCopy()
 {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto targetThreadCpy =
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->target->copy());
-    auto threadStartCpy = new GMALThreadJoin(threadCpy, targetThreadCpy);
-    return std::shared_ptr<GMALTransition>(threadStartCpy);
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->target->copy());
+    auto threadStartCpy = new MCThreadJoin(threadCpy, targetThreadCpy);
+    return std::shared_ptr<MCTransition>(threadStartCpy);
 }
 
-std::shared_ptr<GMALTransition>
-GMALThreadJoin::dynamicCopyInState(const GMALState *state)
+std::shared_ptr<MCTransition>
+MCThreadJoin::dynamicCopyInState(const MCState *state)
 {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<GMALThread> targetInState = state->getThreadWithId(target->tid);
-    auto cpy = new GMALThreadJoin(threadInState, targetInState);
-    return std::shared_ptr<GMALTransition>(cpy);
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    std::shared_ptr<MCThread> targetInState = state->getThreadWithId(target->tid);
+    auto cpy = new MCThreadJoin(threadInState, targetInState);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 bool
-GMALThreadJoin::enabledInState(const GMALState *) {
-    return thread->enabled() && target->getState() == GMALThreadShadow::dead;
+MCThreadJoin::enabledInState(const MCState *) {
+    return thread->enabled() && target->getState() == MCThreadShadow::dead;
 }
 
 void
-GMALThreadJoin::applyToState(GMALState *state)
+MCThreadJoin::applyToState(MCState *state)
 {
     if (target->isDead()) {
         thread->awaken();
@@ -52,7 +52,7 @@ GMALThreadJoin::applyToState(GMALState *state)
 }
 
 bool
-GMALThreadJoin::coenabledWith(std::shared_ptr<GMALTransition> transition)
+MCThreadJoin::coenabledWith(std::shared_ptr<MCTransition> transition)
 {
     tid_t targetThreadId = transition->getThreadId();
     if (this->thread->tid == targetThreadId || this->target->tid == targetThreadId) {
@@ -62,7 +62,7 @@ GMALThreadJoin::coenabledWith(std::shared_ptr<GMALTransition> transition)
 }
 
 bool
-GMALThreadJoin::dependentWith(std::shared_ptr<GMALTransition> transition)
+MCThreadJoin::dependentWith(std::shared_ptr<MCTransition> transition)
 {
     tid_t targetThreadId = transition->getThreadId();
     if (this->thread->tid == targetThreadId || this->target->tid == targetThreadId) {
@@ -72,19 +72,19 @@ GMALThreadJoin::dependentWith(std::shared_ptr<GMALTransition> transition)
 }
 
 bool
-GMALThreadJoin::joinsOnThread(tid_t tid) const
+MCThreadJoin::joinsOnThread(tid_t tid) const
 {
     return this->target->tid == tid;
 }
 
 bool
-GMALThreadJoin::joinsOnThread(const std::shared_ptr<GMALThread>& thread) const
+MCThreadJoin::joinsOnThread(const std::shared_ptr<MCThread>& thread) const
 {
     return this->target->tid == thread->tid;
 }
 
 void
-GMALThreadJoin::print()
+MCThreadJoin::print()
 {
     printf("thread %lu: pthread_join(%lu, _)\n", this->thread->tid, this->target->tid);
 }

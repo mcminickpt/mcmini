@@ -1,53 +1,53 @@
-#include "GMALExitTransition.h"
+#include "MCExitTransition.h"
 
-GMALTransition* GMALReadExitTransition(const GMALSharedTransition *shmTransition, void *shmStart, GMALState *programState)
+MCTransition* MCReadExitTransition(const MCSharedTransition *shmTransition, void *shmStart, MCState *programState)
 {
     auto executor = programState->getThreadWithId(shmTransition->executor);
     auto exitCode = *(int*)shmStart;
-    return new GMALExitTransition(executor, exitCode);
+    return new MCExitTransition(executor, exitCode);
 }
 
-std::shared_ptr<GMALTransition>
-GMALExitTransition::staticCopy() {
+std::shared_ptr<MCTransition>
+MCExitTransition::staticCopy() {
     auto threadCpy=
-            std::static_pointer_cast<GMALThread, GMALVisibleObject>(this->thread->copy());
-    auto threadStartCpy = new GMALExitTransition(threadCpy, exitCode);
-    return std::shared_ptr<GMALTransition>(threadStartCpy);
+            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
+    auto threadStartCpy = new MCExitTransition(threadCpy, exitCode);
+    return std::shared_ptr<MCTransition>(threadStartCpy);
 }
 
-std::shared_ptr<GMALTransition>
-GMALExitTransition::dynamicCopyInState(const GMALState *state) {
-    std::shared_ptr<GMALThread> threadInState = state->getThreadWithId(thread->tid);
-    auto cpy = new GMALExitTransition(threadInState, exitCode);
-    return std::shared_ptr<GMALTransition>(cpy);
+std::shared_ptr<MCTransition>
+MCExitTransition::dynamicCopyInState(const MCState *state) {
+    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
+    auto cpy = new MCExitTransition(threadInState, exitCode);
+    return std::shared_ptr<MCTransition>(cpy);
 }
 
 bool
-GMALExitTransition::dependentWith(std::shared_ptr<GMALTransition>)
+MCExitTransition::dependentWith(std::shared_ptr<MCTransition>)
 {
     return false;
 }
 
 bool
-GMALExitTransition::enabledInState(const GMALState *)
+MCExitTransition::enabledInState(const MCState *)
 {
     return false; // Never enabled
 }
 
 void
-GMALExitTransition::print()
+MCExitTransition::print()
 {
     printf("thread %lu: exit(%u)\n", this->thread->tid, this->exitCode);
 }
 
 bool
-GMALExitTransition::ensuresDeadlockIsImpossible()
+MCExitTransition::ensuresDeadlockIsImpossible()
 {
     return true;
 }
 
 bool
-GMALExitTransition::countsAgainstThreadExecutionDepth()
+MCExitTransition::countsAgainstThreadExecutionDepth()
 {
     return false;
 }

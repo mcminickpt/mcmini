@@ -1,11 +1,11 @@
-#ifndef GMAL_GMALMUTEXTRANSITIONWRAPPERS_H
-#define GMAL_GMALMUTEXTRANSITIONWRAPPERS_H
+#ifndef MC_MCMUTEXTRANSITIONWRAPPERS_H
+#define MC_MCMUTEXTRANSITIONWRAPPERS_H
 
 #include <pthread.h>
-#include "GMALShared.h"
+#include "MCShared.h"
 
-GMAL_EXTERN int gmal_pthread_mutex_init(pthread_mutex_t*, const pthread_mutexattr_t*);
-GMAL_EXTERN int gmal_pthread_mutex_lock(pthread_mutex_t*);
-GMAL_EXTERN int gmal_pthread_mutex_unlock(pthread_mutex_t*);
+MC_EXTERN int mc_pthread_mutex_init(pthread_mutex_t*, const pthread_mutexattr_t*);
+MC_EXTERN int mc_pthread_mutex_lock(pthread_mutex_t*);
+MC_EXTERN int mc_pthread_mutex_unlock(pthread_mutex_t*);
 
-#endif //GMAL_GMALMUTEXTRANSITIONWRAPPERS_H
+#endif //MC_MCMUTEXTRANSITIONWRAPPERS_H

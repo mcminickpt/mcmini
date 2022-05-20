@@ -1,14 +1,14 @@
-#ifndef GMAL_GMALMUTEXTRANSITION_H
-#define GMAL_GMALMUTEXTRANSITION_H
+#ifndef MC_MCMUTEXTRANSITION_H
+#define MC_MCMUTEXTRANSITION_H
 
-#include "GMALTransition.h"
-#include "objects/GMALMutex.h"
+#include "MCTransition.h"
+#include "objects/MCMutex.h"
 
-struct GMALMutexTransition : public GMALTransition {
+struct MCMutexTransition : public MCTransition {
 public:
-    std::shared_ptr<GMALMutex> mutex;
-    GMALMutexTransition(std::shared_ptr<GMALThread> running, std::shared_ptr<GMALMutex> mutex) :
-    GMALTransition(running), mutex(mutex) {}
+    std::shared_ptr<MCMutex> mutex;
+    MCMutexTransition(std::shared_ptr<MCThread> running, std::shared_ptr<MCMutex> mutex) :
+    MCTransition(running), mutex(mutex) {}
 };
 
-#endif //GMAL_GMALMUTEXTRANSITION_H
+#endif //MC_MCMUTEXTRANSITION_H
