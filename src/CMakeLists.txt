@@ -52,16 +52,12 @@ target_link_libraries(MCMINI PUBLIC ${MC_LINK_TARGET_FLAGS})
 target_compile_options(MCMINI PUBLIC -g3)
 
 # Shared library
-add_library(gmalchecker SHARED ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
-target_compile_definitions(gmalchecker PUBLIC MC_SHARED_LIBRARY=1)
-target_link_libraries(gmalchecker PUBLIC ${MC_LINK_TARGET_FLAGS})
-target_compile_options(gmalchecker PUBLIC -g3)
+add_library(mcminichecker SHARED ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
+target_compile_definitions(mcminichecker PUBLIC MC_SHARED_LIBRARY=1)
+target_link_libraries(mcminichecker PUBLIC ${MC_LINK_TARGET_FLAGS})
+target_compile_options(mcminichecker PUBLIC -g3)
 
 # Executable that loads the shared library
 set(MAIN_FUNCTION launch.c ../test/programs/producer_consumer.cpp)
-<<<<<<< HEAD
-add_executable(gmal ${MAIN_FUNCTION} MCEnv.h)
-=======
-add_executable(gmal ${MAIN_FUNCTION} MCEnv.h)
->>>>>>> Symbols:  MC->MC
-target_compile_options(gmal PUBLIC -g3)
+add_executable(mcmini ${MAIN_FUNCTION} MCEnv.h)
+target_compile_options(mcmini PUBLIC -g3)
