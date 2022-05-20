@@ -28,7 +28,7 @@ extern "C" {
 #include "transitions/MCCondWait.h"
 #include "transitions/MCCondEnqueue.h"
 
-#include "MC.h"
+#include "MCMINI.h"
 
 /* Source program thread control */
 template<typename SharedMemoryData> void

@@ -1,4 +1,4 @@
-#include "MC.h"
+#include "MCMINI.h"
 #include "MCSemPost.h"
 
 MCTransition*

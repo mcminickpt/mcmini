@@ -1,5 +1,5 @@
 #include "MCCondSignal.h"
-#include "MC.h"
+#include "MCMINI.h"
 #include "MCMutexTransition.h"
 
 MCTransition*

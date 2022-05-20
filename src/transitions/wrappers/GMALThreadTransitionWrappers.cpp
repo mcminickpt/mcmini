@@ -1,5 +1,5 @@
 #include "MCThreadTransitionWrappers.h"
-#include "MC.h"
+#include "MCMINI.h"
 #include "objects/MCThread.h"
 #include "transitions/MCThreadCreate.h"
 #include "transitions/MCThreadFinish.h"

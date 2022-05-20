@@ -1,5 +1,5 @@
 #include "MCCondWait.h"
-#include "MC.h"
+#include "MCMINI.h"
 #include "MCMutexTransition.h"
 #include "MCMutexLock.h"
 #include "MCTransitionFactory.h"

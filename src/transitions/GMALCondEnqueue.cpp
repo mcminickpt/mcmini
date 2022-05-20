@@ -1,5 +1,5 @@
 #include "MCCondEnqueue.h"
-#include "MC.h"
+#include "MCMINI.h"
 #include "MCMutexTransition.h"
 #include "MCMutexUnlock.h"
 #include "MCTransitionFactory.h"
