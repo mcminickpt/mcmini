@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 
 #define NUM_THREADS 5
 

@@ -1,6 +1,6 @@
 #include <pthread.h>
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;

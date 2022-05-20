@@ -2,8 +2,8 @@
 
 #include <unistd.h>
 #include <pthread.h>
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 
 
 pthread_mutex_t mutex, mutex_start;

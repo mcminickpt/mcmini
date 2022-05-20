@@ -1,5 +1,5 @@
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 #include <stdlib.h>
 #include <stdio.h>
 

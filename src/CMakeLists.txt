@@ -16,9 +16,9 @@ set(GMAL_CPP_FILES
         objects/GMALVisibleObject.cpp objects/GMALVisibleObject.h
         GMALObjectStore.cpp GMALObjectStore.h
         GMALSharedTransition.cpp GMALSharedTransition.h
-        GMALWrappers.cpp GMALWrappers.h
+        MCMINIWrappers.cpp MCMINIWrappers.h
         GMALTransition.cpp GMALTransition.h
-        GMAL.cpp GMAL.h
+        MCMINI.cpp MCMINI.h
         GMALState.cpp GMALState.h GMAL_Private.h GMALConstants.h
         transitions/GMALThreadStart.cpp transitions/GMALThreadStart.h
         GMALTransitionFactory.cpp GMALTransitionFactory.h

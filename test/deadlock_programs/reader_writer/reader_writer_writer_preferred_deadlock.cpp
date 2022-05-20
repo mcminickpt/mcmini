@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <unistd.h>
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 
 #define NUM_READERS 3
 #define NUM_WRITERS 3

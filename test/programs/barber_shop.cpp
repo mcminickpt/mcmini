@@ -7,8 +7,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 
 // The maximum number of customer threads.
 #define MAX_CUSTOMERS 25
