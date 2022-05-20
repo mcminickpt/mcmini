@@ -4,6 +4,20 @@ Dynamic Partial Order Reduction model checker for C programs
 
 ## High-Level Overview of Functionality
 
+## To Build and Test:
+```bash
+  git clone THIS_REPO
+  cd THIS_REPO/src
+  cmake .
+  make -j5
+
+  cd ../src/test
+  make -j5
+  ../src/mcmini EXECUTABLE
+```
+
+---
+
 ## API Naming Reference:
 
 The C APIs are inspired by that of Core Foundation (a low-level framework written in C for iOS/macOS). In Core Foundation, the notion of ownership over memory
@@ -24,7 +38,3 @@ to clean up any memory created after invoking these functions to ensure you don'
 
 Core Foundation has more advanced notions of ownership *count*, giving some struct types automatic reference counting-like semantics. This project
 doesn't require such detail and does not implement the more complicated features
-
-
-
-
