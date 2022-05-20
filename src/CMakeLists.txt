@@ -89,6 +89,6 @@ target_link_libraries(gmalchecker PUBLIC ${GMAL_LINK_TARGET_FLAGS})
 target_compile_options(gmalchecker PUBLIC -g3)
 
 # Executable that loads the shared library
-set(MAIN_FUNCTION launch.c ../test/programs/producer_consumer.cpp)
+set(MAIN_FUNCTION launch.c)
 add_executable(gmal ${MAIN_FUNCTION} GMALEnv.h)
 target_compile_options(gmal PUBLIC -g3)
