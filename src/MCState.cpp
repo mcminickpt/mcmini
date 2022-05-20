@@ -65,7 +65,7 @@ MCState::setNextTransitionForThread(tid_t tid, MCSharedTransition *shmTypeInfo, 
 
     MCSharedMemoryHandler handlerForType = maybeHandler->second;
     MCTransition *newTransitionForThread = handlerForType(shmTypeInfo, shmData, this);
-    MCMINI_FATAL_ON_FAIL(newTransitionForThread != nullptr);
+    MC_FATAL_ON_FAIL(newTransitionForThread != nullptr);
 
     auto sharedPointer = std::shared_ptr<MCTransition>(newTransitionForThread);
     this->setNextTransitionForThread(tid, sharedPointer);

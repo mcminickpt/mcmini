@@ -33,12 +33,12 @@ typedef void *MCSystemID;
 
 #define MC_ASSERT(__X) assert(__X)
 #define MC_FAIL() MC_ASSERT(0)
-#define MCMINI_FATAL_ON_FAIL(expr) \
+#define MC_FATAL_ON_FAIL(expr) \
 do {                            \
     (static_cast <bool> (expr) ? void (0) : abort()); \
 } while(0)
 
-#define MCMINI_FATAL() abort()
+#define MC_FATAL() abort()
 #define MC_UNIMPLEMENTED() MC_ASSERT(false)
 
 #define MC_STRUCT_DECL(type)             \

@@ -4,7 +4,7 @@ MCTransition*
 MCReadThreadStart(const MCSharedTransition *shmTransition, void *shmData, MCState *programState)
 {
     // Should never be called
-    MCMINI_FATAL();
+    MC_FATAL();
 }
 
 std::shared_ptr<MCTransition>
