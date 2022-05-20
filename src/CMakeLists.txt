@@ -60,8 +60,8 @@ target_compile_options(gmalchecker PUBLIC -g3)
 # Executable that loads the shared library
 set(MAIN_FUNCTION launch.c ../test/programs/producer_consumer.cpp)
 <<<<<<< HEAD
-add_executable(gmal ${MAIN_FUNCTION} GMALEnv.h)
+add_executable(gmal ${MAIN_FUNCTION} MCEnv.h)
 =======
 add_executable(gmal ${MAIN_FUNCTION} MCEnv.h)
->>>>>>> Symbols:  GMAL->MC
+>>>>>>> Symbols:  MC->MC
 target_compile_options(gmal PUBLIC -g3)

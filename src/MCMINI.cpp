@@ -1,8 +1,8 @@
 #include "MCMINI.h"
-#include "GMAL_Private.h"
-#include "GMALSharedTransition.h"
-#include "GMALTransitionFactory.h"
-#include "transitions/GMALTransitionsShared.h"
+#include "MC_Private.h"
+#include "MCSharedTransition.h"
+#include "MCTransitionFactory.h"
+#include "transitions/MCTransitionsShared.h"
 #include <vector>
 
 extern "C" {
@@ -21,21 +21,21 @@ extern "C" {
 /* The semaphores must also reside in shared memory as per the man page */
 
 /* Synchronization primitives */
-GMAL_THREAD_LOCAL tid_t tid_self = TID_INVALID;
+MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t cpid = -1;
 mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM] = nullptr;
 sem_t mc_pthread_create_binary_sem;
 
 /* Data transfer */
 void *shmStart = nullptr;
-GMALSharedTransition *shmTransitionTypeInfo = nullptr;
+MCSharedTransition *shmTransitionTypeInfo = nullptr;
 void *shmTransitionData = nullptr;
 const size_t shmAllocationSize =  sizeof(*threadQueue) + (sizeof(*shmTransitionTypeInfo) + MAX_SHARED_MEMORY_ALLOCATION);
 
 /* Program state */
-GMALDeferred<GMALState> programState;
+MCDeferred<MCState> programState;
 
-GMAL_CTOR void
+MC_CTOR void
 mc_init()
 {
     mc_load_shadow_routines();
@@ -43,10 +43,10 @@ mc_init()
     mc_initialize_shared_memory_region();
     mc_create_thread_sleep_points();
 
-    GMAL_FATAL_ON_FAIL(__real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
+    MC_FATAL_ON_FAIL(__real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
-    GMAL_PROGRAM_TYPE program = mc_scheduler_main();
-    if (GMAL_IS_SOURCE_PROGRAM(program)) return;
+    MC_PROGRAM_TYPE program = mc_scheduler_main();
+    if (MC_IS_SOURCE_PROGRAM(program)) return;
 
     puts("***** Model checking completed! *****");
     __real_exit(EXIT_SUCCESS);
@@ -57,28 +57,28 @@ mc_create_program_state()
 {
     auto config = get_config_for_execution_environment();
     programState.Construct(config);
-    programState->registerVisibleOperationType(typeid(GMALThreadStart), &GMALReadThreadStart);
-    programState->registerVisibleOperationType(typeid(GMALThreadCreate), &GMALReadThreadCreate);
-    programState->registerVisibleOperationType(typeid(GMALThreadFinish), &GMALReadThreadFinish);
-    programState->registerVisibleOperationType(typeid(GMALThreadJoin), &GMALReadThreadJoin);
-    programState->registerVisibleOperationType(typeid(GMALMutexInit), &GMALReadMutexInit);
-    programState->registerVisibleOperationType(typeid(GMALMutexUnlock), &GMALReadMutexUnlock);
-    programState->registerVisibleOperationType(typeid(GMALMutexLock), &GMALReadMutexLock);
-    programState->registerVisibleOperationType(typeid(GMALSemInit), &GMALReadSemInit);
-    programState->registerVisibleOperationType(typeid(GMALSemPost), &GMALReadSemPost);
-    programState->registerVisibleOperationType(typeid(GMALSemWait), &GMALReadSemWait);
-    programState->registerVisibleOperationType(typeid(GMALExitTransition), &GMALReadExitTransition);
-    programState->registerVisibleOperationType(typeid(GMALBarrierInit), &GMALReadBarrierInit);
-    programState->registerVisibleOperationType(typeid(GMALBarrierWait), &GMALReadBarrierWait);
-    programState->registerVisibleOperationType(typeid(GMALCondInit), &GMALReadCondInit);
-    programState->registerVisibleOperationType(typeid(GMALCondSignal), &GMALReadCondSignal);
-    programState->registerVisibleOperationType(typeid(GMALCondBroadcast), &GMALReadCondBroadcast);
-    programState->registerVisibleOperationType(typeid(GMALCondWait), &GMALReadCondWait);
-    programState->registerVisibleOperationType(typeid(GMALCondEnqueue), &GMALReadCondEnqueue);
+    programState->registerVisibleOperationType(typeid(MCThreadStart), &MCReadThreadStart);
+    programState->registerVisibleOperationType(typeid(MCThreadCreate), &MCReadThreadCreate);
+    programState->registerVisibleOperationType(typeid(MCThreadFinish), &MCReadThreadFinish);
+    programState->registerVisibleOperationType(typeid(MCThreadJoin), &MCReadThreadJoin);
+    programState->registerVisibleOperationType(typeid(MCMutexInit), &MCReadMutexInit);
+    programState->registerVisibleOperationType(typeid(MCMutexUnlock), &MCReadMutexUnlock);
+    programState->registerVisibleOperationType(typeid(MCMutexLock), &MCReadMutexLock);
+    programState->registerVisibleOperationType(typeid(MCSemInit), &MCReadSemInit);
+    programState->registerVisibleOperationType(typeid(MCSemPost), &MCReadSemPost);
+    programState->registerVisibleOperationType(typeid(MCSemWait), &MCReadSemWait);
+    programState->registerVisibleOperationType(typeid(MCExitTransition), &MCReadExitTransition);
+    programState->registerVisibleOperationType(typeid(MCBarrierInit), &MCReadBarrierInit);
+    programState->registerVisibleOperationType(typeid(MCBarrierWait), &MCReadBarrierWait);
+    programState->registerVisibleOperationType(typeid(MCCondInit), &MCReadCondInit);
+    programState->registerVisibleOperationType(typeid(MCCondSignal), &MCReadCondSignal);
+    programState->registerVisibleOperationType(typeid(MCCondBroadcast), &MCReadCondBroadcast);
+    programState->registerVisibleOperationType(typeid(MCCondWait), &MCReadCondWait);
+    programState->registerVisibleOperationType(typeid(MCCondEnqueue), &MCReadCondEnqueue);
     programState->start();
 }
 
-GMAL_PROGRAM_TYPE
+MC_PROGRAM_TYPE
 mc_scheduler_main()
 {
     /*
@@ -91,17 +91,17 @@ mc_scheduler_main()
     mc_register_main_thread();
 
     auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
-    auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
+    auto initialTransition = MCTransitionFactory::createInitialTransitionForThread(mainThread);
     programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
-    GMAL_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
-    if (GMAL_IS_SOURCE_PROGRAM(program))
-        return GMAL_SOURCE_PROGRAM;
+    MC_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
+    if (MC_IS_SOURCE_PROGRAM(program))
+        return MC_SOURCE_PROGRAM;
 
     mc_exhaust_threads(initialTransition);
     program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
-    if (GMAL_IS_SOURCE_PROGRAM(program))
-        return GMAL_SOURCE_PROGRAM;
+    if (MC_IS_SOURCE_PROGRAM(program))
+        return MC_SOURCE_PROGRAM;
 
     int curStateStackDepth = static_cast<int>(programState->getStateStackSize());
     int curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
@@ -110,7 +110,7 @@ mc_scheduler_main()
 
         printf("**** Backtracking at state depth %d (%d transitions to reach this state) ****\n", curStateStackDepth, curTransitionStackDepth);
 
-        std::shared_ptr<GMALStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
+        std::shared_ptr<MCStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
         if (sTop->hasThreadsToBacktrackOn()) {
             // TODO: We can be smart here and only run a thread
             // if it is not already in a sleep set or lock set (eventually)
@@ -118,15 +118,15 @@ mc_scheduler_main()
 
             // DPOR ensures that any thread in the backtrack set is enabled in this state
             tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
-            std::shared_ptr<GMALTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
+            std::shared_ptr<MCTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
             program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
-            if (GMAL_IS_SOURCE_PROGRAM(program))
-                return GMAL_SOURCE_PROGRAM;
+            if (MC_IS_SOURCE_PROGRAM(program))
+                return MC_SOURCE_PROGRAM;
 
             program = mc_readvance_main(backtrackOperation);
-            if (GMAL_IS_SOURCE_PROGRAM(program))
-                return GMAL_SOURCE_PROGRAM;
+            if (MC_IS_SOURCE_PROGRAM(program))
+                return MC_SOURCE_PROGRAM;
 
             curStateStackDepth = static_cast<int>(programState->getStateStackSize());
             curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
@@ -224,11 +224,11 @@ sigusr1_handler_scheduler(int sig)
     _exit(1);
 }
 
-GMAL_PROGRAM_TYPE
+MC_PROGRAM_TYPE
 mc_spawn_child()
 {
     // Ensure that a child does not already exist to prevent fork bombing
-    GMAL_ASSERT(cpid == -1);
+    MC_ASSERT(cpid == -1);
 
     pid_t childpid;
     if ( (childpid = fork()) < 0) {
@@ -240,20 +240,20 @@ mc_spawn_child()
     if (FORK_IS_CHILD_PID(childpid)) {
         signal(SIGUSR1, &sigusr1_handler_child);
         printf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
-        return GMAL_SOURCE_PROGRAM;
+        return MC_SOURCE_PROGRAM;
     } else {
-        GMAL_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) != SIG_ERR);
-        return GMAL_SCHEDULER;
+        MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) != SIG_ERR);
+        return MC_SCHEDULER;
     }
 }
 
-GMAL_PROGRAM_TYPE
+MC_PROGRAM_TYPE
 mc_spawn_child_following_transition_stack()
 {
     mc_reset_cv_locks();
-    GMAL_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
+    MC_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
 
-    if (GMAL_IS_SCHEDULER(program)) {
+    if (MC_IS_SCHEDULER(program)) {
         const int transition_stack_height = programState->getTransitionStackSize();
         for (int i = 0; i < transition_stack_height; i++) {
             // NOTE: This is reliant on the fact
@@ -278,11 +278,11 @@ mc_spawn_child_following_transition_stack()
     return program;
 }
 
-GMAL_PROGRAM_TYPE
+MC_PROGRAM_TYPE
 mc_begin_target_program_at_main(bool spawnDaemonThread)
 {
-    GMAL_PROGRAM_TYPE program = mc_spawn_child();
-    if (GMAL_IS_SOURCE_PROGRAM(program)) {
+    MC_PROGRAM_TYPE program = mc_spawn_child();
+    if (MC_IS_SOURCE_PROGRAM(program)) {
         // NOTE: Technically, the child will be frozen
         // inside of dpor_init until it is scheduled. But
         // this is only a technicality: it doesn't actually
@@ -304,7 +304,7 @@ mc_begin_target_program_at_main(bool spawnDaemonThread)
         // NOTE!!: atexit handlers can be invoked when a dynamic
         // library is unloaded. In the transparent target, we need
         // to be able to handle this case gracefully
-        GMAL_FATAL_ON_FAIL(atexit(&mc_exit_main_thread) == 0);
+        MC_FATAL_ON_FAIL(atexit(&mc_exit_main_thread) == 0);
 
         if (spawnDaemonThread)
             mc_spawn_daemon_thread();
@@ -317,7 +317,7 @@ mc_begin_target_program_at_main(bool spawnDaemonThread)
 void
 mc_run_thread_to_next_visible_operation(tid_t tid)
 {
-    GMAL_ASSERT(tid != TID_INVALID);
+    MC_ASSERT(tid != TID_INVALID);
     mc_shared_cv_ref cv = &(*threadQueue)[tid];
     mc_shared_cv_wake_thread(cv);
     mc_shared_cv_wait_for_thread(cv);
@@ -335,7 +335,7 @@ mc_child_kill()
 void
 mc_child_wait()
 {
-    GMAL_ASSERT(cpid != -1);
+    MC_ASSERT(cpid != -1);
     waitpid(cpid, nullptr, 0);
 }
 
@@ -351,11 +351,11 @@ mc_child_panic()
 }
 
 void
-mc_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
+mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
 {
     puts("**** Exhausting threads... ****");
     uint64_t debug_depth = programState->getTransitionStackSize();
-    std::shared_ptr<GMALTransition> t_next = initialTransition;
+    std::shared_ptr<MCTransition> t_next = initialTransition;
     do {
         debug_depth++;
         tid_t tid = t_next->getThreadId();
@@ -374,13 +374,13 @@ mc_exhaust_threads(std::shared_ptr<GMALTransition> initialTransition)
     mc_child_kill();
 }
 
-GMAL_PROGRAM_TYPE
-mc_readvance_main(std::shared_ptr<GMALTransition> nextTransitionToTest)
+MC_PROGRAM_TYPE
+mc_readvance_main(std::shared_ptr<MCTransition> nextTransitionToTest)
 {
-    GMAL_PROGRAM_TYPE program = mc_spawn_child_following_transition_stack();
-    if (GMAL_IS_SOURCE_PROGRAM(program)) return GMAL_SOURCE_PROGRAM;
+    MC_PROGRAM_TYPE program = mc_spawn_child_following_transition_stack();
+    if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
     mc_exhaust_threads(nextTransitionToTest);
-    return GMAL_SCHEDULER;
+    return MC_SCHEDULER;
 }
 
 tid_t
@@ -417,12 +417,12 @@ mc_report_undefined_behavior(const char *msg)
 
 /* GDB Interface */
 
-GMAL_PROGRAM_TYPE
+MC_PROGRAM_TYPE
 mc_enter_gdb_debugging_session_if_necessary(trid_t trid)
 {
     if (mc_should_enter_gdb_debugging_session_with_trace_id(trid))
         return mc_enter_gdb_debugging_session();
-    return GMAL_SCHEDULER;
+    return MC_SCHEDULER;
 }
 
 bool
@@ -431,11 +431,11 @@ mc_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
     return programState->isTargetTraceIdForGDB(trid);
 }
 
-GMAL_PROGRAM_TYPE
+MC_PROGRAM_TYPE
 mc_enter_gdb_debugging_session()
 {
-    GMAL_PROGRAM_TYPE program = mc_begin_target_program_at_main(true);
-    if (GMAL_IS_SCHEDULER(program)) {
+    MC_PROGRAM_TYPE program = mc_begin_target_program_at_main(true);
+    if (MC_IS_SCHEDULER(program)) {
         mc_child_wait(); /* The daemon thread will take the place of the parent process */
         exit(0);
     }
@@ -470,7 +470,7 @@ mc_daemon_thread_simulate_program(void *trace)
     mc_register_main_thread();
 
     auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
-    auto initialTransition = GMALTransitionFactory::createInitialTransitionForThread(mainThread);
+    auto initialTransition = MCTransitionFactory::createInitialTransitionForThread(mainThread);
     programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     auto tracePtr = static_cast<std::vector<tid_t>*>(trace);
@@ -486,11 +486,11 @@ mc_daemon_thread_simulate_program(void *trace)
     return nullptr; /* Ignored */
 }
 
-GMALStateConfiguration
+MCStateConfiguration
 get_config_for_execution_environment()
 {
-    uint64_t maxThreadDepth = GMAL_STATE_CONFIG_THREAD_NO_LIMIT;
-    uint64_t gdbTraceNumber = GMAL_STATE_CONFIG_NO_TRACE;
+    uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
