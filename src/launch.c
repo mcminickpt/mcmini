@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
-#include "GMALEnv.h"
+#include "MCEnv.h"
 
 int
 main(int argc, const char **argv)
@@ -29,13 +29,13 @@ main(int argc, const char **argv)
             cur_arg++;
         } else if (strcmp(cur_arg[0], "--help") == 0 ||
                    strcmp(cur_arg[0], "-h") == 0) {
-            fprintf(stderr, "Usage: gmal [--max-trace-depth|-m <num>] "
+            fprintf(stderr, "Usage: mcmini [--max-trace-depth|-m <num>] "
                             "[--debug-at-trace|-d <num>]\n"
                             "[--first-deadlock|-first]\n"
                             "[--verbose|-v] [--help|-h] target_executable\n");
             exit(1);
         } else {
-            printf("gmal: unrecognized option: %s\n", cur_arg[0]);
+            printf("mcmini: unrecognized option: %s\n", cur_arg[0]);
             exit(1);
         }
     }
@@ -49,7 +49,7 @@ main(int argc, const char **argv)
     char buf[1000];
     buf[sizeof(buf)-1] = '\0';
     // We add ours to the end of any PRELOAD of the target application.
-    snprintf(buf, sizeof buf, "%s:%s/libgmalchecker.so",
+    snprintf(buf, sizeof buf, "%s:%s/libmcminichecker.so",
              (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
              dirname(argv[0]));
     // Guard against buffer overrun:
@@ -57,6 +57,6 @@ main(int argc, const char **argv)
     setenv("LD_PRELOAD", buf, 1);
     execvp(cur_arg[0], cur_arg);
     fprintf(stderr, "Executable '%s' not found.\n", cur_arg[0]);
-    perror("gmal");
+    perror("mcmini");
     return 1;
 }

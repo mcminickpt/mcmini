@@ -1,21 +1,21 @@
 #include <pthread.h>
-#include "GMAL.h"
-#include "GMALWrappers.h"
+#include "MCMINI.h"
+#include "MCMINIWrappers.h"
 
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
 
 int main(int argc, char* argv[])
 {
-    gmal_init();
+    mc_init();
 
-    gmal_pthread_mutex_init(&mutex1, NULL);
-    gmal_pthread_mutex_init(&mutex2, NULL);
+    mc_pthread_mutex_init(&mutex1, NULL);
+    mc_pthread_mutex_init(&mutex2, NULL);
 
-    gmal_pthread_mutex_lock(&mutex1);
-    gmal_pthread_mutex_lock(&mutex2);
-    gmal_pthread_mutex_unlock(&mutex2);
-    gmal_pthread_mutex_unlock(&mutex1);
+    mc_pthread_mutex_lock(&mutex1);
+    mc_pthread_mutex_lock(&mutex2);
+    mc_pthread_mutex_unlock(&mutex2);
+    mc_pthread_mutex_unlock(&mutex1);
 
     return 0;
 }

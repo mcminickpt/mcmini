@@ -1,10 +1,10 @@
 #ifndef DPOR_MC_SHARED_CV_H
 #define DPOR_MC_SHARED_CV_H
 
-#include "GMALShared.h"
+#include "MCShared.h"
 #include <semaphore.h>
 
-GMAL_STRUCT_DECL(mc_shared_cv)
+MC_STRUCT_DECL(mc_shared_cv)
 struct mc_shared_cv {
     sem_t dpor_scheduler_sem;
     sem_t pthread_sem;
