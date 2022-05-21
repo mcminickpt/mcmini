@@ -104,6 +104,9 @@ mc_scheduler_main()
         return MC_SOURCE_PROGRAM;
 
     mc_exhaust_threads(initialTransition);
+    mc_exit_with_trace_if_necessary(traceId);
+    // Possibly print
+
     program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
     if (MC_IS_SOURCE_PROGRAM(program))
         return MC_SOURCE_PROGRAM;
@@ -125,14 +128,16 @@ mc_scheduler_main()
             tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
             std::shared_ptr<MCTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
-            program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
+            program = mc_enter_gdb_debugging_session_if_necessary(traceId);
             if (MC_IS_SOURCE_PROGRAM(program))
                 return MC_SOURCE_PROGRAM;
 
             program = mc_readvance_main(backtrackOperation);
+            printf("*** TRACE ID %lu ***\n", traceId);
             if (MC_IS_SOURCE_PROGRAM(program))
                 return MC_SOURCE_PROGRAM;
 
+            mc_exit_with_trace_if_necessary(traceId++);
             curStateStackDepth = static_cast<int>(programState->getStateStackSize());
             curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
         } else {
@@ -443,6 +448,17 @@ mc_enter_gdb_debugging_session_if_necessary(trid_t trid)
     return MC_SCHEDULER;
 }
 
+void
+mc_exit_with_trace_if_necessary(trid_t trid)
+{
+    if (programState->isTargetTraceIdForStackContents(trid)) {
+        programState->printTransitionStack();
+        programState->printNextTransitions();
+        mc_child_kill();
+        __real_exit(0);
+    }
+}
+
 bool
 mc_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
 {
@@ -508,13 +524,16 @@ MCStateConfiguration
 get_config_for_execution_environment()
 {
     uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
-    uint64_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
+    trid_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
+    trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
     bool expectForwardProgressOfThreads = false;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
     char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
+    char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
     char *expectForwardProgressOfThreadsChar = getenv(ENV_CHECK_FORWARD_PROGRESS);
+
 
     // TODO: Sanitize arguments (check errors of strtoul)
     if (maxThreadDepthChar != nullptr)
@@ -523,8 +542,15 @@ get_config_for_execution_environment()
     if (gdbTraceNumberChar != nullptr)
         gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
 
+    if (stackContentDumpTraceNumberChar != nullptr)
+        stackContentDumpTraceNumber = strtoul(stackContentDumpTraceNumberChar, nullptr, 10);
+
     if (expectForwardProgressOfThreadsChar != nullptr)
         expectForwardProgressOfThreads = true;
 
-    return {maxThreadDepth, gdbTraceNumber, expectForwardProgressOfThreads};
+    return {maxThreadDepth,
+            gdbTraceNumber,
+            stackContentDumpTraceNumber,
+            expectForwardProgressOfThreads
+    };
 }

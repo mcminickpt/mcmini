@@ -692,6 +692,12 @@ MCState::isTargetTraceIdForGDB(trid_t trid) const
     return this->configuration.gdbDebugTraceNumber == trid;
 }
 
+bool
+MCState::isTargetTraceIdForStackContents(trid_t trid) const
+{
+    return this->configuration.stackContentDumpTraceNumber == trid;
+}
+
 std::vector<tid_t>
 MCState::getThreadIdTraceOfTransitionStack() const
 {

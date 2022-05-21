@@ -27,11 +27,15 @@ main(int argc, const char **argv)
         } else if (strcmp(cur_arg[0], "--first-deadlock") == 0 || strcmp(cur_arg[0], "-first") == 0) {
             setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
             cur_arg++;
+        }
+        else if (strcmp(cur_arg[0], "--print") == 0) {
+            setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
+            cur_arg += 2;
         } else if (strcmp(cur_arg[0], "--help") == 0 ||
                    strcmp(cur_arg[0], "-h") == 0) {
             fprintf(stderr, "Usage: mcmini [--max-trace-depth|-m <num>] "
                             "[--debug-at-trace|-d <num>]\n"
-                            "[--first-deadlock|-first]\n"
+                            "[--first-deadlock|-first] [--print]\n"
                             "[--verbose|-v] [--help|-h] target_executable\n");
             exit(1);
         } else {

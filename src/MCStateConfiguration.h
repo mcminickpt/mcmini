@@ -8,8 +8,9 @@
  * may execute as many transitions as they would like (i.e. are
  * not limited to an execution depth)
  */
-#define MC_STATE_CONFIG_THREAD_NO_LIMIT UINT64_MAX
-#define MC_STATE_CONFIG_NO_TRACE UINT64_MAX
+#define MC_STATE_CONFIG_THREAD_NO_LIMIT             (UINT64_MAX)
+#define MC_STATE_CONFIG_NO_TRACE                    (UINT64_MAX)
+#define MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP     (UINT64_MAX)
 
 /**
  * A struct which describes the configurable parameters
@@ -30,6 +31,12 @@ struct MCStateConfiguration final {
     const trid_t gdbDebugTraceNumber;
 
     /**
+     * The trace id to stop the model checker at
+     * to print the contents of the transition stack
+     */
+     const trid_t stackContentDumpTraceNumber;
+
+    /**
      * Whether or not this model checking session is
      * being used to check for starvation to make statements
      * about forward progress
@@ -44,9 +51,11 @@ struct MCStateConfiguration final {
 
     MCStateConfiguration(uint64_t maxThreadExecutionDepth,
                            trid_t gdbDebugTraceNumber,
+                           trid_t stackContentDumpTraceNumber,
                            bool expectForwardProgressOfThreads)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
     gdbDebugTraceNumber(gdbDebugTraceNumber),
+    stackContentDumpTraceNumber(stackContentDumpTraceNumber),
     expectForwardProgressOfThreads(expectForwardProgressOfThreads) {}
 };
 

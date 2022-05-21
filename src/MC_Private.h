@@ -28,6 +28,9 @@ void mc_spawn_daemon_thread();
 void *mc_daemon_thread_simulate_program(void*);
 MCStateConfiguration get_config_for_execution_environment();
 
+/* Trace prints */
+void mc_exit_with_trace_if_necessary(trid_t);
+
 /* Registering and accessing threads */
 tid_t mc_register_thread();
 tid_t mc_register_main_thread();

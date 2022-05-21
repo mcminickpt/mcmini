@@ -164,6 +164,7 @@ public:
     uint64_t getNumProgramThreads() const;
 
     bool isTargetTraceIdForGDB(trid_t) const;
+    bool isTargetTraceIdForStackContents(trid_t) const;
     std::vector<tid_t> getThreadIdTraceOfTransitionStack() const;
 
     // Restarting
