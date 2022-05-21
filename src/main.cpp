@@ -1,53 +1,48 @@
-// Naive dining philosophers solution, which leads to deadlock.
+// Simple cond example
 
-#include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "MCMINI.h"
 #include "MCMINIWrappers.h"
 
-#define NUM_THREADS 3
+#define THREAD_NUM 2
 
-struct forks {
-    int philosopher;
-    pthread_mutex_t *left_fork;
-    pthread_mutex_t *right_fork;
-} forks[NUM_THREADS];
+pthread_mutex_t mutex;
+sem_t sem;
+pthread_cond_t cond;
+pthread_t thread[THREAD_NUM];
 
-void * philosopher_doit(void *forks_arg) {
-    struct forks *forks = static_cast<struct forks*>(forks_arg);
-    mc_pthread_mutex_lock(forks->left_fork);
-    mc_pthread_mutex_lock(forks->right_fork);
-
-//  printf("Philosopher %d just ate.\n", forks->philosopher);
-    mc_pthread_mutex_unlock(forks->left_fork);
-    mc_pthread_mutex_unlock(forks->right_fork);
-    return NULL;
+void * thread_doit(void *unused)
+{
+    mc_pthread_mutex_lock(&mutex);
+    mc_sem_post(&sem);
+    mc_pthread_cond_wait(&cond, &mutex);
+    mc_pthread_mutex_unlock(&mutex);
+    return nullptr;
 }
 
 int main(int argc, char* argv[])
 {
     mc_init();
-    pthread_t thread[NUM_THREADS];
-    pthread_mutex_t mutex_resource[NUM_THREADS];
 
-    GOAL();
+    mc_pthread_mutex_init(&mutex, NULL);
+    mc_sem_init(&sem, 0, 0);
 
-    int i;
-    for (i = 0; i < NUM_THREADS; i++) {
-        // ANSI C/C++ require the cast to pthread_mutex_t, 'struct forks',
-        //  respectively, because these are runtime statements, and not declarations
-        //    mutex_resource[i] = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
-        mc_pthread_mutex_init(&mutex_resource[i], NULL);
-        forks[i] = (struct forks){i,
-                                  &mutex_resource[i], &mutex_resource[(i+1) % NUM_THREADS]};
+    mc_pthread_cond_init(&cond, NULL);
+
+    for(int i = 0; i < THREAD_NUM; i++) {
+        mc_pthread_create(&thread[i], NULL, &thread_doit, NULL);
     }
 
-    for (i = 0; i < NUM_THREADS; i++) {
-        mc_pthread_create(&thread[i], NULL, &philosopher_doit, &forks[i]);
+    for( int i = 0; i < THREAD_NUM - 1; i++) {
+        mc_sem_wait(&sem);
     }
 
-    for (i = 0; i < NUM_THREADS; i++) {
+    mc_pthread_mutex_lock(&mutex);
+    mc_pthread_cond_broadcast(&cond);
+    mc_pthread_mutex_unlock(&mutex);
+
+    for(int i = 0; i < THREAD_NUM; i++) {
         mc_pthread_join(thread[i], NULL);
     }
 

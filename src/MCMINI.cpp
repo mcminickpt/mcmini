@@ -68,6 +68,7 @@ mc_create_program_state()
     programState->registerVisibleOperationType(typeid(MCSemInit), &MCReadSemInit);
     programState->registerVisibleOperationType(typeid(MCSemPost), &MCReadSemPost);
     programState->registerVisibleOperationType(typeid(MCSemWait), &MCReadSemWait);
+    programState->registerVisibleOperationType(typeid(MCSemEnqueue), &MCReadSemEnqueue);
     programState->registerVisibleOperationType(typeid(MCExitTransition), &MCReadExitTransition);
     programState->registerVisibleOperationType(typeid(MCBarrierEnqueue), &MCReadBarrierEnqueue);
     programState->registerVisibleOperationType(typeid(MCBarrierInit), &MCReadBarrierInit);
@@ -368,18 +369,24 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         programState->dynamicallyUpdateBacktrackSets();
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
 
-    if (programState->programIsInDeadlock()) {
+    const bool programIsInDeadlock = programState->programIsInDeadlock();
+    const bool programAchievedForwardProgressGoals = programState->programAchievedForwardProgressGoals();
+    const bool programHasNoErrors = !programIsInDeadlock && programAchievedForwardProgressGoals;
+
+    if (programIsInDeadlock) {
         puts("*** DEADLOCK DETECTED ***");
         programState->printTransitionStack();
         programState->printNextTransitions();
     }
-    else if (!programState->programAchievedForwardProgressGoals()) {
+
+    if (!programAchievedForwardProgressGoals) {
         puts("*** FORWARD PROGRESS VIOLATION DETECTED ***");
         programState->printTransitionStack();
         programState->printNextTransitions();
         programState->printForwardProgressViolations();
     }
-    else {
+
+    if (programHasNoErrors) {
         puts("*** NO FAILURE DETECTED ***");
     }
     mc_child_kill();
@@ -507,6 +514,7 @@ get_config_for_execution_environment()
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
     char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
+    char *expectForwardProgressOfThreadsChar = getenv(ENV_CHECK_FORWARD_PROGRESS);
 
     // TODO: Sanitize arguments (check errors of strtoul)
     if (maxThreadDepthChar != nullptr)
@@ -514,6 +522,9 @@ get_config_for_execution_environment()
 
     if (gdbTraceNumberChar != nullptr)
         gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
+
+    if (expectForwardProgressOfThreadsChar != nullptr)
+        expectForwardProgressOfThreads = true;
 
     return {maxThreadDepth, gdbTraceNumber, expectForwardProgressOfThreads};
 }

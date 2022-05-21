@@ -69,7 +69,7 @@ MCSemWait::enabledInState(const MCState *)
 void
 MCSemWait::print()
 {
-    printf("thread %lu: sem_wait(%lu)\n", this->thread->tid, this->sem->getObjectId());
+    printf("thread %lu: sem_wait(%lu) (attempt exit)\n", this->thread->tid, this->sem->getObjectId());
 }
 
 
