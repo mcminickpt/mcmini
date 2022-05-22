@@ -3,12 +3,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "MCMINI.h"
-#include "MCMINIWrappers.h"
 
 // The maximum number of customer threads.
 #define MAX_CUSTOMERS 25
@@ -53,25 +50,25 @@ void *customer(void *number) {
     printf("Customer %d arrived at barber shop.\n", num);
 
     // Wait for space to open up in the waiting room...
-    mc_sem_wait(&waitingRoom);
+    sem_wait(&waitingRoom);
     printf("Customer %d entering waiting room.\n", num);
 
     // Wait for the barber chair to become free.
-    mc_sem_wait(&barberChair);
+    sem_wait(&barberChair);
 
     // The chair is free so give up your spot in the
     // waiting room.
-    mc_sem_post(&waitingRoom);
+    sem_post(&waitingRoom);
 
     // Wake up the barber...
     printf("Customer %d waking the barber.\n", num);
-    mc_sem_post(&barberPillow);
+    sem_post(&barberPillow);
 
     // Wait for the barber to finish cutting your hair.
-    mc_sem_wait(&seatBelt);
+    sem_wait(&seatBelt);
 
     // Give up the chair.
-    mc_sem_post(&barberChair);
+    sem_post(&barberChair);
     printf("Customer %d leaving barber shop.\n", num);
 }
 
@@ -83,7 +80,7 @@ void *barber(void *junk) {
 
         // Sleep until someone arrives and wakes you..
         printf("The barber is sleeping\n");
-        mc_sem_wait(&barberPillow);
+        sem_wait(&barberPillow);
 
         // Skip this stuff at the end...
         if (!allDone) {
@@ -95,7 +92,7 @@ void *barber(void *junk) {
             printf("The barber has finished cutting hair.\n");
 
             // Release the customer when done cutting...
-            mc_sem_post(&seatBelt);
+            sem_post(&seatBelt);
         }
         else {
             printf("The barber is going home for the day.\n");
@@ -143,29 +140,29 @@ int main(int argc, char *argv[]) {
     }
 		
     // Initialize the semaphores with initial values...
-    mc_sem_init(&waitingRoom, 0, numChairs);
-    mc_sem_init(&barberChair, 0, 1);
-    mc_sem_init(&barberPillow, 0, 0);
-    mc_sem_init(&seatBelt, 0, 0);
+    sem_init(&waitingRoom, 0, numChairs);
+    sem_init(&barberChair, 0, 1);
+    sem_init(&barberPillow, 0, 0);
+    sem_init(&seatBelt, 0, 0);
     
     // Create the barber.
-    mc_pthread_create(&btid, NULL, barber, NULL);
+    pthread_create(&btid, NULL, barber, NULL);
 
     // Create the customers.
     for (i=0; i<numCustomers; i++) {
-	mc_pthread_create(&tid[i], NULL, customer, (void *)&Number[i]);
+	pthread_create(&tid[i], NULL, customer, (void *)&Number[i]);
     }
 
     // Join each of the threads to wait for them to finish.
     for (i=0; i<numCustomers; i++) {
-	    mc_pthread_join(tid[i],NULL);
+	    pthread_join(tid[i],NULL);
     }
 
     // When all of the customers are finished, kill the
     // barber thread.
     allDone = 1;
-    mc_sem_post(&barberPillow);  // Wake the barber so he will exit.
-    mc_pthread_join(btid,NULL);
+    sem_post(&barberPillow);  // Wake the barber so he will exit.
+    pthread_join(btid,NULL);
 }
 
 

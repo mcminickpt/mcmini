@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
-#include "MCMINI.h"
-#include "MCMINIWrappers.h"
+#include <pthread.h>
 
 #define NUM_READERS 5
 #define NUM_WRITERS 2
@@ -31,49 +30,49 @@ int write_condition(int writer_ticket_number){
 void *reader(void *notused) {
   while (1) {
     // acquire resource
-    mc_pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     int local_reader_ticket_number = ticket_number;
     ticket_number++;
     num_readers++;
     while (! read_condition(local_reader_ticket_number)) {
       num_readers_waiting++;
-      mc_pthread_cond_wait(&cond, &mutex); // wait on cond
+      pthread_cond_wait(&cond, &mutex); // wait on cond
       num_readers_waiting--;
     }
     next_ticket_to_be_served++;
-    mc_pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&mutex);
     // use resource (we fake this by sleeping)
     printf("reader is reading\n");
     sleep(1);
     // release resource
-    mc_pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     num_readers--;
-    mc_pthread_cond_broadcast(&cond); // wake up everyone and let them try again
-    mc_pthread_mutex_unlock(&mutex);
+    pthread_cond_broadcast(&cond); // wake up everyone and let them try again
+    pthread_mutex_unlock(&mutex);
   }
 }
 
 void *writer(void *notused) {
   while (1) {
     // acquire resource
-    mc_pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     int local_writer_ticket_number = ticket_number;
     ticket_number++;
     num_writers++;
     while (!write_condition(local_writer_ticket_number)) {
       num_writers_waiting++;
-      mc_pthread_cond_wait(&cond, &mutex); // wait on cond
+      pthread_cond_wait(&cond, &mutex); // wait on cond
       num_writers_waiting--;
     }
-    mc_pthread_mutex_unlock(&mutex);
+    pthread_mutex_unlock(&mutex);
     // use resource (we fake this by sleeping)
     printf("writer is writing\n");
     sleep(5);
     // release resource
-    mc_pthread_mutex_lock(&mutex);
+    pthread_mutex_lock(&mutex);
     num_writers--;
-    mc_pthread_cond_broadcast(&cond);
-    mc_pthread_mutex_unlock(&mutex);
+    pthread_cond_broadcast(&cond);
+    pthread_mutex_unlock(&mutex);
   }
 }
 
@@ -81,24 +80,22 @@ int main() {
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
 
-    mc_init();
-    mc_pthread_mutex_init(&mutex, nullptr);
-    mc_pthread_cond_init(&cond, nullptr);
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&cond, NULL);
 
     int i;
-
     for (i = 0; i < NUM_READERS; i++) {
-        mc_pthread_create(&read_thread[i], nullptr, reader, nullptr);
+        pthread_create(&read_thread[i], NULL, reader, NULL);
     }
     for (i = 0; i < NUM_WRITERS; i++) {
-        mc_pthread_create(&write_thread[i], nullptr, writer, nullptr);
+        pthread_create(&write_thread[i], NULL, writer, NULL);
     }
 
     for (i = 0; i < NUM_READERS; i++) {
-        mc_pthread_join(read_thread[i], nullptr);
+        pthread_join(read_thread[i], NULL);
     }
     for (i = 0; i < NUM_WRITERS; i++) {
-        mc_pthread_join(write_thread[i], nullptr);
+        pthread_join(write_thread[i], NULL);
     }
     return 0;
 }

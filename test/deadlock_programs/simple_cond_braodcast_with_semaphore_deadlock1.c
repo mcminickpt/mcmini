@@ -1,9 +1,6 @@
-// Simple cond example
-
 #include <unistd.h>
 #include <pthread.h>
-#include "MCMINI.h"
-#include "MCMINIWrappers.h"
+#include <semaphore.h>
 
 #define THREAD_NUM 5
 
@@ -14,36 +11,33 @@ pthread_t thread[THREAD_NUM];
 
 void * thread_doit(void *unused)
 {
-    mc_pthread_mutex_lock(&mutex);
-    mc_sem_post(&sem);
-    mc_pthread_cond_wait(&cond, &mutex);
-    mc_pthread_mutex_unlock(&mutex);
-    return nullptr;
+    pthread_mutex_lock(&mutex);
+    sem_post(&sem);
+    pthread_cond_wait(&cond, &mutex);
+    pthread_mutex_unlock(&mutex);
+    return NULL;
 }
 
-int main(int argc, char* argv[])
-{
-    mc_init();
+int main(int argc, char* argv[]) {
+    pthread_mutex_init(&mutex, NULL);
+    sem_init(&sem, 0, 0);
 
-    mc_pthread_mutex_init(&mutex, NULL);
-    mc_sem_init(&sem, 0, 0);
-
-    mc_pthread_cond_init(&cond, NULL);
+    pthread_cond_init(&cond, NULL);
 
     for(int i = 0; i < THREAD_NUM; i++) {
-        mc_pthread_create(&thread[i], NULL, &thread_doit, NULL);
+        pthread_create(&thread[i], NULL, &thread_doit, NULL);
     }
 
     for( int i = 0; i < THREAD_NUM + 1; i++) {
-        mc_sem_wait(&sem);
+        sem_wait(&sem);
     }
 
-    mc_pthread_mutex_lock(&mutex);
-    mc_pthread_cond_broadcast(&cond);
-    mc_pthread_mutex_unlock(&mutex);
+    pthread_mutex_lock(&mutex);
+    pthread_cond_broadcast(&cond);
+    pthread_mutex_unlock(&mutex);
 
     for(int i = 0; i < THREAD_NUM; i++) {
-        mc_pthread_join(thread[i], NULL);
+        pthread_join(thread[i], NULL);
     }
 
     return 0;
