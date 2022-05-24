@@ -26,6 +26,7 @@ public:
     virtual bool enabledInState(const MCState *) { return thread->enabled(); }
     virtual bool coenabledWith(std::shared_ptr<MCTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<MCTransition>) { return true; }
+    virtual bool canRaceWith(std::shared_ptr<MCTransition>) { return false; }
 
     /**
      *

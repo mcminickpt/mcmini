@@ -156,7 +156,11 @@ mc_create_shared_memory_region()
     //  If the region exists, then this returns a fd for the existing region.
     //  Otherwise, it creates a new shared memory region.
     char dpor[100];
-    snprintf(dpor, sizeof(dpor), "/DPOR-%s", getenv("USER"));
+
+    // FIXME: It's technically possible that the process ID could wrap around and be reused
+    // so a race could ensue again if another mcmini took that (repeated) pid. But that's
+    // unlikely
+    snprintf(dpor, sizeof(dpor), "/DPOR-%s-%lu", getenv("USER"), (long)getpid());
     // This creates a file in /dev/shm/
     int fd = shm_open(dpor, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (fd == -1) {
@@ -299,7 +303,6 @@ mc_begin_target_program_at_main(bool spawnDaemonThread)
         // matter where the child spawns so long as it reaches
         // the actual source program
         tid_self = 0;
-        mc_initialize_shared_memory_region();
 
         // This is important to handle the case when the
         // main thread hits return 0; in that case, we

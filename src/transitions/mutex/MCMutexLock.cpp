@@ -1,7 +1,6 @@
 #include "MCMINI.h"
 #include "MCMutexLock.h"
 #include "transitions/threads/MCThreadCreate.h"
-#include "transitions/threads/MCThreadJoin.h"
 #include "MCMutexUnlock.h"
 #include <memory>
 

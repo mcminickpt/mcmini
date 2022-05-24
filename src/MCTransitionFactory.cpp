@@ -3,10 +3,9 @@
 #include "transitions/threads/MCThreadJoin.h"
 
 std::shared_ptr<MCTransition>
-MCTransitionFactory::createInitialTransitionForThread(std::shared_ptr<MCThread> thread)
+MCTransitionFactory::createInitialTransitionForThread(const std::shared_ptr<MCThread> &thread)
 {
-    auto tStart = new MCThreadStart(thread);
-    return std::shared_ptr<MCTransition>(tStart);
+    return std::make_shared<MCThreadStart>(thread);
 }
 
 bool
