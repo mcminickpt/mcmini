@@ -19,6 +19,7 @@ public:
 
     static bool dependentTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
     static bool coenabledTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
+    static bool transitionsInDataRace(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
 
     virtual std::shared_ptr<MCTransition> staticCopy() = 0;
     virtual std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) = 0;
@@ -26,7 +27,12 @@ public:
     virtual bool enabledInState(const MCState *) { return thread->enabled(); }
     virtual bool coenabledWith(std::shared_ptr<MCTransition>) { return true; }
     virtual bool dependentWith(std::shared_ptr<MCTransition>) { return true; }
-    virtual bool canRaceWith(std::shared_ptr<MCTransition>) { return false; }
+
+    /**
+     * Is this transition in a data race with the other one?
+     */
+    virtual bool isRacingWith(std::shared_ptr<MCTransition>) { return false; }
+
 
     /**
      *

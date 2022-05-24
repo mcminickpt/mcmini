@@ -246,6 +246,27 @@ MCState::programAchievedForwardProgressGoals() const
 }
 
 bool
+MCState::programHasADataRaceWithNewTransition(const std::shared_ptr<MCTransition> &transition) const
+{
+    /*
+     * There is a data race if, at any point in the program,
+     * there are two threads that are racing with each other
+     */
+    const tid_t threadRunningTransition = transition->getThreadId();
+    const uint64_t numThreads = this->getNumProgramThreads();
+
+    for (auto i = 0; i < numThreads; i++) {
+        if (i == threadRunningTransition) continue;
+        const auto nextTransitionForThreadI = this->getPendingTransitionForThread(i);
+
+        if (MCTransition::transitionsInDataRace(nextTransitionForThreadI, transition))
+            return true;
+    }
+
+    return false;
+}
+
+bool
 MCState::transitionStackIsEmpty() const
 {
     return this->transitionStackTop < 0;

@@ -12,3 +12,9 @@ MCTransition::coenabledTransitions(const std::shared_ptr<MCTransition>& t1, cons
 {
     return MCTransitionFactory::transitionsCoenabledCommon(t1, t2) && t1->coenabledWith(t2) && t2->coenabledWith(t1);
 }
+
+bool
+MCTransition::transitionsInDataRace(const std::shared_ptr<MCTransition> &t1, const std::shared_ptr<MCTransition> &t2)
+{
+    return t1->isRacingWith(t2) || t2->isRacingWith(t1);
+}

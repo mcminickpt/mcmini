@@ -16,7 +16,7 @@ struct MCMutex : public MCVisibleObject {
 private:
 
     MCMutexShadow mutexShadow;
-    inline explicit MCMutex(MCMutexShadow shadow, objid_t id) : MCVisibleObject(id), mutexShadow(shadow) {}
+//    inline explicit MCMutex(MCMutexShadow shadow, objid_t id) : MCVisibleObject(id), mutexShadow(shadow) {}
 
 public:
     inline explicit MCMutex(MCMutexShadow shadow) : MCVisibleObject(), mutexShadow(shadow) {}

@@ -75,4 +75,3 @@ MCTransitionFactory::transitionsDependentCommon(const std::shared_ptr<MCTransiti
 
     return false;
 }
-

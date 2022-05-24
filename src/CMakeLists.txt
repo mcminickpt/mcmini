@@ -69,6 +69,7 @@ set(MC_CPP_FILES
         transitions/misc/MCGlobalVariableRead.cpp
         transitions/misc/MCGlobalVariableWrite.cpp
         transitions/threads/MCThreadReachGoal.cpp
+        transitions/wrappers/MCGlobalVariableWrappers.cpp
         MCEnv.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})

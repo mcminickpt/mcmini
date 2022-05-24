@@ -9,8 +9,10 @@ MCReadGlobalRead(const MCSharedTransition *shmTransition, void *shmStart, MCStat
     auto globalVariable = state->getVisibleObjectWithSystemIdentity<MCGlobalVariable>(addr);
 
     /* New global variable */
-    if (globalVariable == nullptr)
+    if (globalVariable == nullptr) {
         globalVariable = std::make_shared<MCGlobalVariable>(addr);
+        state->registerVisibleObjectWithSystemIdentity(addr, globalVariable);
+    }
 
     return new MCGlobalVariableRead(threadThatRan, globalVariable);
 }
@@ -46,8 +48,18 @@ MCGlobalVariableRead::dependentWith(std::shared_ptr<MCTransition> transition)
     return false;
 }
 
+bool
+MCGlobalVariableRead::isRacingWith(std::shared_ptr<MCTransition> transition)
+{
+    auto maybeGlobalVariableWrite = std::dynamic_pointer_cast<MCGlobalVariableWrite, MCTransition>(transition);
+    if (maybeGlobalVariableWrite != nullptr) {
+        return *this->global == *maybeGlobalVariableWrite->global;
+    }
+    return false;
+}
+
 void
 MCGlobalVariableRead::print()
 {
-    printf("thread %lu: read_global_var(%p)\n", this->thread->tid, this->global->addr);
+    printf("thread %lu: READ(%p)\n", this->thread->tid, this->global->addr);
 }

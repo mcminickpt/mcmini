@@ -304,6 +304,10 @@ mc_begin_target_program_at_main(bool spawnDaemonThread)
         // the actual source program
         tid_self = 0;
 
+        // Note that the child process does
+        // not need to re-map the shared memory
+        // region as the parent has already done that
+
         // This is important to handle the case when the
         // main thread hits return 0; in that case, we
         // keep the process alive to allow the model checker to
@@ -375,6 +379,17 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         mc_run_thread_to_next_visible_operation(tid);
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
         programState->dynamicallyUpdateBacktrackSets();
+
+        /* Check for data races */
+        {
+            auto pendingTransitionForExecutingThread = programState->getPendingTransitionForThread(tid);
+            if (programState->programHasADataRaceWithNewTransition(pendingTransitionForExecutingThread)) {
+                puts("*** DATA RACE DETECTED ***");
+                programState->printTransitionStack();
+                programState->printNextTransitions();
+            }
+        }
+
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
 
     const bool programIsInDeadlock = programState->programIsInDeadlock();

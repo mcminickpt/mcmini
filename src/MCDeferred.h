@@ -11,7 +11,11 @@ template<typename T>
 struct MCDeferred
 {
     MCDeferred(){}
-    ~MCDeferred(){ value->~T(); }
+    ~MCDeferred(){
+        if (value) {
+            value->~T();
+        }
+    }
     template<typename...TArgs>
     void Construct(TArgs&&...args)
     {

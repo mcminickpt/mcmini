@@ -15,6 +15,7 @@ public:
     void applyToState(MCState *) override {}
     bool coenabledWith(std::shared_ptr<MCTransition>) override;
     bool dependentWith(std::shared_ptr<MCTransition>) override;
+    bool isRacingWith(std::shared_ptr<MCTransition>) override;
     void print() override;
 };
 
