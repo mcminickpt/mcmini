@@ -28,6 +28,10 @@ main(int argc, const char **argv)
             setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
             cur_arg++;
         }
+        else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 || strcmp(cur_arg[0], "-c") == 0) {
+            setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
+            cur_arg++;
+        }
         else if (strcmp(cur_arg[0], "--print") == 0) {
             setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
             cur_arg += 2;
