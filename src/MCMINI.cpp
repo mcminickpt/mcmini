@@ -552,7 +552,6 @@ get_config_for_execution_environment()
     char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
     char *expectForwardProgressOfThreadsChar = getenv(ENV_CHECK_FORWARD_PROGRESS);
 
-
     // TODO: Sanitize arguments (check errors of strtoul)
     if (maxThreadDepthChar != nullptr)
         maxThreadDepth = strtoul(maxThreadDepthChar, nullptr, 10);
