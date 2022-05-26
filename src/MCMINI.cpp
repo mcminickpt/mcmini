@@ -116,8 +116,6 @@ mc_scheduler_main()
 
     while (curStateStackDepth > 0) {
 
-        printf("**** Backtracking at state depth %d (%d transitions to reach this state) ****\n", curStateStackDepth, curTransitionStackDepth);
-
         std::shared_ptr<MCStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
         if (sTop->hasThreadsToBacktrackOn()) {
             // TODO: We can be smart here and only run a thread
@@ -143,9 +141,7 @@ mc_scheduler_main()
         } else {
             curStateStackDepth--;
             curTransitionStackDepth--;
-            puts("**** ... Nothing to backtrack on... ****");
         }
-        printf("**** Backtracking at state depth %d ****\n", curStateStackDepth);
     }
     return false;
 }
@@ -568,6 +564,6 @@ get_config_for_execution_environment()
     return {maxThreadDepth,
             gdbTraceNumber,
             stackContentDumpTraceNumber,
-            true
+            expectForwardProgressOfThreads
     };
 }

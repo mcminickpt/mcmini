@@ -109,5 +109,5 @@ MCConditionVariable::threadIsInWaitingQueue(tid_t tid)
 bool
 MCConditionVariable::threadCanExit(tid_t tid)
 {
-    return this->threadIsInWaitingQueue(tid);
+    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.begin();
 }
