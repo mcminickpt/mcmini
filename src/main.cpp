@@ -51,7 +51,7 @@
 //int main() {
 //    mc_pthread_t pro[5],con[5];
 //    mc_init();
-//    
+//
 //    mc_mc_pthread_mutex_init(&mutex, NULL);
 //    mc_mc_sem_init(&empty,0,BufferSize);
 //    mc_mc_sem_init(&full,0,0);
