@@ -33,7 +33,8 @@ public:
 
     inline explicit MCThread(tid_t tid, MCThreadShadow shadow) : MCVisibleObject(), threadShadow(shadow), tid(tid) {}
     inline MCThread(const MCThread &thread)
-    : MCVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid) {}
+    : MCVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid),
+      _hasEncounteredThreadProgressGoal(thread._hasEncounteredThreadProgressGoal) {}
 
     std::shared_ptr<MCVisibleObject> copy() override;
     MCSystemID getSystemId() override;
@@ -62,7 +63,7 @@ public:
     }
 
     inline bool
-    hasEncounteredThreadProgressGoal()
+    hasEncounteredThreadProgressGoal() const
     {
         return _hasEncounteredThreadProgressGoal;
     }

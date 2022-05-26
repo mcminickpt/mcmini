@@ -42,6 +42,7 @@ void
 MCSemWait::applyToState(MCState *state)
 {
     this->sem->wait();
+    this->sem->leaveWaitingQueue(this->getThreadId());
 }
 
 bool
@@ -63,7 +64,7 @@ MCSemWait::dependentWith(std::shared_ptr<MCTransition> other)
 bool
 MCSemWait::enabledInState(const MCState *)
 {
-    return !this->sem->wouldBlockIfWaitedOn();
+    return this->sem->threadCanExit(this->getThreadId());
 }
 
 void

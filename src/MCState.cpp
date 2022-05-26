@@ -682,7 +682,11 @@ MCState::printTransitionStack() const
     for (int i = 0; i <= this->transitionStackTop; i++) {
         this->getTransitionAtIndex(i)->print();
     }
-    printf("END\n");
+    for (int i = 0; i <= this->transitionStackTop; i++) {
+        auto tid = this->getTransitionAtIndex(i)->getThreadId();
+        printf("%lu, ", tid);
+    }
+    printf("\nEND\n");
 }
 
 void
@@ -702,7 +706,9 @@ MCState::printForwardProgressViolations() const
     printf("VIOLATIONS\n");
     auto numThreads = this->getNumProgramThreads();
     for (auto i = 0; i < numThreads; i++) {
-        printf("thread %lu\n", (tid_t)i);
+        if (!this->getThreadWithId(i)->hasEncounteredThreadProgressGoal()) {
+            printf("thread %lu\n", (tid_t)i);
+        }
     }
     printf("END\n");
 }

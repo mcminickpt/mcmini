@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define NUM_READERS 5
+#define NUM_READERS 2
 #define NUM_WRITERS 2
 #define NUM_LOOP 2
 
@@ -28,7 +28,7 @@ void *reader(void *unused) {
         // acquire resource
         pthread_mutex_lock(&mutex);
         num_readers++;
-        while (! read_condition()) {
+        while (!read_condition()) {
              num_readers_waiting++;
              pthread_cond_wait(&cond, &mutex); // wait on cond
              num_readers_waiting--;

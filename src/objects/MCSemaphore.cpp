@@ -16,7 +16,7 @@ MCSemaphore::copy()
 bool
 MCSemaphore::wouldBlockIfWaitedOn()
 {
-    return this->semShadow.count == 0;
+    return this->semShadow.count <= 0;
 }
 
 bool
@@ -28,13 +28,13 @@ MCSemaphore::threadCanExit(tid_t tid)
     /* Different strategies */
 
     /* Strategy A: Thread can exit if it is waiting at all */
-    return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) != this->waitingQueue.end();
+    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) != this->waitingQueue.end();
 
     /* Strategy B: Thread can exit if it was the first one waiting (FIFO) */
-    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
+    return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
 
-    /* Strategy B: Thread can exit if it was the first one waiting (FIFO) */
-    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
+    /* Strategy C: Thread can exit if it was the last one waiting (LIFO) */
+    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.end() - 1;
 }
 
 void
@@ -72,7 +72,9 @@ MCSemaphore::post()
 void
 MCSemaphore::wait()
 {
-    this->semShadow.count--;
+    if (this->semShadow.count > 0) {
+        this->semShadow.count--;
+    }
 }
 
 bool

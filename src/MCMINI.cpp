@@ -568,6 +568,6 @@ get_config_for_execution_environment()
     return {maxThreadDepth,
             gdbTraceNumber,
             stackContentDumpTraceNumber,
-            expectForwardProgressOfThreads
+            true
     };
 }

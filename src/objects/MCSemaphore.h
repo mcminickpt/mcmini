@@ -8,6 +8,7 @@
 struct MCSemaphoreShadow {
     sem_t *sem;
     unsigned int count;
+
     enum State {
         undefined, initialized, destroyed
     } state;
