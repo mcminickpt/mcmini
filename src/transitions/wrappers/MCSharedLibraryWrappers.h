@@ -5,6 +5,7 @@
 #include <dlfcn.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <unistd.h>
 
 extern typeof(&pthread_create) pthread_create_ptr;
 extern typeof(&pthread_join) pthread_join_ptr;
@@ -21,6 +22,7 @@ extern typeof(&pthread_cond_init) pthread_cond_init_ptr;
 extern typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
 extern typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
 extern typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
+extern typeof(&sleep) sleep_ptr;
 
 #define __real_pthread_create (*pthread_create_ptr)
 #define __real_pthread_join (*pthread_join_ptr)
@@ -37,6 +39,7 @@ extern typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 #define __real_pthread_cond_wait (*pthread_cond_wait_ptr)
 #define __real_pthread_cond_signal (*pthread_cond_signal_ptr)
 #define __real_pthread_cond_broadcast (*pthread_cond_broadcast_ptr)
+#define __real_sleep (*sleep_ptr)
 
 void mc_load_shadow_routines();
 

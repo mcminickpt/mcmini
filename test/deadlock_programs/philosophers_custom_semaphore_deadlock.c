@@ -42,8 +42,7 @@ int main(int argc, char* argv[]) {
         pthread_mutex_init(&mutex_resource[i], NULL);
         forks[i] = (struct forks){i,
                                   &mutex_resource[i],
-                                  &mutex_resource[(i+1) % NUM_THREADS],
-                                  &sem_dining};
+                                  &mutex_resource[(i+1) % NUM_THREADS]};
     }
 
     for (i = 0; i < NUM_THREADS; i++) {

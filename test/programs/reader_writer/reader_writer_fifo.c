@@ -28,45 +28,42 @@ int write_condition(int writer_ticket_number){
 
 
 void *reader(void *notused) {
-  while (1) {
     // acquire resource
     pthread_mutex_lock(&mutex);
     int local_reader_ticket_number = ticket_number;
     ticket_number++;
     num_readers++;
     while (! read_condition(local_reader_ticket_number)) {
-      num_readers_waiting++;
-      pthread_cond_wait(&cond, &mutex); // wait on cond
-      num_readers_waiting--;
+        num_readers_waiting++;
+        pthread_cond_wait(&cond, &mutex); // wait on cond
+        num_readers_waiting--;
     }
     next_ticket_to_be_served++;
     pthread_mutex_unlock(&mutex);
     // use resource (we fake this by sleeping)
     printf("reader is reading\n");
-    sleep(1);
+//    sleep(1);
     // release resource
     pthread_mutex_lock(&mutex);
     num_readers--;
     pthread_cond_broadcast(&cond); // wake up everyone and let them try again
     pthread_mutex_unlock(&mutex);
-  }
 }
 
 void *writer(void *notused) {
-  while (1) {
     // acquire resource
     pthread_mutex_lock(&mutex);
     int local_writer_ticket_number = ticket_number;
     ticket_number++;
     num_writers++;
     while (!write_condition(local_writer_ticket_number)) {
-      num_writers_waiting++;
-      pthread_cond_wait(&cond, &mutex); // wait on cond
-      num_writers_waiting--;
+        num_writers_waiting++;
+        pthread_cond_wait(&cond, &mutex); // wait on cond
+        num_writers_waiting--;
     }
     pthread_mutex_unlock(&mutex);
     // use resource (we fake this by sleeping)
-    printf("writer is writing\n");
+//    printf("writer is writing\n");
     sleep(5);
     // release resource
     pthread_mutex_lock(&mutex);
@@ -74,7 +71,6 @@ void *writer(void *notused) {
     next_ticket_to_be_served++;
     pthread_cond_broadcast(&cond);
     pthread_mutex_unlock(&mutex);
-  }
 }
 
 int main() {
