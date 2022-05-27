@@ -396,6 +396,11 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         puts("*** DEADLOCK DETECTED ***");
         programState->printTransitionStack();
         programState->printNextTransitions();
+
+        if (programState->getConfiguration().stopAtFirstDeadlock) {
+            puts("*** Model checking completed! ***");
+            __real_exit(0);
+        }
     }
 
     if (!programAchievedForwardProgressGoals) {
@@ -485,7 +490,7 @@ mc_enter_gdb_debugging_session()
     MC_PROGRAM_TYPE program = mc_begin_target_program_at_main(true);
     if (MC_IS_SCHEDULER(program)) {
         mc_child_wait(); /* The daemon thread will take the place of the parent process */
-        exit(0);
+        __real_exit(0);
     }
 
     return program;
@@ -540,12 +545,14 @@ get_config_for_execution_environment()
     uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
     trid_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
     trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
+    bool firstDeadlock = false;
     bool expectForwardProgressOfThreads = false;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
     char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
     char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
+    char *firstDeadlockChar = getenv(ENV_STOP_AT_FIRST_DEADLOCK);
     char *expectForwardProgressOfThreadsChar = getenv(ENV_CHECK_FORWARD_PROGRESS);
 
     // TODO: Sanitize arguments (check errors of strtoul)
@@ -561,9 +568,13 @@ get_config_for_execution_environment()
     if (expectForwardProgressOfThreadsChar != nullptr)
         expectForwardProgressOfThreads = true;
 
+    if (firstDeadlockChar != nullptr)
+        firstDeadlock = true;
+
     return {maxThreadDepth,
             gdbTraceNumber,
             stackContentDumpTraceNumber,
+            firstDeadlock,
             expectForwardProgressOfThreads
     };
 }

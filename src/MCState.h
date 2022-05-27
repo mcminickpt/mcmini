@@ -163,6 +163,8 @@ public:
     bool programAchievedForwardProgressGoals() const;
     bool programHasADataRaceWithNewTransition(const std::shared_ptr<MCTransition>&) const;
 
+    MCStateConfiguration getConfiguration() const;
+
     uint64_t getNumProgramThreads() const;
 
     bool isTargetTraceIdForGDB(trid_t) const;

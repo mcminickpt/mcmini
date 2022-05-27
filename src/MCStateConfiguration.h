@@ -49,14 +49,23 @@ struct MCStateConfiguration final {
      */
     const bool expectForwardProgressOfThreads;
 
+    /**
+     * Whether or not the model
+     * checker stops when it encounters
+     * a deadlock
+     */
+    const bool stopAtFirstDeadlock;
+
     MCStateConfiguration(uint64_t maxThreadExecutionDepth,
                            trid_t gdbDebugTraceNumber,
                            trid_t stackContentDumpTraceNumber,
+                           bool firstDeadlock,
                            bool expectForwardProgressOfThreads)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
-    gdbDebugTraceNumber(gdbDebugTraceNumber),
-    stackContentDumpTraceNumber(stackContentDumpTraceNumber),
-    expectForwardProgressOfThreads(expectForwardProgressOfThreads) {}
+      gdbDebugTraceNumber(gdbDebugTraceNumber),
+      stackContentDumpTraceNumber(stackContentDumpTraceNumber),
+      stopAtFirstDeadlock(firstDeadlock),
+      expectForwardProgressOfThreads(expectForwardProgressOfThreads) {}
 };
 
 #endif //MC_MCSTATECONFIGURATION_H

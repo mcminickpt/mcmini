@@ -734,3 +734,9 @@ MCState::getThreadIdTraceOfTransitionStack() const
         trace.push_back(this->getTransitionAtIndex(i)->getThreadId());
     return trace;
 }
+
+MCStateConfiguration
+MCState::getConfiguration() const
+{
+    return this->configuration;
+}
