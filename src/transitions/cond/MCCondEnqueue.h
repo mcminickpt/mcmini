@@ -16,9 +16,8 @@ public:
     void applyToState(MCState *) override;
     bool coenabledWith(std::shared_ptr<MCTransition>) override;
     bool dependentWith(std::shared_ptr<MCTransition>) override;
-    void print() override;
-
     bool countsAgainstThreadExecutionDepth() override { return false; }
+    void print() override;
 };
 
 #endif //MC_MCCONDENQUEUE_H
