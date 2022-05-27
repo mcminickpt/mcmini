@@ -1,5 +1,6 @@
 #include "MCMINI.h"
 #include "MCSemWait.h"
+#include "MCSemInit.h"
 
 MCTransition*
 MCReadSemWait(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
@@ -54,10 +55,16 @@ MCSemWait::coenabledWith(std::shared_ptr<MCTransition> other)
 bool
 MCSemWait::dependentWith(std::shared_ptr<MCTransition> other)
 {
-    auto maybeSemaphoreOperation = std::dynamic_pointer_cast<MCSemaphoreTransition, MCTransition>(other);
-    if (maybeSemaphoreOperation) {
-        return *maybeSemaphoreOperation->sem == *this->sem;
+    auto maybeSemaphoreInitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
+    if (maybeSemaphoreInitOperation) {
+        return *maybeSemaphoreInitOperation->sem == *this->sem;
     }
+
+    auto maybeSemaphoreWaitOperation = std::dynamic_pointer_cast<MCSemWait, MCTransition>(other);
+    if (maybeSemaphoreWaitOperation) {
+        return *maybeSemaphoreWaitOperation->sem == *this->sem;
+    }
+
     return false;
 }
 

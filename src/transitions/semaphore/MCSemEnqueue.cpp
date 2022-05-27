@@ -1,4 +1,6 @@
 #include "MCSemEnqueue.h"
+#include "MCSemInit.h"
+#include "MCSemWait.h"
 #include "MCMINI.h"
 
 MCTransition*
@@ -53,10 +55,24 @@ MCSemEnqueue::coenabledWith(std::shared_ptr<MCTransition> other)
 bool
 MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
 {
-    auto maybeSemaphoreOperation = std::dynamic_pointer_cast<MCSemaphoreTransition, MCTransition>(other);
-    if (maybeSemaphoreOperation) {
-        return *maybeSemaphoreOperation->sem == *this->sem;
+    auto maybeSemaphoreInitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
+    if (maybeSemaphoreInitOperation) {
+        return *maybeSemaphoreInitOperation->sem == *this->sem;
     }
+
+    // The enqueue operation is only dependent with a sem_wait
+    // when the semaphore wakes threads using LIFO
+
+    //auto maybeSemaphoreWaitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
+    //if (maybeSemaphoreWaitOperation) {
+    //    return *maybeSemaphoreWaitOperation->sem == *this->sem;
+    //}
+
+    auto maybeSemaphoreEnqueueOperation = std::dynamic_pointer_cast<MCSemEnqueue, MCTransition>(other);
+    if (maybeSemaphoreEnqueueOperation) {
+        return *maybeSemaphoreEnqueueOperation->sem == *this->sem;
+    }
+
     return false;
 }
 
