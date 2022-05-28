@@ -401,7 +401,7 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         programState->printNextTransitions();
 
         if (programState->getConfiguration().stopAtFirstDeadlock) {
-            mcprintf("*** Model checking completed! ***");
+            mcprintf("*** Model checking completed! ***\n");
             __real_exit(0);
         }
     }

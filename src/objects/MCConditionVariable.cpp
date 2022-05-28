@@ -98,6 +98,22 @@ MCConditionVariable::removeThread(tid_t tid)
 {
     this->removeSleepingThread(tid);
     this->removeWakingThread(tid);
+
+    /**
+     * If we woke up because of a spurious wake up,
+     * we should also update how the condition variable continues
+     * to operate/allow for spurious wake-ups.
+     */
+    if (threadCanExitWithSpuriousWakeup(tid)) {
+        if (threadCanExitBasedOnSleepPosition(tid)) {
+            if (preferSpuriousWakeupsWhenPossible) {
+                this->spuriousWakeupCount--;
+            }
+        }
+        else {
+            this->spuriousWakeupCount--;
+        }
+    }
 }
 
 bool
@@ -107,7 +123,20 @@ MCConditionVariable::threadIsInWaitingQueue(tid_t tid)
 }
 
 bool
+MCConditionVariable::threadCanExitWithSpuriousWakeup(tid_t tid) const
+{
+    return this->spuriousWakeupCount > 0;
+}
+
+bool
+MCConditionVariable::threadCanExitBasedOnSleepPosition(tid_t tid) const
+{
+    // LIFO
+    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.end() - 1;
+}
+
+bool
 MCConditionVariable::threadCanExit(tid_t tid)
 {
-    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.begin();
+    return this->threadCanExitBasedOnSleepPosition(tid) || this->threadCanExitWithSpuriousWakeup(tid);
 }

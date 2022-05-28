@@ -20,11 +20,28 @@ struct MCConditionVariableShadow {
     enum MCConditionVariableState {
         undefined, initialized, destroyed
     } state;
-    MCConditionVariableShadow(pthread_cond_t *cond) : cond(cond), state(undefined) {}
+    explicit MCConditionVariableShadow(pthread_cond_t *cond) : cond(cond), state(undefined) {}
 };
 
 struct MCConditionVariable : public MCVisibleObject {
 private:
+
+    /**
+    * The total number of spurious wake ups that
+    * are allowed for threads waiting on the semaphore
+    */
+    unsigned spuriousWakeupCount = 0;
+
+    /*
+     * Whether a thread that is allowed to
+     * wake on the semaphore by virtue of its position
+     * in the semaphore's sleeping queue should instead
+     * awake because it was awoken by a spurious wake-up
+     *
+     * This condition only affects whether the semaphore
+     * should
+     */
+    const bool preferSpuriousWakeupsWhenPossible = true;
 
     MCConditionVariableShadow condShadow;
 
@@ -62,7 +79,11 @@ public:
             : MCVisibleObject(), condShadow(condShadow), mutex(nullptr) {}
 
     inline MCConditionVariable(const MCConditionVariable &cond)
-    : MCVisibleObject(cond.getObjectId()), condShadow(cond.condShadow), mutex(nullptr) {
+    : MCVisibleObject(cond.getObjectId()),
+    condShadow(cond.condShadow), mutex(nullptr),
+    sleepQueue(cond.sleepQueue), wakeQueue(cond.wakeQueue),
+    spuriousWakeupCount(cond.spuriousWakeupCount)
+    {
 
         if (cond.mutex != nullptr) {
             mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(cond.mutex->copy());
@@ -71,7 +92,6 @@ public:
 
     std::shared_ptr<MCVisibleObject> copy() override;
     MCSystemID getSystemId() override;
-
 
     bool operator ==(const MCConditionVariable&) const;
     bool operator !=(const MCConditionVariable&) const;
@@ -87,6 +107,8 @@ public:
     void wakeAllSleepingThreads();
     void removeThread(tid_t);
     bool threadCanExit(tid_t);
+    bool threadCanExitWithSpuriousWakeup(tid_t) const;
+    bool threadCanExitBasedOnSleepPosition(tid_t) const;
 };
 
 #endif //MC_MCCONDITIONVARIABLE_H

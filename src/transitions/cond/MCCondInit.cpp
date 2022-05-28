@@ -8,7 +8,8 @@ MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData, MCState *
     auto condThatExists = state->getVisibleObjectWithSystemIdentity<MCConditionVariable>(systemId);
 
     if (condThatExists == nullptr) {
-        auto newCond = new MCConditionVariable(*condInShm);
+        auto shadow = MCConditionVariableShadow(*condInShm);
+        auto newCond = new MCConditionVariable(shadow);
         auto newMutexSharedPtr = std::shared_ptr<MCVisibleObject>(newCond);
         state->registerVisibleObjectWithSystemIdentity(systemId, newMutexSharedPtr);
         condThatExists = std::static_pointer_cast<MCConditionVariable, MCVisibleObject>(newMutexSharedPtr);

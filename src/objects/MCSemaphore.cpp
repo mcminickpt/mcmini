@@ -10,7 +10,7 @@ MCSemaphore::getSystemId()
 std::shared_ptr<MCVisibleObject>
 MCSemaphore::copy()
 {
-    return std::shared_ptr<MCVisibleObject>(new MCSemaphore(*this));
+    return std::make_shared<MCSemaphore>(*this);
 }
 
 bool
@@ -20,12 +20,14 @@ MCSemaphore::wouldBlockIfWaitedOn()
 }
 
 bool
-MCSemaphore::threadCanExit(tid_t tid)
+MCSemaphore::threadCanExitWithSpuriousWakeup(tid_t tid) const
 {
-    if (wouldBlockIfWaitedOn())
-        return false;
+    return this->spuriousWakeupCount > 0;
+}
 
-    /* Different strategies */
+bool
+MCSemaphore::threadCanExitBasedOnSleepPosition(tid_t tid) const
+{
 
     /* Strategy A: Thread can exit if it is waiting at all */
     //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) != this->waitingQueue.end();
@@ -37,12 +39,37 @@ MCSemaphore::threadCanExit(tid_t tid)
     //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.end() - 1;
 }
 
+bool
+MCSemaphore::threadCanExit(tid_t tid)
+{
+    return !wouldBlockIfWaitedOn() &&
+        this->threadCanExitWithSpuriousWakeup(tid) &&
+        this->threadCanExitBasedOnSleepPosition(tid);
+}
+
 void
 MCSemaphore::leaveWaitingQueue(tid_t tid)
 {
     auto index = std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid);
     if (index != this->waitingQueue.end())
         this->waitingQueue.erase(index);
+
+    /**
+     * If we woke up because of a spurious wake up,
+     * we should also update how the semaphore continues
+     * to operate/allow for spurious wake-ups. The logic
+     * for being allowed to wake-up
+     */
+     if (threadCanExitWithSpuriousWakeup(tid)) {
+         if (threadCanExitBasedOnSleepPosition(tid)) {
+             if (preferSpuriousWakeupsWhenPossible) {
+                 this->spuriousWakeupCount--;
+             }
+         }
+         else {
+             this->spuriousWakeupCount--;
+         }
+     }
 }
 
 void
