@@ -62,7 +62,6 @@ MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
 
     // The enqueue operation is only dependent with a sem_wait
     // when the semaphore wakes threads using LIFO
-
     //auto maybeSemaphoreWaitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
     //if (maybeSemaphoreWaitOperation) {
     //    return *maybeSemaphoreWaitOperation->sem == *this->sem;

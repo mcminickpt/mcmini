@@ -1,4 +1,4 @@
-#include <semaphore.h>
+//#include <semaphore.h>
 #include "MCMINIWrappers.h"
 #include "MCMINI.h"
 
@@ -8,7 +8,7 @@ I have used 5 producers and 5 consumers to demonstrate the solution. You can alw
 */
 
 #define MaxItems 2 // Maximum items a producer can produce or a consumer can consume
-#define BufferSize 2 // Size of the buffer
+#define BufferSize 1 // Size of the buffer
 #define NUM_PRODUCERS 2
 #define NUM_CONSUMERS 1
 
@@ -22,16 +22,17 @@ pthread_mutex_t mutex;
 void *producer(void *pno)
 {
     int item;
-    for(int i = 0; i < MaxItems; i++) {
+    while (1) {
         item = rand(); // Produce an random item
         mc_sem_wait(&empty);
         mc_pthread_mutex_lock(&mutex);
         buffer[in] = item;
         in = (in+1)%BufferSize;
+        GOAL();
         mc_pthread_mutex_unlock(&mutex);
         mc_sem_post(&full);
     }
-    GOAL();
+
     return NULL;
 }
 
@@ -51,7 +52,7 @@ void *consumer(void *cno)
 
 int main() {
     mc_init();
-//    GOAL();
+    GOAL();
     pthread_t pro[5],con[5];
     mc_pthread_mutex_init(&mutex, NULL);
     mc_sem_init(&empty,0,BufferSize);
@@ -74,3 +75,55 @@ int main() {
     }
     return 0;
 }
+
+//// Naive dining philosophers solution, which leads to deadlock.
+//
+//#include <stdio.h>
+//#include <unistd.h>
+//#include <pthread.h>
+//#include "MCMINI.h"
+//#include "MCMINIWrappers.h"
+//
+//#define NUM_THREADS 4
+//
+//struct forks {
+//    int philosopher;
+//    pthread_mutex_t *left_fork;
+//    pthread_mutex_t *right_fork;
+//} forks[NUM_THREADS];
+//
+//void * philosopher_doit(void *forks_arg) {
+//    struct forks *forks = (struct forks*)forks_arg;
+//    mc_pthread_mutex_lock(forks->left_fork);
+//    mc_pthread_mutex_lock(forks->right_fork);
+//    mc_pthread_mutex_unlock(forks->left_fork);
+//    mc_pthread_mutex_unlock(forks->right_fork);
+//    return NULL;
+//}
+//
+//int main(int argc, char* argv[]) {
+//    mc_init();
+//
+//    pthread_t thread[NUM_THREADS];
+//    pthread_mutex_t mutex_resource[NUM_THREADS];
+//
+//    int i;
+//    for (i = 0; i < NUM_THREADS; i++) {
+//        // ANSI C/C++ require the cast to pthread_mutex_t, 'struct forks',
+//        //  respectively, because these are runtime statements, and not declarations
+//        //    mutex_resource[i] = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+//        mc_pthread_mutex_init(&mutex_resource[i], NULL);
+//        forks[i] = (struct forks){i,
+//                                  &mutex_resource[i], &mutex_resource[(i+1) % NUM_THREADS]};
+//    }
+//
+//    for (i = 0; i < NUM_THREADS; i++) {
+//        mc_pthread_create(&thread[i], NULL, &philosopher_doit, &forks[i]);
+//    }
+//
+//    for (i = 0; i < NUM_THREADS; i++) {
+//        mc_pthread_join(thread[i], NULL);
+//    }
+//
+//    return 0;
+//}

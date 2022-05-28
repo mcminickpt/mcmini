@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define NUM_READERS 5
+#define NUM_READERS 2
 #define NUM_WRITERS 2
 #define NUM_LOOP 2
 

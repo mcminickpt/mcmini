@@ -70,7 +70,7 @@ set(MC_CPP_FILES
         transitions/misc/MCGlobalVariableWrite.cpp
         transitions/threads/MCThreadReachGoal.cpp
         transitions/wrappers/MCGlobalVariableWrappers.cpp
-        ../test/CustomConditionVariable.c
+        MCCommon.c MCCommon.h
         MCEnv.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})

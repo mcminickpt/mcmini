@@ -14,7 +14,12 @@ extern "C" {
 extern MC_THREAD_LOCAL tid_t tid_self;
 extern pid_t cpid;
 extern mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM];
+
+/*
+ * Allows new threads to be created in a race-free manner
+ */
 extern sem_t mc_pthread_create_binary_sem;
+extern trid_t traceId;
 
 /* Data transfer */
 extern void *shmStart;

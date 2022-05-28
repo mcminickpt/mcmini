@@ -26,6 +26,13 @@ pid_t cpid = -1;
 mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM] = nullptr;
 sem_t mc_pthread_create_binary_sem;
 
+/*
+ * Identifies the trace number of the model checker
+ * Note that is we ever parallelized the program
+ * this would be highly unsafe and would need to be atomic
+ */
+trid_t traceId = 0;
+
 /* Data transfer */
 void *shmStart = nullptr;
 MCSharedTransition *shmTransitionTypeInfo = nullptr;
@@ -48,7 +55,7 @@ mc_init()
     MC_PROGRAM_TYPE program = mc_scheduler_main();
     if (MC_IS_SOURCE_PROGRAM(program)) return;
 
-    puts("***** Model checking completed! *****");
+    mcprintf("***** Model checking completed! *****\n");
     __real_exit(EXIT_SUCCESS);
 }
 
@@ -86,13 +93,6 @@ mc_create_program_state()
 MC_PROGRAM_TYPE
 mc_scheduler_main()
 {
-    /*
-     * Identifies the trace number of this call
-     * Note that is we ever parallelized the program
-     * this would be highly unsafe and would need to be atomic
-     */
-    static trid_t traceId = 0;
-
     mc_register_main_thread();
 
     auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
@@ -131,11 +131,12 @@ mc_scheduler_main()
                 return MC_SOURCE_PROGRAM;
 
             program = mc_readvance_main(backtrackOperation);
-            printf("*** TRACE ID %lu ***\n", traceId);
             if (MC_IS_SOURCE_PROGRAM(program))
                 return MC_SOURCE_PROGRAM;
 
+            mcprintf("*** TRACE ID %lu ***\n", traceId);
             mc_exit_with_trace_if_necessary(traceId++);
+
             curStateStackDepth = static_cast<int>(programState->getStateStackSize());
             curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
         } else {
@@ -222,7 +223,7 @@ mc_reset_cv_locks()
 void
 sigusr1_handler_child(int sig)
 {
-    printf("******* CHILD EXITING with pid %lu *******************\n", (uint64_t)getpid());
+    mcprintf("******* CHILD EXITING with pid %lu *******************\n", (uint64_t)getpid());
     _Exit(0);
 }
 
@@ -249,7 +250,7 @@ mc_spawn_child()
 
     if (FORK_IS_CHILD_PID(childpid)) {
         signal(SIGUSR1, &sigusr1_handler_child);
-        printf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
+        mcprintf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
         return MC_SOURCE_PROGRAM;
     } else {
         MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) != SIG_ERR);
@@ -341,7 +342,7 @@ mc_child_kill()
 {
     if (cpid == -1) return; // No child
     kill(cpid, SIGUSR1);
-    waitpid(cpid, nullptr, 0);
+    waitpid(cpid, NULL, 0);
     cpid = -1;
 }
 
@@ -366,7 +367,7 @@ mc_child_panic()
 void
 mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
 {
-    puts("**** Exhausting threads... ****");
+    mcprintf("**** Exhausting threads... ****\n");
     uint64_t debug_depth = programState->getTransitionStackSize();
     std::shared_ptr<MCTransition> t_next = initialTransition;
     do {
@@ -380,7 +381,7 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         {
             auto pendingTransitionForExecutingThread = programState->getPendingTransitionForThread(tid);
             if (programState->programHasADataRaceWithNewTransition(pendingTransitionForExecutingThread)) {
-                puts("*** DATA RACE DETECTED ***");
+                mcprintf("*** DATA RACE DETECTED ***\n");
                 programState->printTransitionStack();
                 programState->printNextTransitions();
             }
@@ -393,26 +394,29 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
     const bool programHasNoErrors = !programIsInDeadlock && programAchievedForwardProgressGoals;
 
     if (programIsInDeadlock) {
-        puts("*** DEADLOCK DETECTED ***");
+        puts("*** DEADLOCK DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
 
         if (programState->getConfiguration().stopAtFirstDeadlock) {
-            puts("*** Model checking completed! ***");
+            mcprintf("*** Model checking completed! ***");
             __real_exit(0);
         }
     }
 
     if (!programAchievedForwardProgressGoals) {
-        puts("*** FORWARD PROGRESS VIOLATION DETECTED ***");
+        mcprintf("*** FORWARD PROGRESS VIOLATION DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
         programState->printForwardProgressViolations();
     }
 
     if (programHasNoErrors) {
-        puts("*** NO FAILURE DETECTED ***");
+        mcprintf("*** NO FAILURE DETECTED ***\n");
+//        programState->printTransitionStack();
+//        programState->printNextTransitions();
     }
+
     mc_child_kill();
 }
 

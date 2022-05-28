@@ -8,6 +8,7 @@
 extern "C" {
 #include "mc_shared_cv.h"
 #include "MCEnv.h"
+#include "MCCommon.h"
 }
 
 /* Scheduler state */

@@ -63,6 +63,8 @@ main(int argc, const char **argv)
     // Guard against buffer overrun:
     assert(buf[sizeof(buf)-1] == '\0');
     setenv("LD_PRELOAD", buf, 1);
+    printf("About to exec into %s\n", cur_arg[0]);
+    fflush(stdout);
     execvp(cur_arg[0], cur_arg);
     fprintf(stderr, "Executable '%s' not found.\n", cur_arg[0]);
     perror("mcmini");

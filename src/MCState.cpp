@@ -4,6 +4,10 @@
 #include <unordered_set>
 #include <vector>
 
+extern "C" {
+#include "MCCommon.h"
+}
+
 bool
 MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition)
 {
@@ -687,6 +691,7 @@ MCState::printTransitionStack() const
         printf("%lu, ", tid);
     }
     printf("\nEND\n");
+    mcflush();
 }
 
 void
@@ -698,6 +703,7 @@ MCState::printNextTransitions() const
         this->getPendingTransitionForThread(i)->print();
     }
     printf("END\n");
+    mcflush();
 }
 
 void
@@ -711,6 +717,7 @@ MCState::printForwardProgressViolations() const
         }
     }
     printf("END\n");
+    mcflush();
 }
 
 bool
