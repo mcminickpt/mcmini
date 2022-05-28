@@ -69,6 +69,8 @@ mc_create_program_state()
     programState->registerVisibleOperationType(typeid(MCThreadFinish), &MCReadThreadFinish);
     programState->registerVisibleOperationType(typeid(MCThreadJoin), &MCReadThreadJoin);
     programState->registerVisibleOperationType(typeid(MCThreadReachGoal), &MCReadThreadReachGoal);
+    programState->registerVisibleOperationType(typeid(MCThreadEnterGoalCriticalSection), &MCReadThreadEnterGoalCriticalSection);
+    programState->registerVisibleOperationType(typeid(MCThreadExitGoalCriticalSection), &MCReadThreadExitGoalCriticalSection);
     programState->registerVisibleOperationType(typeid(MCMutexInit), &MCReadMutexInit);
     programState->registerVisibleOperationType(typeid(MCMutexUnlock), &MCReadMutexUnlock);
     programState->registerVisibleOperationType(typeid(MCMutexLock), &MCReadMutexLock);

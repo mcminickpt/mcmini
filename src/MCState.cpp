@@ -11,11 +11,16 @@ extern "C" {
 bool
 MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition)
 {
-    // Decorator
-    auto threadRunningTransition = transition->getThreadId();
-    auto numExecutionsOfTransitionInState = this->threadDepthData[threadRunningTransition];
-    auto threadEnabledAccordingToConfig = numExecutionsOfTransitionInState < this->configuration.maxThreadExecutionDepth;
-    return threadEnabledAccordingToConfig && transition->enabledInState(this);
+    // We artificially restrict threads from running that have
+    // run for more than their fair share of transitions. Note that
+    // in the case that the thread is in a critical section for
+    // GOAL() statements this is explicitly ignored
+    const tid_t threadRunningTransition = transition->getThreadId();
+    const unsigned numExecutionsOfTransitionInState = this->threadDepthData[threadRunningTransition];
+    const bool threadEnabledAccordingToConfig = numExecutionsOfTransitionInState < this->configuration.maxThreadExecutionDepth;
+    const bool threadCanRunPastThreadDepthLimit = this->getThreadWithId(threadRunningTransition)->isInThreadCriticalSection;
+    const bool threadNotRestrictedByThreadExecutionDepth = threadEnabledAccordingToConfig || threadCanRunPastThreadDepthLimit;
+    return threadNotRestrictedByThreadExecutionDepth && transition->enabledInState(this);
 }
 
 std::shared_ptr<MCTransition>
@@ -242,7 +247,7 @@ MCState::programAchievedForwardProgressGoals() const
     for (auto i = 0; i < numThreads; i++) {
         const auto thread = this->getThreadWithId(i);
 
-        if (!thread->hasEncounteredThreadProgressGoal()) {
+        if ( !thread->isInThreadCriticalSection && !thread->hasEncounteredThreadProgressGoal()) {
             return false;
         }
     }

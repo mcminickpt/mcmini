@@ -71,7 +71,7 @@ set(MC_CPP_FILES
         transitions/threads/MCThreadReachGoal.cpp
         transitions/wrappers/MCGlobalVariableWrappers.cpp
         MCCommon.c MCCommon.h
-        MCEnv.h)
+        MCEnv.h transitions/threads/MCThreadEnterGoalCriticalSection.cpp transitions/threads/MCThreadEnterGoalCriticalSection.h transitions/threads/MCThreadExitGoalCriticalSection.cpp transitions/threads/MCThreadExitGoalCriticalSection.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")

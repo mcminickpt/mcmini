@@ -101,10 +101,29 @@ mc_exit(int status)
     __real_exit(status);
 }
 
+template<typename T> void
+mc_pthread_reach_point()
+{
+    tid_t thread = tid_self;
+    thread_post_visible_operation_hit(typeid(T), &thread);
+    thread_await_mc_scheduler();
+}
+
 void
 mc_pthread_reach_goal()
 {
-    tid_t thread = tid_self;
-    thread_post_visible_operation_hit(typeid(MCThreadReachGoal), &thread);
-    thread_await_mc_scheduler();
+    mc_pthread_reach_point<MCThreadReachGoal>();
 }
+
+void
+mc_pthread_enter_goal_critical_section()
+{
+    mc_pthread_reach_point<MCThreadEnterGoalCriticalSection>();
+}
+
+void
+mc_pthread_exit_goal_critical_section()
+{
+    mc_pthread_reach_point<MCThreadExitGoalCriticalSection>();
+}
+

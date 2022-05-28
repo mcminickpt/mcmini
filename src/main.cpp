@@ -24,7 +24,9 @@ void *producer(void *pno)
     int item;
     while (1) {
         item = rand(); // Produce an random item
+        GOAL_ENTER_CRIT();
         mc_sem_wait(&empty);
+        GOAL_EXIT_CRIT();
         mc_pthread_mutex_lock(&mutex);
         buffer[in] = item;
         in = (in+1)%BufferSize;

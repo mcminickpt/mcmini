@@ -23,9 +23,23 @@ private:
     MCThreadShadow threadShadow;
 
     bool _hasEncounteredThreadProgressGoal = false;
+
 public:
     /* Threads are unique in that they have *two* ids */
     const tid_t tid;
+
+    /**
+     * Whether or not the thread is currently executing within
+     * the context of a "GOAL() critical section".
+     *
+     * To support the detection of starvation while model checking,
+     * it is necessary to add critical sections of code within which
+     * the thread execution limit of the thread is ignored. When a
+     * thread enters such a critical section, this value is set to
+     * `true` and is read to allow the thread to continue to execute
+     * even if the thread has reached its execution limit
+     */
+    bool isInThreadCriticalSection = false;
 
     inline
     MCThread(tid_t tid, void *arg, thread_routine startRoutine, pthread_t systemIdentity) :
