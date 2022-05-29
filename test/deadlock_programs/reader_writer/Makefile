@@ -1,4 +1,4 @@
-CFLAGS=-g3 -O0 -pthread
+CFLAGS=-O3 -pthread
 
 %: %.cpp
 	g++ ${CFLAGS} $< -o $@

@@ -85,15 +85,15 @@ target_link_libraries(MCMINI PUBLIC ${MC_LINK_TARGET_FLAGS})
 
 # -g3 -> debug symbols
 #-fsanitize=undefined (-lubsan)
-target_compile_options(MCMINI PUBLIC -g3)
+target_compile_options(MCMINI PUBLIC -O3)
 
 # Shared library
 add_library(mcminichecker SHARED ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
 target_compile_definitions(mcminichecker PUBLIC MC_SHARED_LIBRARY=1)
 target_link_libraries(mcminichecker PUBLIC ${MC_LINK_TARGET_FLAGS})
-target_compile_options(mcminichecker PUBLIC -g3)
+target_compile_options(mcminichecker PUBLIC -O3)
 
 # Executable that loads the shared library
 set(MAIN_FUNCTION launch.c)
 add_executable(mcmini ${MAIN_FUNCTION} MCEnv.h)
-target_compile_options(mcmini PUBLIC -g3)
+target_compile_options(mcmini PUBLIC -O3)

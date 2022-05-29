@@ -9,7 +9,7 @@ I have used 5 producers and 5 consumers to demonstrate the solution. You can alw
 
 #define MaxItems 2 // Maximum items a producer can produce or a consumer can consume
 #define BufferSize 1 // Size of the buffer
-#define NUM_PRODUCERS 2
+#define NUM_PRODUCERS 1
 #define NUM_CONSUMERS 1
 
 sem_t empty;
@@ -22,7 +22,7 @@ pthread_mutex_t mutex;
 void *producer(void *pno)
 {
     int item;
-    while (1) {
+//    while (1) {
         item = rand(); // Produce an random item
         GOAL_ENTER_CRIT();
         mc_sem_wait(&empty);
@@ -33,7 +33,7 @@ void *producer(void *pno)
         GOAL();
         mc_pthread_mutex_unlock(&mutex);
         mc_sem_post(&full);
-    }
+//    }
 
     return NULL;
 }

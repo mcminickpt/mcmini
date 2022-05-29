@@ -32,6 +32,7 @@ sem_t mc_pthread_create_binary_sem;
  * this would be highly unsafe and would need to be atomic
  */
 trid_t traceId = 0;
+trid_t transitionId = 0;
 
 /* Data transfer */
 void *shmStart = nullptr;
@@ -56,6 +57,7 @@ mc_init()
     if (MC_IS_SOURCE_PROGRAM(program)) return;
 
     mcprintf("***** Model checking completed! *****\n");
+    mcprintf("Number of transitions: %lu\n", transitionId);
     __real_exit(EXIT_SUCCESS);
 }
 
@@ -135,8 +137,6 @@ mc_scheduler_main()
             program = mc_readvance_main(backtrackOperation);
             if (MC_IS_SOURCE_PROGRAM(program))
                 return MC_SOURCE_PROGRAM;
-
-            mcprintf("*** TRACE ID %lu ***\n", traceId);
             mc_exit_with_trace_if_necessary(traceId++);
 
             curStateStackDepth = static_cast<int>(programState->getStateStackSize());
@@ -225,7 +225,6 @@ mc_reset_cv_locks()
 void
 sigusr1_handler_child(int sig)
 {
-    mcprintf("******* CHILD EXITING with pid %lu *******************\n", (uint64_t)getpid());
     _Exit(0);
 }
 
@@ -252,7 +251,6 @@ mc_spawn_child()
 
     if (FORK_IS_CHILD_PID(childpid)) {
         signal(SIGUSR1, &sigusr1_handler_child);
-        mcprintf("*** CHILD SPAWNED WITH PID %lu***\n", (uint64_t)getpid());
         return MC_SOURCE_PROGRAM;
     } else {
         MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) != SIG_ERR);
@@ -369,13 +367,13 @@ mc_child_panic()
 void
 mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
 {
-    mcprintf("**** Exhausting threads... ****\n");
     uint64_t debug_depth = programState->getTransitionStackSize();
     std::shared_ptr<MCTransition> t_next = initialTransition;
     do {
         debug_depth++;
         tid_t tid = t_next->getThreadId();
         mc_run_thread_to_next_visible_operation(tid);
+        transitionId++;
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
         programState->dynamicallyUpdateBacktrackSets();
 
@@ -396,12 +394,13 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
     const bool programHasNoErrors = !programIsInDeadlock && programAchievedForwardProgressGoals;
 
     if (programIsInDeadlock) {
-        puts("*** DEADLOCK DETECTED ***\n");
+        puts("*** DEADLOCK DETECTED ***");
         programState->printTransitionStack();
         programState->printNextTransitions();
 
         if (programState->getConfiguration().stopAtFirstDeadlock) {
             mcprintf("*** Model checking completed! ***\n");
+            mcprintf("Number of transitions: %lu\n", transitionId);
             __real_exit(0);
         }
     }
@@ -414,9 +413,9 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
     }
 
     if (programHasNoErrors) {
-        mcprintf("*** NO FAILURE DETECTED ***\n");
-//        programState->printTransitionStack();
-//        programState->printNextTransitions();
+        //mcprintf("*** NO FAILURE DETECTED ***\n");
+        //programState->printTransitionStack();
+        //programState->printNextTransitions();
     }
 
     mc_child_kill();

@@ -132,7 +132,7 @@ bool
 MCConditionVariable::threadCanExitBasedOnSleepPosition(tid_t tid) const
 {
     // LIFO
-    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.end() - 1;
+    return std::find(this->wakeQueue.begin(), this->wakeQueue.end(), tid) == this->wakeQueue.begin();
 }
 
 bool

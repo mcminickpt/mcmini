@@ -150,7 +150,7 @@ MCState::registerVisibleOperationType(MCType type, MCSharedMemoryHandler handler
     this->sharedMemoryHandlerTypeMap.insert({type, handler});
 }
 
-inline std::shared_ptr<MCTransition>
+std::shared_ptr<MCTransition>
 MCState::getTransitionAtIndex(int i) const
 {
     return this->transitionStack[i];
@@ -162,13 +162,13 @@ MCState::getTransitionStackTop() const
     return this->transitionStack[this->transitionStackTop];
 }
 
-inline tid_t
+tid_t
 MCState::getThreadRunningTransitionAtIndex(int i) const
 {
     return this->transitionStack[i]->getThreadId();
 }
 
-inline std::shared_ptr<MCStateStackItem>
+std::shared_ptr<MCStateStackItem>
 MCState::getStateItemAtIndex(int i) const
 {
     return this->stateStack[i];
