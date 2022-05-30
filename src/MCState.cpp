@@ -9,18 +9,21 @@ extern "C" {
 }
 
 bool
-MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition)
+MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition) const
 {
     // We artificially restrict threads from running that have
     // run for more than their fair share of transitions. Note that
     // in the case that the thread is in a critical section for
     // GOAL() statements this is explicitly ignored
-    const tid_t threadRunningTransition = transition->getThreadId();
-    const unsigned numExecutionsOfTransitionInState = this->threadDepthData[threadRunningTransition];
-    const bool threadEnabledAccordingToConfig = numExecutionsOfTransitionInState < this->configuration.maxThreadExecutionDepth;
-    const bool threadCanRunPastThreadDepthLimit = this->getThreadWithId(threadRunningTransition)->isInThreadCriticalSection;
-    const bool threadNotRestrictedByThreadExecutionDepth = threadEnabledAccordingToConfig || threadCanRunPastThreadDepthLimit;
-    return threadNotRestrictedByThreadExecutionDepth && transition->enabledInState(this);
+    const bool threadEnabledAccordingToConfig = this->threadHasExhaustedTransitionBudget(transition->getThreadId());
+    return threadEnabledAccordingToConfig && transition->enabledInState(this);
+}
+
+bool
+MCState::threadHasExhaustedTransitionBudget(tid_t tid) const
+{
+    const unsigned numExecutionsOfTransitionInState = this->currentThreadDepthData[tid];
+    return numExecutionsOfTransitionInState < this->maxThreadDepthData[tid];
 }
 
 std::shared_ptr<MCTransition>
@@ -92,6 +95,25 @@ MCState::createNewThread(MCThreadShadow &shadow)
 //    thread->id = newObjId;
     this->threadIdMap.insert({newTid, newObjId});
     return newTid;
+}
+
+void
+MCState::setMaximumExecutionDepthForThread(tid_t tid, uint32_t depth)
+{
+    this->maxThreadDepthData[tid] = depth;
+    //printf("Max thread depth updated to %lu for %lu\n", (long)depth, tid);
+}
+
+uint32_t
+MCState::getMaximumExecutionDepthForThread(tid_t tid) const
+{
+    return this->maxThreadDepthData[tid];
+}
+
+uint32_t
+MCState::getCurrentExecutionDepthForThread(tid_t tid) const
+{
+    return this->currentThreadDepthData[tid];
 }
 
 tid_t
@@ -238,20 +260,46 @@ MCState::programIsInDeadlock() const
 }
 
 bool
-MCState::programAchievedForwardProgressGoals() const
+MCState::hasMaybeStarvedThread() const
 {
-    /* We've only need to check forward progress conditions when enabled */
-    if (!configuration.expectForwardProgressOfThreads) return true;
-
     const auto numThreads = this->getNumProgramThreads();
     for (auto i = 0; i < numThreads; i++) {
         const auto thread = this->getThreadWithId(i);
 
-        if ( !thread->isInThreadCriticalSection && !thread->hasEncounteredThreadProgressGoal()) {
-            return false;
+        if (thread->isThreadStarved()) {
+            return true;
         }
     }
-    return true;
+    return false;
+}
+
+bool
+MCState::programAchievedForwardProgressGoals() const
+{
+    return !this->hasMaybeStarvedThread();
+}
+
+bool
+MCState::programAchievedForwardProgressGoals(const std::shared_ptr<MCTransition> &transition) const
+{
+    const tid_t thread = transition->getThreadId();
+    const uint32_t numThreads = this->getNumProgramThreads();
+    bool atLeastOneBudgetExhausted = false;
+
+    for (auto i = 0; i < numThreads; i++) {
+        if (i == thread) continue;
+
+        const auto nextTransitionForThreadI = this->getPendingTransitionForThread(i);
+        if (MCState::transitionIsEnabled(nextTransitionForThreadI)) {
+            return true;
+        }
+
+        if (this->threadHasExhaustedTransitionBudget(i)) {
+            atLeastOneBudgetExhausted = true;
+        }
+    }
+
+    return atLeastOneBudgetExhausted;
 }
 
 bool
@@ -521,16 +569,7 @@ MCState::incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTrans
 {
     if (transition->countsAgainstThreadExecutionDepth()) {
         auto threadRunningTransition = transition->getThreadId();
-        this->threadDepthData[threadRunningTransition]++;
-    }
-}
-
-void
-MCState::decrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition> &transition)
-{
-    if (transition->countsAgainstThreadExecutionDepth()) {
-        auto threadRunningTransition = transition->getThreadId();
-        this->threadDepthData[threadRunningTransition]--;
+        this->currentThreadDepthData[threadRunningTransition]++;
     }
 }
 
@@ -543,7 +582,7 @@ MCState::totalThreadExecutionDepth() const
     */
     auto totalThreadTransitionDepth = static_cast<uint32_t>(0);
     for (auto i = 0; i < this->nextThreadId; i++)
-        totalThreadTransitionDepth += this->threadDepthData[i];
+        totalThreadTransitionDepth += this->currentThreadDepthData[i];
     return totalThreadTransitionDepth;
 }
 
@@ -618,7 +657,8 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
     this->objectStorage.resetObjectsToInitialStateInStore();
 
     /* Zero the thread depth counts */
-    memset(this->threadDepthData, 0, sizeof(this->threadDepthData));
+    memset(this->currentThreadDepthData, 0, sizeof(this->currentThreadDepthData));
+    memset(this->maxThreadDepthData, this->configuration.maxThreadExecutionDepth, sizeof(this->maxThreadDepthData));
 
     /*
      * Then, replay the transitions in the transition stack forward in time
@@ -717,9 +757,25 @@ MCState::printForwardProgressViolations() const
     printf("VIOLATIONS\n");
     auto numThreads = this->getNumProgramThreads();
     for (auto i = 0; i < numThreads; i++) {
-        if (!this->getThreadWithId(i)->hasEncounteredThreadProgressGoal()) {
+        if (this->getThreadWithId(i)->isThreadStarved()) {
             printf("thread %lu\n", (tid_t)i);
         }
+    }
+    printf("END\n");
+    mcflush();
+}
+
+void
+MCState::printThreadExecutionDepths() const
+{
+    printf("EXECUTION DEPTHS\n");
+    auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        const tid_t tid = i;
+        const uint32_t currentDepth = this->getCurrentExecutionDepthForThread(tid);
+        const uint32_t maxDepth = this->getMaximumExecutionDepthForThread(tid);
+        printf("thread %lu: current depth: %lu max depth: %lu\n",
+               tid, (long)currentDepth, (long)maxDepth);
     }
     printf("END\n");
     mcflush();

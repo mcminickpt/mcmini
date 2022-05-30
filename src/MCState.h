@@ -49,7 +49,8 @@ private:
     /**
      * Maps, for each thread, data associated with the given thread
      */
-    uint32_t threadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
+    uint32_t currentThreadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
+    uint32_t maxThreadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
      * A pointer to the top-most element in the transition stack
@@ -78,7 +79,8 @@ private:
 
 private:
 
-    bool transitionIsEnabled(const std::shared_ptr<MCTransition>&);
+    bool threadHasExhaustedTransitionBudget(tid_t) const;
+    bool transitionIsEnabled(const std::shared_ptr<MCTransition>&) const;
 
     bool happensBefore(int i, int j) const;
     bool happensBeforeThread(int i, const std::shared_ptr<MCThread>&) const;
@@ -101,12 +103,15 @@ private:
                                               int i, int p);
 
     void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
-    void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
     uint32_t totalThreadExecutionDepth() const;
 
 public:
 
-    MCState(MCStateConfiguration config) : configuration(config) {}
+    MCState(MCStateConfiguration config) : configuration(config) {
+        for (unsigned int & i : this->maxThreadDepthData) {
+            i = config.maxThreadExecutionDepth;
+        }
+    }
 
     tid_t getThreadRunningTransitionAtIndex(int) const;
 
@@ -118,9 +123,12 @@ public:
 
     std::shared_ptr<MCTransition> getNextTransitionForThread(MCThread *thread);
     std::shared_ptr<MCTransition> getNextTransitionForThread(tid_t thread) const;
+    uint32_t getMaximumExecutionDepthForThread(tid_t) const;
+    uint32_t getCurrentExecutionDepthForThread(tid_t) const;
     void setNextTransitionForThread(MCThread *, std::shared_ptr<MCTransition>);
     void setNextTransitionForThread(tid_t, std::shared_ptr<MCTransition>);
     void setNextTransitionForThread(tid_t, MCSharedTransition*, void *);
+    void setMaximumExecutionDepthForThread(tid_t, uint32_t);
 
     std::shared_ptr<MCTransition> getFirstEnabledTransitionFromNextStack();
     std::unordered_set<tid_t> getEnabledThreadsInState();
@@ -159,8 +167,10 @@ public:
 
     void dynamicallyUpdateBacktrackSets();
 
+    bool hasMaybeStarvedThread() const;
     bool programIsInDeadlock() const;
     bool programAchievedForwardProgressGoals() const;
+    bool programAchievedForwardProgressGoals(const std::shared_ptr<MCTransition>&) const;
     bool programHasADataRaceWithNewTransition(const std::shared_ptr<MCTransition>&) const;
 
     MCStateConfiguration getConfiguration() const;
@@ -177,13 +187,12 @@ public:
 
     void reflectStateAtTransitionDepth(uint32_t);
 
-    void moveToPreviousState();
-
     // TODO: De-couple priting from the state stack + transitions somehow
     /* Printing */
     void printTransitionStack() const;
     void printNextTransitions() const;
     void printForwardProgressViolations() const;
+    void printThreadExecutionDepths() const;
 };
 
 #endif //MC_MCSTATE_H

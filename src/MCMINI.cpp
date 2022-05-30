@@ -64,6 +64,14 @@ mc_init()
 void
 mc_create_program_state()
 {
+    // Registering tells mcmini what to do when a thread in the
+    // target program encounters a specific type of transition;
+    // viz. it describes how to create/find the shadow corresponding
+    // to the transition in the target. If you don't register a transition
+    // type with mcmini, it will simply ignore the transition (well it should,
+    // if you still intercept the transition with a transparent wrapper and
+    // wait as usual bad things will probably happen for now; ideally you'd
+    // want to ignore the wrapper calling back to mcmini entirely)
     auto config = get_config_for_execution_environment();
     programState.Construct(config);
     programState->registerVisibleOperationType(typeid(MCThreadStart), &MCReadThreadStart);
@@ -71,6 +79,7 @@ mc_create_program_state()
     programState->registerVisibleOperationType(typeid(MCThreadFinish), &MCReadThreadFinish);
     programState->registerVisibleOperationType(typeid(MCThreadJoin), &MCReadThreadJoin);
     programState->registerVisibleOperationType(typeid(MCThreadReachGoal), &MCReadThreadReachGoal);
+    programState->registerVisibleOperationType(typeid(MCThreadRequestNewGoal), &MCReadThreadRequestNewGoal);
     programState->registerVisibleOperationType(typeid(MCThreadEnterGoalCriticalSection), &MCReadThreadEnterGoalCriticalSection);
     programState->registerVisibleOperationType(typeid(MCThreadExitGoalCriticalSection), &MCReadThreadExitGoalCriticalSection);
     programState->registerVisibleOperationType(typeid(MCMutexInit), &MCReadMutexInit);
@@ -122,6 +131,11 @@ mc_scheduler_main()
 
         std::shared_ptr<MCStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
         if (sTop->hasThreadsToBacktrackOn()) {
+
+            if (traceId % 1000 == 0) {
+                printf("*** TRACE ID: %lu ***\n", traceId);
+            }
+
             // TODO: We can be smart here and only run a thread
             // if it is not already in a sleep set or lock set (eventually)
             programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
@@ -377,13 +391,22 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
         programState->dynamicallyUpdateBacktrackSets();
 
-        /* Check for data races */
         {
+            /* Check for data races */
             auto pendingTransitionForExecutingThread = programState->getPendingTransitionForThread(tid);
             if (programState->programHasADataRaceWithNewTransition(pendingTransitionForExecutingThread)) {
                 mcprintf("*** DATA RACE DETECTED ***\n");
                 programState->printTransitionStack();
                 programState->printNextTransitions();
+            }
+
+            /* Check for starvation */
+            if (!programState->programAchievedForwardProgressGoals(pendingTransitionForExecutingThread)) {
+                mcprintf("*** FORWARD PROGRESS VIOLATION DETECTED ***\n");
+                programState->printTransitionStack();
+                programState->printNextTransitions();
+                programState->printThreadExecutionDepths();
+                programState->printForwardProgressViolations();
             }
         }
 
@@ -409,13 +432,14 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         mcprintf("*** FORWARD PROGRESS VIOLATION DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
+        programState->printThreadExecutionDepths();
         programState->printForwardProgressViolations();
     }
 
     if (programHasNoErrors) {
-        //mcprintf("*** NO FAILURE DETECTED ***\n");
-        //programState->printTransitionStack();
-        //programState->printNextTransitions();
+//        mcprintf("*** NO FAILURE DETECTED ***\n");
+//        programState->printTransitionStack();
+//        programState->printNextTransitions();
     }
 
     mc_child_kill();
@@ -547,11 +571,11 @@ mc_daemon_thread_simulate_program(void *trace)
 MCStateConfiguration
 get_config_for_execution_environment()
 {
-    uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t maxThreadDepth = 7;//MC_STATE_CONFIG_THREAD_NO_LIMIT;
     trid_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
     trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
     bool firstDeadlock = false;
-    bool expectForwardProgressOfThreads = false;
+    uint64_t extraLivenessTransitions = 8;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
@@ -570,9 +594,6 @@ get_config_for_execution_environment()
     if (stackContentDumpTraceNumberChar != nullptr)
         stackContentDumpTraceNumber = strtoul(stackContentDumpTraceNumberChar, nullptr, 10);
 
-    if (expectForwardProgressOfThreadsChar != nullptr)
-        expectForwardProgressOfThreads = true;
-
     if (firstDeadlockChar != nullptr)
         firstDeadlock = true;
 
@@ -580,6 +601,6 @@ get_config_for_execution_environment()
             gdbTraceNumber,
             stackContentDumpTraceNumber,
             firstDeadlock,
-            expectForwardProgressOfThreads
+            extraLivenessTransitions,
     };
 }

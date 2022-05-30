@@ -4,6 +4,7 @@
 #include "MCShared.h"
 #include "MCSharedTransition.h"
 #include "MCDeferred.h"
+#include "MCMINIWrappers.h"
 
 extern "C" {
     #include <semaphore.h>

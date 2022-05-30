@@ -71,7 +71,7 @@ set(MC_CPP_FILES
         transitions/threads/MCThreadReachGoal.cpp
         transitions/wrappers/MCGlobalVariableWrappers.cpp
         MCCommon.c MCCommon.h
-        MCEnv.h transitions/threads/MCThreadEnterGoalCriticalSection.cpp transitions/threads/MCThreadEnterGoalCriticalSection.h transitions/threads/MCThreadExitGoalCriticalSection.cpp transitions/threads/MCThreadExitGoalCriticalSection.h)
+        MCEnv.h transitions/threads/MCThreadEnterGoalCriticalSection.cpp transitions/threads/MCThreadEnterGoalCriticalSection.h transitions/threads/MCThreadExitGoalCriticalSection.cpp transitions/threads/MCThreadExitGoalCriticalSection.h transitions/threads/MCThreadRequestNewGoal.cpp transitions/threads/MCThreadRequestNewGoal.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")
@@ -85,7 +85,7 @@ target_link_libraries(MCMINI PUBLIC ${MC_LINK_TARGET_FLAGS})
 
 # -g3 -> debug symbols
 #-fsanitize=undefined (-lubsan)
-target_compile_options(MCMINI PUBLIC -O3)
+target_compile_options(MCMINI PUBLIC -O0 -g3)
 
 # Shared library
 add_library(mcminichecker SHARED ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
