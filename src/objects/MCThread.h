@@ -22,24 +22,12 @@ struct MCThread : public MCVisibleObject {
 private:
     MCThreadShadow threadShadow;
 
-    bool _hasEncounteredThreadProgressGoal = false;
+    bool _hasEncounteredProgressGoal = false;
+    bool _maybeStarved = false;
 
 public:
     /* Threads are unique in that they have *two* ids */
     const tid_t tid;
-
-    /**
-     * Whether or not the thread is currently executing within
-     * the context of a "GOAL() critical section".
-     *
-     * To support the detection of starvation while model checking,
-     * it is necessary to add critical sections of code within which
-     * the thread execution limit of the thread is ignored. When a
-     * thread enters such a critical section, this value is set to
-     * `true` and is read to allow the thread to continue to execute
-     * even if the thread has reached its execution limit
-     */
-    bool isInThreadCriticalSection = false;
 
     inline
     MCThread(tid_t tid, void *arg, thread_routine startRoutine, pthread_t systemIdentity) :
@@ -48,7 +36,7 @@ public:
     inline explicit MCThread(tid_t tid, MCThreadShadow shadow) : MCVisibleObject(), threadShadow(shadow), tid(tid) {}
     inline MCThread(const MCThread &thread)
     : MCVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid),
-      _hasEncounteredThreadProgressGoal(thread._hasEncounteredThreadProgressGoal) {}
+      _maybeStarved(thread._maybeStarved) {}
 
     std::shared_ptr<MCVisibleObject> copy() override;
     MCSystemID getSystemId() override;
@@ -71,16 +59,23 @@ public:
     void despawn();
 
     inline void
-    markEncounteredThreadProgressPost()
+    markThreadAsLive()
     {
-        _hasEncounteredThreadProgressGoal = true;
+        _maybeStarved = false;
+    }
+
+    inline void
+    markThreadAsMaybeStarved()
+    {
+        _maybeStarved = true;
     }
 
     inline bool
-    hasEncounteredThreadProgressGoal() const
+    isThreadStarved() const
     {
-        return _hasEncounteredThreadProgressGoal;
+        return _maybeStarved && !_hasEncounteredProgressGoal;
     }
+
 };
 
 #endif //MC_MCTHREAD_H

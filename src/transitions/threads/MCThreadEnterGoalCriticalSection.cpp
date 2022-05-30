@@ -25,7 +25,7 @@ MCThreadEnterGoalCriticalSection::dynamicCopyInState(const MCState *state) {
 
 void
 MCThreadEnterGoalCriticalSection::applyToState(MCState *) {
-    this->thread->isInThreadCriticalSection = true;
+//    this->thread->isInThreadCriticalSection = true;
 }
 
 void

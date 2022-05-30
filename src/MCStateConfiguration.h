@@ -37,35 +37,28 @@ struct MCStateConfiguration final {
      const trid_t stackContentDumpTraceNumber;
 
     /**
-     * Whether or not this model checking session is
-     * being used to check for starvation to make statements
-     * about forward progress
-     *
-     * In order that the model checker can check for forward progress,
-     * the target program must be modified with calls to GOAL(), which
-     * act as marker for where we wish to ensure threads reach after
-     * a fixed number of steps. When this option is set, it should be coupled
-     * with a reasonable value for `maxThreadExecutionDepth`
-     */
-    const bool expectForwardProgressOfThreads;
-
-    /**
      * Whether or not the model
      * checker stops when it encounters
      * a deadlock
      */
     const bool stopAtFirstDeadlock;
 
+    /**
+     * The number of additional transitions mcmini gives to
+     * threads in order to detect starvation
+     */
+    const uint64_t extraLivenessTransitions;
+
     MCStateConfiguration(uint64_t maxThreadExecutionDepth,
                            trid_t gdbDebugTraceNumber,
                            trid_t stackContentDumpTraceNumber,
                            bool firstDeadlock,
-                           bool expectForwardProgressOfThreads)
+                          uint64_t extraLivenessTransitions)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
       gdbDebugTraceNumber(gdbDebugTraceNumber),
       stackContentDumpTraceNumber(stackContentDumpTraceNumber),
-      stopAtFirstDeadlock(firstDeadlock),
-      expectForwardProgressOfThreads(expectForwardProgressOfThreads) {}
+      extraLivenessTransitions(extraLivenessTransitions),
+      stopAtFirstDeadlock(firstDeadlock) {}
 };
 
 #endif //MC_MCSTATECONFIGURATION_H

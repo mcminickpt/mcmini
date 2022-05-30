@@ -8,11 +8,9 @@ MC_EXTERN MC_NO_RETURN void mc_exit(int);
 MC_EXTERN int mc_pthread_create(pthread_t *, const pthread_attr_t *, void *(*) (void *), void *);
 MC_EXTERN int mc_pthread_join(pthread_t, void**);
 MC_EXTERN void mc_pthread_reach_goal();
-MC_EXTERN void mc_pthread_enter_goal_critical_section();
-MC_EXTERN void mc_pthread_exit_goal_critical_section();
+MC_EXTERN void mc_pthread_request_new_goal();
 
 #define GOAL()               mc_pthread_reach_goal()
-#define GOAL_ENTER_CRIT()    mc_pthread_enter_goal_critical_section()
-#define GOAL_EXIT_CRIT()     mc_pthread_exit_goal_critical_section()
+#define REQUEST()            mc_pthread_request_new_goal()
 
 #endif //MC_MCTHREADTRANSITIONWRAPPERS_H

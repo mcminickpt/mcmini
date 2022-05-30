@@ -116,14 +116,8 @@ mc_pthread_reach_goal()
 }
 
 void
-mc_pthread_enter_goal_critical_section()
+mc_pthread_request_new_goal()
 {
-    mc_pthread_reach_point<MCThreadEnterGoalCriticalSection>();
-}
-
-void
-mc_pthread_exit_goal_critical_section()
-{
-    mc_pthread_reach_point<MCThreadExitGoalCriticalSection>();
+    mc_pthread_reach_point<MCThreadRequestNewGoal>();
 }
 

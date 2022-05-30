@@ -9,7 +9,7 @@ I have used 5 producers and 5 consumers to demonstrate the solution. You can alw
 
 #define MaxItems 2 // Maximum items a producer can produce or a consumer can consume
 #define BufferSize 1 // Size of the buffer
-#define NUM_PRODUCERS 1
+#define NUM_PRODUCERS 2
 #define NUM_CONSUMERS 1
 
 sem_t empty;
@@ -22,30 +22,28 @@ pthread_mutex_t mutex;
 void *producer(void *pno)
 {
     int item;
-//    while (1) {
+    while (1) {
         item = rand(); // Produce an random item
-        GOAL_ENTER_CRIT();
+        REQUEST();
         mc_sem_wait(&empty);
-        GOAL_EXIT_CRIT();
         mc_pthread_mutex_lock(&mutex);
         buffer[in] = item;
         in = (in+1)%BufferSize;
         GOAL();
         mc_pthread_mutex_unlock(&mutex);
         mc_sem_post(&full);
-//    }
+    }
 
     return NULL;
 }
 
 void *consumer(void *cno)
 {
-    GOAL();
-    for(int i = 0; i < MaxItems; i++) {
+    while (1) {
         mc_sem_wait(&full);
         mc_pthread_mutex_lock(&mutex);
         int item = buffer[out];
-        out = (out+1)%BufferSize;
+        out = (out + 1) % BufferSize;
         mc_pthread_mutex_unlock(&mutex);
         mc_sem_post(&empty);
     }
@@ -54,7 +52,6 @@ void *consumer(void *cno)
 
 int main() {
     mc_init();
-    GOAL();
     pthread_t pro[5],con[5];
     mc_pthread_mutex_init(&mutex, NULL);
     mc_sem_init(&empty,0,BufferSize);
@@ -78,8 +75,8 @@ int main() {
     return 0;
 }
 
-//// Naive dining philosophers solution, which leads to deadlock.
-//
+// Naive dining philosophers solution, which leads to deadlock.
+
 //#include <stdio.h>
 //#include <unistd.h>
 //#include <pthread.h>
@@ -124,6 +121,54 @@ int main() {
 //    }
 //
 //    for (i = 0; i < NUM_THREADS; i++) {
+//        mc_pthread_join(thread[i], NULL);
+//    }
+//
+//    return 0;
+//}
+//
+//// Simple cond example
+//
+//#include <unistd.h>
+//#include <semaphore.h>
+//#include "MCMINI.h"
+//
+//#define THREAD_NUM 1
+//
+//pthread_mutex_t mutex;
+//sem_t sem;
+//pthread_cond_t cond;
+//pthread_t thread[THREAD_NUM];
+//
+//void * thread_doit(void *unused)
+//{
+//    mc_pthread_mutex_lock(&mutex);
+//    mc_sem_post(&sem);
+//    mc_pthread_cond_wait(&cond, &mutex);
+//    mc_pthread_mutex_unlock(&mutex);
+//    return NULL;
+//}
+//
+//int main(int argc, char* argv[]) {
+//    mc_init();
+//    mc_pthread_mutex_init(&mutex, NULL);
+//    mc_sem_init(&sem, 0, 0);
+//
+//    mc_pthread_cond_init(&cond, NULL);
+//
+//    for(int i = 0; i < THREAD_NUM; i++) {
+//        mc_pthread_create(&thread[i], NULL, &thread_doit, NULL);
+//    }
+//
+//    for( int i = 0; i < THREAD_NUM; i++) {
+//        mc_sem_wait(&sem);
+//    }
+//
+//    mc_pthread_mutex_lock(&mutex);
+//    mc_pthread_cond_broadcast(&cond);
+//    mc_pthread_mutex_unlock(&mutex);
+//
+//    for(int i = 0; i < THREAD_NUM; i++) {
 //        mc_pthread_join(thread[i], NULL);
 //    }
 //
