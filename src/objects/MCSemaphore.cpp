@@ -28,7 +28,6 @@ MCSemaphore::threadCanExitWithSpuriousWakeup(tid_t tid) const
 bool
 MCSemaphore::threadCanExitBasedOnSleepPosition(tid_t tid) const
 {
-
     /* Strategy A: Thread can exit if it is waiting at all */
     //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) != this->waitingQueue.end();
 
@@ -43,8 +42,7 @@ bool
 MCSemaphore::threadCanExit(tid_t tid)
 {
     return !wouldBlockIfWaitedOn() &&
-        this->threadCanExitWithSpuriousWakeup(tid) &&
-        this->threadCanExitBasedOnSleepPosition(tid);
+    this->threadCanExitBasedOnSleepPosition(tid);
 }
 
 void
