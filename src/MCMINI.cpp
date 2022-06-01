@@ -58,6 +58,7 @@ mc_init()
 
     mcprintf("***** Model checking completed! *****\n");
     mcprintf("Number of transitions: %lu\n", transitionId);
+    mcprintf("Number of traces: %lu\n", traceId);
     __real_exit(EXIT_SUCCESS);
 }
 
