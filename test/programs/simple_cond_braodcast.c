@@ -1,6 +1,6 @@
 #include <unistd.h>
 #include <pthread.h>
-#define THREAD_NUM 3
+#define THREAD_NUM 2
 
 pthread_mutex_t mutex, mutex_start;
 pthread_cond_t cond;

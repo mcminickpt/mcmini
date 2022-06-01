@@ -8,6 +8,8 @@ extern "C" {
 #include "MCCommon.h"
 }
 
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
+
 bool
 MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition) const
 {
@@ -562,6 +564,7 @@ MCState::simulateRunningTransition(const std::shared_ptr<MCTransition> &transiti
 
     auto tid = transition->getThreadId();
     this->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
+    this->dispatchExtraLivenessTransitionsToThreadsIfNecessary(tid);
 }
 
 void
@@ -621,6 +624,33 @@ MCState::growStateStackWithTransition(const std::shared_ptr<MCTransition> &trans
 }
 
 void
+MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary(tid_t lastRunningThread)
+{
+    const auto pendingTransitionForLastRunningThread = this->getPendingTransitionForThread(lastRunningThread);
+    const auto thread = this->getThreadWithId(lastRunningThread);
+
+    if (thread->isThreadStarved()) {
+        const auto pendingTransitionIsEnabled = MCState::transitionIsEnabled(pendingTransitionForLastRunningThread);
+        if (!pendingTransitionIsEnabled) {
+            printf("Thread %lu just added more transitions\n", lastRunningThread);
+            printf("Blocked at: {\n");
+            pendingTransitionForLastRunningThread->print();
+            printf("}\n");
+            const uint64_t numThreads = this->getNumProgramThreads();
+            const uint64_t globalMaxExecutionDepth = this->getConfiguration().maxThreadExecutionDepth;
+            const uint64_t extraLivenessTransitions = this->getConfiguration().extraLivenessTransitions;
+
+            for (uint64_t i = 0; i < numThreads; i++) {
+                const uint64_t threadLocalExecutionDepth = this->getCurrentExecutionDepthForThread(i);
+                const uint64_t newMaxExecutionDepth = MAX(globalMaxExecutionDepth,
+                                                          threadLocalExecutionDepth + extraLivenessTransitions);
+                this->setMaximumExecutionDepthForThread(i, newMaxExecutionDepth);
+            }
+        }
+    }
+}
+
+void
 MCState::start()
 {
     this->growStateStack();
@@ -658,8 +688,9 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
 
     /* Zero the thread depth counts */
     memset(this->currentThreadDepthData, 0, sizeof(this->currentThreadDepthData));
-    memset(this->maxThreadDepthData, this->configuration.maxThreadExecutionDepth, sizeof(this->maxThreadDepthData));
-
+    for (unsigned int & i : this->maxThreadDepthData) {
+        i = this->configuration.maxThreadExecutionDepth;
+    }
     /*
      * Then, replay the transitions in the transition stack forward in time
      * up until the specified depth

@@ -91,6 +91,7 @@ private:
     void growStateStackWithTransition(const std::shared_ptr<MCTransition>&);
     void growTransitionStackRunning(const std::shared_ptr<MCTransition>&);
     void virtuallyRunTransition(const std::shared_ptr<MCTransition>&);
+    void dispatchExtraLivenessTransitionsToThreadsIfNecessary(tid_t);
 
     /**
      * Inserts a backtracking point given a context of insertion (where in
