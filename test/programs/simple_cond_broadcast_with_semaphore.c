@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define THREAD_NUM 5
+#define THREAD_NUM 2
 
 pthread_mutex_t mutex;
 sem_t sem;

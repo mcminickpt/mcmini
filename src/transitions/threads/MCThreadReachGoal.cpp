@@ -26,6 +26,7 @@ MCThreadReachGoal::dynamicCopyInState(const MCState *state) {
 void
 MCThreadReachGoal::applyToState(MCState *) {
     this->thread->markThreadAsLive();
+    this->thread->markThreadHasHitGoal();
 }
 
 bool

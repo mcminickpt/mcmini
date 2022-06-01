@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-#define NUM_THREADS 4
+#define NUM_THREADS 2
 
 struct forks {
     int philosopher;

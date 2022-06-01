@@ -41,8 +41,8 @@ MCSemaphore::threadCanExitBasedOnSleepPosition(tid_t tid) const
 bool
 MCSemaphore::threadCanExit(tid_t tid)
 {
-    return !wouldBlockIfWaitedOn();
-    //this->threadCanExitBasedOnSleepPosition(tid);
+    return !wouldBlockIfWaitedOn() &&
+        this->threadCanExitBasedOnSleepPosition(tid);
 }
 
 void

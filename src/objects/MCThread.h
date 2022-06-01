@@ -70,6 +70,12 @@ public:
         _maybeStarved = true;
     }
 
+    inline void
+    markThreadHasHitGoal()
+    {
+        _hasEncounteredProgressGoal = true;
+    }
+
     inline bool
     isThreadStarved() const
     {

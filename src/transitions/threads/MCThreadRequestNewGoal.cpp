@@ -28,22 +28,7 @@ MCThreadRequestNewGoal::dynamicCopyInState(const MCState *state) {
 void
 MCThreadRequestNewGoal::applyToState(MCState *state)
 {
-    if (state->hasMaybeStarvedThread()) {
-        return;
-    }
-
     this->thread->markThreadAsMaybeStarved();
-
-    const uint64_t numThreads = state->getNumProgramThreads();
-    const uint64_t globalMaxExecutionDepth = state->getConfiguration().maxThreadExecutionDepth;
-    const uint64_t extraLivenessTransitions = state->getConfiguration().extraLivenessTransitions;
-
-    for (uint64_t i = 0; i < numThreads; i++) {
-        const uint64_t threadLocalExecutionDepth = state->getCurrentExecutionDepthForThread(i);
-        const uint64_t newMaxExecutionDepth = MAX(globalMaxExecutionDepth,
-                                                  threadLocalExecutionDepth + extraLivenessTransitions);
-        state->setMaximumExecutionDepthForThread(i, newMaxExecutionDepth);
-    }
 }
 
 bool

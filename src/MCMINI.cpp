@@ -81,8 +81,6 @@ mc_create_program_state()
     programState->registerVisibleOperationType(typeid(MCThreadJoin), &MCReadThreadJoin);
     programState->registerVisibleOperationType(typeid(MCThreadReachGoal), &MCReadThreadReachGoal);
     programState->registerVisibleOperationType(typeid(MCThreadRequestNewGoal), &MCReadThreadRequestNewGoal);
-    programState->registerVisibleOperationType(typeid(MCThreadEnterGoalCriticalSection), &MCReadThreadEnterGoalCriticalSection);
-    programState->registerVisibleOperationType(typeid(MCThreadExitGoalCriticalSection), &MCReadThreadExitGoalCriticalSection);
     programState->registerVisibleOperationType(typeid(MCMutexInit), &MCReadMutexInit);
     programState->registerVisibleOperationType(typeid(MCMutexUnlock), &MCReadMutexUnlock);
     programState->registerVisibleOperationType(typeid(MCMutexLock), &MCReadMutexLock);
@@ -400,15 +398,6 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
                 programState->printTransitionStack();
                 programState->printNextTransitions();
             }
-
-            /* Check for starvation */
-            if (!programState->programAchievedForwardProgressGoals(pendingTransitionForExecutingThread)) {
-                mcprintf("*** FORWARD PROGRESS VIOLATION DETECTED ***\n");
-                programState->printTransitionStack();
-                programState->printNextTransitions();
-                programState->printThreadExecutionDepths();
-                programState->printForwardProgressViolations();
-            }
         }
 
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
@@ -572,7 +561,7 @@ mc_daemon_thread_simulate_program(void *trace)
 MCStateConfiguration
 get_config_for_execution_environment()
 {
-    uint64_t maxThreadDepth = 7;//MC_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
     trid_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
     trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
     bool firstDeadlock = false;
