@@ -22,10 +22,11 @@ struct MCThread : public MCVisibleObject {
 private:
     MCThreadShadow threadShadow;
 
-    bool _hasEncounteredProgressGoal = false;
-    bool _maybeStarved = false;
-
 public:
+
+    bool maybeStarvedAndBlocked = false;
+    bool maybeStarved = false;
+
     /* Threads are unique in that they have *two* ids */
     const tid_t tid;
 
@@ -36,7 +37,7 @@ public:
     inline explicit MCThread(tid_t tid, MCThreadShadow shadow) : MCVisibleObject(), threadShadow(shadow), tid(tid) {}
     inline MCThread(const MCThread &thread)
     : MCVisibleObject(thread.getObjectId()), threadShadow(thread.threadShadow), tid(thread.tid),
-      _maybeStarved(thread._maybeStarved) {}
+      maybeStarved(thread.maybeStarved), maybeStarvedAndBlocked(thread.maybeStarvedAndBlocked) {}
 
     std::shared_ptr<MCVisibleObject> copy() override;
     MCSystemID getSystemId() override;
@@ -61,25 +62,19 @@ public:
     inline void
     markThreadAsLive()
     {
-        _maybeStarved = false;
+        maybeStarved = false;
     }
 
     inline void
     markThreadAsMaybeStarved()
     {
-        _maybeStarved = true;
-    }
-
-    inline void
-    markThreadHasHitGoal()
-    {
-        _hasEncounteredProgressGoal = true;
+        maybeStarved = true;
     }
 
     inline bool
     isThreadStarved() const
     {
-        return _maybeStarved && !_hasEncounteredProgressGoal;
+        return maybeStarved;
     }
 
 };

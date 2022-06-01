@@ -22,7 +22,9 @@ pthread_mutex_t mutex;
 void *producer(void *pno)
 {
     int item;
-    for (int i = 0; i < MaxItems; i++) {
+
+
+    while(1) {
         item = rand(); // Produce an random item
         REQUEST();
         mc_sem_wait(&empty);
@@ -33,13 +35,16 @@ void *producer(void *pno)
         mc_pthread_mutex_unlock(&mutex);
         mc_sem_post(&full);
     }
+//    for (int i = 0; i < MaxItems; i++) {
+//
+//    }
 
     return NULL;
 }
 
 void *consumer(void *cno)
 {
-    for (int i = 0; i < MaxItems; i++) {
+    while(1) {
         mc_sem_wait(&full);
         mc_pthread_mutex_lock(&mutex);
         int item = buffer[out];

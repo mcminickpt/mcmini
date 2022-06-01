@@ -268,7 +268,21 @@ MCState::hasMaybeStarvedThread() const
     for (auto i = 0; i < numThreads; i++) {
         const auto thread = this->getThreadWithId(i);
 
-        if (thread->isThreadStarved()) {
+        if (thread->maybeStarvedAndBlocked) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool
+MCState::hasMaybeStarvedAndBlockedThread() const
+{
+    const auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        const auto thread = this->getThreadWithId(i);
+
+        if (thread->maybeStarvedAndBlocked) {
             return true;
         }
     }
@@ -278,7 +292,7 @@ MCState::hasMaybeStarvedThread() const
 bool
 MCState::programAchievedForwardProgressGoals() const
 {
-    return !this->hasMaybeStarvedThread();
+    return !this->hasMaybeStarvedAndBlockedThread();
 }
 
 bool
@@ -564,7 +578,7 @@ MCState::simulateRunningTransition(const std::shared_ptr<MCTransition> &transiti
 
     auto tid = transition->getThreadId();
     this->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
-    this->dispatchExtraLivenessTransitionsToThreadsIfNecessary(tid);
+    this->dispatchExtraLivenessTransitionsToThreadsIfNecessary();
 }
 
 void
@@ -623,31 +637,71 @@ MCState::growStateStackWithTransition(const std::shared_ptr<MCTransition> &trans
     this->growStateStack();
 }
 
+#include "transitions/semaphore/MCSemWait.h"
+
 void
-MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary(tid_t lastRunningThread)
+MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
 {
-    const auto pendingTransitionForLastRunningThread = this->getPendingTransitionForThread(lastRunningThread);
-    const auto thread = this->getThreadWithId(lastRunningThread);
+    const uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
+        const auto thread = this->getThreadWithId(i);
 
-    if (thread->isThreadStarved()) {
-        const auto pendingTransitionIsEnabled = MCState::transitionIsEnabled(pendingTransitionForLastRunningThread);
-        if (!pendingTransitionIsEnabled) {
-            printf("Thread %lu just added more transitions\n", lastRunningThread);
-            printf("Blocked at: {\n");
-            pendingTransitionForLastRunningThread->print();
-            printf("}\n");
-            const uint64_t numThreads = this->getNumProgramThreads();
-            const uint64_t globalMaxExecutionDepth = this->getConfiguration().maxThreadExecutionDepth;
-            const uint64_t extraLivenessTransitions = this->getConfiguration().extraLivenessTransitions;
+        if (thread->maybeStarved && !thread->maybeStarvedAndBlocked) {
+            const auto pendingTransition = this->getPendingTransitionForThread(i);
+            const auto pendingTransitionIsEnabled = MCState::transitionIsEnabled(pendingTransition);
+            if (!pendingTransitionIsEnabled) {
+                thread->maybeStarvedAndBlocked = true;
 
-            for (uint64_t i = 0; i < numThreads; i++) {
-                const uint64_t threadLocalExecutionDepth = this->getCurrentExecutionDepthForThread(i);
-                const uint64_t newMaxExecutionDepth = MAX(globalMaxExecutionDepth,
-                                                          threadLocalExecutionDepth + extraLivenessTransitions);
-                this->setMaximumExecutionDepthForThread(i, newMaxExecutionDepth);
+                /* Give all other threads extraLivenessTransitions */
+                const uint64_t globalMaxExecutionDepth = this->getConfiguration().maxThreadExecutionDepth;
+                const uint64_t extraLivenessTransitions = this->getConfiguration().extraLivenessTransitions;
+
+                for (uint64_t j = 0; j < numThreads; j++) {
+                    const uint64_t threadLocalExecutionDepth = this->getCurrentExecutionDepthForThread(j);
+                    const uint64_t newMaxExecutionDepth = MAX(globalMaxExecutionDepth,
+                                                              threadLocalExecutionDepth + extraLivenessTransitions);
+                    this->setMaximumExecutionDepthForThread(j, newMaxExecutionDepth);
+                }
+            }
+
+            if (thread->maybeStarvedAndBlocked && pendingTransitionIsEnabled) {
+                thread->maybeStarvedAndBlocked = false;
             }
         }
     }
+
+
+    if (this->getTransitionStackSize() < 4) {
+        return;
+    }
+#if 0
+    int sem1WaitCount = 0;
+    int sem2WaitCount = 0;
+
+    const std::shared_ptr<MCSemaphore> sem1 = this->getObjectWithId<MCSemaphore>(1);
+    const std::shared_ptr<MCSemaphore> sem2 = this->getObjectWithId<MCSemaphore>(2);
+
+    for (uint64_t i = 0; i < numThreads; i++) {
+        const auto thread = this->getThreadWithId(i);
+        const auto pendingTransition = this->getPendingTransitionForThread(i);
+        const auto maybeSemWait = std::dynamic_pointer_cast<MCSemWait, MCTransition>(pendingTransition);
+        if (maybeSemWait) {
+            if (*maybeSemWait->sem == *sem1) {
+                sem1WaitCount++;
+            }
+            if (*maybeSemWait->sem == *sem2) {
+                sem2WaitCount++;
+            }
+        }
+    }
+
+    if (sem1WaitCount > 1 || sem2WaitCount > 1) {
+        printf("ABORTING\n");
+        printTransitionStack();
+        printNextTransitions();
+//        abort();
+    }
+#endif
 }
 
 void
