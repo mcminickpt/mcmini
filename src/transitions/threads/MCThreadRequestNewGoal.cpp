@@ -28,6 +28,12 @@ MCThreadRequestNewGoal::dynamicCopyInState(const MCState *state) {
 void
 MCThreadRequestNewGoal::applyToState(MCState *state)
 {
+    MC_ASSERT(!thread->maybeStarved && !thread->maybeStarvedAndBlocked);
+
+    if (state->hasMaybeStarvedThread()) {
+        return;
+    }
+
     this->thread->markThreadAsMaybeStarved();
 }
 
