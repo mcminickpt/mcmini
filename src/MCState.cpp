@@ -214,6 +214,7 @@ MCState::getPendingTransitionForThread(tid_t tid) const
 std::shared_ptr<MCTransition>
 MCState::getFirstEnabledTransitionFromNextStack()
 {
+    if (this->totalThreadExecutionDepth() > this->configuration.maxCutoffDepth) return nullptr;
     const auto threadsInProgram = this->getNumProgramThreads();
     for (auto i = 0; i < threadsInProgram; i++) {
         const std::shared_ptr<MCTransition> &nextTransitionForI = this->nextTransitions[i];
@@ -292,6 +293,9 @@ MCState::hasMaybeStarvedAndBlockedThread() const
 bool
 MCState::programAchievedForwardProgressGoals() const
 {
+    /* If we're past the max cutoff -> don't worry we don't care */
+    if (this->totalThreadExecutionDepth() > this->configuration.maxCutoffDepth) return true;
+
     return !this->hasMaybeStarvedAndBlockedThread();
 }
 

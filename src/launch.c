@@ -32,6 +32,10 @@ main(int argc, const char **argv)
             setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
             cur_arg++;
         }
+        else if (strcmp(cur_arg[0], "--max-cutoff-depth") == 0) {
+            setenv(ENV_MAX_CUTOFF_DEPTH, cur_arg[1], 1);
+            cur_arg += 2;
+        }
         else if (strcmp(cur_arg[0], "--print") == 0) {
             setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
             cur_arg += 2;

@@ -49,16 +49,25 @@ struct MCStateConfiguration final {
      */
     const uint64_t extraLivenessTransitions;
 
+    /**
+     * The maxmimum number of transitions that
+     * mcmini will run in total before preventing
+     * threads from running any further
+     */
+    const uint64_t maxCutoffDepth;
+
     MCStateConfiguration(uint64_t maxThreadExecutionDepth,
                            trid_t gdbDebugTraceNumber,
                            trid_t stackContentDumpTraceNumber,
                            bool firstDeadlock,
-                          uint64_t extraLivenessTransitions)
+                          uint64_t extraLivenessTransitions,
+                          uint64_t maxCutoffDepth)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
       gdbDebugTraceNumber(gdbDebugTraceNumber),
       stackContentDumpTraceNumber(stackContentDumpTraceNumber),
       extraLivenessTransitions(extraLivenessTransitions),
-      stopAtFirstDeadlock(firstDeadlock) {}
+      stopAtFirstDeadlock(firstDeadlock),
+      maxCutoffDepth(maxCutoffDepth) {}
 };
 
 #endif //MC_MCSTATECONFIGURATION_H

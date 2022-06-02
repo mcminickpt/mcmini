@@ -32,10 +32,10 @@ MCSemaphore::threadCanExitBasedOnSleepPosition(tid_t tid) const
     //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) != this->waitingQueue.end();
 
     /* Strategy B: Thread can exit if it was the first one waiting (FIFO) */
-    return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
+    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.begin();
 
     /* Strategy C: Thread can exit if it was the last one waiting (LIFO) */
-    //return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.end() - 1;
+    return std::find(this->waitingQueue.begin(), this->waitingQueue.end(), tid) == this->waitingQueue.end() - 1;
 }
 
 bool

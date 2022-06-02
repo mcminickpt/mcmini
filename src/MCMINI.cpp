@@ -424,12 +424,16 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         programState->printNextTransitions();
         programState->printThreadExecutionDepths();
         programState->printForwardProgressViolations();
+        printf("transitions: %lu\n", transitionId);
+        printf("trace: %lu\n", traceId);
     }
 
     if (programHasNoErrors) {
-//        mcprintf("*** NO FAILURE DETECTED ***\n");
-//        programState->printTransitionStack();
-//        programState->printNextTransitions();
+        mcprintf("*** NO FAILURE DETECTED ***\n");
+        programState->printTransitionStack();
+        programState->printNextTransitions();
+        printf("transitions: %lu\n", transitionId);
+        printf("trace: %lu\n", traceId);
     }
 
     mc_child_kill();
@@ -566,6 +570,7 @@ get_config_for_execution_environment()
     trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
     bool firstDeadlock = false;
     uint64_t extraLivenessTransitions = 8;
+    uint64_t maxCutoffDepth = 1000000;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
@@ -573,6 +578,7 @@ get_config_for_execution_environment()
     char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
     char *firstDeadlockChar = getenv(ENV_STOP_AT_FIRST_DEADLOCK);
     char *expectForwardProgressOfThreadsChar = getenv(ENV_CHECK_FORWARD_PROGRESS);
+    char *maxCutoffDepthChar = getenv(ENV_MAX_CUTOFF_DEPTH);
 
     // TODO: Sanitize arguments (check errors of strtoul)
     if (maxThreadDepthChar != nullptr)
@@ -587,10 +593,14 @@ get_config_for_execution_environment()
     if (firstDeadlockChar != nullptr)
         firstDeadlock = true;
 
+    if (maxCutoffDepthChar != nullptr)
+        maxCutoffDepth = strtoul(maxCutoffDepthChar, nullptr, 10);
+
     return {maxThreadDepth,
             gdbTraceNumber,
             stackContentDumpTraceNumber,
             firstDeadlock,
             extraLivenessTransitions,
+            maxCutoffDepth
     };
 }
