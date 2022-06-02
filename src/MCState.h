@@ -51,6 +51,9 @@ private:
      */
     uint32_t currentThreadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
     uint32_t maxThreadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
+    uint32_t transitionsSinceLastCandidateStarvedThread[MAX_TOTAL_THREADS_IN_PROGRAM];
+    uint32_t threadDepthAtLastCandidateStarvingPoint[MAX_TOTAL_THREADS_IN_PROGRAM];
+
 
     /**
      * A pointer to the top-most element in the transition stack
@@ -104,6 +107,7 @@ private:
                                               int i, int p);
 
     void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
+    void incrementTransitionsSinceNewCandidateStarvedThreadIfNecessary(const std::shared_ptr<MCTransition>&);
     uint32_t totalThreadExecutionDepth() const;
 
 public:
@@ -112,6 +116,9 @@ public:
         for (unsigned int & i : this->maxThreadDepthData) {
             i = config.maxThreadExecutionDepth;
         }
+
+        memset(currentThreadDepthData, 0, sizeof(currentThreadDepthData));
+        memset(transitionsSinceLastCandidateStarvedThread, 0, sizeof(transitionsSinceLastCandidateStarvedThread));
     }
 
     tid_t getThreadRunningTransitionAtIndex(int) const;
@@ -126,6 +133,7 @@ public:
     std::shared_ptr<MCTransition> getNextTransitionForThread(tid_t thread) const;
     uint32_t getMaximumExecutionDepthForThread(tid_t) const;
     uint32_t getCurrentExecutionDepthForThread(tid_t) const;
+    uint32_t getExecutionDepthForThreadWhenLastStarvedAndBlocked(tid_t) const;
     void setNextTransitionForThread(MCThread *, std::shared_ptr<MCTransition>);
     void setNextTransitionForThread(tid_t, std::shared_ptr<MCTransition>);
     void setNextTransitionForThread(tid_t, MCSharedTransition*, void *);
@@ -170,10 +178,12 @@ public:
 
     bool hasMaybeStarvedThread() const;
     bool hasMaybeStarvedAndBlockedThread() const;
+    tid_t getCandidateStarvedThread() const;
+    void setNewCandidateStarvedThread(tid_t);
 
     bool programIsInDeadlock() const;
     bool programAchievedForwardProgressGoals() const;
-    bool programAchievedForwardProgressGoals(const std::shared_ptr<MCTransition>&) const;
+    bool programMaybeAchievedForwardProgressGoals() const;
     bool programHasADataRaceWithNewTransition(const std::shared_ptr<MCTransition>&) const;
 
     MCStateConfiguration getConfiguration() const;

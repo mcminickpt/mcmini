@@ -35,6 +35,7 @@ MCThreadRequestNewGoal::applyToState(MCState *state)
     }
 
     this->thread->markThreadAsMaybeStarved();
+    state->setNewCandidateStarvedThread(thread->tid);
 }
 
 bool

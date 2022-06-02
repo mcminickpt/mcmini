@@ -400,6 +400,17 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
             }
         }
 
+        {
+            /* Check for potential starvation */
+            if (!programState->programMaybeAchievedForwardProgressGoals()) {
+                mcprintf("*** FORWARD PROGRESS VIOLATION DETECTED FROM NEXT ***\n");
+                programState->printTransitionStack();
+                programState->printNextTransitions();
+                programState->printThreadExecutionDepths();
+                programState->printForwardProgressViolations();
+            }
+        }
+
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
 
     const bool programIsInDeadlock = programState->programIsInDeadlock();
@@ -561,11 +572,12 @@ mc_daemon_thread_simulate_program(void *trace)
 MCStateConfiguration
 get_config_for_execution_environment()
 {
-    uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t maxThreadDepth = 10;//MC_STATE_CONFIG_THREAD_NO_LIMIT;
     trid_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
     trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
     bool firstDeadlock = false;
-    uint64_t extraLivenessTransitions = 8;
+    uint64_t extraLivenessTransitions = 7;
+    uint64_t minExtraLivenessTransitions = 7;
 
     /* Parse the max thread depth from the command line (if available) */
     char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
@@ -592,5 +604,6 @@ get_config_for_execution_environment()
             stackContentDumpTraceNumber,
             firstDeadlock,
             extraLivenessTransitions,
+            minExtraLivenessTransitions
     };
 }

@@ -49,15 +49,25 @@ struct MCStateConfiguration final {
      */
     const uint64_t extraLivenessTransitions;
 
+    /*
+     * The number of additiona transitions that each
+     * non-starving thread *must* run since the last
+     * new candidate was determined in order for mcmini
+     * to declare a trace leads to starvation
+     */
+    const uint64_t minExtraLivenessTransitions;
+
     MCStateConfiguration(uint64_t maxThreadExecutionDepth,
                            trid_t gdbDebugTraceNumber,
                            trid_t stackContentDumpTraceNumber,
                            bool firstDeadlock,
-                          uint64_t extraLivenessTransitions)
+                          uint64_t extraLivenessTransitions,
+                          uint64_t minExtraLivenessTransitions)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
       gdbDebugTraceNumber(gdbDebugTraceNumber),
       stackContentDumpTraceNumber(stackContentDumpTraceNumber),
       extraLivenessTransitions(extraLivenessTransitions),
+      minExtraLivenessTransitions(minExtraLivenessTransitions),
       stopAtFirstDeadlock(firstDeadlock) {}
 };
 

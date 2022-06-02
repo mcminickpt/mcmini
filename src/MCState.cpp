@@ -118,6 +118,12 @@ MCState::getCurrentExecutionDepthForThread(tid_t tid) const
     return this->currentThreadDepthData[tid];
 }
 
+uint32_t
+MCState::getExecutionDepthForThreadWhenLastStarvedAndBlocked(tid_t tid) const
+{
+    return this->threadDepthAtLastCandidateStarvingPoint[tid];
+}
+
 tid_t
 MCState::createNewThread()
 {
@@ -264,15 +270,7 @@ MCState::programIsInDeadlock() const
 bool
 MCState::hasMaybeStarvedThread() const
 {
-    const auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
-        const auto thread = this->getThreadWithId(i);
-
-        if (thread->maybeStarvedAndBlocked) {
-            return true;
-        }
-    }
-    return false;
+    return this->getCandidateStarvedThread() != TID_INVALID;
 }
 
 bool
@@ -289,6 +287,30 @@ MCState::hasMaybeStarvedAndBlockedThread() const
     return false;
 }
 
+tid_t
+MCState::getCandidateStarvedThread() const
+{
+    const auto numThreads = this->getNumProgramThreads();
+    for (auto i = 0; i < numThreads; i++) {
+        const auto thread = this->getThreadWithId(i);
+
+        if (thread->maybeStarved) {
+            return i;
+        }
+    }
+    return TID_INVALID;
+}
+
+void
+MCState::setNewCandidateStarvedThread(tid_t tid)
+{
+    /* Optionally store that this is the new starving thread */
+    printf("NEW CANDIDATE STARVED THREAD SET %lu\n", tid);
+
+    /* Reset the counts in transitionsSinceLastCandidateStarvedThread */
+    memzero(this->transitionsSinceLastCandidateStarvedThread);
+}
+
 bool
 MCState::programAchievedForwardProgressGoals() const
 {
@@ -296,26 +318,42 @@ MCState::programAchievedForwardProgressGoals() const
 }
 
 bool
-MCState::programAchievedForwardProgressGoals(const std::shared_ptr<MCTransition> &transition) const
+MCState::programMaybeAchievedForwardProgressGoals() const
 {
-    const tid_t thread = transition->getThreadId();
     const uint32_t numThreads = this->getNumProgramThreads();
-    bool atLeastOneBudgetExhausted = false;
+    const uint64_t minExtraLivenessTransitions = this->configuration.minExtraLivenessTransitions;
+    const tid_t starvedThread = this->getCandidateStarvedThread();
 
-    for (auto i = 0; i < numThreads; i++) {
-        if (i == thread) continue;
+    if (starvedThread == TID_INVALID) {
+        return true; /* No candidate starved thread */
+    }
 
-        const auto nextTransitionForThreadI = this->getPendingTransitionForThread(i);
-        if (MCState::transitionIsEnabled(nextTransitionForThreadI)) {
-            return true;
-        }
+    {
+        const auto pendingTransitionForStarvedThread = this->getPendingTransitionForThread(starvedThread);
+        const auto starvedThreadIsNotBlocked = MCState::transitionIsEnabled(pendingTransitionForStarvedThread);
 
-        if (this->threadHasExhaustedTransitionBudget(i)) {
-            atLeastOneBudgetExhausted = true;
+        if (starvedThreadIsNotBlocked) {
+            return true; /* We can't say there's starvation yet */
         }
     }
 
-    return atLeastOneBudgetExhausted;
+    for (auto i = 0; i < numThreads; i++) {
+        if (i == starvedThread) continue;
+
+        const uint32_t transitionsSinceNewCandidate = this->transitionsSinceLastCandidateStarvedThread[i];
+        const bool usedMinExtraLivenessTransitions = transitionsSinceNewCandidate >= minExtraLivenessTransitions;
+
+        if (!usedMinExtraLivenessTransitions) {
+            const auto pendingTransitionForThread = this->getPendingTransitionForThread(i);
+            const bool pendingTransitionEnabled = MCState::transitionIsEnabled(pendingTransitionForThread);
+
+            if (pendingTransitionEnabled) {
+                return true; /* There is at least one thread that *could* "un-starve" the candidate */
+            }
+        }
+    }
+
+    return false;
 }
 
 bool
@@ -566,7 +604,9 @@ MCState::virtuallyRunTransition(const std::shared_ptr<MCTransition> &transition)
     std::shared_ptr<MCTransition> dynamicCopy = transition->dynamicCopyInState(this);
     dynamicCopy->applyToState(this);
     // Do other state updates here
+    const tid_t tid = transition->getThreadId();
     this->incrementThreadTransitionCountIfNecessary(transition);
+    this->incrementTransitionsSinceNewCandidateStarvedThreadIfNecessary(transition);
 }
 
 void
@@ -587,6 +627,15 @@ MCState::incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTrans
     if (transition->countsAgainstThreadExecutionDepth()) {
         auto threadRunningTransition = transition->getThreadId();
         this->currentThreadDepthData[threadRunningTransition]++;
+    }
+}
+
+void
+MCState::incrementTransitionsSinceNewCandidateStarvedThreadIfNecessary(const std::shared_ptr<MCTransition> &transition)
+{
+    if (transition->countsAgainstThreadExecutionDepth()) {
+        auto tid = transition->getThreadId();
+        this->transitionsSinceLastCandidateStarvedThread[tid]++;
     }
 }
 
@@ -645,12 +694,20 @@ MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
     const uint64_t numThreads = this->getNumProgramThreads();
     for (uint64_t i = 0; i < numThreads; i++) {
         const auto thread = this->getThreadWithId(i);
+        const auto pendingTransition = this->getPendingTransitionForThread(i);
+        const auto pendingTransitionIsEnabled = MCState::transitionIsEnabled(pendingTransition);
 
         if (thread->maybeStarved && !thread->maybeStarvedAndBlocked) {
-            const auto pendingTransition = this->getPendingTransitionForThread(i);
-            const auto pendingTransitionIsEnabled = MCState::transitionIsEnabled(pendingTransition);
-            if (!pendingTransitionIsEnabled) {
+            const uint32_t currentDepth = this->getCurrentExecutionDepthForThread(i);
+            const uint32_t depthWhenStarving = this->getExecutionDepthForThreadWhenLastStarvedAndBlocked(i);
+            const bool hasRunPastLastExecutionDepthSinceStarving = currentDepth > depthWhenStarving;
+
+            if (!pendingTransitionIsEnabled && hasRunPastLastExecutionDepthSinceStarving) {
+                printf("Thread %lu just extended the local depths\n", i);
+                pendingTransition->print();
+                puts("END");
                 thread->maybeStarvedAndBlocked = true;
+                this->transitionsSinceLastCandidateStarvedThread[i] = this->getCurrentExecutionDepthForThread(i);
 
                 /* Give all other threads extraLivenessTransitions */
                 const uint64_t globalMaxExecutionDepth = this->getConfiguration().maxThreadExecutionDepth;
@@ -663,18 +720,19 @@ MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
                     this->setMaximumExecutionDepthForThread(j, newMaxExecutionDepth);
                 }
             }
+        }
 
-            if (thread->maybeStarvedAndBlocked && pendingTransitionIsEnabled) {
-                thread->maybeStarvedAndBlocked = false;
-            }
+        if (thread->maybeStarvedAndBlocked && pendingTransitionIsEnabled) {
+            thread->maybeStarvedAndBlocked = false;
         }
     }
 
 
+#if 0
+
     if (this->getTransitionStackSize() < 4) {
         return;
     }
-#if 0
     int sem1WaitCount = 0;
     int sem2WaitCount = 0;
 
@@ -741,7 +799,13 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
     this->objectStorage.resetObjectsToInitialStateInStore();
 
     /* Zero the thread depth counts */
-    memset(this->currentThreadDepthData, 0, sizeof(this->currentThreadDepthData));
+    memzero(this->currentThreadDepthData);
+    memzero(this->threadDepthAtLastCandidateStarvingPoint);
+    memzero(this->transitionsSinceLastCandidateStarvedThread);
+    for (unsigned int & i : this->maxThreadDepthData) {
+        i = configuration.maxThreadExecutionDepth;
+    }
+
     for (unsigned int & i : this->maxThreadDepthData) {
         i = this->configuration.maxThreadExecutionDepth;
     }
@@ -755,6 +819,8 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
         const auto dynamicCpy = transition->dynamicCopyInState(this);
         dynamicCpy->applyToState(this);
         this->incrementThreadTransitionCountIfNecessary(dynamicCpy);
+        this->incrementTransitionsSinceNewCandidateStarvedThreadIfNecessary(dynamicCpy);
+        this->dispatchExtraLivenessTransitionsToThreadsIfNecessary();
     }
 
     {
@@ -859,8 +925,9 @@ MCState::printThreadExecutionDepths() const
         const tid_t tid = i;
         const uint32_t currentDepth = this->getCurrentExecutionDepthForThread(tid);
         const uint32_t maxDepth = this->getMaximumExecutionDepthForThread(tid);
-        printf("thread %lu: current depth: %lu max depth: %lu\n",
-               tid, (long)currentDepth, (long)maxDepth);
+        const uint32_t sinceLastStarvedDepth = this->transitionsSinceLastCandidateStarvedThread[tid];
+        printf("thread %lu: current depth: %lu max depth: %lu since last starved: %lu\n",
+               tid, (long)currentDepth, (long)maxDepth, (long)sinceLastStarvedDepth);
     }
     printf("END\n");
     mcflush();

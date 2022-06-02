@@ -23,7 +23,6 @@ void *producer(void *pno)
 {
     int item;
 
-
     while(1) {
         item = rand(); // Produce an random item
         REQUEST();
