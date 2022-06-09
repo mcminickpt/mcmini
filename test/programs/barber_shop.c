@@ -1,3 +1,6 @@
+#ifdef  _REENTRANT
+# undef _REENTRANT
+#endif
 #define _REENTRANT
 
 #include <stdio.h>
@@ -5,7 +8,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
-
 
 // The maximum number of customer threads.
 #define MAX_CUSTOMERS 25

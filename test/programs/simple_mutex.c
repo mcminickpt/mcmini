@@ -3,8 +3,8 @@
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
 
-int main(int argc, char* argv[]) {
-
+int main(int argc, char* argv[])
+{
     pthread_mutex_init(&mutex1, NULL);
     pthread_mutex_init(&mutex2, NULL);
 

@@ -20,8 +20,8 @@ void * thread_doit(void *unused)
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
-
+int main(int argc, char* argv[])
+{
     pthread_mutex_init(&mutex, NULL);
     sem_init(&sem, 0, 0);
 

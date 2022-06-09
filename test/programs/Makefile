@@ -3,12 +3,21 @@ MCMINI_ROOT=../..
 PYTHON=$(shell ls /usr/bin/python3 /usr/bin/python3 2>/dev/null |head -1)
 EXECUTABLES=$(patsubst %.c,%,$(wildcard *.c)) \
             $(patsubst %.cpp,%,$(wildcard *.cpp))
+MC_EXECUTABLES=$(patsubst %.c,mc_%,$(wildcard *.c)) \
+               $(patsubst %.cpp,mc_%,$(wildcard *.cpp))
 
 # '-I${MCMINI_ROOT}/src' is for MCMINI.h, etc.
 CFLAGS=-g3 -O0 -I${MCMINI_ROOT}/src -pthread
 CXXFLAGS=-g3 -O0 -I${MCMINI_ROOT}/src -pthread
 
 default: ${EXECUTABLES}
+
+# This creates the mc_*.c version, but it fails to compile due to a bug
+# because the .h files invoked use C++ instead of C.
+# Do you want to use g++ instead of gcc here?
+# If so, translate to .cpp file, and cast any malloc to <static_*?
+#   inside mc_internalize.py
+mc_executables: ${MC_EXECUTABLES}
 
 %: %.cpp
 	g++ ${CFLAGS} $< -o $@

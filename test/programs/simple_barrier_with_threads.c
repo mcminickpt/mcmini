@@ -10,7 +10,8 @@ void * thread_doit(void *unused)
     pthread_barrier_wait(&barrier);
     return NULL;
 }
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
     pthread_barrier_init(&barrier, NULL, THREAD_NUM + 1);
     for(int i = 0; i < THREAD_NUM; i++) {
         pthread_create(&thread[i], NULL, &thread_doit, NULL);

@@ -5,7 +5,8 @@
 
 sem_t sem;
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
     sem_init(&sem, 0, START_NUM);
 
     for( int i = 0; i < START_NUM; i++) {

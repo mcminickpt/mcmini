@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <pthread.h>
-#define THREAD_NUM 3
+
+#define THREAD_NUM 5
 
 pthread_mutex_t mutex, mutex_start;
 pthread_cond_t cond;
@@ -15,8 +16,8 @@ void * thread_doit(void *unused)
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
-
+int main(int argc, char* argv[])
+{
     pthread_mutex_init(&mutex, NULL);
     pthread_mutex_init(&mutex_start, NULL);
 
