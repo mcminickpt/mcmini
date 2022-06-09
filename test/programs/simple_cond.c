@@ -13,8 +13,8 @@ void * thread_doit(void *unused)
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
-
+int main(int argc, char* argv[])
+{
     pthread_mutex_init(&mutex, NULL);
     pthread_mutex_init(&mutex_start, NULL);
 

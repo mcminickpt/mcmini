@@ -1,9 +1,15 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <semaphore.h>
 #include <pthread.h>
+#include <semaphore.h>
 
-#define MaxItems 5 // Maximum items a producer can produce or a consumer can consume
+/*
+This program provides a possible solution for producer-consumer problem using
+mutex and semaphore.  I have used 2 producers and 1 consumer to demonstrate
+the solution. You can always play with these values.
+*/
+
+#define MaxItems 5 // Maximum items produced/consumed by producer/consumer
 #define BufferSize 5 // Size of the buffer
 #define NUM_PRODUCERS 2
 #define NUM_CONSUMERS 1
@@ -23,7 +29,8 @@ void *producer(void *pno)
         sem_wait(&empty);
         pthread_mutex_lock(&mutex);
         buffer[in] = item;
-        printf("Producer %d: Insert Item %d at %d\n", *((int *)pno),buffer[in],in);
+        printf("Producer %d: Insert Item %d at %d\n",
+               *((int *)pno),buffer[in],in);
         in = (in+1)%BufferSize;
         pthread_mutex_unlock(&mutex);
         sem_post(&full);
@@ -36,7 +43,8 @@ void *consumer(void *cno)
         sem_wait(&full);
         pthread_mutex_lock(&mutex);
         int item = buffer[out];
-        printf("Consumer %d: Remove Item %d from %d\n",*((int *)cno),item, out);
+        printf("Consumer %d: Remove Item %d from %d\n",
+               *((int *)cno),item, out);
         out = (out+1)%BufferSize;
         pthread_mutex_unlock(&mutex);
         sem_post(&empty);
@@ -46,6 +54,7 @@ void *consumer(void *cno)
 
 int main() {
     pthread_t pro[5],con[5];
+
     pthread_mutex_init(&mutex, NULL);
     sem_init(&empty,0,BufferSize);
     sem_init(&full,0,0);

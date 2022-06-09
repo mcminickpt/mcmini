@@ -1,6 +1,6 @@
 #include <pthread.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 pthread_mutex_t mutex1;
 pthread_mutex_t mutex2;
@@ -13,7 +13,8 @@ void * thread_doit(void *forks_arg) {
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
     pthread_create(&thread1, NULL, &thread_doit, NULL);
     pthread_create(&thread2, NULL, &thread_doit, NULL);
 

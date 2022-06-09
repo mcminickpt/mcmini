@@ -21,7 +21,8 @@ void * thread2_doit(void *forks_arg) {
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char* argv[])
+{
     sem_init(&sem1, 0, START_NUM);
     sem_init(&sem2, 0, 1);
 
