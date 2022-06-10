@@ -305,7 +305,7 @@ void
 MCState::setNewCandidateStarvedThread(tid_t tid)
 {
     /* Optionally store that this is the new starving thread */
-    printf("NEW CANDIDATE STARVED THREAD SET %lu\n", tid);
+    //printf("NEW CANDIDATE STARVED THREAD SET %lu\n", tid);
 
     /* Reset the counts in transitionsSinceLastCandidateStarvedThread */
     memzero(this->transitionsSinceLastCandidateStarvedThread);
@@ -703,9 +703,9 @@ MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
             const bool hasRunPastLastExecutionDepthSinceStarving = currentDepth > depthWhenStarving;
 
             if (!pendingTransitionIsEnabled && hasRunPastLastExecutionDepthSinceStarving) {
-                printf("Thread %lu just extended the local depths\n", i);
-                pendingTransition->print();
-                puts("END");
+                //printf("Thread %lu just extended the local depths\n", i);
+                //pendingTransition->print();
+                //puts("END");
                 thread->maybeStarvedAndBlocked = true;
                 this->transitionsSinceLastCandidateStarvedThread[i] = this->getCurrentExecutionDepthForThread(i);
 
@@ -715,8 +715,7 @@ MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
 
                 for (uint64_t j = 0; j < numThreads; j++) {
                     const uint64_t threadLocalExecutionDepth = this->getCurrentExecutionDepthForThread(j);
-                    const uint64_t newMaxExecutionDepth = MAX(globalMaxExecutionDepth,
-                                                              threadLocalExecutionDepth + extraLivenessTransitions);
+                    const uint64_t newMaxExecutionDepth = MAX(globalMaxExecutionDepth,threadLocalExecutionDepth + extraLivenessTransitions);
                     this->setMaximumExecutionDepthForThread(j, newMaxExecutionDepth);
                 }
             }
@@ -726,40 +725,6 @@ MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
             thread->maybeStarvedAndBlocked = false;
         }
     }
-
-
-#if 0
-
-    if (this->getTransitionStackSize() < 4) {
-        return;
-    }
-    int sem1WaitCount = 0;
-    int sem2WaitCount = 0;
-
-    const std::shared_ptr<MCSemaphore> sem1 = this->getObjectWithId<MCSemaphore>(1);
-    const std::shared_ptr<MCSemaphore> sem2 = this->getObjectWithId<MCSemaphore>(2);
-
-    for (uint64_t i = 0; i < numThreads; i++) {
-        const auto thread = this->getThreadWithId(i);
-        const auto pendingTransition = this->getPendingTransitionForThread(i);
-        const auto maybeSemWait = std::dynamic_pointer_cast<MCSemWait, MCTransition>(pendingTransition);
-        if (maybeSemWait) {
-            if (*maybeSemWait->sem == *sem1) {
-                sem1WaitCount++;
-            }
-            if (*maybeSemWait->sem == *sem2) {
-                sem2WaitCount++;
-            }
-        }
-    }
-
-    if (sem1WaitCount > 1 || sem2WaitCount > 1) {
-        printf("ABORTING\n");
-        printTransitionStack();
-        printNextTransitions();
-//        abort();
-    }
-#endif
 }
 
 void
