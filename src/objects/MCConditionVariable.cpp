@@ -138,5 +138,5 @@ MCConditionVariable::threadCanExitBasedOnSleepPosition(tid_t tid) const
 bool
 MCConditionVariable::threadCanExit(tid_t tid)
 {
-    return this->threadCanExitBasedOnSleepPosition(tid) || this->threadCanExitWithSpuriousWakeup(tid);
+    return this->threadCanExitBasedOnSleepPosition(tid);//|| this->threadCanExitWithSpuriousWakeup(tid);
 }

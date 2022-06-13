@@ -84,7 +84,6 @@ public:
     sleepQueue(cond.sleepQueue), wakeQueue(cond.wakeQueue),
     spuriousWakeupCount(cond.spuriousWakeupCount)
     {
-
         if (cond.mutex != nullptr) {
             mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(cond.mutex->copy());
         }

@@ -67,10 +67,12 @@ MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
     //    return *maybeSemaphoreWaitOperation->sem == *this->sem;
     //}
 
-    auto maybeSemaphoreEnqueueOperation = std::dynamic_pointer_cast<MCSemEnqueue, MCTransition>(other);
-    if (maybeSemaphoreEnqueueOperation) {
-        return *maybeSemaphoreEnqueueOperation->sem == *this->sem;
-    }
+    // The enqueue operation is not dependent with a sem_enqueue
+    // when the semaphore uses arbitrary wake-ups
+    //auto maybeSemaphoreEnqueueOperation = std::dynamic_pointer_cast<MCSemEnqueue, MCTransition>(other);
+    //if (maybeSemaphoreEnqueueOperation) {
+    //    return *maybeSemaphoreEnqueueOperation->sem == *this->sem;
+    //}
 
     return false;
 }

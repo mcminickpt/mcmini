@@ -247,7 +247,7 @@ MCState::programAchievedForwardProgressGoals() const
     for (auto i = 0; i < numThreads; i++) {
         const auto thread = this->getThreadWithId(i);
 
-        if ( !thread->isInThreadCriticalSection && !thread->hasEncounteredThreadProgressGoal()) {
+        if (!thread->isInThreadCriticalSection && !thread->hasEncounteredThreadProgressGoal()) {
             return false;
         }
     }
@@ -592,7 +592,7 @@ MCState::reset()
 {
     // NOTE:!!!! DO NOT clear out the transition stack's contents
     // in this method. If you eventually decide to, remember that
-    // backtrackin now relies on the fact that the transition stack
+    // backtracking now relies on the fact that the transition stack
     // remains unchanged to resimulate the simulation
     // back to the current state
     this->stateStackTop = -1;
