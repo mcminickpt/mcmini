@@ -18,7 +18,7 @@ set(MC_CPP_FILES
         MCSharedTransition.cpp MCSharedTransition.h
         MCMINIWrappers.h
         MCTransition.cpp MCTransition.h
-        MCMINI.cpp MCMINI.h
+        MCMINI_Private.cpp MCMINI_Private.h
         MCState.cpp MCState.h MC_Private.h MCConstants.h
         transitions/threads/MCThreadStart.cpp transitions/threads/MCThreadStart.h
         MCTransitionFactory.cpp MCTransitionFactory.h
@@ -71,6 +71,7 @@ set(MC_CPP_FILES
         transitions/threads/MCThreadReachGoal.cpp
         transitions/wrappers/MCGlobalVariableWrappers.cpp
         MCCommon.c MCCommon.h
+        MCMINI.h
         MCEnv.h transitions/threads/MCThreadRequestNewGoal.cpp transitions/threads/MCThreadRequestNewGoal.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})

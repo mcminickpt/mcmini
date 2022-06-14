@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include <typeinfo>
 #include "MCShared.h"
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 #include "transitions/threads/MCThreadDefs.h"
 #include "transitions/mutex/MCMutexDefs.h"
 #include "transitions/semaphore/MCSemaphoreDefs.h"

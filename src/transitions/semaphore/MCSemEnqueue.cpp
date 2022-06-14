@@ -1,7 +1,7 @@
 #include "MCSemEnqueue.h"
 #include "MCSemInit.h"
 #include "MCSemWait.h"
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 
 MCTransition*
 MCReadSemEnqueue(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
