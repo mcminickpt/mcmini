@@ -572,7 +572,7 @@ mc_daemon_thread_simulate_program(void *trace)
 MCStateConfiguration
 get_config_for_execution_environment()
 {
-    uint64_t maxThreadDepth = 10;//MC_STATE_CONFIG_THREAD_NO_LIMIT;
+    uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
     trid_t gdbTraceNumber = MC_STATE_CONFIG_NO_TRACE;
     trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
     bool firstDeadlock = false;
