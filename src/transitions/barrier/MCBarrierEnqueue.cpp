@@ -1,5 +1,5 @@
 #include "MCBarrierEnqueue.h"
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 
 MCTransition*
 MCReadBarrierEnqueue(const MCSharedTransition *shmTransition, void *shmData, MCState *state)

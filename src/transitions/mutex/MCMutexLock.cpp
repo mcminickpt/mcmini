@@ -1,4 +1,4 @@
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 #include "MCMutexLock.h"
 #include "transitions/threads/MCThreadCreate.h"
 #include "MCMutexUnlock.h"

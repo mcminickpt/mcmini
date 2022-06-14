@@ -1,6 +1,6 @@
 //#include <semaphore.h>
 #include "MCMINIWrappers.h"
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 
 /*
 This program provides a possible solution for producer-consumer problem using mutex and mc_semaphore.
