@@ -1,4 +1,4 @@
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 #include "MCSemWait.h"
 #include "MCSemInit.h"
 

@@ -18,7 +18,7 @@ set(MC_CPP_FILES
         MCSharedTransition.cpp MCSharedTransition.h
         MCMINIWrappers.h
         MCTransition.cpp MCTransition.h
-        MCMINI.cpp MCMINI.h
+        MCMINI_Private.cpp MCMINI_Private.h
         MCState.cpp MCState.h MC_Private.h MCConstants.h
         transitions/threads/MCThreadStart.cpp transitions/threads/MCThreadStart.h
         MCTransitionFactory.cpp MCTransitionFactory.h
@@ -71,7 +71,11 @@ set(MC_CPP_FILES
         transitions/threads/MCThreadReachGoal.cpp
         transitions/wrappers/MCGlobalVariableWrappers.cpp
         MCCommon.c MCCommon.h
-        MCEnv.h transitions/threads/MCThreadEnterGoalCriticalSection.cpp transitions/threads/MCThreadEnterGoalCriticalSection.h transitions/threads/MCThreadExitGoalCriticalSection.cpp transitions/threads/MCThreadExitGoalCriticalSection.h)
+        MCEnv.h transitions/threads/MCThreadEnterGoalCriticalSection.cpp 
+				transitions/threads/MCThreadEnterGoalCriticalSection.h
+				transitions/threads/MCThreadExitGoalCriticalSection.cpp 
+				transitions/threads/MCThreadExitGoalCriticalSection.h
+        MCMINI.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
 message("Linking object files...")

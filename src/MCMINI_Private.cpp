@@ -1,4 +1,4 @@
-#include "MCMINI.h"
+#include "MCMINI_Private.h"
 #include "MC_Private.h"
 #include "MCSharedTransition.h"
 #include "MCTransitionFactory.h"
