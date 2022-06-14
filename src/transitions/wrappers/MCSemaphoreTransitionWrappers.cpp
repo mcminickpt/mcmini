@@ -14,7 +14,7 @@ mc_sem_init(sem_t *sem, int pshared, unsigned int count)
 {
     // TODO: We don't support shared semaphores
     MC_ASSERT(pshared == 0);
-    auto newlyCreatedSemaphore = MCSemaphoreShadow(sem, count);
+    MCSemaphoreShadow newlyCreatedSemaphore = MCSemaphoreShadow(sem, count);
     thread_post_visible_operation_hit<MCSemaphoreShadow>(typeid(MCSemInit), &newlyCreatedSemaphore);
     thread_await_mc_scheduler();
     return __real_sem_init(sem, pshared, count);

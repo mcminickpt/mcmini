@@ -12,7 +12,7 @@ int
 mc_pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
 {
     // The handler doesn't care about the other arguments
-    auto newlyCreatedMutex = MCMutexShadow(mutex);
+    MCMutexShadow newlyCreatedMutex = MCMutexShadow(mutex);
     thread_post_visible_operation_hit<MCMutexShadow>(typeid(MCMutexInit), &newlyCreatedMutex);
     thread_await_mc_scheduler();
 
@@ -24,7 +24,7 @@ int
 mc_pthread_mutex_lock(pthread_mutex_t *mutex)
 {
     // The join handler doesn't care about the other arguments
-    auto newlyCreatedMutex = MCMutexShadow(mutex);
+    MCMutexShadow newlyCreatedMutex = MCMutexShadow(mutex);
     thread_post_visible_operation_hit<MCMutexShadow>(typeid(MCMutexLock), &newlyCreatedMutex);
     thread_await_mc_scheduler();
 
@@ -36,7 +36,7 @@ int
 mc_pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
     // The join handler doesn't care about the other arguments
-    auto newlyCreatedMutex = MCMutexShadow(mutex);
+    MCMutexShadow newlyCreatedMutex = MCMutexShadow(mutex);
     thread_post_visible_operation_hit<MCMutexShadow>(typeid(MCMutexUnlock), &newlyCreatedMutex);
     thread_await_mc_scheduler();
 

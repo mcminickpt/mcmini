@@ -37,7 +37,7 @@ MCStateStackItem::popFirstThreadToBacktrackOn()
 void
 MCStateStackItem::markThreadsEnabledInState(const std::unordered_set<tid_t>& enabledThrds)
 {
-    for (const auto tid : enabledThrds)
+    for (const tid_t tid : enabledThrds)
         this->enabledThreads.insert(tid);
 }
 

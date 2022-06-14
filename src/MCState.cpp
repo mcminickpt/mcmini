@@ -9,6 +9,9 @@ extern "C" {
 }
 
 #define MAX(x,y) ((x) > (y) ? (x) : (y))
+#define sptr shared_ptr
+
+using namespace std;
 
 bool
 MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition) const
@@ -71,7 +74,6 @@ MCState::setNextTransitionForThread(tid_t tid, std::shared_ptr<MCTransition> tra
 void
 MCState::setNextTransitionForThread(tid_t tid, MCSharedTransition *shmTypeInfo, void *shmData)
 {
-    // TODO: Assert when the type doesn't exist
     auto maybeHandler = this->sharedMemoryHandlerTypeMap.find(shmTypeInfo->type);
     if (maybeHandler == this->sharedMemoryHandlerTypeMap.end()) {
         return;
@@ -81,7 +83,7 @@ MCState::setNextTransitionForThread(tid_t tid, MCSharedTransition *shmTypeInfo, 
     MCTransition *newTransitionForThread = handlerForType(shmTypeInfo, shmData, this);
     MC_FATAL_ON_FAIL(newTransitionForThread != nullptr);
 
-    auto sharedPointer = std::shared_ptr<MCTransition>(newTransitionForThread);
+    std::shared_ptr<MCTransition> sharedPointer = std::shared_ptr<MCTransition>(newTransitionForThread);
     this->setNextTransitionForThread(tid, sharedPointer);
 }
 
@@ -89,12 +91,10 @@ tid_t
 MCState::createNewThread(MCThreadShadow &shadow)
 {
     tid_t newTid = this->nextThreadId++;
-    auto rawThread = new MCThread(newTid, shadow);
-    auto thread = std::shared_ptr<MCThread>(rawThread);
+    MCThread *rawThread = new MCThread(newTid, shadow);
+    std::shared_ptr<MCThread> thread = std::shared_ptr<MCThread>(rawThread);
     objid_t newObjId = this->registerNewObject(thread);
 
-    // TODO: Encapsulate transferring object ids
-//    thread->id = newObjId;
     this->threadIdMap.insert({newTid, newObjId});
     return newTid;
 }
@@ -103,7 +103,6 @@ void
 MCState::setMaximumExecutionDepthForThread(tid_t tid, uint32_t depth)
 {
     this->maxThreadDepthData[tid] = depth;
-    //printf("Max thread depth updated to %lu for %lu\n", (long)depth, tid);
 }
 
 uint32_t
@@ -127,7 +126,7 @@ MCState::getExecutionDepthForThreadWhenLastStarvedAndBlocked(tid_t tid) const
 tid_t
 MCState::createNewThread()
 {
-    auto shadow = MCThreadShadow(nullptr, nullptr, pthread_self());
+    MCThreadShadow shadow = MCThreadShadow(nullptr, nullptr, pthread_self());
     return this->createNewThread(shadow);
 }
 
@@ -138,7 +137,7 @@ MCState::createMainThread()
     MC_ASSERT(mainThreadId == TID_MAIN_THREAD);
 
     // Creating the main thread -> bring it into the spawned state
-    auto mainThread = getThreadWithId(mainThreadId);
+    std::shared_ptr<MCThread> mainThread = getThreadWithId(mainThreadId);
     mainThread->spawn();
 
     return mainThreadId;
@@ -148,8 +147,9 @@ tid_t
 MCState::addNewThread(MCThreadShadow &shadow)
 {
     tid_t newThread = this->createNewThread(shadow);
-    auto thread = getThreadWithId(newThread);
-    auto threadStart = MCTransitionFactory::createInitialTransitionForThread(thread);
+    std::shared_ptr<MCThread> thread = getThreadWithId(newThread);
+    std::shared_ptr<MCTransition> threadStart =
+            MCTransitionFactory::createInitialTransitionForThread(thread);
     this->setNextTransitionForThread(newThread, threadStart);
     return newThread;
 }
@@ -220,8 +220,8 @@ MCState::getPendingTransitionForThread(tid_t tid) const
 std::shared_ptr<MCTransition>
 MCState::getFirstEnabledTransitionFromNextStack()
 {
-    const auto threadsInProgram = this->getNumProgramThreads();
-    for (auto i = 0; i < threadsInProgram; i++) {
+    const uint64_t threadsInProgram = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < threadsInProgram; i++) {
         const std::shared_ptr<MCTransition> &nextTransitionForI = this->nextTransitions[i];
         if (this->transitionIsEnabled(nextTransitionForI)) return nextTransitionForI;
     }
@@ -231,9 +231,9 @@ MCState::getFirstEnabledTransitionFromNextStack()
 std::unordered_set<tid_t>
 MCState::getEnabledThreadsInState()
 {
-    auto enabledThreadsInState = std::unordered_set<tid_t>();
-    const auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
+    std::unordered_set<tid_t> enabledThreadsInState;
+    const uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
         if (this->nextTransitions[i]->enabledInState(this))
             enabledThreadsInState.insert(i);
     }
@@ -251,9 +251,10 @@ MCState::programIsInDeadlock() const
         return false;
     }
 
-    const auto numThreads = this->getNumProgramThreads();
+    const uint64_t numThreads = this->getNumProgramThreads();
     for (tid_t tid = 0; tid < numThreads; tid++) {
-        auto nextTransitionForTid = this->getNextTransitionForThread(tid);
+        std::shared_ptr<MCTransition> nextTransitionForTid =
+                this->getNextTransitionForThread(tid);
 
         if (nextTransitionForTid->ensuresDeadlockIsImpossible())
             return false;
@@ -276,9 +277,10 @@ MCState::hasMaybeStarvedThread() const
 bool
 MCState::hasMaybeStarvedAndBlockedThread() const
 {
-    const auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
-        const auto thread = this->getThreadWithId(i);
+    const uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
+        const std::shared_ptr<MCThread> thread =
+                this->getThreadWithId(i);
 
         if (thread->maybeStarvedAndBlocked) {
             return true;
@@ -290,9 +292,9 @@ MCState::hasMaybeStarvedAndBlockedThread() const
 tid_t
 MCState::getCandidateStarvedThread() const
 {
-    const auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
-        const auto thread = this->getThreadWithId(i);
+    const uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
+        const std::shared_ptr<MCThread> thread = this->getThreadWithId(i);
 
         if (thread->maybeStarved) {
             return i;
@@ -329,22 +331,26 @@ MCState::programMaybeAchievedForwardProgressGoals() const
     }
 
     {
-        const auto pendingTransitionForStarvedThread = this->getPendingTransitionForThread(starvedThread);
-        const auto starvedThreadIsNotBlocked = MCState::transitionIsEnabled(pendingTransitionForStarvedThread);
+        const std::shared_ptr<MCTransition>
+                pendingTransitionForStarvedThread =
+                this->getPendingTransitionForThread(starvedThread);
+        const bool starvedThreadIsNotBlocked =
+                MCState::transitionIsEnabled(pendingTransitionForStarvedThread);
 
         if (starvedThreadIsNotBlocked) {
             return true; /* We can't say there's starvation yet */
         }
     }
 
-    for (auto i = 0; i < numThreads; i++) {
+    for (uint64_t i = 0; i < numThreads; i++) {
         if (i == starvedThread) continue;
 
         const uint32_t transitionsSinceNewCandidate = this->transitionsSinceLastCandidateStarvedThread[i];
         const bool usedMinExtraLivenessTransitions = transitionsSinceNewCandidate >= minExtraLivenessTransitions;
 
         if (!usedMinExtraLivenessTransitions) {
-            const auto pendingTransitionForThread = this->getPendingTransitionForThread(i);
+            const std::shared_ptr<MCTransition> pendingTransitionForThread =
+                    this->getPendingTransitionForThread(i);
             const bool pendingTransitionEnabled = MCState::transitionIsEnabled(pendingTransitionForThread);
 
             if (pendingTransitionEnabled) {
@@ -366,9 +372,10 @@ MCState::programHasADataRaceWithNewTransition(const std::shared_ptr<MCTransition
     const tid_t threadRunningTransition = transition->getThreadId();
     const uint64_t numThreads = this->getNumProgramThreads();
 
-    for (auto i = 0; i < numThreads; i++) {
+    for (uint64_t i = 0; i < numThreads; i++) {
         if (i == threadRunningTransition) continue;
-        const auto nextTransitionForThreadI = this->getPendingTransitionForThread(i);
+        const shared_ptr<MCTransition> nextTransitionForThreadI =
+                this->getPendingTransitionForThread(i);
 
         if (MCTransition::transitionsInDataRace(nextTransitionForThreadI, transition))
             return true;
@@ -402,8 +409,8 @@ MCState::happensBefore(int i, int j) const
     }
 
     const uint64_t stackCount = this->getTransitionStackSize();
-    auto dfs_stack = std::vector<int>();
-    auto dfs_searched = std::unordered_set<tid_t>();
+    std::vector<int> dfs_stack;
+    std::unordered_set<tid_t> dfs_searched;
     dfs_stack.push_back(i);
 
     while (!dfs_stack.empty()) {
@@ -445,8 +452,8 @@ MCState::happensBeforeThread(int i, tid_t p) const
     tid_t tidI = this->getTransitionAtIndex(i)->getThreadId();
     if (p == tidI) return true;
 
-    const auto tStackSize = this->getTransitionStackSize();
-    for (auto k = i + 1; k < tStackSize; k++) {
+    const uint64_t tStackSize = this->getTransitionStackSize();
+    for (int k = i + 1; k < tStackSize; k++) {
         std::shared_ptr<MCTransition> S_k = this->getTransitionAtIndex(k);
 
         // Check threads_equal first (much less costly than happens before)
@@ -460,7 +467,8 @@ bool
 MCState::threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const
 {
     // We want to search the entire transition stack in this case
-    const auto transitionStackHeight = this->getTransitionStackSize();
+    const uint64_t transitionStackHeight =
+            this->getTransitionStackSize();
     for (int j = depth + 1; j < transitionStackHeight; j++) {
         if (q == this->getThreadRunningTransitionAtIndex(j) && this->happensBeforeThread(j, p))
             return true;
@@ -520,27 +528,32 @@ MCState::dynamicallyUpdateBacktrackSets()
 
     // 2. Map which thread ids still need to be processed
     const uint64_t numThreadsBeforeBacktracking = this->getNumProgramThreads();
+    std::unordered_set<tid_t> remainingThreadsToProcess = std::unordered_set<tid_t>();
 
-    auto remainingThreadsToProcess = std::unordered_set<tid_t>();
-
-    for (auto i = 0; i < numThreadsBeforeBacktracking; i++) {
+    for (int i = 0; i < numThreadsBeforeBacktracking; i++) {
         remainingThreadsToProcess.insert(static_cast<tid_t>(i));
     }
 
     // 3. Determine the i
-    const auto transitionStackTop = this->getTransitionStackTop();
-    const auto mostRecentThreadId = transitionStackTop->getThreadId();
-    const auto nextTransitionForMostRecentThread = this->getPendingTransitionForThread(mostRecentThreadId);
+    const std::shared_ptr<MCTransition> transitionStackTop =
+            this->getTransitionStackTop();
+    const tid_t mostRecentThreadId =
+            transitionStackTop->getThreadId();
+    const std::shared_ptr<MCTransition> nextTransitionForMostRecentThread
+        = this->getPendingTransitionForThread(mostRecentThreadId);
     remainingThreadsToProcess.erase(mostRecentThreadId);
 
     // O(# threads)
     {
-        auto S_n = this->getTransitionStackTop();
-        auto s_n = this->getStateItemAtIndex(transitionStackTopBeforeBacktracking);
-        const auto enabledThreadsAt_s_n = s_n->getEnabledThreadsInState();
+        shared_ptr<MCTransition> S_n = this->getTransitionStackTop();
+        shared_ptr<MCStateStackItem> s_n = this->getStateItemAtIndex
+                (transitionStackTopBeforeBacktracking);
+        const unordered_set<tid_t> enabledThreadsAt_s_n =
+                s_n->getEnabledThreadsInState();
 
-        for (auto &tid : remainingThreadsToProcess) {
-            auto nextSP = this->getPendingTransitionForThread(tid);
+        for (const tid_t &tid : remainingThreadsToProcess) {
+            shared_ptr<MCTransition> nextSP =
+                    this->getPendingTransitionForThread(tid);
             this->dynamicallyUpdateBacktrackSetsHelper(S_n, s_n,
                                                        nextSP, enabledThreadsAt_s_n,
                                                        transitionStackTopBeforeBacktracking,(int)tid);
@@ -554,11 +567,13 @@ MCState::dynamicallyUpdateBacktrackSets()
     // We start at one step below the top since we know that transition to not be co-enabled (since it was
     // by assumption run by `mostRecentThreadId`
     for (int i = transitionStackTopBeforeBacktracking - 1; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
-        const auto S_i = this->getTransitionAtIndex(i);
-        const auto preSi = this->getStateItemAtIndex(i);
+        const std::shared_ptr<MCTransition> S_i = this->getTransitionAtIndex(i);
+        const std::shared_ptr<MCStateStackItem> preSi =
+                this->getStateItemAtIndex(i);
 
         // The set of threads at pre(S, i) that are enabled. Lazily created
-        const auto enabledThreadsAtPreSi = preSi->getEnabledThreadsInState();
+        const std::unordered_set<tid_t> enabledThreadsAtPreSi =
+                preSi->getEnabledThreadsInState();
         this->dynamicallyUpdateBacktrackSetsHelper(S_i, preSi,
                                                    nextTransitionForMostRecentThread, enabledThreadsAtPreSi,
                                                    i, (int)mostRecentThreadId);
@@ -578,7 +593,7 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
     if (shouldProcess) {
 
         bool EIsEmpty = true;
-        for (auto q : enabledThreadsAtPreSi) {
+        for (tid_t q : enabledThreadsAtPreSi) {
             const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
 
             // If E != empty set
@@ -592,7 +607,7 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
         }
         if (EIsEmpty) {
             // E is the empty set -> add every enabled thread at pre(S, i)
-            for (auto q : enabledThreadsAtPreSi)
+            for (tid_t q : enabledThreadsAtPreSi)
                 preSi->addBacktrackingThreadIfUnsearched(q);
         }
     }
@@ -616,7 +631,7 @@ MCState::simulateRunningTransition(const std::shared_ptr<MCTransition> &transiti
     this->growTransitionStackRunning(transition);
     this->virtuallyRunTransition(transition);
 
-    auto tid = transition->getThreadId();
+    tid_t tid = transition->getThreadId();
     this->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
     this->dispatchExtraLivenessTransitionsToThreadsIfNecessary();
 }
@@ -625,7 +640,7 @@ void
 MCState::incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition> &transition)
 {
     if (transition->countsAgainstThreadExecutionDepth()) {
-        auto threadRunningTransition = transition->getThreadId();
+        tid_t threadRunningTransition = transition->getThreadId();
         this->currentThreadDepthData[threadRunningTransition]++;
     }
 }
@@ -634,7 +649,7 @@ void
 MCState::incrementTransitionsSinceNewCandidateStarvedThreadIfNecessary(const std::shared_ptr<MCTransition> &transition)
 {
     if (transition->countsAgainstThreadExecutionDepth()) {
-        auto tid = transition->getThreadId();
+        tid_t tid = transition->getThreadId();
         this->transitionsSinceLastCandidateStarvedThread[tid]++;
     }
 }
@@ -646,8 +661,8 @@ MCState::totalThreadExecutionDepth() const
      * The number of transitions total into the search we find ourselves -> we don't
      * backtrack in the case that we are over the total depth allowed by the configuration
     */
-    auto totalThreadTransitionDepth = static_cast<uint32_t>(0);
-    for (auto i = 0; i < this->nextThreadId; i++)
+    uint32_t totalThreadTransitionDepth = static_cast<uint32_t>(0);
+    for (tid_t i = 0; i < this->nextThreadId; i++)
         totalThreadTransitionDepth += this->currentThreadDepthData[i];
     return totalThreadTransitionDepth;
 }
@@ -655,7 +670,7 @@ MCState::totalThreadExecutionDepth() const
 void
 MCState::growTransitionStackRunning(const std::shared_ptr<MCTransition> &transition)
 {
-    auto transitionCopy = transition->staticCopy();
+    shared_ptr<MCTransition> transitionCopy = transition->staticCopy();
     this->transitionStackTop++;
     this->transitionStack[this->transitionStackTop] = transitionCopy;
 }
@@ -663,7 +678,8 @@ MCState::growTransitionStackRunning(const std::shared_ptr<MCTransition> &transit
 void
 MCState::growStateStack()
 {
-    auto newState = std::make_shared<MCStateStackItem>();
+    shared_ptr<MCStateStackItem> newState =
+            std::make_shared<MCStateStackItem>();
     this->stateStackTop++;
     this->stateStack[this->stateStackTop] = newState;
 }
@@ -676,9 +692,10 @@ MCState::growStateStackWithTransition(const std::shared_ptr<MCTransition> &trans
 
     // Insert the thread that ran the transition into the
     // done set of the current top-most state
-    auto oldStop = this->stateStack[this->stateStackTop];
-    auto threadRunningTransition = transition->getThreadId();
-    auto enabledThreadsInState = this->getEnabledThreadsInState();;
+    shared_ptr<MCStateStackItem> oldStop = this->stateStack[this->stateStackTop];
+    tid_t threadRunningTransition = transition->getThreadId();
+    unordered_set<tid_t> enabledThreadsInState =
+            this->getEnabledThreadsInState();;
 
     oldStop->markBacktrackThreadSearched(threadRunningTransition);
     oldStop->markThreadsEnabledInState(enabledThreadsInState);
@@ -693,9 +710,11 @@ MCState::dispatchExtraLivenessTransitionsToThreadsIfNecessary()
 {
     const uint64_t numThreads = this->getNumProgramThreads();
     for (uint64_t i = 0; i < numThreads; i++) {
-        const auto thread = this->getThreadWithId(i);
-        const auto pendingTransition = this->getPendingTransitionForThread(i);
-        const auto pendingTransitionIsEnabled = MCState::transitionIsEnabled(pendingTransition);
+        const shared_ptr<MCThread> thread = this->getThreadWithId(i);
+        const shared_ptr<MCTransition> pendingTransition =
+                this->getPendingTransitionForThread(i);
+        const bool pendingTransitionIsEnabled =
+                MCState::transitionIsEnabled(pendingTransition);
 
         if (thread->maybeStarved && !thread->maybeStarvedAndBlocked) {
             const uint32_t currentDepth = this->getCurrentExecutionDepthForThread(i);
@@ -756,7 +775,7 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
      * It's possible that some of these threads will be in the embryo state
      * at depth _depth_
      */
-    const auto numThreadsToProcess = this->getNumProgramThreads();
+    const tid_t numThreadsToProcess = this->getNumProgramThreads();
 
     /* The transition stack at this point is not touched */
 
@@ -779,9 +798,11 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
      * up until the specified depth
      */
     /* Note we include the _depth_ value itself */
-    for (auto i = 0u; i <= depth; i ++) {
-        const auto transition = this->getTransitionAtIndex(i);
-        const auto dynamicCpy = transition->dynamicCopyInState(this);
+    for (unsigned i = 0u; i <= depth; i ++) {
+        const shared_ptr<MCTransition> transition =
+                this->getTransitionAtIndex(i);
+        const shared_ptr<MCTransition> dynamicCpy =
+                transition->dynamicCopyInState(this);
         dynamicCpy->applyToState(this);
         this->incrementThreadTransitionCountIfNecessary(dynamicCpy);
         this->incrementTransitionsSinceNewCandidateStarvedThreadIfNecessary(dynamicCpy);
@@ -801,14 +822,15 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
         // that thread would have wanted to run next at transition depth _depth_
         std::unordered_map<tid_t, uint32_t> mapThreadToClosestTransitionIndexToDepth;
 
-        for (auto i = this->transitionStackTop; i > depth; i--) {
-            const auto tid = this->getThreadRunningTransitionAtIndex(i);
+        for (int i = this->transitionStackTop; i > depth; i--) {
+            const tid_t tid =
+                    this->getThreadRunningTransitionAtIndex(i);
             mapThreadToClosestTransitionIndexToDepth[tid] = i;
         }
 
         for (const auto &elem : mapThreadToClosestTransitionIndexToDepth) {
-            auto tid = elem.first;
-            auto tStackIndex = elem.second;
+            tid_t tid = elem.first;
+            unsigned tStackIndex = elem.second;
             this->nextTransitions[tid] = this->getTransitionAtIndex(tStackIndex)->dynamicCopyInState(this);
         }
 
@@ -817,7 +839,7 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
          * those transitions to reflect the new dynamic state since the objects
          * those transitions refer to are no longer valid
          */
-        for (auto tid = 0; tid < numThreadsToProcess; tid++) {
+        for (tid_t tid = 0; tid < numThreadsToProcess; tid++) {
             if (mapThreadToClosestTransitionIndexToDepth.count(tid) == 0) {
                 this->nextTransitions[tid] = this->nextTransitions[tid]->dynamicCopyInState(this);
             }
@@ -848,7 +870,7 @@ MCState::printTransitionStack() const
         this->getTransitionAtIndex(i)->print();
     }
     for (int i = 0; i <= this->transitionStackTop; i++) {
-        auto tid = this->getTransitionAtIndex(i)->getThreadId();
+        tid_t tid = this->getTransitionAtIndex(i)->getThreadId();
         printf("%lu, ", tid);
     }
     printf("\nEND\n");
@@ -859,8 +881,8 @@ void
 MCState::printNextTransitions() const
 {
     printf("THREAD STATES\n");
-    auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
+    uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
         this->getPendingTransitionForThread(i)->print();
     }
     printf("END\n");
@@ -871,8 +893,8 @@ void
 MCState::printForwardProgressViolations() const
 {
     printf("VIOLATIONS\n");
-    auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
+    uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
         if (this->getThreadWithId(i)->isThreadStarved()) {
             printf("thread %lu\n", (tid_t)i);
         }
@@ -885,8 +907,8 @@ void
 MCState::printThreadExecutionDepths() const
 {
     printf("EXECUTION DEPTHS\n");
-    auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
+    uint64_t numThreads = this->getNumProgramThreads();
+    for (uint64_t i = 0; i < numThreads; i++) {
         const tid_t tid = i;
         const uint32_t currentDepth = this->getCurrentExecutionDepthForThread(tid);
         const uint32_t maxDepth = this->getMaximumExecutionDepthForThread(tid);
@@ -913,9 +935,10 @@ MCState::isTargetTraceIdForStackContents(trid_t trid) const
 std::vector<tid_t>
 MCState::getThreadIdTraceOfTransitionStack() const
 {
-    auto trace = std::vector<tid_t>();
-    const auto transitionStackHeight = this->getTransitionStackSize();
-    for (auto i = 0; i < transitionStackHeight; i++)
+    std::vector<tid_t> trace = std::vector<tid_t>();
+    const uint64_t transitionStackHeight =
+            this->getTransitionStackSize();
+    for (uint64_t i = 0; i < transitionStackHeight; i++)
         trace.push_back(this->getTransitionAtIndex(i)->getThreadId());
     return trace;
 }

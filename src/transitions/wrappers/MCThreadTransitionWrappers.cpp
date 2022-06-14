@@ -23,7 +23,8 @@ mc_thread_routine_wrapper(void * arg)
     tid_self = programState->createNewThread();
     __real_sem_post(&mc_pthread_create_binary_sem);
 
-    auto unwrapped_arg = (mc_thread_routine_arg*)arg;
+    mc_thread_routine_arg *unwrapped_arg = (mc_thread_routine_arg*)
+            arg;
 
     // Simulates being blocked at thread creation -> THREAD_START for this thread
     // NOTE: Don't write into shared memory here! The scheduler already knows how to
@@ -53,7 +54,8 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routine
         mc_child_panic();
     }
 
-    auto dpor_thread_arg = (mc_thread_routine_arg *)malloc(sizeof(mc_thread_routine_arg));
+    mc_thread_routine_arg *dpor_thread_arg = (mc_thread_routine_arg
+            *)malloc(sizeof(mc_thread_routine_arg));
     dpor_thread_arg->arg = arg;
     dpor_thread_arg->routine = routine;
 
@@ -66,7 +68,7 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*routine
     // not be scheduled to run until *two* steps of the scheduler
     __real_sem_wait(&mc_pthread_create_binary_sem);
     // TODO: When pthread_create fails, *thread is undefined
-    auto newlyCreatedThread = MCThreadShadow(arg, routine, *thread);
+    MCThreadShadow newlyCreatedThread = MCThreadShadow(arg, routine, *thread);
     thread_post_visible_operation_hit<MCThreadShadow>(typeid(MCThreadCreate), &newlyCreatedThread);
     thread_await_mc_scheduler();
 
@@ -77,7 +79,7 @@ int
 mc_pthread_join(pthread_t thread, void **output)
 {
     // The join handler doesn't care about the other arguments
-    auto newlyCreatedThread = MCThreadShadow(nullptr, nullptr, thread);
+    MCThreadShadow newlyCreatedThread = MCThreadShadow(nullptr, nullptr, thread);
     thread_post_visible_operation_hit<MCThreadShadow>(typeid(MCThreadJoin), &newlyCreatedThread);
     thread_await_mc_scheduler();
 
@@ -88,7 +90,7 @@ mc_pthread_join(pthread_t thread, void **output)
 void
 mc_exit_main_thread()
 {
-    auto newlyCreatedThread = MCThreadShadow(nullptr, nullptr, pthread_self());
+    MCThreadShadow newlyCreatedThread = MCThreadShadow(nullptr, nullptr, pthread_self());
     thread_post_visible_operation_hit(typeid(MCThreadFinish), &newlyCreatedThread);
     thread_await_mc_scheduler();
 }

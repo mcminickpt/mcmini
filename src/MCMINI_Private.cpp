@@ -73,7 +73,7 @@ mc_create_program_state()
     // if you still intercept the transition with a transparent wrapper and
     // wait as usual bad things will probably happen for now; ideally you'd
     // want to ignore the wrapper calling back to mcmini entirely)
-    auto config = get_config_for_execution_environment();
+    MCStateConfiguration config = get_config_for_execution_environment();
     programState.Construct(config);
     programState->registerVisibleOperationType(typeid(MCThreadStart), &MCReadThreadStart);
     programState->registerVisibleOperationType(typeid(MCThreadCreate), &MCReadThreadCreate);
@@ -107,9 +107,12 @@ mc_scheduler_main()
 {
     mc_register_main_thread();
 
-    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
-    auto initialTransition = MCTransitionFactory::createInitialTransitionForThread(mainThread);
-    programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
+    std::shared_ptr<MCThread> mainThread =
+            programState->getThreadWithId(TID_MAIN_THREAD);
+    std::shared_ptr<MCTransition> initialTransition =
+            MCTransitionFactory::createInitialTransitionForThread(mainThread);
+    programState->setNextTransitionForThread(TID_MAIN_THREAD,
+                                             initialTransition);
 
     MC_PROGRAM_TYPE program = mc_begin_target_program_at_main(false);
     if (MC_IS_SOURCE_PROGRAM(program))
@@ -117,7 +120,6 @@ mc_scheduler_main()
 
     mc_exhaust_threads(initialTransition);
     mc_exit_with_trace_if_necessary(traceId);
-    // Possibly print
 
     program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
     if (MC_IS_SOURCE_PROGRAM(program))
@@ -392,7 +394,9 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
 
         {
             /* Check for data races */
-            auto pendingTransitionForExecutingThread = programState->getPendingTransitionForThread(tid);
+            std::shared_ptr<MCTransition>
+                    pendingTransitionForExecutingThread =
+                    programState->getPendingTransitionForThread(tid);
             if (programState->programHasADataRaceWithNewTransition(pendingTransitionForExecutingThread)) {
                 mcprintf("*** DATA RACE DETECTED ***\n");
                 programState->printTransitionStack();
@@ -534,7 +538,7 @@ mc_spawn_daemon_thread()
      * will eventually reset the `programState` before
      * rerunning the trace/schedule
      */
-    auto trace = new std::vector<tid_t>();
+    std::vector<tid_t> *trace = new std::vector<tid_t>();
     *trace = programState->getThreadIdTraceOfTransitionStack();
 
     pthread_t daemon;
@@ -552,14 +556,16 @@ mc_daemon_thread_simulate_program(void *trace)
     programState->start();
     mc_register_main_thread();
 
-    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
-    auto initialTransition = MCTransitionFactory::createInitialTransitionForThread(mainThread);
+    std::shared_ptr<MCThread> mainThread =
+            programState->getThreadWithId(TID_MAIN_THREAD);
+    std::shared_ptr<MCTransition> initialTransition =
+            MCTransitionFactory::createInitialTransitionForThread(mainThread);
     programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     auto tracePtr = static_cast<std::vector<tid_t>*>(trace);
-
-    for (auto &tid : *tracePtr) {
-        auto t_next = programState->getPendingTransitionForThread(tid);
+    for (tid_t &tid : *tracePtr) {
+        std::shared_ptr<MCTransition> t_next =
+                programState->getPendingTransitionForThread(tid);
         t_next->print();
         mc_run_thread_to_next_visible_operation(tid);
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
