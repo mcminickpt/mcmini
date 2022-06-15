@@ -1,0 +1,8 @@
+About to exec into ../../test/programs/philosophers_mutex
+***** Model checking completed! *****
+Number of transitions: 12370157
+Number of traces: 459957
+
+real	391m20.620s
+user	50m29.864s
+sys	340m57.456s

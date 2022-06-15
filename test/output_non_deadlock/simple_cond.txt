@@ -1,0 +1,7 @@
+About to exec into ../../test/programs/simple_cond
+***** Model checking completed! *****
+Number of transitions: 38
+
+real	0m0.019s
+user	0m0.013s
+sys	0m0.007s

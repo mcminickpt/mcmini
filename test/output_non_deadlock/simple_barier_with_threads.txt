@@ -1,0 +1,10 @@
+About to exec into ../../test/programs/simple_barrier_with_threads
+**** Exhausting threads... ****
+*** CHILD SPAWNED WITH PID 17225***
+*** NO FAILURE DETECTED ***
+******* CHILD EXITING with pid 17225 *******************
+***** Model checking completed! *****
+
+real	0m0.014s
+user	0m0.006s
+sys	0m0.009s

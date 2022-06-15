@@ -1,0 +1,44 @@
+About to exec into ../../test/deadlock_programs/simple_barrier_with_threads_deadlock
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_barrier_init(1, _, 5)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_create(3)
+thread 0: pthread_create(4)
+thread 0: pthread_create(5)
+thread 1: starts
+thread 2: starts
+thread 3: starts
+thread 4: starts
+thread 0: pthread_barrier_wait(1)
+thread 1: pthread_barrier_wait(1)
+thread 1: exits
+thread 0: pthread_join(1, _)
+thread 2: pthread_barrier_wait(1)
+thread 2: exits
+thread 0: pthread_join(2, _)
+thread 3: pthread_barrier_wait(1)
+thread 3: exits
+thread 0: pthread_join(3, _)
+thread 4: pthread_barrier_wait(1)
+thread 4: exits
+thread 0: pthread_join(4, _)
+thread 5: starts
+0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 0, 1, 1, 0, 2, 2, 0, 3, 3, 0, 4, 4, 0, 5, 
+END
+THREAD STATES
+thread 0: pthread_join(5, _)
+thread 1: exits
+thread 2: exits
+thread 3: exits
+thread 4: exits
+thread 5: pthread_barrier_wait(1)
+END
+***** Model checking completed! *****
+Number of transitions: 25
+
+real	0m0.014s
+user	0m0.008s
+sys	0m0.007s

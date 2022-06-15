@@ -14,7 +14,7 @@ struct forks {
 } forks[NUM_THREADS];
 
 void * philosopher_doit(void *forks_arg) {
-    struct forks *forks = static_cast<struct forks*>(forks_arg);
+    struct forks *forks = forks_arg;
     pthread_mutex_lock(forks->dining_fork);
     pthread_mutex_lock(forks->left_fork);
     pthread_mutex_lock(forks->right_fork);

@@ -1,0 +1,7 @@
+About to exec into ../../test/programs/producer_consumer
+***** Model checking completed! *****
+Number of transitions: 194062
+
+real	2m37.084s
+user	1m26.800s
+sys	1m12.967s

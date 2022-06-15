@@ -1,0 +1,44 @@
+About to exec into ../../test/deadlock_programs/simple_cond_broadcast_deadlock
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_cond_init(2)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_create(3)
+thread 0: pthread_create(4)
+thread 4: starts
+thread 3: starts
+thread 2: starts
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_cond_wait(2, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(2)
+thread 0: pthread_mutex_unlock(1)
+thread 1: pthread_cond_wait(2, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 0: pthread_join(1, _)
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_cond_wait(2, 1) (awake)
+thread 3: pthread_mutex_lock(1)
+thread 3: pthread_cond_wait(2, 1) (awake)
+thread 4: pthread_mutex_lock(1)
+thread 4: pthread_cond_wait(2, 1) (awake)
+0, 0, 0, 0, 0, 0, 0, 4, 3, 2, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 2, 2, 3, 3, 4, 4, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(2, 1) (asleep)
+thread 3: pthread_cond_wait(2, 1) (asleep)
+thread 4: pthread_cond_wait(2, 1) (asleep)
+END
+*** Model checking completed! ***
+Number of transitions: 21913
+
+real	0m10.787s
+user	0m7.488s
+sys	0m3.594s

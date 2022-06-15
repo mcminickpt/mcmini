@@ -1,0 +1,27 @@
+About to exec into ../../test/programs/reader_writer/reader_writer_writer_preferred
+**** Exhausting threads... ****
+*** CHILD SPAWNED WITH PID 28254***
+*** NO FAILURE DETECTED ***
+******* CHILD EXITING with pid 28254 *******************
+*** CHILD SPAWNED WITH PID 28261***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+******* CHILD EXITING with pid 28261 *******************
+*** TRACE ID 1 ***
+*** CHILD SPAWNED WITH PID 28268***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+******* CHILD EXITING with pid 28268 *******************
+*** TRACE ID 2 ***
+*** CHILD SPAWNED WITH PID 28275***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+******* CHILD EXITING with pid 28275 *******************
+*** TRACE ID 3 ***
+*** CHILD SPAWNED WITH PID 28282***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+******* CHILD EXITING with pid 28282 *******************
+*** TRACE ID 4 ***
+*** CHILD SPAWNED WITH PID 28289***
+**** Exhausting threads... ****

@@ -1,0 +1,7 @@
+About to exec into ../../test/deadlock_programs/simple_cond_deadlock
+***** Model checking completed! *****
+Number of transitions: 33
+
+real	0m0.019s
+user	0m0.013s
+sys	0m0.006s
