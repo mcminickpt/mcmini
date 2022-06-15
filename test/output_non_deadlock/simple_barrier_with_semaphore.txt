@@ -1,0 +1,24 @@
+About to exec into ../../test/programs/simple_barrier_with_semaphore
+	 Undefined Behavior Detected! 	
+	 ............................ 	
+	 The model checker aborted the execution because	
+	 it detected undefined behavior	
+	 ............................ 	
+	 Attempting to lock an uninitialized mutex 	
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: sem_init(2, 0, 0)
+thread 0: sem_init(3, 0, 0)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_create(3)
+thread 1: starts
+0, 0, 0, 0, 0, 0, 0, 1, 
+END
+THREAD STATES
+thread 0: pthread_join(1, _)
+thread 1: starts
+thread 2: starts
+thread 3: starts
+END

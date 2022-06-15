@@ -1,0 +1,36 @@
+About to exec into ../../test/deadlock_programs/philosophers_semaphores_deadlock
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: sem_init(1, 0, 4)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_mutex_init(3, _)
+thread 0: pthread_mutex_init(4, _)
+thread 0: pthread_mutex_init(5, _)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_create(3)
+thread 0: pthread_create(4)
+thread 1: starts
+thread 1: sem_wait(1) (enter)
+thread 2: starts
+thread 2: sem_wait(1) (enter)
+thread 3: starts
+thread 3: sem_wait(1) (enter)
+thread 4: starts
+thread 4: sem_wait(1) (enter)
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 
+END
+THREAD STATES
+thread 0: pthread_join(1, _)
+thread 1: sem_wait(1) (attempt exit)
+thread 2: sem_wait(1) (attempt exit)
+thread 3: sem_wait(1) (attempt exit)
+thread 4: sem_wait(1) (attempt exit)
+END
+*** Model checking completed! ***
+Number of transitions: 18
+
+real	0m0.013s
+user	0m0.012s
+sys	0m0.000s

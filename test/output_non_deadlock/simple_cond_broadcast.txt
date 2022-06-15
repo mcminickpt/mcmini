@@ -1,0 +1,721 @@
+About to exec into ../../test/programs/simple_cond_braodcast
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: starts
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 2, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: starts
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: starts
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: starts
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 2, 1, 1, 1, 1, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: starts
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 2, 1, 1, 1, 1, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: starts
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 2, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: starts
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 2, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: starts
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 2, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: starts
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 2: starts
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 1, 1, 1, 1, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 2: starts
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 1, 1, 1, 1, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 2: starts
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 0, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 2: starts
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 0, 1, 1, 1, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 2: starts
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 0, 1, 1, 1, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 2: starts
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 1, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 2: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 0, 1, 1, 1, 1, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 2: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 0, 1, 1, 1, 1, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 2: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 0, 1, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 2: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 0, 1, 1, 1, 2, 2, 0, 0, 2, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 2: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 0, 1, 1, 1, 2, 2, 0, 2, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_cond_init(3)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_mutex_lock(2)
+thread 1: starts
+thread 2: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: pthread_mutex_unlock(2)
+thread 1: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 1: pthread_cond_wait(3, 1) (asleep)
+thread 1: pthread_mutex_unlock(1)
+thread 1: exits
+thread 2: pthread_mutex_lock(1)
+thread 2: pthread_mutex_unlock(2)
+thread 2: pthread_cond_wait(3, 1) (awake)
+thread 0: pthread_mutex_lock(2)
+thread 0: pthread_mutex_unlock(2)
+thread 0: pthread_mutex_lock(1)
+thread 0: pthread_cond_broadcast(3)
+thread 0: pthread_mutex_unlock(1)
+thread 0: pthread_join(1, _)
+0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 
+END
+THREAD STATES
+thread 0: pthread_join(2, _)
+thread 1: exits
+thread 2: pthread_cond_wait(3, 1) (asleep)
+END
+***** Model checking completed! *****
+Number of transitions: 297
+
+real	0m0.107s
+user	0m0.074s
+sys	0m0.040s

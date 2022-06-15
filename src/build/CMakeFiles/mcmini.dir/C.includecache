@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jovanovicl/DPOR/src/MCEnv.h
+
+/home/jovanovicl/DPOR/src/launch.c
+assert.h
+-
+stdlib.h
+-
+stdio.h
+-
+libgen.h
+-
+sys/stat.h
+-
+unistd.h
+-
+string.h
+-
+MCEnv.h
+/home/jovanovicl/DPOR/src/MCEnv.h
+

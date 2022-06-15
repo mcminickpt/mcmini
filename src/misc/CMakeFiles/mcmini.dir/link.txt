@@ -1,0 +1,1 @@
+/usr/bin/cc   -rdynamic CMakeFiles/mcmini.dir/launch.c.o  -o mcmini 

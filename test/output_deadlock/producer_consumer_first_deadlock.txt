@@ -1,0 +1,62 @@
+About to exec into ../../test/deadlock_programs/producer_consumer_deadlock
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: sem_init(2, 0, 10)
+thread 0: sem_init(3, 0, 0)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_create(3)
+thread 0: pthread_create(4)
+thread 0: pthread_create(5)
+thread 0: pthread_create(6)
+thread 0: pthread_create(7)
+thread 0: pthread_create(8)
+thread 0: pthread_create(9)
+thread 0: pthread_create(10)
+thread 0: pthread_create(11)
+thread 0: pthread_create(12)
+thread 0: pthread_create(13)
+thread 0: pthread_create(14)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 1: sem_wait(2) (enter)
+thread 2: starts
+thread 3: starts
+thread 4: starts
+thread 5: starts
+thread 6: starts
+thread 7: starts
+thread 8: starts
+thread 9: starts
+thread 10: starts
+thread 11: starts
+thread 12: starts
+thread 13: starts
+thread 14: starts
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 
+END
+THREAD STATES
+thread 0: pthread_join(1, _)
+thread 1: sem_wait(2) (attempt exit)
+thread 2: pthread_mutex_lock(1)
+thread 3: pthread_mutex_lock(1)
+thread 4: pthread_mutex_lock(1)
+thread 5: pthread_mutex_lock(1)
+thread 6: pthread_mutex_lock(1)
+thread 7: pthread_mutex_lock(1)
+thread 8: pthread_mutex_lock(1)
+thread 9: pthread_mutex_lock(1)
+thread 10: pthread_mutex_lock(1)
+thread 11: pthread_mutex_lock(1)
+thread 12: pthread_mutex_lock(1)
+thread 13: pthread_mutex_lock(1)
+thread 14: pthread_mutex_lock(1)
+END
+*** Model checking completed! ***
+Number of transitions: 34
+
+real	0m0.018s
+user	0m0.013s
+sys	0m0.001s

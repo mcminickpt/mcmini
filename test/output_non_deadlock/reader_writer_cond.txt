@@ -1,0 +1,67 @@
+About to exec into ../../test/programs/reader_writer/reader_writer_cond
+**** Exhausting threads... ****
+*** CHILD SPAWNED WITH PID 28210***
+*** NO FAILURE DETECTED ***
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+writer is writing
+writer is writing
+******* CHILD EXITING with pid 28210 *******************
+*** CHILD SPAWNED WITH PID 28216***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+writer is writing
+writer is writing
+******* CHILD EXITING with pid 28216 *******************
+*** TRACE ID 1 ***
+*** CHILD SPAWNED WITH PID 28222***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+writer is writing
+writer is writing
+******* CHILD EXITING with pid 28222 *******************
+*** TRACE ID 2 ***
+*** CHILD SPAWNED WITH PID 28227***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+writer is writing
+writer is writing
+******* CHILD EXITING with pid 28227 *******************
+*** TRACE ID 3 ***
+*** CHILD SPAWNED WITH PID 28232***
+**** Exhausting threads... ****
+*** NO FAILURE DETECTED ***
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+reader is reading
+writer is writing
+writer is writing
+******* CHILD EXITING with pid 28232 *******************
+*** TRACE ID 4 ***
+*** CHILD SPAWNED WITH PID 28238***
+**** Exhausting threads... ****

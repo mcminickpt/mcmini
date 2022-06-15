@@ -1,0 +1,60 @@
+About to exec into ../../test/deadlock_programs/philosophers_mutex_deadlock
+*** DEADLOCK DETECTED ***
+THREAD BACKTRACE
+thread 0: starts
+thread 0: pthread_mutex_init(1, _)
+thread 0: pthread_mutex_init(2, _)
+thread 0: pthread_mutex_init(3, _)
+thread 0: pthread_mutex_init(4, _)
+thread 0: pthread_mutex_init(5, _)
+thread 0: pthread_mutex_init(6, _)
+thread 0: pthread_mutex_init(7, _)
+thread 0: pthread_mutex_init(8, _)
+thread 0: pthread_mutex_init(9, _)
+thread 0: pthread_create(1)
+thread 0: pthread_create(2)
+thread 0: pthread_create(3)
+thread 0: pthread_create(4)
+thread 0: pthread_create(5)
+thread 0: pthread_create(6)
+thread 0: pthread_create(7)
+thread 0: pthread_create(8)
+thread 0: pthread_create(9)
+thread 1: starts
+thread 1: pthread_mutex_lock(1)
+thread 2: starts
+thread 2: pthread_mutex_lock(2)
+thread 3: starts
+thread 3: pthread_mutex_lock(3)
+thread 4: starts
+thread 4: pthread_mutex_lock(4)
+thread 5: starts
+thread 5: pthread_mutex_lock(5)
+thread 6: starts
+thread 6: pthread_mutex_lock(6)
+thread 7: starts
+thread 7: pthread_mutex_lock(7)
+thread 8: starts
+thread 8: pthread_mutex_lock(8)
+thread 9: starts
+thread 9: pthread_mutex_lock(9)
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 
+END
+THREAD STATES
+thread 0: pthread_join(1, _)
+thread 1: pthread_mutex_lock(2)
+thread 2: pthread_mutex_lock(3)
+thread 3: pthread_mutex_lock(4)
+thread 4: pthread_mutex_lock(5)
+thread 5: pthread_mutex_lock(6)
+thread 6: pthread_mutex_lock(7)
+thread 7: pthread_mutex_lock(8)
+thread 8: pthread_mutex_lock(9)
+thread 9: pthread_mutex_lock(1)
+END
+*** Model checking completed! ***
+Number of transitions: 114741
+
+real	2m54.434s
+user	2m15.455s
+sys	0m41.518s

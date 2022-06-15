@@ -1,0 +1,7 @@
+About to exec into ../../test/programs/philosophers_semaphores
+***** Model checking completed! *****
+Number of transitions: 104216
+
+real	0m44.639s
+user	0m24.275s
+sys	0m21.648s

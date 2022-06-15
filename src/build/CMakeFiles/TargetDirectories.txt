@@ -1,0 +1,5 @@
+/home/jovanovicl/DPOR/src/build/CMakeFiles/rebuild_cache.dir
+/home/jovanovicl/DPOR/src/build/CMakeFiles/edit_cache.dir
+/home/jovanovicl/DPOR/src/build/CMakeFiles/mcmini.dir
+/home/jovanovicl/DPOR/src/build/CMakeFiles/mcminichecker.dir
+/home/jovanovicl/DPOR/src/build/CMakeFiles/MCMINI.dir
