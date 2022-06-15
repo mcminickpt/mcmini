@@ -62,17 +62,46 @@ topic branches based off of other topic branches. For example, the branch
   `alice/bugs/fix-data-race`
 
 could be used to describe a branch which is created by a user `alice`
-for fixing bugs (in particular a data race_
+for fixing bugs (in particular a data race)
 
 #### Annotated tags
 
 ## Commits
 
+Commits are the primitives off of which the entire codebase is built upon.
+Commits should ideally have the following characteristics:
+
+  1. They should each be relatively *small* in their effect on the codebase.
+  One commit should ideally never introduce thousands of changes
+  2. They should introduce specific changes. Avoid making commits such as "forgot
+  to add a file" or "oops small fix" as these do not provide a clear explanation
+  for why the commit was added in the first place, nor for what the commit actually
+  introduces. Use `git merge --squash`, `git rebase -i`, or `git commit --amend` where 
+  appropriate to reduce the number of vague commits
+
+
 ### Titling and commenting commits
 
-### 
+Write commits using the imperative mood; for example, if a commit changes the behavior
+of a certain class in the project, title it 
 
-###
+  "Change the behavior of ..."
+
+instead of 
+
+  "Change*d* the behavior of ..."
+
+The idea is that commit titles tell you how the project should change when the commit is
+introduced: "do" something  rather than "did" something.
+
+For future maintainers of the codebase, it is also critically important to add a brief
+description of the changes introduced in the commit as well as *why* those changes were
+made. This is *especially* important for bug fixes. For bug fixes you should additionally
+mention the root cause of the bug, if there were any alternative solutions you attempted
+or considered and why or why not those failed, and how the changes in the commit (or commit
+series following thereafter) squash the bug
+
+FIXME: How should we outline the changes introduced in a commit?
 
 ## Issues
 
