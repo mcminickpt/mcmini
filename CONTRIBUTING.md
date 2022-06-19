@@ -72,13 +72,16 @@ Commits are the primitives off of which the entire codebase is built upon.
 Commits should ideally have the following characteristics:
 
   1. They should each be relatively *small* in their effect on the codebase.
-  One commit should ideally never introduce thousands of changes
+  One commit should never introduce thousands of changes
   2. They should introduce specific changes. Avoid making commits such as "forgot
   to add a file" or "oops small fix" as these do not provide a clear explanation
   for why the commit was added in the first place, nor for what the commit actually
   introduces. Use `git merge --squash`, `git rebase -i`, or `git commit --amend` where 
   appropriate to reduce the number of vague commits
 
+Commits should describe logical changes to the codebase. If the diff introduced
+by a commit is not obvious, you should make sure to add comments to the 
+commit message where appropriate (see the next section)
 
 ### Titling and commenting commits
 
@@ -101,16 +104,28 @@ mention the root cause of the bug, if there were any alternative solutions you a
 or considered and why or why not those failed, and how the changes in the commit (or commit
 series following thereafter) squash the bug
 
-FIXME: How should we outline the changes introduced in a commit?
-
 ## Issues
+
+We should use issues to point out bugs, list features we want to merge into
+mcmini in the future, and assign work. Issues should be named using the same
+style as commit naming when appropriate (using the imperative etc.).
+
+When you think of a new feature that should be added to McMini, make sure
+to create an issue for it when appropriate. Use your judgement here: you probably
+wouldn't, e.g., need to make an issue to rearrange code in a single file
 
 ### Labeling scheme
 
+Whenever you make an issue, please make sure to tag it with the appropriate labels.
+In particular, each issue should have one (or more) of each of the following tags:
+
+	1. A `type` tag that identifies why the issue exists (e.g. to point out a bug)
+	2. An `effort` tag describing how long the issue would take to be resolved'
+	when efforts are begun to resolve it
+	3. A `work` tag describing what the work might entail (known behavior
+	or best practices)
+
 ## Pull Requests
 
-When you've completed new changes to a pull request
-
-### 
-
-### 
+Please make sure that you receive at least one approval
+before merging in any changes to the main repository.
