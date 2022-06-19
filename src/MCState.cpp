@@ -1,8 +1,9 @@
-#include "MCState.h"
-#include "MCTransitionFactory.h"
+#include <algorithm>
 #include <memory>
 #include <unordered_set>
 #include <vector>
+#include "MCState.h"
+#include "MCTransitionFactory.h"
 
 extern "C" {
 #include "MCCommon.h"
@@ -474,24 +475,29 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
 
     // if there exists i such that ...
     if (shouldProcess) {
+        std::unordered_set<tid_t> E;
 
-        bool EIsEmpty = true;
-        for (auto q : enabledThreadsAtPreSi) {
+        for (tid_t q : enabledThreadsAtPreSi) {
             const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
 
             // If E != empty set
-            if (inE) {
-                // Add any element in E
-                // TODO: We can selectively pick here to reduce the number of times we backtrack
-                preSi->addBacktrackingThreadIfUnsearched(q);
-                EIsEmpty = false;
-                break;
-            }
+            if (inE) E.insert(q);
         }
-        if (EIsEmpty) {
+        
+        if (E.empty()) {
             // E is the empty set -> add every enabled thread at pre(S, i)
             for (auto q : enabledThreadsAtPreSi)
                 preSi->addBacktrackingThreadIfUnsearched(q);
+        } else {
+            for (tid_t q : E) {
+                // If there is a thread in preSi that we
+                // are already backtracking AND which is contained
+                // in the set E, chose that thread to backtrack
+                // on. This is equivalent to not having to do
+                // anything
+                if (preSi->isBacktrackingOnThread(q)) return;
+            }
+            preSi->addBacktrackingThreadIfUnsearched(*E.begin());
         }
     }
 }
