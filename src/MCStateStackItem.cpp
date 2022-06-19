@@ -22,6 +22,12 @@ MCStateStackItem::hasThreadsToBacktrackOn() const
     return !backtrackSet.empty();
 }
 
+bool
+MCStateStackItem::isBacktrackingOnThread(tid_t tid) const
+{
+    return this->backtrackSet.count(tid) > 0;
+}
+
 tid_t
 MCStateStackItem::popFirstThreadToBacktrackOn()
 {

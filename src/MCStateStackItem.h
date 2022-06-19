@@ -19,6 +19,7 @@ public:
     std::unordered_set<tid_t> getEnabledThreadsInState();
 
     bool hasThreadsToBacktrackOn() const;
+    bool isBacktrackingOnThread(tid_t) const;
     tid_t popFirstThreadToBacktrackOn();
 };
 
