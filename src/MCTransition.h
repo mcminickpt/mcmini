@@ -24,26 +24,36 @@
  * would change from being unlocked to locked.
  *
  * You don't use `MCTransition` directly; instead, you subclass
- * `MCTransition` and specify any object references you need to
+ * `MCTransition` and specify any object you need to
  * describe the transition. McMini handles providing your
- * transition subclass the correct references to any live objects
+ * transition subclass the correct references to any live objects,
+ * but you must ensure you query for the correct objects in order
+ * to copy state. At a minimum, each `MCTransition` subclass has a
+ * reference to the thread that executes the transition.
  *
- * Each `MCTransition` by default has a reference to the thread
- * that runs it.
+ * Transitions are used to move McMini from state to state in order
+ * to perform searches through a concurrent system's state space.
+ * McMini keeps around. McMini uses *static* copies when it needs
+ * to save the states of a transition and its references for use at
+ * a later date. On the other hand, McMini creates *dynamic copies*
+ * of transitions when it needs the references in the transition to
+ * point to "live" objects, viz. those objects whose states McMini
+ * tracks.
  *
+ * You write your transitions with any references you need and
+ * update state assuming those references point to the correct
+ * objects. McMini will create the appropriate static and dynamic
+ * copies of transitions it encounters when appropriate.
  *
- * - Where are they created?
- * - Where are they used?
- * - how are they used?
+ * ** Important **
  *
- * - A transition is used in the following by McMini
- * - McMini transparently passed the transition correct references
- * to the most dynamic objects
- * - McMini relies on the transitions being accurate -> see enabled
- * description
- *
- *
- *
+ * McMini relies heavily on the correctness of semantics of the
+ * transitions you create. For example, it relies on your
+ * implementation to specify when a thread will be blocked attempting
+ * to run the transition and uses this information to determine
+ * when threads should be scheduled to execute their
+ * transitions. If you specify that a transition *won't* block but
+ * actually does, McMini could be left in a deadlock.
  */
 struct MCTransition {
 protected:
@@ -54,19 +64,19 @@ public:
     MCTransition &operator=(const MCTransition&) = default;
 
     /**
-     *
+     * FIXME: Move this to a different class potentially
      * @return
      */
     static bool dependentTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
 
     /**
-     *
+     *  FIXME: Move this to a different class potentially
      * @return
      */
     static bool coenabledTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
 
     /**
-     *
+     * FIXME: Move this to a different class potentially
      * @return
      */
     static bool transitionsInDataRace(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
@@ -75,32 +85,62 @@ public:
      * Creates a deep copy of this transition
      *
      * A "static" copy is a snapshot in time of a transition whose
-     * refrences resolve to live objects
+     * references resolve to previous states of live objects.
      *
-     * McMini uses transition static copies when filling the
-     * transition stack with new transitions. Static copies of
-     * transitions store small amounts of previously visited states
-     * which is necessary to accurately describe the sequence of
-     * events leading up to a deadlock or assertion failure. For
-     * example, the number
+     * McMini uses static copies when it needs to keep track of
+     * more than a single state of the objects it managed, e.g.
+     * when filling the transition stack with new transitions.
+     * Static copies of transitions store small amounts of
+     * previously visited states which is necessary to accurately
+     * describe the sequence of events leading up to a deadlock or
+     * assertion failure.
      *
-     * @return the static copy
+     * You must ensure you copy all of the objects references
+     * needed by the transition.
+     *
+     * @return a transition that is equivalent to this one, with
+     * each object reference pointing
      */
     virtual std::shared_ptr<MCTransition> staticCopy() = 0;
 
     /**
-     * Produces a copy of this transition which points to
+     * Produces a deep copy of this transition which points to
      * live objects in the given state
      *
+     * A "dynamic" copy is a transition whose references
+     * refer to objects McMini uses as its source of truth for the
+     * states of those objects.
      *
-     * McMini
+     * McMini creates dynamic copies when it needs to apply a
+     * transition to the objects it keeps track of. You must ensure
+     * that you access the correct references by querying the state
+     * instance with `MCState::getObjectWithId()`, using the ids
+     * associated with each object reference owned by this transition.
+     * For example, the `MyTransition` looks up the "live" object
+     * corresponding to the id of the reference that the transition
+     * owns (which could be a copy of a dynamic object from a
+     * previous state e.g.):
      *
+     * ```
+     * struct MyTransition: public MCTransition {
+     * private:
+     *   MyObjectRef myObj;
+     * public: ...
      *
+     *   std::shared_ptr<MCTransition>
+     *   dynamicCopyInState(const MCState* state)
+     *   {
+     *      MyObjectRef dynamicMyObj =
+     *          state->getObjectWithId<MyObjectRef>(myObj->getObjectId());
+     *      ...
+     *   }
+     * };
+     *
+     * ```
      * @param state the state to retrieve dynamic references from
      * for the objects necessary
      * @return a transition that is equivalent to this one, with
-     * each object reference defining the transition pointing into
-     * the
+     * each object reference pointing at "live" objects
      */
     virtual std::shared_ptr<MCTransition>
     dynamicCopyInState(const MCState* state) = 0;
@@ -108,8 +148,10 @@ public:
     /**
      * Performs the actions represented by this transition
      *
-     * Transitions are
-     *
+     * This method should modify the appropriate objects the
+     * transition interacts with so that those objects are in a
+     * state reflecting the fact that this transition has been
+     * executed.
      *
      * When implementing this method for your transition
      * subclasses, you can assume that any object references have
@@ -117,9 +159,21 @@ public:
      * those objects. See `MCTransition::dynamicCopyInState()` and
      * `MCTransition::staticCopy()` for more details.
      *
+     * ** Important **
      *
+     * It is critical that the transition update state correctly to
+     * match the semantics of the operation it represents.
+     * Failing to correctly apply the transition to match the
+     * semantics of the operation will again result in McMini
+     * misrepresenting states, which could lead to deadlock. See
+     * the discussion about `MCTransition::enabledInState()` for
+     * more details on how McMini relies on the state.
+     *
+     * @param state the state representation to modify. Any object
+     * references held onto by this instance refer to live objects
+     * in this state
      */
-    virtual void applyToState(MCState *) = 0;
+    virtual void applyToState(MCState *state) = 0;
 
     /**
      * Determines whether the thread running this transition would
@@ -372,6 +426,12 @@ public:
         return true;
     }
 
+    /**
+     * Returns the id of thread that executes this transition
+     *
+     * @return the id for the thread that executes
+     * this transition
+     */
     inline tid_t
     getThreadId() const
     {
