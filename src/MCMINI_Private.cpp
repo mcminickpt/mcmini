@@ -110,8 +110,6 @@ mc_scheduler_main()
 
     mc_exhaust_threads(initialTransition);
     mc_exit_with_trace_if_necessary(traceId);
-    // Possibly print
-
     program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
     if (MC_IS_SOURCE_PROGRAM(program))
         return MC_SOURCE_PROGRAM;
@@ -541,8 +539,7 @@ mc_daemon_thread_simulate_program(void *trace)
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }
     delete tracePtr;
-    mc_child_panic();
-    return nullptr; /* Ignored */
+    _Exit(0);
 }
 
 MCStateConfiguration
