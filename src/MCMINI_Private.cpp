@@ -23,6 +23,11 @@ extern "C" {
 /* Synchronization primitives */
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t cpid = -1;
+
+/**
+ * The process id of the scheduler
+ */
+pid_t scheduler_pid = -1;
 mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM] = nullptr;
 sem_t mc_pthread_create_binary_sem;
 
@@ -51,6 +56,8 @@ mc_init()
     mc_initialize_shared_memory_region();
     mc_create_thread_sleep_points();
 
+    // Mark this process as the scheduler
+    scheduler_pid = getpid();
     MC_FATAL_ON_FAIL(__real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
     MC_PROGRAM_TYPE program = mc_scheduler_main();
@@ -59,7 +66,7 @@ mc_init()
     mcprintf("***** Model checking completed! *****\n");
     mcprintf("Number of transitions: %lu\n", transitionId);
     mcprintf("Number of traces: %lu\n", traceId);
-    __real_exit(EXIT_SUCCESS);
+    mc_exit(EXIT_SUCCESS);
 }
 
 void
@@ -168,12 +175,12 @@ mc_create_shared_memory_region()
         } else {
             perror("shm_open");
         }
-        __real_exit(EXIT_FAILURE);
+        mc_exit(EXIT_FAILURE);
     }
     int rc = ftruncate(fd, shmAllocationSize);
     if (rc == -1) {
         perror("ftruncate");
-        __real_exit(EXIT_FAILURE);
+        mc_exit(EXIT_FAILURE);
     }
     // We want stack at same address for each process.  Otherwise, a pointer
     //   to an address in the stack data structure will not work everywhere.
@@ -183,7 +190,7 @@ mc_create_shared_memory_region()
                                         PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0);
     if (shmStart == MAP_FAILED) {
         perror("mmap");
-        __real_exit(EXIT_FAILURE);
+        mc_exit(EXIT_FAILURE);
     }
     // shm_unlink(dpor); // Don't unlink while child processes need to open this.
     fsync(fd);
@@ -230,7 +237,7 @@ sigusr1_handler_child(int sig)
 void
 sigusr1_handler_scheduler(int sig)
 {
-    mc_child_kill();
+    mc_kill_child();
     puts("******* Something went wrong in the source program... *******************");
     _exit(1);
 }
@@ -309,11 +316,6 @@ mc_begin_target_program_at_main(bool spawnDaemonThread)
         // keep the process alive to allow the model checker to
         // continue working
         //
-        //
-        // NOTE: This does not handle the case where a
-        // thread makes a call to exit(). This is a special case we need
-        // to be able to handle
-        //
         // NOTE!!: atexit handlers can be invoked when a dynamic
         // library is unloaded. In the transparent target, we need
         // to be able to handle this case gracefully
@@ -337,7 +339,7 @@ mc_run_thread_to_next_visible_operation(tid_t tid)
 }
 
 void
-mc_child_kill()
+mc_kill_child()
 {
     if (cpid == -1) return; // No child
     kill(cpid, SIGUSR1);
@@ -400,7 +402,7 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         if (programState->getConfiguration().stopAtFirstDeadlock) {
             mcprintf("*** Model checking completed! ***\n");
             mcprintf("Number of transitions: %lu\n", transitionId);
-            __real_exit(0);
+            mc_exit(EXIT_SUCCESS);
         }
     }
 
@@ -417,7 +419,7 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
         //programState->printNextTransitions();
     }
 
-    mc_child_kill();
+    mc_kill_child();
 }
 
 MC_PROGRAM_TYPE
@@ -448,7 +450,7 @@ mc_register_main_thread()
 void
 mc_report_undefined_behavior(const char *msg)
 {
-    mc_child_kill();
+    mc_kill_child();
     fprintf(stderr,"\t Undefined Behavior Detected! \t\n"
             "\t ............................ \t\n"
             "\t The model checker aborted the execution because\t\n"
@@ -477,8 +479,8 @@ mc_exit_with_trace_if_necessary(trid_t trid)
     if (programState->isTargetTraceIdForStackContents(trid)) {
         programState->printTransitionStack();
         programState->printNextTransitions();
-        mc_child_kill();
-        __real_exit(0);
+        mc_kill_child();
+        mc_exit(EXIT_SUCCESS);
     }
 }
 
@@ -494,9 +496,8 @@ mc_enter_gdb_debugging_session()
     MC_PROGRAM_TYPE program = mc_begin_target_program_at_main(true);
     if (MC_IS_SCHEDULER(program)) {
         mc_child_wait(); /* The daemon thread will take the place of the parent process */
-        __real_exit(0);
+        mc_exit(EXIT_SUCCESS);
     }
-
     return program;
 }
 
@@ -539,7 +540,8 @@ mc_daemon_thread_simulate_program(void *trace)
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }
     delete tracePtr;
-    _Exit(0);
+    mc_exit(0);
+    return nullptr; /* Ignored (unreached anyway) */
 }
 
 MCStateConfiguration
@@ -580,4 +582,20 @@ get_config_for_execution_environment()
             firstDeadlock,
             expectForwardProgressOfThreads
     };
+}
+
+bool
+mc_is_scheduler()
+{
+    return scheduler_pid == getpid();
+}
+
+void
+mc_exit(int status)
+{
+    if (mc_is_scheduler()) {
+        __real_exit(status);
+    } else {
+        _Exit(status);
+    }
 }

@@ -5,5 +5,4 @@
 #include "MCMINIWrappers.h"
 
 MC_CTOR void mc_init();
-
 #endif //MCMINI_MCMINI_H

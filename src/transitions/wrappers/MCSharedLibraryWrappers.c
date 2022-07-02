@@ -115,7 +115,7 @@ sem_wait(sem_t *sem)
 void
 exit(int status)
 {
-    mc_exit(status);
+    mc_transparent_exit(status);
 }
 
 int

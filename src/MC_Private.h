@@ -19,7 +19,7 @@ MC_PROGRAM_TYPE mc_scheduler_main();
 void mc_exhaust_threads(std::shared_ptr<MCTransition>);
 MC_PROGRAM_TYPE mc_readvance_main(std::shared_ptr<MCTransition>);
 void mc_create_initial_scheduler_state();
-void mc_exit();
+void mc_exit(int);
 
 /* GDB interface */
 bool mc_should_enter_gdb_debugging_session_with_trace_id(trid_t);
@@ -49,7 +49,7 @@ MC_PROGRAM_TYPE mc_spawn_child();
 MC_PROGRAM_TYPE mc_spawn_child_following_transition_stack();
 MC_PROGRAM_TYPE mc_begin_target_program_at_main(bool spawnDaemonThread);
 void mc_run_thread_to_next_visible_operation(tid_t);
-void mc_child_kill();
+void mc_kill_child();
 void mc_child_wait();
 
 /* Thread control */
