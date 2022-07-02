@@ -94,7 +94,7 @@ mc_exit_main_thread()
 }
 
 MC_NO_RETURN void
-mc_exit(int status)
+mc_transparent_exit(int status)
 {
     thread_post_visible_operation_hit(typeid(MCExitTransition), &status);
     thread_await_mc_scheduler();
