@@ -1,4 +1,5 @@
 #include "MCStateStackItem.h"
+using namespace std;
 
 void
 MCStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
@@ -41,14 +42,34 @@ MCStateStackItem::popFirstThreadToBacktrackOn()
 }
 
 void
-MCStateStackItem::markThreadsEnabledInState(const std::unordered_set<tid_t>& enabledThrds)
+MCStateStackItem::markThreadsEnabledInState(const unordered_set<tid_t>& enabledThrds)
 {
-    for (const auto tid : enabledThrds)
+    for (const tid_t tid : enabledThrds)
         this->enabledThreads.insert(tid);
 }
 
-std::unordered_set<tid_t>
+unordered_set<tid_t>
 MCStateStackItem::getEnabledThreadsInState()
 {
-    return this->enabledThreads;
+    unordered_set<tid_t> enabledThreads = this->enabledThreads;
+    for (const shared_ptr<MCTransition> &transition :this->sleepSet)
+        enabledThreads.erase(transition->getThreadId());
+    return enabledThreads;
+}
+
+void
+MCStateStackItem::addTransitionToSleepSet(shared_ptr<MCTransition> transition)
+{
+    this->sleepSet.insert(transition);
+}
+
+unordered_set<shared_ptr<MCTransition>>
+MCStateStackItem::newFilteredSleepSet(shared_ptr<MCTransition> transition)
+{
+    unordered_set<shared_ptr<MCTransition>> newSleepSet;
+    for (const shared_ptr<MCTransition> &t : this->sleepSet) {
+        if (!MCTransition::dependentTransitions(t, transition))
+            newSleepSet.insert(t);
+    }
+    return newSleepSet;
 }

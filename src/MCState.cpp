@@ -9,6 +9,8 @@ extern "C" {
 #include "MCCommon.h"
 }
 
+using namespace std;
+
 bool
 MCState::transitionIsEnabled(const std::shared_ptr<MCTransition> &transition)
 {
@@ -205,7 +207,7 @@ MCState::getEnabledThreadsInState()
     auto enabledThreadsInState = std::unordered_set<tid_t>();
     const auto numThreads = this->getNumProgramThreads();
     for (auto i = 0; i < numThreads; i++) {
-        if (this->nextTransitions[i]->enabledInState(this))
+        if (this->getNextTransitionForThread(i)->enabledInState(this))
             enabledThreadsInState.insert(i);
     }
     return enabledThreadsInState;
@@ -420,23 +422,24 @@ MCState::dynamicallyUpdateBacktrackSets()
     // 2. Map which thread ids still need to be processed
     const uint64_t numThreadsBeforeBacktracking = this->getNumProgramThreads();
 
-    auto remainingThreadsToProcess = std::unordered_set<tid_t>();
-
-    for (auto i = 0; i < numThreadsBeforeBacktracking; i++) {
-        remainingThreadsToProcess.insert(static_cast<tid_t>(i));
-    }
+    std::unordered_set<tid_t> remainingThreadsToProcess;
+    for (tid_t i = 0; i < numThreadsBeforeBacktracking; i++)
+        remainingThreadsToProcess.insert(i);
 
     // 3. Determine the i
     const auto transitionStackTop = this->getTransitionStackTop();
-    const auto mostRecentThreadId = transitionStackTop->getThreadId();
-    const auto nextTransitionForMostRecentThread = this->getPendingTransitionForThread(mostRecentThreadId);
+    const tid_t mostRecentThreadId =
+            transitionStackTop->getThreadId();
+    const auto nextTransitionForMostRecentThread =
+            this->getPendingTransitionForThread(mostRecentThreadId);
     remainingThreadsToProcess.erase(mostRecentThreadId);
 
     // O(# threads)
     {
         auto S_n = this->getTransitionStackTop();
         auto s_n = this->getStateItemAtIndex(transitionStackTopBeforeBacktracking);
-        const auto enabledThreadsAt_s_n = s_n->getEnabledThreadsInState();
+        const std::unordered_set<tid_t> enabledThreadsAt_s_n =
+                s_n->getEnabledThreadsInState();
 
         for (auto &tid : remainingThreadsToProcess) {
             auto nextSP = this->getPendingTransitionForThread(tid);
@@ -452,7 +455,7 @@ MCState::dynamicallyUpdateBacktrackSets()
     // It only remains to add backtracking points at the necessary points for thread `mostRecentThreadId`
     // We start at one step below the top since we know that transition to not be co-enabled (since it was
     // by assumption run by `mostRecentThreadId`
-    for (int i = transitionStackTopBeforeBacktracking - 1; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
+    for (int i = transitionStackTopBeforeBacktracking - 1; i >= 0; i--) {
         const auto S_i = this->getTransitionAtIndex(i);
         const auto preSi = this->getStateItemAtIndex(i);
         const auto enabledThreadsAtPreSi = preSi->getEnabledThreadsInState();
@@ -586,14 +589,27 @@ MCState::growStateStackWithTransition(const std::shared_ptr<MCTransition> &trans
 
     // Insert the thread that ran the transition into the
     // done set of the current top-most state
-    auto oldStop = this->stateStack[this->stateStackTop];
+    auto oldSTop = this->getStateStackTop();
     auto threadRunningTransition = transition->getThreadId();
-    auto enabledThreadsInState = this->getEnabledThreadsInState();;
+    auto enabledThreadsInState = this->getEnabledThreadsInState();
 
-    oldStop->markBacktrackThreadSearched(threadRunningTransition);
-    oldStop->markThreadsEnabledInState(enabledThreadsInState);
+    oldSTop->markBacktrackThreadSearched(threadRunningTransition);
+    oldSTop->markThreadsEnabledInState(enabledThreadsInState);
 
     this->growStateStack();
+
+    // Note this is not the same as oldSTop
+    // after growing the state stack
+    shared_ptr<MCStateStackItem> newSTop = this->getStateStackTop();
+    unordered_set<shared_ptr<MCTransition>> newSleepSet =
+        oldSTop->newFilteredSleepSet(transition);
+
+    for (const shared_ptr<MCTransition> &t : newSleepSet)
+        newSTop->addTransitionToSleepSet(t);
+
+    // `transition` is *about to* execute; it is not *yet*
+    // contained in the sleep set of `oldSTop`
+    oldSTop->addTransitionToSleepSet(transition);
 }
 
 void

@@ -1,8 +1,6 @@
 #ifndef MC_MCTRANSITION_H
 #define MC_MCTRANSITION_H
 
-struct MCState;
-
 #include "MCShared.h"
 #include "MCState.h"
 #include "objects/MCThread.h"
