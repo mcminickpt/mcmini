@@ -94,11 +94,12 @@ private:
      * Inserts a backtracking point given a context of insertion (where in
      * the transition/state stacks to insert into etc.)
      */
-    void dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition> &S_i,
-                                              const std::shared_ptr<MCStateStackItem> &preSi,
-                                              const std::shared_ptr<MCTransition> &nextSP,
-                                              const std::unordered_set<tid_t> &enabledThreadsAtPreSi,
-                                              int i, int p);
+    bool dynamicallyUpdateBacktrackSetsHelper(const
+      std::shared_ptr<MCTransition> &S_i,
+      const std::shared_ptr<MCStateStackItem> &preSi,
+      const std::shared_ptr<MCTransition> &nextSP,
+      const std::unordered_set<tid_t> &enabledThreadsAtPreSi,
+      int i, int p);
 
     void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
     void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
