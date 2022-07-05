@@ -455,16 +455,23 @@ MCState::dynamicallyUpdateBacktrackSets()
     for (int i = transitionStackTopBeforeBacktracking - 1; i >= 0 && !remainingThreadsToProcess.empty(); i--) {
         const auto S_i = this->getTransitionAtIndex(i);
         const auto preSi = this->getStateItemAtIndex(i);
-
-        // The set of threads at pre(S, i) that are enabled. Lazily created
         const auto enabledThreadsAtPreSi = preSi->getEnabledThreadsInState();
-        this->dynamicallyUpdateBacktrackSetsHelper(S_i, preSi,
-                                                   nextTransitionForMostRecentThread, enabledThreadsAtPreSi,
-                                                   i, (int)mostRecentThreadId);
+        const bool shouldStop =
+           dynamicallyUpdateBacktrackSetsHelper(S_i,
+                                                preSi,
+                                                nextTransitionForMostRecentThread,
+                                                enabledThreadsAtPreSi,
+                                                i, (int)mostRecentThreadId);
+        /*
+         * Stop when we find the first such i; this
+         * will be the maxmimum `i` since we're searching
+         * backwards
+         */
+        if (shouldStop) break;
     }
 }
 
-void
+bool
 MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition> &S_i,
                                                 const std::shared_ptr<MCStateStackItem> &preSi,
                                                 const std::shared_ptr<MCTransition> &nextSP,
@@ -495,11 +502,13 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
                 // in the set E, chose that thread to backtrack
                 // on. This is equivalent to not having to do
                 // anything
-                if (preSi->isBacktrackingOnThread(q)) return;
+                if (preSi->isBacktrackingOnThread(q))
+                    return shouldProcess;
             }
             preSi->addBacktrackingThreadIfUnsearched(*E.begin());
         }
     }
+    return shouldProcess;
 }
 
 void
