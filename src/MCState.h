@@ -4,6 +4,7 @@
 struct MCTransition;
 struct MCSharedTransition;
 struct MCState;
+struct MCStateStackItem;
 typedef MCTransition*(*MCSharedMemoryHandler)(const MCSharedTransition*, void*, MCState*);
 
 #include "MCObjectStore.h"
@@ -15,6 +16,7 @@ typedef MCTransition*(*MCSharedMemoryHandler)(const MCSharedTransition*, void*, 
 #include <typeinfo>
 #include <functional>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using TypeInfoRef = std::reference_wrapper<const std::type_info>;

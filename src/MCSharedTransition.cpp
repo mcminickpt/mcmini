@@ -1,4 +1,5 @@
 #include "MCSharedTransition.h"
+#include <cstring>
 
 void
 MCSharedTransitionReplace(MCSharedTransition *shmOld, MCSharedTransition *shmNew)
