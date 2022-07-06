@@ -33,6 +33,9 @@ MCStateStackItem::isBacktrackingOnThread(tid_t tid) const
 bool
 MCStateStackItem::threadIsInSleepSet(tid_t tid) const
 {
+    // If the thread runs a transition contained in the
+    // sleep set, we know that it is the only such transition
+    // in the sleep set. See the comment below
     for (const shared_ptr<MCTransition>& t : this->sleepSet)
         if (t->getThreadId() == tid) return true;
     return false;
@@ -69,6 +72,9 @@ MCStateStackItem::addTransitionToSleepSet(shared_ptr<MCTransition> transition)
 unordered_set<shared_ptr<MCTransition>>
 MCStateStackItem::newFilteredSleepSet(shared_ptr<MCTransition> transition)
 {
+    // INVARIANT: We note that a thread can only appear
+    // once ever in any sleep set since any two transitions
+    // executed by the same thread are dependent
     unordered_set<shared_ptr<MCTransition>> newSleepSet;
     for (const shared_ptr<MCTransition> &t : this->sleepSet) {
         if (!MCTransition::dependentTransitions(t, transition))
