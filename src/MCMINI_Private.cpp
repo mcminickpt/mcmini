@@ -17,6 +17,8 @@ extern "C" {
     #include <unistd.h>
 }
 
+using namespace std;
+
 /* The shmTransitionTypeInfo resides in shared memory */
 /* The semaphores must also reside in shared memory as per the man page */
 
@@ -125,15 +127,14 @@ mc_scheduler_main()
     int curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
 
     while (curStateStackDepth > 0) {
+        shared_ptr<MCStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
 
-        std::shared_ptr<MCStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
         if (sTop->hasThreadsToBacktrackOn()) {
-            // TODO: We can be smart here and only run a thread
-            // if it is not already in a sleep set or lock set (eventually)
-            programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
-
+            
             // DPOR ensures that any thread in the backtrack set is enabled in this state
             tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
+
+            programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
             std::shared_ptr<MCTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
             program = mc_enter_gdb_debugging_session_if_necessary(traceId);
