@@ -193,10 +193,17 @@ MCState::getPendingTransitionForThread(tid_t tid) const
 std::shared_ptr<MCTransition>
 MCState::getFirstEnabledTransitionFromNextStack()
 {
-    const auto threadsInProgram = this->getNumProgramThreads();
+    const uint64_t threadsInProgram = this->getNumProgramThreads();
+    const shared_ptr<MCStateStackItem> sTop = getStateStackTop();
     for (auto i = 0; i < threadsInProgram; i++) {
-        const std::shared_ptr<MCTransition> &nextTransitionForI = this->nextTransitions[i];
-        if (this->transitionIsEnabled(nextTransitionForI)) return nextTransitionForI;
+        const std::shared_ptr<MCTransition> &nextTransitionForI =
+            this->nextTransitions[i];
+        const bool transitionIsEnabled =
+            this->transitionIsEnabled(nextTransitionForI);
+        const bool transitionIsInSleepSet =
+            sTop->threadIsInSleepSet(i);
+        if (transitionIsEnabled && !transitionIsInSleepSet)
+            return nextTransitionForI;
     }
     return nullptr;
 }
