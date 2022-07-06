@@ -1,4 +1,5 @@
 #include "MCStateStackItem.h"
+#include <algorithm>
 using namespace std;
 
 void
@@ -29,6 +30,14 @@ MCStateStackItem::isBacktrackingOnThread(tid_t tid) const
     return this->backtrackSet.count(tid) > 0;
 }
 
+bool
+MCStateStackItem::threadIsInSleepSet(tid_t tid) const
+{
+    for (const shared_ptr<MCTransition>& t : this->sleepSet)
+        if (t->getThreadId() == tid) return true;
+    return false;
+}
+
 tid_t
 MCStateStackItem::popFirstThreadToBacktrackOn()
 {
@@ -51,10 +60,7 @@ MCStateStackItem::markThreadsEnabledInState(const unordered_set<tid_t>& enabledT
 unordered_set<tid_t>
 MCStateStackItem::getEnabledThreadsInState()
 {
-    unordered_set<tid_t> enabledThreads = this->enabledThreads;
-    for (const shared_ptr<MCTransition> &transition :this->sleepSet)
-        enabledThreads.erase(transition->getThreadId());
-    return enabledThreads;
+    return this->enabledThreads;
 }
 
 void

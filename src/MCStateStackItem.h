@@ -29,6 +29,7 @@ public:
 
     bool hasThreadsToBacktrackOn() const;
     bool isBacktrackingOnThread(tid_t) const;
+    bool threadIsInSleepSet(tid_t) const;
     tid_t popFirstThreadToBacktrackOn();
 };
 
