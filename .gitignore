@@ -1,3 +1,7 @@
+# Built products
+build/*
+cmake-build-debug/*
+
 # Prerequisites
 *.d
 
