@@ -496,15 +496,17 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
 
         for (tid_t q : enabledThreadsAtPreSi) {
             const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
+            const bool isInSleepSet = preSi->threadIsInSleepSet(q);
 
             // If E != empty set
-            if (inE) E.insert(q);
+            if (inE && !isInSleepSet) E.insert(q);
         }
         
         if (E.empty()) {
             // E is the empty set -> add every enabled thread at pre(S, i)
-            for (auto q : enabledThreadsAtPreSi)
-                preSi->addBacktrackingThreadIfUnsearched(q);
+            for (tid_t q : enabledThreadsAtPreSi)
+                if (!preSi->threadIsInSleepSet(q))
+                    preSi->addBacktrackingThreadIfUnsearched(q);
         } else {
             for (tid_t q : E) {
                 // If there is a thread in preSi that we
