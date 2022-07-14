@@ -2,6 +2,7 @@
 #include <memory>
 #include <unordered_set>
 #include <vector>
+#include <stack>
 #include "MCState.h"
 #include "MCTransitionFactory.h"
 
@@ -301,27 +302,27 @@ MCState::happensBefore(int i, int j) const
     }
 
     const uint64_t stackCount = this->getTransitionStackSize();
-    auto dfs_stack = std::vector<int>();
+    auto dfs_stack = std::stack<int>();
     auto dfs_searched = std::unordered_set<tid_t>();
-    dfs_stack.push_back(i);
+    dfs_stack.push(i);
 
     while (!dfs_stack.empty()) {
-        int i_search = dfs_stack.back(); dfs_stack.pop_back();
+        int i_search = dfs_stack.top(); dfs_stack.pop();
         std::shared_ptr<MCTransition> ti_search = this->getTransitionAtIndex(i_search);
 
         if (i_search == j) {
             return true;
         }
-        else if (i_search > j) {
-            // We only increase from here, but we may have pushed something onto the stack that is less than j, so we have to search it
-            continue;
-        }
-        else {
+        else if (i_search < j) {
+            // If i_search > j, we've missed the target
+            // and we can stop (since we only increase).
+            // But we may have pushed something onto the 
+            // stack that is less than j, so we have to search it
             for (int k = i_search + 1; k < stackCount; k++) {
                 if (dfs_searched.count(k) == 0) {
                     std::shared_ptr<MCTransition> tk_search = this->getTransitionAtIndex(k);
                     if (MCTransition::dependentTransitions(ti_search, tk_search))
-                        dfs_stack.push_back(k);
+                        dfs_stack.push(k);
                 }
             }
         }
