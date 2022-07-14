@@ -200,6 +200,12 @@ MCState::getFirstEnabledTransitionFromNextStack()
             this->nextTransitions[i];
         const bool transitionIsEnabled =
             this->transitionIsEnabled(nextTransitionForI);
+
+        // We never run transitions contained
+        // in the sleep set. Note that new state
+        // spaces can be initialized with non-empty
+        // sleep sets if previous states passed
+        // their state members on
         const bool transitionIsInSleepSet =
             sTop->threadIsInSleepSet(i);
         if (transitionIsEnabled && !transitionIsInSleepSet)
@@ -209,7 +215,7 @@ MCState::getFirstEnabledTransitionFromNextStack()
 }
 
 std::unordered_set<tid_t>
-MCState::getEnabledThreadsInState()
+MCState::computeEnabledThreads()
 {
     auto enabledThreadsInState = std::unordered_set<tid_t>();
     const auto numThreads = this->getNumProgramThreads();
@@ -596,29 +602,32 @@ MCState::growStateStackWithTransition(const std::shared_ptr<MCTransition> &trans
 {
     MC_ASSERT(this->stateStackTop >= 0);
 
-    // Insert the thread that ran the transition into the
-    // done set of the current top-most state
-    auto oldSTop = this->getStateStackTop();
-    auto threadRunningTransition = transition->getThreadId();
-    auto enabledThreadsInState = this->getEnabledThreadsInState();
+    const tid_t threadRunningTransition = transition->getThreadId();
+    const shared_ptr<MCStateStackItem> oldSTop = getStateStackTop();
+    const unordered_set<tid_t> enabledThreads = computeEnabledThreads();
 
     oldSTop->markBacktrackThreadSearched(threadRunningTransition);
-    oldSTop->markThreadsEnabledInState(enabledThreadsInState);
+    oldSTop->markThreadsEnabledInState(enabledThreads);
 
     this->growStateStack();
 
-    // Note this is not the same as oldSTop
-    // after growing the state stack
-    shared_ptr<MCStateStackItem> newSTop = this->getStateStackTop();
-    unordered_set<shared_ptr<MCTransition>> newSleepSet =
-        oldSTop->newFilteredSleepSet(transition);
+    // Note this is not the same as the old s_top after growing the state stack
+    const shared_ptr<MCStateStackItem> newSTop = getStateStackTop();
+    const unordered_set<tid_t> oldSleepSet = oldSTop->getSleepSet();
 
-    for (const shared_ptr<MCTransition> &t : newSleepSet)
-        newSTop->addTransitionToSleepSet(t);
+    // INVARIANT: For each thread `p`, if such a thread is contained
+    // in `oldSleepSet`, then next(oldSTop, p) MUST be the transition
+    // that would be contained in that sleep set.
+    for (const tid_t &tid : oldSleepSet) { 
+        const auto tidNext = getNextTransitionForThread(tid);
+        if (!MCTransition::dependentTransitions(tidNext, transition))
+            newSTop->addThreadToSleepSet(tid);
+    }
 
-    // `transition` is *about to* execute; it is not *yet*
-    // contained in the sleep set of `oldSTop`
-    oldSTop->addTransitionToSleepSet(transition);
+    // `threadRunningTransition` is *about to* execute.
+    // We don't want to add `threadRunningTransition` before
+    // computing `oldSleepSet` above
+    oldSTop->addThreadToSleepSet(threadRunningTransition);
 }
 
 void

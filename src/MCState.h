@@ -126,7 +126,7 @@ public:
     void setNextTransitionForThread(tid_t, MCSharedTransition*, void *);
 
     std::shared_ptr<MCTransition> getFirstEnabledTransitionFromNextStack();
-    std::unordered_set<tid_t> getEnabledThreadsInState();
+    std::unordered_set<tid_t> computeEnabledThreads();
 
     objid_t createNewThread();
     objid_t createNewThread(MCThreadShadow&);

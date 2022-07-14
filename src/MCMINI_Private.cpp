@@ -132,7 +132,7 @@ mc_scheduler_main()
         if (sTop->hasThreadsToBacktrackOn()) {
             // DPOR ensures that any thread in the backtrack set
             // is enabled in this state
-            tid_t backtrackThread = sTop->popFirstThreadToBacktrackOn();
+            tid_t backtrackThread = sTop->popThreadToBacktrackOn();
 
             programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
             std::shared_ptr<MCTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
