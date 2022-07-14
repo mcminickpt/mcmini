@@ -3,6 +3,7 @@
 
 #include "MCShared.h"
 #include "MCTransition.h"
+#include "misc/MCOptional.h"
 #include <unordered_set>
 #include <utility>
 
@@ -70,6 +71,11 @@ private:
      * run by that thread
      */
     std::unordered_set<tid_t> sleepSet;
+
+    /**
+     * @brief The thread 
+     */
+    MCOptional<tid_t> persistentSetRestartId = MCOptional<tid_t>::nil();
 
     /**
      * @brief A cache of threads that are enabled in this state
@@ -155,6 +161,19 @@ public:
      */
     void markThreadsEnabledInState(const std::unordered_set<tid_t> &threads);
 
+    /**
+     * @brief Marks the given thread as the one which, if
+     * DPOR decides to backtrack on this thread, it should add
+     * another (different) thread to the backtracking set
+     */
+    void markPersistentSetRestartId(tid_t);
+
+    
+    void backtrackWithNewPersistentSetId();
+
+
+    MCOptional<tid_t> getPersistentSetRestartId();
+    std::unordered_set<tid_t> getUnexecutedPersistentSetCandidates();
     std::unordered_set<tid_t> getEnabledThreadsInState();
     std::unordered_set<tid_t> getSleepSet();
 
@@ -164,6 +183,7 @@ public:
      */
     void addThreadToSleepSet(tid_t);
 
+    bool hasBacktrackedOnThread(tid_t) const;
 
     /**
      * @brief Whether or not there are any
@@ -185,6 +205,12 @@ public:
      * for this state
      */
     bool isBacktrackingOnThread(tid_t) const;
+
+    /**
+     * @brief 
+     * 
+     */
+    bool isPersistentSetRestartId(tid_t) const;
 
     /**
      * @brief Whether or not the given thread

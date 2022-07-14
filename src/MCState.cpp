@@ -494,7 +494,9 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
                                                 const std::unordered_set<tid_t> &enabledThreadsAtPreSi,
                                                 int i, int p)
 {
-    const bool shouldProcess = MCTransition::dependentTransitions(S_i, nextSP) && MCTransition::coenabledTransitions(S_i, nextSP) && !this->happensBeforeThread(i, p);
+    const bool shouldProcess = MCTransition::dependentTransitions(S_i, nextSP) && 
+        MCTransition::coenabledTransitions(S_i, nextSP) && 
+        !this->happensBeforeThread(i, p);
 
     // if there exists i such that ...
     if (shouldProcess) {
@@ -503,27 +505,43 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const std::shared_ptr<MCTransition
         for (tid_t q : enabledThreadsAtPreSi) {
             const bool inE = q == p || this->threadsRaceAfterDepth(i, q, p);
             const bool isInSleepSet = preSi->threadIsInSleepSet(q);
-
-            // If E != empty set
             if (inE && !isInSleepSet) E.insert(q);
         }
         
         if (E.empty()) {
-            // E is the empty set -> add every enabled thread at pre(S, i)
-            for (tid_t q : enabledThreadsAtPreSi)
-                if (!preSi->threadIsInSleepSet(q))
-                    preSi->addBacktrackingThreadIfUnsearched(q);
+            preSi->backtrackWithNewPersistentSetId();
         } else {
-            for (tid_t q : E) {
+            const MCOptional<tid_t> psRestartId = preSi->getPersistentSetRestartId();
+            
+            if (psRestartId.hasValue()) { 
+                const tid_t psRestartTid = psRestartId.unwrapped();
+                const bool containsResetStartId = E.count(psRestartTid) > 0;
+                    if (containsResetStartId) 
+                        E.erase(psRestartTid);
+            }
+
+            for (tid_t p : E) {
                 // If there is a thread in preSi that we
-                // are already backtracking AND which is contained
+                // are already backtracking on AND which is contained
                 // in the set E, chose that thread to backtrack
                 // on. This is equivalent to not having to do
                 // anything
-                if (preSi->isBacktrackingOnThread(q))
+                if (preSi->isBacktrackingOnThread(p))
+                    return shouldProcess;
+
+                // If we've already backtracked on this
+                // thread, choose that one since
+                // we've already done the work of searching it
+                // and DPOR says it suffices to pick *any* such `p`
+                if (preSi->hasBacktrackedOnThread(p))
                     return shouldProcess;
             }
-            preSi->addBacktrackingThreadIfUnsearched(*E.begin());
+
+            if (E.empty()) { 
+                preSi->backtrackWithNewPersistentSetId();
+            } else { 
+                preSi->addBacktrackingThreadIfUnsearched(*E.begin());    
+            }
         }
     }
     return shouldProcess;
@@ -614,7 +632,7 @@ MCState::growStateStackWithTransition(const std::shared_ptr<MCTransition> &trans
     // Note this is not the same as the old s_top after growing the state stack
     const shared_ptr<MCStateStackItem> newSTop = getStateStackTop();
     const unordered_set<tid_t> oldSleepSet = oldSTop->getSleepSet();
-
+    
     // INVARIANT: For each thread `p`, if such a thread is contained
     // in `oldSleepSet`, then next(oldSTop, p) MUST be the transition
     // that would be contained in that sleep set.

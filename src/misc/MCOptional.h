@@ -1,28 +1,33 @@
 #ifndef MCOPTIONAL_H
 #define MCOPTIONAL_H
 
-#include <cstdint>
 #include <stdexcept>
+#include <memory>
 
 template<typename Value>
 class MCOptional final {
     bool _hasValue;
-
-    union {
-        const Value value;
-
-
+    union { 
+        Value value;
     };
-
-    /* Construct the `nil` value */
+public:
     MCOptional() : _hasValue(false) {}
     MCOptional(Value value) : value(value), _hasValue(true) {}
 
-
-public:
-
     static MCOptional<Value>
     some(Value value)
+    {
+        return MCOptional<Value>(value);
+    }
+
+    static MCOptional<Value>
+    of(Value value)
+    {
+        return MCOptional<Value>(value);
+    }
+
+    static MCOptional<Value>
+    withValue(Value value)
     {
         return MCOptional<Value>(value);
     }
@@ -33,26 +38,11 @@ public:
         return MCOptional<Value>();
     }
 
-    /**
-     * Returns the value stored in the optional if
-     * such a value exists
-     *
-     * If the optional does not contain any underlying
-     * value, the results of accessing and using the
-     * value are undefined
-     *
-     */
     Value
-    unsafelyUnwrapped()
+    unwrapped() const
     {
-        return value;
-    }
-
-    Value
-    unwrapped()
-    {
-        if (!hasValue()) {
-            throw std::runtime_error("Attempted to unwrap the `nil` optional value");
+        if (!_hasValue) { 
+            throw std::runtime_error("Attempting to unwrap a `nil` optional value");
         }
         return value;
     }
@@ -67,6 +57,24 @@ public:
     isNil() const
     {
         return !_hasValue;
+    }
+
+    bool 
+    operator==(const Value &value) const 
+    {  
+        if (!hasValue()) return false;
+        return unwrapped() == value;
+    }
+
+    bool 
+    operator==(const MCOptional<Value> &optional) const 
+    {  
+        if (!hasValue() && !optional.hasValue()) 
+            return true;
+        else if (hasValue() && optional.hasValue())
+            return this == optional.unwrapped();
+        else 
+            return false;
     }
 };
 

@@ -5,10 +5,8 @@ using namespace std;
 void
 MCStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
 {
-    bool containedInDoneSet = this->doneSet.count(tid) > 0;
-    if (!containedInDoneSet) {
+    if (!hasBacktrackedOnThread(tid))
         this->backtrackSet.insert(tid);
-    }
 }
 
 void
@@ -24,10 +22,23 @@ MCStateStackItem::hasThreadsToBacktrackOn() const
     return !backtrackSet.empty();
 }
 
+bool 
+MCStateStackItem::hasBacktrackedOnThread(tid_t tid) const
+{
+    return this->doneSet.count(tid) > 0;
+}
+
 bool
 MCStateStackItem::isBacktrackingOnThread(tid_t tid) const
 {
     return this->backtrackSet.count(tid) > 0;
+}
+
+
+bool 
+MCStateStackItem::isPersistentSetRestartId(tid_t tid) const
+{
+    return this->persistentSetRestartId == tid;
 }
 
 bool
@@ -57,6 +68,16 @@ MCStateStackItem::markThreadsEnabledInState(const unordered_set<tid_t>& enabledT
         this->enabledThreads.insert(tid);
 }
 
+unordered_set<tid_t> 
+MCStateStackItem::getUnexecutedPersistentSetCandidates()
+{
+    unordered_set<tid_t> candidates;
+    for (const tid_t &tid : this->enabledThreads)
+        if (!this->hasBacktrackedOnThread(tid) && !this->threadIsInSleepSet(tid))
+            candidates.insert(tid);
+    return candidates;
+}
+
 unordered_set<tid_t>
 MCStateStackItem::getEnabledThreadsInState()
 {
@@ -69,8 +90,38 @@ MCStateStackItem::getSleepSet()
     return this->sleepSet;
 }
 
+MCOptional<tid_t> 
+MCStateStackItem::getPersistentSetRestartId()
+{
+    return this->persistentSetRestartId;
+}
+
 void
 MCStateStackItem::addThreadToSleepSet(tid_t tid)
 {
     this->sleepSet.insert(tid);
+}
+
+void 
+MCStateStackItem::markPersistentSetRestartId(tid_t tid)
+{
+    this->persistentSetRestartId = MCOptional<tid_t>::of(tid);
+}
+
+void 
+MCStateStackItem::backtrackWithNewPersistentSetId()
+{
+    unordered_set<tid_t> candidates = getUnexecutedPersistentSetCandidates();
+    if (!candidates.empty()) { 
+        // Pick a candidate arbitrarily
+        tid_t tid = *candidates.begin();
+        markPersistentSetRestartId(tid);
+        addBacktrackingThreadIfUnsearched(tid);
+    } else { 
+        // If there are no candidates, that means that all enabled
+        // threads that need to be searched (i.e. that are not in 
+        // the sleep set) have already been explored from this state 
+        // and thus we don't have to do anything
+        this->persistentSetRestartId = MCOptional<tid_t>::nil();
+    }
 }
