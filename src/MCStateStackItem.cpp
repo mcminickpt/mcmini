@@ -36,13 +36,13 @@ MCStateStackItem::threadIsInSleepSet(tid_t tid) const
     // If the thread runs a transition contained in the
     // sleep set, we know that it is the only such transition
     // in the sleep set. See the comment below
-    for (const shared_ptr<MCTransition>& t : this->sleepSet)
-        if (t->getThreadId() == tid) return true;
+    for (const tid_t &t: this->sleepSet)
+        if (t == tid) return true;
     return false;
 }
 
 tid_t
-MCStateStackItem::popFirstThreadToBacktrackOn()
+MCStateStackItem::popThreadToBacktrackOn()
 {
     MC_ASSERT(this->hasThreadsToBacktrackOn());
     tid_t randomThreadInBacktrackSet = *this->backtrackSet.begin();
@@ -63,22 +63,14 @@ MCStateStackItem::getEnabledThreadsInState()
     return this->enabledThreads;
 }
 
-void
-MCStateStackItem::addTransitionToSleepSet(shared_ptr<MCTransition> transition)
+unordered_set<tid_t>
+MCStateStackItem::getSleepSet()
 {
-    this->sleepSet.insert(transition);
+    return this->sleepSet;
 }
 
-unordered_set<shared_ptr<MCTransition>>
-MCStateStackItem::newFilteredSleepSet(shared_ptr<MCTransition> transition)
+void
+MCStateStackItem::addThreadToSleepSet(tid_t tid)
 {
-    // INVARIANT: We note that a thread can only appear
-    // once ever in any sleep set since any two transitions
-    // executed by the same thread are dependent
-    unordered_set<shared_ptr<MCTransition>> newSleepSet;
-    for (const shared_ptr<MCTransition> &t : this->sleepSet) {
-        if (!MCTransition::dependentTransitions(t, transition))
-            newSleepSet.insert(t);
-    }
-    return newSleepSet;
+    this->sleepSet.insert(tid);
 }
