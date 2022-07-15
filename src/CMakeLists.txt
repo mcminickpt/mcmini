@@ -1,12 +1,7 @@
-cmake_minimum_required(VERSION 2.8)
-project(MCMINI C CXX)
-message("***** MCMINI MODEL CHECKER *****")
-
-set(CMAKE_GENERATOR "Unix Makefiles")
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 11)
 
 include_directories(.)
+
+message("${BUILD_TESTS} is on!jj")
 set(MAIN_FUNCTION main.cpp)
 set(MC_C_FILES mc_shared_cv.c mc_shared_cv.h
         transitions/wrappers/MCSharedLibraryWrappers.c transitions/wrappers/MCSharedLibraryWrappers.h)
