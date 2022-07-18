@@ -22,25 +22,42 @@
 # executable by CTest
 function(add_gtest_suite TESTNAME)
     add_executable(${TESTNAME} ${ARGN})
-    target_include_directories(${TESTNAME} ${MCMINI_GOOGLE_TEST_INCLUDE_DIR})
     target_link_libraries(${TESTNAME} gtest gmock gtest_main)
+    target_include_directories(${TESTNAME} ${MCMINI_GOOGLE_TEST_INCLUDE_DIR})
+    set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
+
     gtest_discover_tests(${TESTNAME}
         WORKING_DIRECTORY ${PROJECT_DIR}
         PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
     )
-    set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
-    
+
     if (VERBOSE_TESTING) 
         message(STATUS "GTest test suite ${TESTNAME} added")
     endif()
 endfunction()
 
-mark_as_advanced(
-    BUILD_GMOCK BUILD_GTEST BUILD_SHARED_LIBS
-    gmock_build_tests gtest_build_samples gtest_build_tests
-    gtest_disable_pthreads gtest_force_shared_crt gtest_hide_internal_symbols
-)
+#
+#
+#
+function(mcmini_test_against_executable TESTNAME EXECUTABLE)
 
-function(mcmini_add_executable_test TESTNAME EXECUTABLE)
+endfunction()
 
+#
+#
+#
+function(add_executable_from_source SOURCE SUFFIX LIBRARIES)
+    set(EXECUTABLE_NAME "")
+
+    string(TOUPPER ${SUFFIX} ${SUFFIX})
+    if (SUFFIX STREQUAL "C")
+        string(REGEX MATCH "*.c" "EXECUTABLE_NAME" ${SOURCE})
+    elseif(SUFFIX STREQUAL "CPP")
+        string(REGEX MATCH "*.cpp" "EXECUTABLE_NAME" ${SOURCE})
+    else()
+        message(FATAL_ERROR "McMini currently only supports *.c and *.cpp exectuables")
+    endif()
+
+    add_executable("${EXECUTABLE_NAME}" "${SOURCE}" "${ARGN}")
+    target_link_libraries("${EXECUTABLE_NAME} ${LIBRARIES}")
 endfunction()
