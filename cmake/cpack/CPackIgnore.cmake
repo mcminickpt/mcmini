@@ -1,0 +1,1 @@
+# FIXME: Include processing of the .cpackignore file

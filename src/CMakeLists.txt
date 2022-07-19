@@ -1,7 +1,6 @@
 
 include_directories(.)
 
-message("${BUILD_TESTS} is on!jj")
 set(MAIN_FUNCTION main.cpp)
 set(MC_C_FILES mc_shared_cv.c mc_shared_cv.h
         transitions/wrappers/MCSharedLibraryWrappers.c transitions/wrappers/MCSharedLibraryWrappers.h)
