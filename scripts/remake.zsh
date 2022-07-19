@@ -1,3 +1,6 @@
 #!/bin/zsh
-./clean.zsh
-./build.zsh
+
+/home/parallels/research/mcmini/scripts/clean.zsh
+/home/parallels/research/mcmini/scripts/build.zsh
+
+

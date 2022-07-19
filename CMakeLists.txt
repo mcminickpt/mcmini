@@ -10,9 +10,9 @@ set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 set(MCMINI_DIR ${CMAKE_SOURCE_DIR})
-
 set(MCMINI_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include)
 set(MCMINI_CMAKE_MODULE_DIR ${CMAKE_SOURCE_DIR}/cmake)
+set(MCMINI_SCRIPTS_DIR ${CMAKE_SOURCE_DIR}/scripts)
 set(MCMINI_DOCS_DIR ${CMAKE_SOURCE_DIR}/docs)
 set(MCMINI_GOOGLE_TEST_DIR ${CMAKE_SOURCE_DIR}/external/googletest)
 set(MCMINI_GOOGLE_TEST_INCLUDE_DIR ${MCMINI_GOOGLE_TEST_DIR}/include)
@@ -24,6 +24,7 @@ list(APPEND CMAKE_MODULE_PATH "${MCMINI_CMAKE_MODULE_DIR}/cpack")
 include(GoogleTest)
 include(McMiniTest)
 include(GitSubmodule)
+include(ConfigureScripts)
 
 include_directories(BEFORE ${MCMINI_INCLUDE_DIR})
 
@@ -32,7 +33,6 @@ include_directories(BEFORE ${MCMINI_INCLUDE_DIR})
 option(VERBOSE_TESTING OFF)
 option(BUILD_TESTS OFF)
 enable_testing()
-
 
 add_subdirectory(src)
 add_subdirectory(external)
