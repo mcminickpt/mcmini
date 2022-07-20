@@ -69,6 +69,12 @@ MCStateStackItem::getSleepSet() const
     return this->sleepSet;
 }
 
+MCClockVector 
+MCStateStackItem::getClockVector() const
+{
+    return this->clockVector;
+}
+
 void
 MCStateStackItem::addThreadToSleepSet(tid_t tid)
 {

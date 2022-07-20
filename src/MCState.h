@@ -12,9 +12,9 @@ typedef MCTransition*(*MCSharedMemoryHandler)(const MCSharedTransition*, void*, 
 #include "MCSharedTransition.h"
 #include "MCStateConfiguration.h"
 #include "MCStateStackItem.h"
+#include "MCClockVector.hpp"
 #include "objects/MCThread.h"
 #include <typeinfo>
-#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -38,13 +38,24 @@ struct TypesEqual {
 
 class MCState {
 private:
-    MCObjectStore objectStorage;
 
     /**
-     * The maximum number of transitions that any given thread is allowed to execute
+     * @brief 
+     * 
+     */
+    MCObjectStore objectStorage;
+
+
+    /**
+     * @brief 
+     * 
      */
     const MCStateConfiguration configuration;
 
+    /**
+     * @brief 
+     * 
+     */
     tid_t nextThreadId = 0;
     std::shared_ptr<MCTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
 
@@ -91,6 +102,7 @@ private:
     void growStateStackWithTransition(const MCTransition&);
     void growTransitionStackRunning(const MCTransition&);
     void virtuallyRunTransition(const MCTransition&);
+    MCClockVector transitionStackMaxClockVector(const MCTransition&);
 
     /**
      * Inserts a backtracking point given a context of insertion (where in
