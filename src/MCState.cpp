@@ -538,6 +538,10 @@ MCState::virtuallyRunTransition(const MCTransition &transition)
 void
 MCState::simulateRunningTransition(const MCTransition &transition, MCSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
 {
+
+    // NOTE: You must grow the state stack before
+    // the transition stack for clock vector updates
+    // to occur properly
     this->growStateStackWithTransition(transition);
     this->growTransitionStackRunning(transition);
     this->virtuallyRunTransition(transition);
@@ -602,10 +606,9 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     MCStateStackItem &oldSTop = getStateStackTop();
     const tid_t threadRunningTransition = transition.getThreadId();
     const unordered_set<tid_t> enabledThreads = computeEnabledThreads();
+    const MCClockVector cv = transitionStackMaxClockVector(transition);
 
-    oldSTop.markBacktrackThreadSearched(threadRunningTransition);
     oldSTop.markThreadsEnabledInState(enabledThreads);
-
     this->growStateStack();
 
     // Note this is not the same as the old s_top after growing the state stack
@@ -625,6 +628,34 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     // We don't want to add `threadRunningTransition` before
     // computing `oldSleepSet` above
     oldSTop.addThreadToSleepSet(threadRunningTransition);
+    oldSTop.markBacktrackThreadSearched(threadRunningTransition);
+
+    // Add a clock vector to the new state stack
+    const MCClockVector cv2 = cv;
+
+}
+
+MCClockVector 
+MCState::transitionStackMaxClockVector(const MCTransition &transition)
+{
+    MCClockVector cv = MCClockVector::newEmptyClockVector();
+
+    // The pseudocode stores clock vectors in the transition
+    // stack, but this data can be stored equivalently in the
+    // stack stack by noting that the state stack is always
+    // one larger than the transition stack (hence tStackIndex)
+    for (int i = 1; i < this->stateStackTop; i++) { 
+        const int tStackIndex = i - 1;
+        const MCTransition &t = getTransitionAtIndex(tStackIndex);
+
+        if (MCTransition::dependentTransitions(t, transition)) { 
+            const MCStateStackItem &s = getStateItemAtIndex(i);
+            const MCClockVector clock_i = s.getClockVector();
+            cv = MCClockVector::max(clock_i, cv);
+        }
+    }
+
+    return cv;
 }
 
 void
@@ -638,7 +669,7 @@ MCState::reset()
 {
     // NOTE:!!!! DO NOT clear out the transition stack's contents
     // in this method. If you eventually decide to, remember that
-    // backtrackin now relies on the fact that the transition stack
+    // backtracking now relies on the fact that the transition stack
     // remains unchanged to resimulate the simulation
     // back to the current state
     this->stateStackTop = -1;

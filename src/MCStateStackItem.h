@@ -3,8 +3,10 @@
 
 #include "MCShared.h"
 #include "MCTransition.h"
+#include "MCClockVector.hpp"
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 /**
  * @brief Associates information relevant to
@@ -97,6 +99,12 @@ private:
      */
     std::unordered_set<tid_t> enabledThreads;
 
+    /**
+     * @brief 
+     * 
+     */
+    MCClockVector clockVector;
+
 public:
 
       /**
@@ -155,6 +163,7 @@ public:
      */
     void markThreadsEnabledInState(const std::unordered_set<tid_t> &threads);
 
+    MCClockVector getClockVector() const;
     std::unordered_set<tid_t> getEnabledThreadsInState() const;
     std::unordered_set<tid_t> getSleepSet() const;
 
