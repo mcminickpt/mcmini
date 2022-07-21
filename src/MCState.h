@@ -13,6 +13,7 @@ typedef MCTransition*(*MCSharedMemoryHandler)(const MCSharedTransition*, void*, 
 #include "MCStateConfiguration.h"
 #include "MCStateStackItem.h"
 #include "MCClockVector.hpp"
+#include "MCThreadData.hpp"
 #include "objects/MCThread.h"
 #include <typeinfo>
 #include <unordered_map>
@@ -60,9 +61,10 @@ private:
     std::shared_ptr<MCTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
-     * Maps, for each thread, data associated with the given thread
+     * @brief 
+     * 
      */
-    uint32_t threadDepthData[MAX_TOTAL_THREADS_IN_PROGRAM];
+    MCThreadData threadData[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
      * A pointer to the top-most element in the transition stack
@@ -116,8 +118,11 @@ private:
       int i, int p);
 
     void incrementThreadTransitionCountIfNecessary(const MCTransition&);
-    void decrementThreadTransitionCountIfNecessary(const MCTransition&);
+    void updateLatestExecutionPointForThread(tid_t);
     uint32_t totalThreadExecutionDepth() const;
+    
+    MCThreadData &getThreadDataForThread(tid_t tid);
+    const MCThreadData &getThreadDataForThread(tid_t tid) const;
 
 public:
 
@@ -190,10 +195,7 @@ public:
     // Restarting
     void start();
     void reset();
-
     void reflectStateAtTransitionDepth(uint32_t);
-
-    void moveToPreviousState();
 
     // TODO: De-couple priting from the state stack + transitions somehow
     /* Printing */

@@ -18,6 +18,8 @@ set(MC_CPP_FILES
         transitions/wrappers/MCThreadTransitionWrappers.cpp
         transitions/wrappers/MCThreadTransitionWrappers.h
         MCStateStackItem.cpp MCStateStackItem.h
+        MCThreadData.cpp MCThreadData.hpp
+        MCClockVector.cpp MCClockVector.hpp
         transitions/threads/MCThreadCreate.cpp transitions/threads/MCThreadCreate.h
         transitions/threads/MCThreadTransition.cpp transitions/threads/MCThreadTransition.h
         transitions/threads/MCThreadFinish.cpp transitions/threads/MCThreadFinish.h

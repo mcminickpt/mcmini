@@ -2,11 +2,12 @@
 #include <algorithm>
 using namespace std;
 
-void
+void 
 MCStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
 {
     bool containedInDoneSet = this->doneSet.count(tid) > 0;
-    if (!containedInDoneSet) {
+    if (!containedInDoneSet)
+    {
         this->backtrackSet.insert(tid);
     }
 }
@@ -24,24 +25,25 @@ MCStateStackItem::hasThreadsToBacktrackOn() const
     return !backtrackSet.empty();
 }
 
-bool
+bool 
 MCStateStackItem::isBacktrackingOnThread(tid_t tid) const
 {
     return this->backtrackSet.count(tid) > 0;
 }
 
-bool
+bool 
 MCStateStackItem::threadIsInSleepSet(tid_t tid) const
 {
     // If the thread runs a transition contained in the
     // sleep set, we know that it is the only such transition
     // in the sleep set. See the comment below
-    for (const tid_t &t: this->sleepSet)
-        if (t == tid) return true;
+    for (const tid_t &t : this->sleepSet)
+        if (t == tid)
+            return true;
     return false;
 }
 
-tid_t
+tid_t 
 MCStateStackItem::popThreadToBacktrackOn()
 {
     MC_ASSERT(this->hasThreadsToBacktrackOn());
@@ -50,8 +52,8 @@ MCStateStackItem::popThreadToBacktrackOn()
     return randomThreadInBacktrackSet;
 }
 
-void
-MCStateStackItem::markThreadsEnabledInState(const unordered_set<tid_t>& enabledThrds)
+void 
+MCStateStackItem::markThreadsEnabledInState(const unordered_set<tid_t> &enabledThrds)
 {
     for (const tid_t tid : enabledThrds)
         this->enabledThreads.insert(tid);
@@ -75,7 +77,13 @@ MCStateStackItem::getClockVector() const
     return this->clockVector;
 }
 
-void
+void 
+MCStateStackItem::setAssociatedClockVector(const MCClockVector &cv)
+{
+    this->clockVector = cv;
+}
+
+void 
 MCStateStackItem::addThreadToSleepSet(tid_t tid)
 {
     this->sleepSet.insert(tid);

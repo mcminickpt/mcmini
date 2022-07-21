@@ -18,10 +18,11 @@ MCState::transitionIsEnabled(const MCTransition& transition)
     // run for more than their fair share of transitions. Note that
     // in the case that the thread is in a critical section for
     // GOAL() statements this is explicitly ignored
-    const tid_t threadRunningTransition = transition.getThreadId();
-    const unsigned numExecutionsOfTransitionInState = this->threadDepthData[threadRunningTransition];
-    const bool threadEnabledAccordingToConfig = numExecutionsOfTransitionInState < this->configuration.maxThreadExecutionDepth;
-    const bool threadCanRunPastThreadDepthLimit = this->getThreadWithId(threadRunningTransition)->isInThreadCriticalSection;
+    const tid_t tid = transition.getThreadId();
+    const MCThreadData &threadData = getThreadDataForThread(tid);
+    const unsigned numExecutions = threadData.getExecutionDepth();
+    const bool threadEnabledAccordingToConfig = numExecutions < this->configuration.maxThreadExecutionDepth;
+    const bool threadCanRunPastThreadDepthLimit = this->getThreadWithId(tid)->isInThreadCriticalSection;
     const bool threadNotRestrictedByThreadExecutionDepth = threadEnabledAccordingToConfig || threadCanRunPastThreadDepthLimit;
     return threadNotRestrictedByThreadExecutionDepth && transition.enabledInState(this);
 }
@@ -529,22 +530,31 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const MCTransition &S_i,
 void
 MCState::virtuallyRunTransition(const MCTransition &transition)
 {
+    const tid_t tid = transition.getThreadId();
     std::shared_ptr<MCTransition> dynamicCopy = transition.dynamicCopyInState(this);
     dynamicCopy->applyToState(this);
-    // Do other state updates here
+
     this->incrementThreadTransitionCountIfNecessary(transition);
+    this->updateLatestExecutionPointForThread(tid);
+}
+
+void 
+MCState::updateLatestExecutionPointForThread(tid_t tid)
+{
+  const uint32_t latestExecutionPoint = this->transitionStackTop;
+  this->getThreadDataForThread(tid)
+    .setLatestExecutionPoint(latestExecutionPoint);
 }
 
 void
 MCState::simulateRunningTransition(const MCTransition &transition, MCSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
 {
-
     // NOTE: You must grow the state stack before
     // the transition stack for clock vector updates
     // to occur properly
+    this->virtuallyRunTransition(transition);
     this->growStateStackWithTransition(transition);
     this->growTransitionStackRunning(transition);
-    this->virtuallyRunTransition(transition);
 
     tid_t tid = transition.getThreadId();
     this->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
@@ -554,17 +564,9 @@ void
 MCState::incrementThreadTransitionCountIfNecessary(const MCTransition &transition)
 {
     if (transition.countsAgainstThreadExecutionDepth()) {
-        auto threadRunningTransition = transition.getThreadId();
-        this->threadDepthData[threadRunningTransition]++;
-    }
-}
-
-void
-MCState::decrementThreadTransitionCountIfNecessary(const MCTransition &transition)
-{
-    if (transition.countsAgainstThreadExecutionDepth()) {
-        auto threadRunningTransition = transition.getThreadId();
-        this->threadDepthData[threadRunningTransition]--;
+        const tid_t tid = transition.getThreadId();
+        MCThreadData &threadData = getThreadDataForThread(tid);
+        threadData.incrementExecutionDepth();
     }
 }
 
@@ -575,10 +577,25 @@ MCState::totalThreadExecutionDepth() const
      * The number of transitions total into the search we find ourselves -> we don't
      * backtrack in the case that we are over the total depth allowed by the configuration
     */
-    uint32_t totalThreadTransitionDepth = static_cast<uint32_t>(0);
-    for (tid_t i = 0; i < this->nextThreadId; i++)
-        totalThreadTransitionDepth += this->threadDepthData[i];
+    uint32_t totalThreadTransitionDepth = 0;
+    for (tid_t i = 0; i < this->nextThreadId; i++) { 
+        const uint32_t depth = getThreadDataForThread(i).getExecutionDepth();
+        totalThreadTransitionDepth += depth;
+    }
+        
     return totalThreadTransitionDepth;
+}
+
+MCThreadData&
+MCState::getThreadDataForThread(tid_t tid)
+{
+    return this->threadData[tid];
+}
+
+const MCThreadData&
+MCState::getThreadDataForThread(tid_t tid) const
+{
+    return this->threadData[tid];
 }
 
 void
@@ -606,12 +623,15 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     MCStateStackItem &oldSTop = getStateStackTop();
     const tid_t threadRunningTransition = transition.getThreadId();
     const unordered_set<tid_t> enabledThreads = computeEnabledThreads();
-    const MCClockVector cv = transitionStackMaxClockVector(transition);
+    MCThreadData &threadData = getThreadDataForThread(threadRunningTransition);
 
-    oldSTop.markThreadsEnabledInState(enabledThreads);
+    // NOTE: Compute the clock vector BEFORE growing the state
+    // stack. The clock vectors in the state stack *prior to* expansion
+    // are searched 
+    MCClockVector cv = transitionStackMaxClockVector(transition);
+
     this->growStateStack();
 
-    // Note this is not the same as the old s_top after growing the state stack
     MCStateStackItem &newSTop = getStateStackTop();
     const unordered_set<tid_t> oldSleepSet = oldSTop.getSleepSet();
 
@@ -627,12 +647,18 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     // `threadRunningTransition` is *about to* execute.
     // We don't want to add `threadRunningTransition` before
     // computing `oldSleepSet` above
+    oldSTop.markThreadsEnabledInState(enabledThreads);
     oldSTop.addThreadToSleepSet(threadRunningTransition);
     oldSTop.markBacktrackThreadSearched(threadRunningTransition);
 
-    // Add a clock vector to the new state stack
-    const MCClockVector cv2 = cv;
-
+    // The DPOR variant with clock vectors points to
+    // the thread at the top of the sequence after running 
+    // the transition (S' = S.t). Since state stack growth occurs
+    // *before* the transition stack grows, the index
+    // will be what the *current* transition stack size is
+    cv[threadRunningTransition] = getTransitionStackSize();
+    newSTop.setAssociatedClockVector(cv);
+    threadData.setClockVector(cv);
 }
 
 MCClockVector 
@@ -689,17 +715,18 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
      */
     const auto numThreadsToProcess = this->getNumProgramThreads();
 
-    /* The transition stack at this point is not touched */
+    /* The transition stack at this point is untouched */
 
-    /* First, reset the state of all of the objects */
+    // 1. Reset the state of all of the objects
     this->objectStorage.resetObjectsToInitialStateInStore();
 
-    /* Zero the thread depth counts */
-    memset(this->threadDepthData, 0, sizeof(this->threadDepthData));
+    // Zero the thread depth counts
+    for (tid_t tid = 0; tid < this->nextThreadId; tid++)
+        getThreadDataForThread(tid).resetExecutionDepth();
 
     /*
      * Then, replay the transitions in the transition stack forward in time
-     * up until the specified depth
+     * up until the specified depth. Note we include the _depth_ value itself
      */
     /* Note we include the _depth_ value itself */
     for (uint32_t i = 0u; i <= depth; i ++) {
