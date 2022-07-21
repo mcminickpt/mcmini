@@ -104,7 +104,10 @@ private:
     void growStateStackWithTransition(const MCTransition&);
     void growTransitionStackRunning(const MCTransition&);
     void virtuallyRunTransition(const MCTransition&);
+    void virtuallyApplyTransition(const MCTransition&);
+    void virtuallyRerunTransitionAtIndex(int);
     MCClockVector transitionStackMaxClockVector(const MCTransition&);
+    MCClockVector clockVectorForTransitionAtIndex(int i) const;
 
     /**
      * Inserts a backtracking point given a context of insertion (where in
@@ -118,7 +121,7 @@ private:
       int i, int p);
 
     void incrementThreadTransitionCountIfNecessary(const MCTransition&);
-    void updateLatestExecutionPointForThread(tid_t);
+    void updateLatestExecutionPointForThread(tid_t, uint32_t);
     uint32_t totalThreadExecutionDepth() const;
     
     MCThreadData &getThreadDataForThread(tid_t tid);

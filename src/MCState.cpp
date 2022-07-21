@@ -527,23 +527,41 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const MCTransition &S_i,
     return shouldProcess;
 }
 
+void 
+MCState::virtuallyApplyTransition(const MCTransition &transition)
+{
+    std::shared_ptr< MCTransition> dynamicCopy = transition.dynamicCopyInState(this);
+    dynamicCopy->applyToState(this);
+}
+
 void
 MCState::virtuallyRunTransition(const MCTransition &transition)
 {
     const tid_t tid = transition.getThreadId();
-    std::shared_ptr<MCTransition> dynamicCopy = transition.dynamicCopyInState(this);
-    dynamicCopy->applyToState(this);
-
+    this->virtuallyApplyTransition(transition);
     this->incrementThreadTransitionCountIfNecessary(transition);
-    this->updateLatestExecutionPointForThread(tid);
+    this->updateLatestExecutionPointForThread(tid, this->transitionStackTop);
 }
 
 void 
-MCState::updateLatestExecutionPointForThread(tid_t tid)
+MCState::virtuallyRerunTransitionAtIndex(int i)
 {
-  const uint32_t latestExecutionPoint = this->transitionStackTop;
+    const MCTransition &transition = this->getTransitionAtIndex(i);
+    const tid_t tid = transition.getThreadId();
+    this->virtuallyApplyTransition(transition);
+    this->incrementThreadTransitionCountIfNecessary(transition);
+    this->updateLatestExecutionPointForThread(tid, i);
+
+    // The clock vector for transition `i`
+    MCClockVector cv = clockVectorForTransitionAtIndex(i);
+    this->getThreadDataForThread(tid).setClockVector(cv);
+}
+
+void 
+MCState::updateLatestExecutionPointForThread(tid_t tid, uint32_t newLatestExecution)
+{
   this->getThreadDataForThread(tid)
-    .setLatestExecutionPoint(latestExecutionPoint);
+    .setLatestExecutionPoint(newLatestExecution);
 }
 
 void
@@ -680,8 +698,13 @@ MCState::transitionStackMaxClockVector(const MCTransition &transition)
             cv = MCClockVector::max(clock_i, cv);
         }
     }
-
     return cv;
+}
+
+MCClockVector 
+MCState::clockVectorForTransitionAtIndex(int i) const
+{
+    return this->getStateItemAtIndex(i).getClockVector();
 }
 
 void
@@ -728,13 +751,8 @@ MCState::reflectStateAtTransitionDepth(uint32_t depth)
      * Then, replay the transitions in the transition stack forward in time
      * up until the specified depth. Note we include the _depth_ value itself
      */
-    /* Note we include the _depth_ value itself */
-    for (uint32_t i = 0u; i <= depth; i ++) {
-        const MCTransition &transition = this->getTransitionAtIndex(i);
-        const shared_ptr<MCTransition> dynamicCpy = transition.dynamicCopyInState(this);
-        dynamicCpy->applyToState(this);
-        this->incrementThreadTransitionCountIfNecessary(*dynamicCpy);
-    }
+    for (uint32_t i = 0u; i <= depth; i ++)
+        this->virtuallyRerunTransitionAtIndex(i);
 
     {
         /*
