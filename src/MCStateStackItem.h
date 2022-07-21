@@ -107,9 +107,12 @@ private:
 
 public:
 
+    MCStateStackItem(const MCClockVector &cv) : clockVector(cv) {}
+    MCStateStackItem() : MCStateStackItem(MCClockVector::newEmptyClockVector()) {}
+
       /**
      * @brief Puts the given thread into the
-     * backtrack for the state represented
+     * backtrack set for the state represented
      * by this item
      * 
      * If the thread is already contained in
@@ -163,6 +166,7 @@ public:
      */
     void markThreadsEnabledInState(const std::unordered_set<tid_t> &threads);
 
+    void setAssociatedClockVector(const MCClockVector &cv);
     MCClockVector getClockVector() const;
     std::unordered_set<tid_t> getEnabledThreadsInState() const;
     std::unordered_set<tid_t> getSleepSet() const;

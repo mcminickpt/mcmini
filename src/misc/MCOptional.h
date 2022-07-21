@@ -10,16 +10,19 @@ class MCOptional final {
 
     union {
         const Value value;
-
-
     };
 
     /* Construct the `nil` value */
     MCOptional() : _hasValue(false) {}
     MCOptional(Value value) : value(value), _hasValue(true) {}
 
-
 public:
+
+    Value 
+    value_or(Value defaultValue) 
+    { 
+        return _hasValue ? value : defaultValue;
+    }
 
     static MCOptional<Value>
     some(Value value)
