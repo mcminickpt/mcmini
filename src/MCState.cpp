@@ -306,44 +306,9 @@ bool
 MCState::happensBefore(int i, int j) const
 {
     MC_ASSERT(i >= 0 && j >= 0);
-    if (i > j) return false;
-    {
-        const MCTransition &t_i = this->getTransitionAtIndex(i);
-        const MCTransition &t_j = this->getTransitionAtIndex(j);
-        if (MCTransition::dependentTransitions(t_i, t_j))
-            return true;
-    }
-
-    const uint64_t stackCount = this->getTransitionStackSize();
-    auto dfs_stack = std::vector<int>();
-    auto dfs_searched = std::unordered_set<tid_t>();
-    dfs_stack.push_back(i);
-
-    while (!dfs_stack.empty()) {
-        int i_search = dfs_stack.back(); dfs_stack.pop_back();
-        const MCTransition &ti_search = this->getTransitionAtIndex(i_search);
-
-        if (i_search == j) {
-            return true;
-        }
-        else if (i_search > j) {
-            // We only increase from here, but we may have pushed something onto the stack that is less than j, so we have to search it
-            continue;
-        }
-        else {
-            for (int k = i_search + 1; k < stackCount; k++) {
-                if (dfs_searched.count(k) == 0) {
-                    const MCTransition &tk_search = this->getTransitionAtIndex(k);
-                    if (MCTransition::dependentTransitions(ti_search, tk_search))
-                        dfs_stack.push_back(k);
-                }
-            }
-        }
-
-        /* We've looked at i_search */
-        dfs_searched.insert(i_search);
-    }
-    return false;
+    const tid_t tid = getThreadRunningTransitionAtIndex(i);
+    const MCClockVector cv = clockVectorForTransitionAtIndex(j);
+    return i <= cv.valueForThread(tid).value_or(0);
 }
 
 bool
@@ -355,18 +320,9 @@ MCState::happensBeforeThread(int i, const std::shared_ptr<MCThread>& p) const
 bool
 MCState::happensBeforeThread(int i, tid_t p) const
 {
-    tid_t tidI = this->getThreadRunningTransitionAtIndex(i);
-    if (p == tidI) return true;
-
-    const auto tStackSize = this->getTransitionStackSize();
-    for (auto k = i + 1; k < tStackSize; k++) {
-        const MCTransition &S_k = this->getTransitionAtIndex(k);
-
-        // Check threads_equal first (much less costly than happens before)
-        if (p == S_k.getThreadId() && happensBefore(i, k))
-            return true;
-    }
-    return false;
+    const tid_t tid = getThreadRunningTransitionAtIndex(i);
+    const MCClockVector cv = getThreadDataForThread(p).getClockVector();
+    return i <= cv.valueForThread(tid).value_or(0);
 }
 
 bool
@@ -567,12 +523,12 @@ MCState::updateLatestExecutionPointForThread(tid_t tid, uint32_t newLatestExecut
 void
 MCState::simulateRunningTransition(const MCTransition &transition, MCSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
 {
-    // NOTE: You must grow the state stack before
-    // the transition stack for clock vector updates
+    // NOTE: You must grow the transition stack before
+    // the state stack for clock vector updates
     // to occur properly
-    this->virtuallyRunTransition(transition);
-    this->growStateStackWithTransition(transition);
     this->growTransitionStackRunning(transition);
+    this->growStateStackWithTransition(transition);
+    this->virtuallyRunTransition(transition);
 
     tid_t tid = transition.getThreadId();
     this->setNextTransitionForThread(tid, shmTransitionTypeInfo, shmTransitionData);
@@ -672,9 +628,9 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     // The DPOR variant with clock vectors points to
     // the thread at the top of the sequence after running 
     // the transition (S' = S.t). Since state stack growth occurs
-    // *before* the transition stack grows, the index
-    // will be what the *current* transition stack size is
-    cv[threadRunningTransition] = getTransitionStackSize();
+    // *after* the transition stack grows, the index
+    // will be what the new current top of the transition stack points to
+    cv[threadRunningTransition] = this->transitionStackTop;
     newSTop.setAssociatedClockVector(cv);
     threadData.setClockVector(cv);
 }
@@ -688,7 +644,7 @@ MCState::transitionStackMaxClockVector(const MCTransition &transition)
     // stack, but this data can be stored equivalently in the
     // stack stack by noting that the state stack is always
     // one larger than the transition stack (hence tStackIndex)
-    for (int i = 1; i < this->stateStackTop; i++) { 
+    for (int i = 1; i <= this->stateStackTop; i++) { 
         const int tStackIndex = i - 1;
         const MCTransition &t = getTransitionAtIndex(tStackIndex);
 
