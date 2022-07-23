@@ -1,4 +1,3 @@
-
 include_directories(.)
 
 set(MAIN_FUNCTION main.cpp)
@@ -62,14 +61,9 @@ set(MC_CPP_FILES
         transitions/barrier/MCBarrierEnqueue.h
         transitions/misc/MCGlobalVariableRead.cpp
         transitions/misc/MCGlobalVariableWrite.cpp
-        transitions/threads/MCThreadReachGoal.cpp
         transitions/wrappers/MCGlobalVariableWrappers.cpp
         MCCommon.c MCCommon.h
-        MCEnv.h transitions/threads/MCThreadEnterGoalCriticalSection.cpp 
-				transitions/threads/MCThreadEnterGoalCriticalSection.h
-				transitions/threads/MCThreadExitGoalCriticalSection.cpp 
-				transitions/threads/MCThreadExitGoalCriticalSection.h
-        MCMINI.h)
+        MCEnv.h MCMINI.h)
 
 add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
 

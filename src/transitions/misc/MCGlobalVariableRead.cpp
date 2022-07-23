@@ -18,7 +18,7 @@ MCReadGlobalRead(const MCSharedTransition *shmTransition, void *shmStart, MCStat
 }
 
 std::shared_ptr<MCTransition>
-MCGlobalVariableRead::staticCopy() {
+MCGlobalVariableRead::staticCopy() const {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto globalCpy = std::static_pointer_cast<MCGlobalVariable, MCVisibleObject>(this->global->copy());
@@ -26,22 +26,22 @@ MCGlobalVariableRead::staticCopy() {
 }
 
 std::shared_ptr<MCTransition>
-MCGlobalVariableRead::dynamicCopyInState(const MCState *state) {
+MCGlobalVariableRead::dynamicCopyInState(const MCState *state) const {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     auto globalInState = state->getObjectWithId<MCGlobalVariable>(global->getObjectId());
     return std::make_shared<MCGlobalVariableRead>(threadInState, globalInState);
 }
 
 bool
-MCGlobalVariableRead::coenabledWith(std::shared_ptr<MCTransition>)
+MCGlobalVariableRead::coenabledWith(const MCTransition*) const
 {
     return true; /* Co-enabled with anything else */
 }
 
 bool
-MCGlobalVariableRead::dependentWith(std::shared_ptr<MCTransition> transition)
+MCGlobalVariableRead::dependentWith(const MCTransition *transition) const
 {
-    auto maybeGlobalVariableWrite = std::dynamic_pointer_cast<MCGlobalVariableWrite, MCTransition>(transition);
+    const MCGlobalVariableWrite *maybeGlobalVariableWrite = dynamic_cast<const MCGlobalVariableWrite*>(transition);
     if (maybeGlobalVariableWrite != nullptr) {
         return *this->global == *maybeGlobalVariableWrite->global;
     }
@@ -49,9 +49,9 @@ MCGlobalVariableRead::dependentWith(std::shared_ptr<MCTransition> transition)
 }
 
 bool
-MCGlobalVariableRead::isRacingWith(std::shared_ptr<MCTransition> transition)
+MCGlobalVariableRead::isRacingWith(const MCTransition *transition) const
 {
-    auto maybeGlobalVariableWrite = std::dynamic_pointer_cast<MCGlobalVariableWrite, MCTransition>(transition);
+    const MCGlobalVariableWrite *maybeGlobalVariableWrite = dynamic_cast<const MCGlobalVariableWrite*>(transition);
     if (maybeGlobalVariableWrite != nullptr) {
         return *this->global == *maybeGlobalVariableWrite->global;
     }
@@ -59,7 +59,7 @@ MCGlobalVariableRead::isRacingWith(std::shared_ptr<MCTransition> transition)
 }
 
 void
-MCGlobalVariableRead::print()
+MCGlobalVariableRead::print() const
 {
     printf("thread %lu: READ(%p)\n", this->thread->tid, this->global->addr);
 }

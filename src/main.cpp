@@ -7,7 +7,7 @@ This program provides a possible solution for producer-consumer problem using mu
 I have used 5 producers and 5 consumers to demonstrate the solution. You can always play with these values.
 */
 
-#define MaxItems 2 // Maximum items a producer can produce or a consumer can consume
+#define MaxItems 1 // Maximum items a producer can produce or a consumer can consume
 #define BufferSize 1 // Size of the buffer
 #define NUM_PRODUCERS 1
 #define NUM_CONSUMERS 1
@@ -24,13 +24,10 @@ void *producer(void *pno)
     int item;
 //    while (1) {
         item = rand(); // Produce an random item
-        GOAL_ENTER_CRIT();
         mc_sem_wait(&empty);
-        GOAL_EXIT_CRIT();
         mc_pthread_mutex_lock(&mutex);
         buffer[in] = item;
         in = (in+1)%BufferSize;
-        GOAL();
         mc_pthread_mutex_unlock(&mutex);
         mc_sem_post(&full);
 //    }
@@ -40,7 +37,6 @@ void *producer(void *pno)
 
 void *consumer(void *cno)
 {
-    GOAL();
     for(int i = 0; i < MaxItems; i++) {
         mc_sem_wait(&full);
         mc_pthread_mutex_lock(&mutex);
@@ -54,7 +50,6 @@ void *consumer(void *cno)
 
 int main() {
     mc_init();
-    GOAL();
     pthread_t pro[5],con[5];
     mc_pthread_mutex_init(&mutex, NULL);
     mc_sem_init(&empty,0,BufferSize);

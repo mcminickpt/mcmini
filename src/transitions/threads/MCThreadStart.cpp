@@ -8,7 +8,7 @@ MCReadThreadStart(const MCSharedTransition *shmTransition, void *shmData, MCStat
 }
 
 std::shared_ptr<MCTransition>
-MCThreadStart::staticCopy() {
+MCThreadStart::staticCopy() const {
     // INVARIANT: Target and the thread itself are the same
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -17,7 +17,7 @@ MCThreadStart::staticCopy() {
 }
 
 std::shared_ptr<MCTransition>
-MCThreadStart::dynamicCopyInState(const MCState *state) {
+MCThreadStart::dynamicCopyInState(const MCState *state) const {
     // INVARIANT: Target and the thread itself are the same
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     auto cpy = new MCThreadStart(threadInState);
@@ -31,7 +31,7 @@ MCThreadStart::applyToState(MCState *) {
 }
 
 bool
-MCThreadStart::coenabledWith(std::shared_ptr<MCTransition> transition)
+MCThreadStart::coenabledWith(const MCTransition *transition) const
 {
     if (this->thread->tid == transition->getThreadId()) {
         return false;
@@ -44,19 +44,19 @@ MCThreadStart::coenabledWith(std::shared_ptr<MCTransition> transition)
 }
 
 bool
-MCThreadStart::dependentWith(std::shared_ptr<MCTransition> transition)
+MCThreadStart::dependentWith(const MCTransition *transition) const
 {
     return this->thread->tid == transition->getThreadId();
 }
 
 void
-MCThreadStart::print()
+MCThreadStart::print() const
 {
     printf("thread %lu: starts\n", this->thread->tid);
 }
 
 bool
-MCThreadStart::countsAgainstThreadExecutionDepth()
+MCThreadStart::countsAgainstThreadExecutionDepth() const
 {
     return false;
 }

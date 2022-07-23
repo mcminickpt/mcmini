@@ -33,7 +33,7 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition, void *shmData, MCStat
 }
 
 std::shared_ptr<MCTransition>
-MCCondEnqueue::staticCopy()
+MCCondEnqueue::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -46,7 +46,7 @@ MCCondEnqueue::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCCondEnqueue::dynamicCopyInState(const MCState *state)
+MCCondEnqueue::dynamicCopyInState(const MCState *state) const
 {
     auto threadInState = state->getThreadWithId(thread->tid);
     auto condInState = state->getObjectWithId<MCConditionVariable>(conditionVariable->getObjectId());
@@ -65,41 +65,41 @@ MCCondEnqueue::applyToState(MCState *state)
 }
 
 bool
-MCCondEnqueue::coenabledWith(std::shared_ptr<MCTransition> other)
+MCCondEnqueue::coenabledWith(const MCTransition *other) const
 {
-    auto maybeCondWaitOperation = std::dynamic_pointer_cast<MCCondEnqueue, MCTransition>(other);
-    if (maybeCondWaitOperation) {
+    const MCCondEnqueue *maybeCondEnqueueOperation = dynamic_cast<const MCCondEnqueue*>(other);
+    if (maybeCondEnqueueOperation) {
         /* Only one cond_wait will be able to acquire the mutex */
-        return *maybeCondWaitOperation->conditionVariable != *this->conditionVariable;
+        return *maybeCondEnqueueOperation->conditionVariable != *this->conditionVariable;
     }
 
-    auto maybeMutexOperation = std::dynamic_pointer_cast<MCMutexTransition, MCTransition>(other);
+    const MCMutexTransition *maybeMutexOperation = dynamic_cast<const MCMutexTransition*>(other);
     if (maybeMutexOperation) {
         auto unlockMutex = std::make_shared<MCMutexUnlock>(this->thread, this->conditionVariable->mutex);
-        return MCTransitionFactory::transitionsCoenabledCommon(unlockMutex, maybeMutexOperation);
+        return MCTransitionFactory::transitionsCoenabledCommon(unlockMutex.get(), maybeMutexOperation);
     }
 
     return true;
 }
 
 bool
-MCCondEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
+MCCondEnqueue::dependentWith(const MCTransition *other) const
 {
-    auto maybeCondOperation = std::dynamic_pointer_cast<MCCondTransition, MCTransition>(other);
+    const MCCondTransition *maybeCondOperation = dynamic_cast<const MCCondTransition*>(other);
     if (maybeCondOperation) {
         return *maybeCondOperation->conditionVariable == *this->conditionVariable;
     }
 
-    auto maybeMutexOperation = std::dynamic_pointer_cast<MCMutexTransition, MCTransition>(other);
+    const MCMutexTransition *maybeMutexOperation = dynamic_cast<const MCMutexTransition*>(other);
     if (maybeMutexOperation) {
         auto unlockMutex = std::make_shared<MCMutexUnlock>(this->thread, this->conditionVariable->mutex);
-        return MCTransitionFactory::transitionsCoenabledCommon(unlockMutex, maybeMutexOperation);
+        return MCTransitionFactory::transitionsCoenabledCommon(unlockMutex.get(), maybeMutexOperation);
     }
     return false;
 }
 
 void
-MCCondEnqueue::print()
+MCCondEnqueue::print() const
 {
     printf("thread %lu: pthread_cond_wait(%lu, %lu) (awake)\n", this->thread->tid, this->conditionVariable->getObjectId(), this->mutex->getObjectId());
 }

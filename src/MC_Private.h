@@ -16,8 +16,8 @@ void mc_create_program_state();
 
 /* Scheduler control */
 MC_PROGRAM_TYPE mc_scheduler_main();
-void mc_exhaust_threads(std::shared_ptr<MCTransition>);
-MC_PROGRAM_TYPE mc_readvance_main(std::shared_ptr<MCTransition>);
+void mc_exhaust_threads(const MCTransition&);
+MC_PROGRAM_TYPE mc_readvance_main(const MCTransition&);
 void mc_create_initial_scheduler_state();
 void mc_exit(int);
 

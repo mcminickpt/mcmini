@@ -109,21 +109,3 @@ mc_pthread_reach_point()
     thread_await_mc_scheduler();
 }
 
-void
-mc_pthread_reach_goal()
-{
-    mc_pthread_reach_point<MCThreadReachGoal>();
-}
-
-void
-mc_pthread_enter_goal_critical_section()
-{
-    mc_pthread_reach_point<MCThreadEnterGoalCriticalSection>();
-}
-
-void
-mc_pthread_exit_goal_critical_section()
-{
-    mc_pthread_reach_point<MCThreadExitGoalCriticalSection>();
-}
-

@@ -16,7 +16,7 @@ MCReadThreadCreate(const MCSharedTransition *shmTransition, void *shmData, MCSta
 }
 
 std::shared_ptr<MCTransition>
-MCThreadCreate::staticCopy()
+MCThreadCreate::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -27,7 +27,7 @@ MCThreadCreate::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCThreadCreate::dynamicCopyInState(const MCState *state)
+MCThreadCreate::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCThread> targetInState = state->getThreadWithId(target->tid);
@@ -42,7 +42,7 @@ MCThreadCreate::applyToState(MCState *state)
 }
 
 bool
-MCThreadCreate::coenabledWith(std::shared_ptr<MCTransition> transition)
+MCThreadCreate::coenabledWith(const MCTransition *transition) const
 {
     tid_t targetThreadId = transition->getThreadId();
     if (this->thread->tid == targetThreadId || this->target->tid == targetThreadId) {
@@ -52,7 +52,7 @@ MCThreadCreate::coenabledWith(std::shared_ptr<MCTransition> transition)
 }
 
 bool
-MCThreadCreate::dependentWith(std::shared_ptr<MCTransition> transition)
+MCThreadCreate::dependentWith(const MCTransition *transition) const
 {
     tid_t targetThreadId = transition->getThreadId();
     if (this->thread->tid == targetThreadId || this->target->tid == targetThreadId) {
@@ -68,7 +68,7 @@ MCThreadCreate::doesCreateThread(tid_t tid) const
 }
 
 void
-MCThreadCreate::print()
+MCThreadCreate::print() const
 {
     printf("thread %lu: pthread_create(%lu)\n", this->thread->tid, this->target->tid);
 }

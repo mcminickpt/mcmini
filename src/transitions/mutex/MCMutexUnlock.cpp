@@ -21,7 +21,7 @@ MCReadMutexUnlock(const MCSharedTransition *shmTransition, void *shmData, MCStat
 }
 
 std::shared_ptr<MCTransition>
-MCMutexUnlock::staticCopy()
+MCMutexUnlock::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -32,7 +32,7 @@ MCMutexUnlock::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCMutexUnlock::dynamicCopyInState(const MCState *state)
+MCMutexUnlock::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
@@ -47,25 +47,25 @@ MCMutexUnlock::applyToState(MCState *state)
 }
 
 bool
-MCMutexUnlock::enabledInState(const MCState *state)
+MCMutexUnlock::enabledInState(const MCState *state) const
 {
     return this->thread->enabled();
 }
 
 bool
-MCMutexUnlock::coenabledWith(std::shared_ptr<MCTransition> transition)
+MCMutexUnlock::coenabledWith(const MCTransition *transition) const
 {
     return true;
 }
 
 bool
-MCMutexUnlock::dependentWith(std::shared_ptr<MCTransition> transition)
+MCMutexUnlock::dependentWith(const MCTransition *transition) const
 {
     return false;
 }
 
 void
-MCMutexUnlock::print()
+MCMutexUnlock::print() const
 {
     printf("thread %lu: pthread_mutex_unlock(%lu)\n", this->thread->tid, this->mutex->getObjectId());
 }

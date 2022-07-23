@@ -21,7 +21,7 @@ MCReadMutexLock(const MCSharedTransition *shmTransition, void *shmData, MCState 
 }
 
 std::shared_ptr<MCTransition>
-MCMutexLock::staticCopy()
+MCMutexLock::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -32,7 +32,7 @@ MCMutexLock::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCMutexLock::dynamicCopyInState(const MCState *state)
+MCMutexLock::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
@@ -47,16 +47,16 @@ MCMutexLock::applyToState(MCState *state)
 }
 
 bool
-MCMutexLock::enabledInState(const MCState *state)
+MCMutexLock::enabledInState(const MCState *state) const
 {
     return this->thread->enabled() && this->mutex->canAcquire(this->getThreadId());
 }
 
 bool
-MCMutexLock::coenabledWith(std::shared_ptr<MCTransition> transition)
+MCMutexLock::coenabledWith(const MCTransition *transition) const
 {
     {
-        auto maybeMutexUnlock = std::dynamic_pointer_cast<MCMutexUnlock, MCTransition>(transition);
+        const MCMutexUnlock* maybeMutexUnlock = dynamic_cast<const MCMutexUnlock*>(transition);
         if (maybeMutexUnlock) {
             return *maybeMutexUnlock->mutex != *this->mutex;
         }
@@ -65,17 +65,17 @@ MCMutexLock::coenabledWith(std::shared_ptr<MCTransition> transition)
 }
 
 bool
-MCMutexLock::dependentWith(std::shared_ptr<MCTransition> transition)
+MCMutexLock::dependentWith(const MCTransition *transition) const
 {
     {
-        auto maybeMutexLock = std::dynamic_pointer_cast<MCMutexLock, MCTransition>(transition);
+        const MCMutexLock* maybeMutexLock = dynamic_cast<const MCMutexLock*>(transition);
         if (maybeMutexLock) {
             return *maybeMutexLock->mutex == *this->mutex;
         }
     }
 
     {
-        auto maybeMutexUnlock = std::dynamic_pointer_cast<MCMutexUnlock, MCTransition>(transition);
+        const MCMutexUnlock* maybeMutexUnlock = dynamic_cast<const MCMutexUnlock*>(transition);
         if (maybeMutexUnlock) {
             return *maybeMutexUnlock->mutex == *this->mutex;
         }
@@ -85,7 +85,7 @@ MCMutexLock::dependentWith(std::shared_ptr<MCTransition> transition)
 }
 
 void
-MCMutexLock::print()
+MCMutexLock::print() const
 {
     printf("thread %lu: pthread_mutex_lock(%lu)\n", this->thread->tid, this->mutex->getObjectId());
 }

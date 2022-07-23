@@ -10,7 +10,7 @@ MCReadThreadFinish(const MCSharedTransition *shmTransition, void *shmData, MCSta
 }
 
 std::shared_ptr<MCTransition>
-MCThreadFinish::staticCopy()
+MCThreadFinish::staticCopy() const
 {
     // INVARIANT: Target and the thread itself are the same
     auto threadCpy=
@@ -20,7 +20,7 @@ MCThreadFinish::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCThreadFinish::dynamicCopyInState(const MCState *state)
+MCThreadFinish::dynamicCopyInState(const MCState *state) const
 {
     // INVARIANT: Target and the thread itself are the same
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
@@ -35,12 +35,12 @@ MCThreadFinish::applyToState(MCState *state)
 }
 
 bool
-MCThreadFinish::enabledInState(const MCState *) {
+MCThreadFinish::enabledInState(const MCState *) const {
     return thread->enabled() && thread->tid != TID_MAIN_THREAD;
 }
 
 bool
-MCThreadFinish::coenabledWith(std::shared_ptr<MCTransition> transition) {
+MCThreadFinish::coenabledWith(const MCTransition *transition) const {
     if (this->thread->tid == transition->getThreadId()) {
         return false;
     }
@@ -48,7 +48,7 @@ MCThreadFinish::coenabledWith(std::shared_ptr<MCTransition> transition) {
 }
 
 bool
-MCThreadFinish::dependentWith(std::shared_ptr<MCTransition> transition) {
+MCThreadFinish::dependentWith(const MCTransition *transition) const {
     if (this->thread->tid == transition->getThreadId()) {
         return true;
     }
@@ -56,19 +56,19 @@ MCThreadFinish::dependentWith(std::shared_ptr<MCTransition> transition) {
 }
 
 void
-MCThreadFinish::print()
+MCThreadFinish::print() const
 {
     printf("thread %lu: exits\n", this->thread->tid);
 }
 
 bool
-MCThreadFinish::ensuresDeadlockIsImpossible()
+MCThreadFinish::ensuresDeadlockIsImpossible() const
 {
     return this->thread->tid == TID_MAIN_THREAD;
 }
 
 bool
-MCThreadFinish::countsAgainstThreadExecutionDepth()
+MCThreadFinish::countsAgainstThreadExecutionDepth() const
 {
     return false;
 }

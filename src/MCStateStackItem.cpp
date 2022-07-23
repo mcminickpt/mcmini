@@ -58,13 +58,13 @@ MCStateStackItem::markThreadsEnabledInState(const unordered_set<tid_t>& enabledT
 }
 
 unordered_set<tid_t>
-MCStateStackItem::getEnabledThreadsInState()
+MCStateStackItem::getEnabledThreadsInState() const
 {
     return this->enabledThreads;
 }
 
 unordered_set<tid_t>
-MCStateStackItem::getSleepSet()
+MCStateStackItem::getSleepSet() const
 {
     return this->sleepSet;
 }
