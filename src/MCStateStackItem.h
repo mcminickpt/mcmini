@@ -155,15 +155,14 @@ public:
      */
     void markThreadsEnabledInState(const std::unordered_set<tid_t> &threads);
 
-    std::unordered_set<tid_t> getEnabledThreadsInState();
-    std::unordered_set<tid_t> getSleepSet();
+    std::unordered_set<tid_t> getEnabledThreadsInState() const;
+    std::unordered_set<tid_t> getSleepSet() const;
 
     /**
      * @brief Inserts the given thread into the sleep
      * set of this state 
      */
     void addThreadToSleepSet(tid_t);
-
 
     /**
      * @brief Whether or not there are any

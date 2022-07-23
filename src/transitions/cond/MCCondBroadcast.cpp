@@ -18,7 +18,7 @@ MCReadCondBroadcast(const MCSharedTransition *shmTransition, void *shmData, MCSt
 }
 
 std::shared_ptr<MCTransition>
-MCCondBroadcast::staticCopy()
+MCCondBroadcast::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -29,7 +29,7 @@ MCCondBroadcast::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCCondBroadcast::dynamicCopyInState(const MCState *state)
+MCCondBroadcast::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCConditionVariable> condInState = state->getObjectWithId<MCConditionVariable>(conditionVariable->getObjectId());
@@ -44,15 +44,15 @@ MCCondBroadcast::applyToState(MCState *state)
 }
 
 bool
-MCCondBroadcast::coenabledWith(std::shared_ptr<MCTransition> other)
+MCCondBroadcast::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCCondBroadcast::dependentWith(std::shared_ptr<MCTransition> other)
+MCCondBroadcast::dependentWith(const MCTransition *other) const
 {
-    auto maybeCondOperation = std::dynamic_pointer_cast<MCCondTransition, MCTransition>(other);
+    const MCCondTransition *maybeCondOperation = dynamic_cast<const MCCondTransition*>(other);
     if (maybeCondOperation) {
         return *maybeCondOperation->conditionVariable == *this->conditionVariable;
     }
@@ -60,7 +60,7 @@ MCCondBroadcast::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 void
-MCCondBroadcast::print()
+MCCondBroadcast::print() const
 {
     printf("thread %lu: pthread_cond_broadcast(%lu)\n", this->thread->tid, this->conditionVariable->getObjectId());
 }

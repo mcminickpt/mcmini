@@ -11,15 +11,15 @@ public:
     inline MCThreadCreate(std::shared_ptr<MCThread> threadRunning, std::shared_ptr<MCThread> threadCreated) :
     MCThreadTransition(threadRunning, threadCreated) {}
 
-    std::shared_ptr<MCTransition> staticCopy() override;
-    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) override;
+    std::shared_ptr<MCTransition> staticCopy() const override;
+    std::shared_ptr<MCTransition> dynamicCopyInState(const MCState*) const override;
     void applyToState(MCState *) override;
-    bool coenabledWith(std::shared_ptr<MCTransition>) override;
-    bool dependentWith(std::shared_ptr<MCTransition>) override;
+    bool coenabledWith(const MCTransition*) const override;
+    bool dependentWith(const MCTransition*) const override;
 
     bool doesCreateThread(tid_t) const;
 
-    void print() override;
+    void print() const override;
 };
 
 #endif //MC_MCTHREADCREATE_H

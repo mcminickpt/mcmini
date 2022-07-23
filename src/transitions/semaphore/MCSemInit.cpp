@@ -20,7 +20,7 @@ MCReadSemInit(const MCSharedTransition *shmTransition, void *shmData, MCState *s
 }
 
 std::shared_ptr<MCTransition>
-MCSemInit::staticCopy()
+MCSemInit::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -31,7 +31,7 @@ MCSemInit::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCSemInit::dynamicCopyInState(const MCState *state)
+MCSemInit::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCSemaphore> semInState = state->getObjectWithId<MCSemaphore>(sem->getObjectId());
@@ -46,19 +46,19 @@ MCSemInit::applyToState(MCState *state)
 }
 
 bool
-MCSemInit::coenabledWith(std::shared_ptr<MCTransition> other)
+MCSemInit::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCSemInit::dependentWith(std::shared_ptr<MCTransition> other)
+MCSemInit::dependentWith(const MCTransition *other) const
 {
     return false;
 }
 
 void
-MCSemInit::print()
+MCSemInit::print() const
 {
     printf("thread %lu: sem_init(%lu, 0, %u)\n", this->thread->tid, this->sem->getObjectId(), this->sem->getCount());
 }

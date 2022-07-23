@@ -20,7 +20,7 @@ MCReadSemWait(const MCSharedTransition *shmTransition, void *shmData, MCState *s
 }
 
 std::shared_ptr<MCTransition>
-MCSemWait::staticCopy()
+MCSemWait::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -31,7 +31,7 @@ MCSemWait::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCSemWait::dynamicCopyInState(const MCState *state)
+MCSemWait::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCSemaphore> semInState = state->getObjectWithId<MCSemaphore>(sem->getObjectId());
@@ -47,20 +47,20 @@ MCSemWait::applyToState(MCState *state)
 }
 
 bool
-MCSemWait::coenabledWith(std::shared_ptr<MCTransition> other)
+MCSemWait::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCSemWait::dependentWith(std::shared_ptr<MCTransition> other)
+MCSemWait::dependentWith(const MCTransition *other) const
 {
-    auto maybeSemaphoreInitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
+    const MCSemInit *maybeSemaphoreInitOperation = dynamic_cast<const MCSemInit*>(other);
     if (maybeSemaphoreInitOperation) {
         return *maybeSemaphoreInitOperation->sem == *this->sem;
     }
 
-    auto maybeSemaphoreWaitOperation = std::dynamic_pointer_cast<MCSemWait, MCTransition>(other);
+    const MCSemWait *maybeSemaphoreWaitOperation = dynamic_cast<const MCSemWait*>(other);
     if (maybeSemaphoreWaitOperation) {
         return *maybeSemaphoreWaitOperation->sem == *this->sem;
     }
@@ -69,13 +69,13 @@ MCSemWait::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 bool
-MCSemWait::enabledInState(const MCState *)
+MCSemWait::enabledInState(const MCState *) const
 {
     return this->sem->threadCanExit(this->getThreadId());
 }
 
 void
-MCSemWait::print()
+MCSemWait::print() const
 {
     printf("thread %lu: sem_wait(%lu) (attempt exit)\n", this->thread->tid, this->sem->getObjectId());
 }

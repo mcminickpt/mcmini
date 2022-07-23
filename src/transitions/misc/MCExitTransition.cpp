@@ -8,7 +8,7 @@ MCTransition* MCReadExitTransition(const MCSharedTransition *shmTransition, void
 }
 
 std::shared_ptr<MCTransition>
-MCExitTransition::staticCopy() {
+MCExitTransition::staticCopy() const {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto threadStartCpy = new MCExitTransition(threadCpy, exitCode);
@@ -16,38 +16,38 @@ MCExitTransition::staticCopy() {
 }
 
 std::shared_ptr<MCTransition>
-MCExitTransition::dynamicCopyInState(const MCState *state) {
+MCExitTransition::dynamicCopyInState(const MCState *state) const {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     auto cpy = new MCExitTransition(threadInState, exitCode);
     return std::shared_ptr<MCTransition>(cpy);
 }
 
 bool
-MCExitTransition::dependentWith(std::shared_ptr<MCTransition>)
+MCExitTransition::dependentWith(const MCTransition*) const
 {
     return false;
 }
 
 bool
-MCExitTransition::enabledInState(const MCState *)
+MCExitTransition::enabledInState(const MCState *) const
 {
     return false; // Never enabled
 }
 
 void
-MCExitTransition::print()
+MCExitTransition::print() const
 {
     printf("thread %lu: exit(%u)\n", this->thread->tid, this->exitCode);
 }
 
 bool
-MCExitTransition::ensuresDeadlockIsImpossible()
+MCExitTransition::ensuresDeadlockIsImpossible() const
 {
     return true;
 }
 
 bool
-MCExitTransition::countsAgainstThreadExecutionDepth()
+MCExitTransition::countsAgainstThreadExecutionDepth() const
 {
     return false;
 }

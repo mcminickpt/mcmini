@@ -20,7 +20,7 @@ MCReadMutexInit(const MCSharedTransition *shmTransition, void *shmData, MCState 
 }
 
 std::shared_ptr<MCTransition>
-MCMutexInit::staticCopy()
+MCMutexInit::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -31,7 +31,7 @@ MCMutexInit::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCMutexInit::dynamicCopyInState(const MCState *state)
+MCMutexInit::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
@@ -46,15 +46,15 @@ MCMutexInit::applyToState(MCState *state)
 }
 
 bool
-MCMutexInit::coenabledWith(std::shared_ptr<MCTransition> other)
+MCMutexInit::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCMutexInit::dependentWith(std::shared_ptr<MCTransition> other)
+MCMutexInit::dependentWith(const MCTransition *other) const
 {
-    auto maybeMutexOperation = std::dynamic_pointer_cast<MCMutexTransition, MCTransition>(other);
+    const MCMutexTransition *maybeMutexOperation = dynamic_cast<const MCMutexTransition*>(other);
     if (maybeMutexOperation) {
         return *maybeMutexOperation->mutex == *this->mutex;
     }
@@ -62,7 +62,7 @@ MCMutexInit::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 void
-MCMutexInit::print()
+MCMutexInit::print() const
 {
     printf("thread %lu: pthread_mutex_init(%lu, _)\n", this->thread->tid, this->mutex->getObjectId());
 }

@@ -20,7 +20,7 @@ MCReadSemPost(const MCSharedTransition *shmTransition, void *shmData, MCState *s
 }
 
 std::shared_ptr<MCTransition>
-MCSemPost::staticCopy()
+MCSemPost::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -31,7 +31,7 @@ MCSemPost::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCSemPost::dynamicCopyInState(const MCState *state)
+MCSemPost::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCSemaphore> semInState = state->getObjectWithId<MCSemaphore>(sem->getObjectId());
@@ -46,15 +46,15 @@ MCSemPost::applyToState(MCState *state)
 }
 
 bool
-MCSemPost::coenabledWith(std::shared_ptr<MCTransition> other)
+MCSemPost::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCSemPost::dependentWith(std::shared_ptr<MCTransition> other)
+MCSemPost::dependentWith(const MCTransition *other) const
 {
-    auto maybeSemaphoreInitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
+    const MCSemInit *maybeSemaphoreInitOperation = dynamic_cast<const MCSemInit*>(other);
     if (maybeSemaphoreInitOperation) {
         return *maybeSemaphoreInitOperation->sem == *this->sem;
     }
@@ -62,7 +62,7 @@ MCSemPost::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 void
-MCSemPost::print()
+MCSemPost::print() const
 {
     printf("thread %lu: sem_post(%lu)\n", this->thread->tid, this->sem->getObjectId());
 }

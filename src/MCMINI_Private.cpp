@@ -80,9 +80,6 @@ mc_create_program_state()
     programState->registerVisibleOperationType(typeid(MCThreadCreate), &MCReadThreadCreate);
     programState->registerVisibleOperationType(typeid(MCThreadFinish), &MCReadThreadFinish);
     programState->registerVisibleOperationType(typeid(MCThreadJoin), &MCReadThreadJoin);
-    programState->registerVisibleOperationType(typeid(MCThreadReachGoal), &MCReadThreadReachGoal);
-    programState->registerVisibleOperationType(typeid(MCThreadEnterGoalCriticalSection), &MCReadThreadEnterGoalCriticalSection);
-    programState->registerVisibleOperationType(typeid(MCThreadExitGoalCriticalSection), &MCReadThreadExitGoalCriticalSection);
     programState->registerVisibleOperationType(typeid(MCMutexInit), &MCReadMutexInit);
     programState->registerVisibleOperationType(typeid(MCMutexUnlock), &MCReadMutexUnlock);
     programState->registerVisibleOperationType(typeid(MCMutexLock), &MCReadMutexLock);
@@ -117,7 +114,7 @@ mc_scheduler_main()
     if (MC_IS_SOURCE_PROGRAM(program))
         return MC_SOURCE_PROGRAM;
 
-    mc_exhaust_threads(initialTransition);
+    mc_exhaust_threads(*initialTransition);
     mc_exit_with_trace_if_necessary(traceId);
     program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
     if (MC_IS_SOURCE_PROGRAM(program))
@@ -127,15 +124,15 @@ mc_scheduler_main()
     int curTransitionStackDepth = static_cast<int>(programState->getTransitionStackSize());
 
     while (curStateStackDepth > 0) {
-        shared_ptr<MCStateStackItem> sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
+        MCStateStackItem &sTop = programState->getStateItemAtIndex(curStateStackDepth - 1);
 
-        if (sTop->hasThreadsToBacktrackOn()) {
+        if (sTop.hasThreadsToBacktrackOn()) {
             // DPOR ensures that any thread in the backtrack set
             // is enabled in this state
-            tid_t backtrackThread = sTop->popThreadToBacktrackOn();
+            tid_t backtrackThread = sTop.popThreadToBacktrackOn();
 
             programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
-            std::shared_ptr<MCTransition> backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
+            const MCTransition &backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
             program = mc_enter_gdb_debugging_session_if_necessary(traceId);
             if (MC_IS_SOURCE_PROGRAM(program))
@@ -367,28 +364,28 @@ mc_child_panic()
 }
 
 void
-mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
+mc_exhaust_threads(const MCTransition &initialTransition)
 {
     uint64_t debug_depth = programState->getTransitionStackSize();
-    std::shared_ptr<MCTransition> t_next = initialTransition;
+    const MCTransition *t_next = &initialTransition;
+
     do {
         debug_depth++;
         tid_t tid = t_next->getThreadId();
         mc_run_thread_to_next_visible_operation(tid);
         transitionId++;
-        programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
+        programState->simulateRunningTransition(*t_next, shmTransitionTypeInfo, shmTransitionData);
         programState->dynamicallyUpdateBacktrackSets();
 
         /* Check for data races */
         {
-            auto pendingTransitionForExecutingThread = programState->getPendingTransitionForThread(tid);
-            if (programState->programHasADataRaceWithNewTransition(pendingTransitionForExecutingThread)) {
+            const MCTransition &pendingTransition = programState->getPendingTransitionForThread(tid);
+            if (programState->programHasADataRaceWithNewTransition(pendingTransition)) {
                 mcprintf("*** DATA RACE DETECTED ***\n");
                 programState->printTransitionStack();
                 programState->printNextTransitions();
             }
         }
-
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
 
     const bool programIsInDeadlock = programState->programIsInDeadlock();
@@ -424,7 +421,7 @@ mc_exhaust_threads(std::shared_ptr<MCTransition> initialTransition)
 }
 
 MC_PROGRAM_TYPE
-mc_readvance_main(std::shared_ptr<MCTransition> nextTransitionToTest)
+mc_readvance_main(const MCTransition &nextTransitionToTest)
 {
     MC_PROGRAM_TYPE program = mc_spawn_child_following_transition_stack();
     if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
@@ -528,15 +525,15 @@ mc_daemon_thread_simulate_program(void *trace)
     programState->start();
     mc_register_main_thread();
 
-    auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
-    auto initialTransition = MCTransitionFactory::createInitialTransitionForThread(mainThread);
+    shared_ptr<MCThread> mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
+    shared_ptr<MCTransition> initialTransition = MCTransitionFactory::createInitialTransitionForThread(mainThread);
     programState->setNextTransitionForThread(TID_MAIN_THREAD, initialTransition);
 
     auto tracePtr = static_cast<std::vector<tid_t>*>(trace);
 
-    for (auto &tid : *tracePtr) {
-        auto t_next = programState->getPendingTransitionForThread(tid);
-        t_next->print();
+    for (tid_t tid : *tracePtr) {
+        const MCTransition &t_next = programState->getPendingTransitionForThread(tid);
+        t_next.print();
         mc_run_thread_to_next_visible_operation(tid);
         programState->simulateRunningTransition(t_next, shmTransitionTypeInfo, shmTransitionData);
     }

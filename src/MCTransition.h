@@ -67,19 +67,22 @@ public:
      * FIXME: Move this to a different class potentially
      * @return
      */
-    static bool dependentTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
+    static bool dependentTransitions(const MCTransition&, const MCTransition&);
+    static bool dependentTransitions(const MCTransition*, const MCTransition*);
 
     /**
      *  FIXME: Move this to a different class potentially
      * @return
      */
-    static bool coenabledTransitions(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
+    static bool coenabledTransitions(const MCTransition&, const MCTransition&);
+    static bool coenabledTransitions(const MCTransition*, const MCTransition*);
 
     /**
      * FIXME: Move this to a different class potentially
      * @return
      */
-    static bool transitionsInDataRace(const std::shared_ptr<MCTransition>&, const std::shared_ptr<MCTransition>&);
+    static bool transitionsInDataRace(const MCTransition&, const MCTransition&);
+    static bool transitionsInDataRace(const MCTransition*, const MCTransition*);
 
     /**
      * Creates a deep copy of this transition
@@ -101,7 +104,7 @@ public:
      * @return a transition that is equivalent to this one, with
      * each object reference pointing
      */
-    virtual std::shared_ptr<MCTransition> staticCopy() = 0;
+    virtual std::shared_ptr<MCTransition> staticCopy() const = 0;
 
     /**
      * Produces a deep copy of this transition which points to
@@ -143,7 +146,7 @@ public:
      * each object reference pointing at "live" objects
      */
     virtual std::shared_ptr<MCTransition>
-    dynamicCopyInState(const MCState* state) = 0;
+    dynamicCopyInState(const MCState* state) const = 0;
 
     /**
      * Performs the actions represented by this transition
@@ -226,7 +229,7 @@ public:
      * argument to this method
      */
     virtual bool
-    enabledInState(const MCState *state)
+    enabledInState(const MCState *state) const
     {
         return thread->enabled();
     }
@@ -269,7 +272,7 @@ public:
      * sense, with the given one
      */
     virtual bool
-    coenabledWith(std::shared_ptr<MCTransition> other)
+    coenabledWith(const MCTransition *other) const
     {
         return true;
     }
@@ -335,7 +338,7 @@ public:
      * sense, with the given one
      */
     virtual bool
-    dependentWith(std::shared_ptr<MCTransition> other)
+    dependentWith(const MCTransition *other) const
     {
         return true;
     }
@@ -352,7 +355,7 @@ public:
      * transition specified
      */
     virtual bool
-    isRacingWith(std::shared_ptr<MCTransition> other)
+    isRacingWith(const MCTransition *other) const
     {
         return false;
     }
@@ -390,7 +393,7 @@ public:
      *
      */
     virtual bool
-    ensuresDeadlockIsImpossible()
+    ensuresDeadlockIsImpossible() const
     {
         return false;
     }
@@ -421,14 +424,14 @@ public:
      * when determining the number of transitions a thread has run
      */
     virtual bool
-    countsAgainstThreadExecutionDepth()
+    countsAgainstThreadExecutionDepth() const
     {
         return true;
     }
 
     /**
      * Returns the id of thread that executes this transition
-     *
+     * 
      * @return the id for the thread that executes
      * this transition
      */
@@ -439,7 +442,7 @@ public:
     }
 
     // FIXME: De-couple printing from the interface
-    virtual void print() {}
+    virtual void print() const {}
 };
 
 #endif //MC_MCTRANSITION_H

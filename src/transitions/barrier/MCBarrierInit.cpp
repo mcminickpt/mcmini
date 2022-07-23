@@ -20,7 +20,7 @@ MCReadBarrierInit(const MCSharedTransition *shmTransition, void *shmData, MCStat
 }
 
 std::shared_ptr<MCTransition>
-MCBarrierInit::staticCopy()
+MCBarrierInit::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -31,7 +31,7 @@ MCBarrierInit::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCBarrierInit::dynamicCopyInState(const MCState *state)
+MCBarrierInit::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCBarrier> mutexInState = state->getObjectWithId<MCBarrier>(barrier->getObjectId());
@@ -46,15 +46,15 @@ MCBarrierInit::applyToState(MCState *state)
 }
 
 bool
-MCBarrierInit::coenabledWith(std::shared_ptr<MCTransition> other)
+MCBarrierInit::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCBarrierInit::dependentWith(std::shared_ptr<MCTransition> other)
+MCBarrierInit::dependentWith(const MCTransition *other) const
 {
-    auto maybeBarrierOperation = std::dynamic_pointer_cast<MCBarrierTransition, MCTransition>(other);
+    const MCBarrierTransition *maybeBarrierOperation = dynamic_cast<const MCBarrierTransition*>(other);
     if (maybeBarrierOperation) {
         return *maybeBarrierOperation->barrier == *this->barrier;
     }
@@ -62,7 +62,7 @@ MCBarrierInit::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 void
-MCBarrierInit::print()
+MCBarrierInit::print() const
 {
     printf("thread %lu: pthread_barrier_init(%lu, _, %u)\n", this->thread->tid, this->barrier->getObjectId(), this->barrier->getCount());
 }

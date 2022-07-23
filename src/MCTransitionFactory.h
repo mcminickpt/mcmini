@@ -10,9 +10,9 @@ public:
     MCTransitionFactory() = delete;
 
     // Factory methods
-    static std::shared_ptr<MCTransition> createInitialTransitionForThread(const std::shared_ptr<MCThread>& thread);
-    static bool transitionsCoenabledCommon(const std::shared_ptr<MCTransition> &t1, const std::shared_ptr<MCTransition> &t2);
-    static bool transitionsDependentCommon(const std::shared_ptr<MCTransition> &t1, const std::shared_ptr<MCTransition> &t2);
+    static std::shared_ptr<MCTransition> createInitialTransitionForThread(const std::shared_ptr<MCThread> &thread);
+    static bool transitionsCoenabledCommon(const MCTransition *t1, const MCTransition *t2);
+    static bool transitionsDependentCommon(const MCTransition *t1, const MCTransition *t2);
 };
 
 #endif //MC_MCTRANSITIONFACTORY_H

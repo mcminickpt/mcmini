@@ -80,7 +80,7 @@ private:
 
 private:
 
-    bool transitionIsEnabled(const std::shared_ptr<MCTransition>&);
+    bool transitionIsEnabled(const MCTransition&);
 
     bool happensBefore(int i, int j) const;
     bool happensBeforeThread(int i, const std::shared_ptr<MCThread>&) const;
@@ -88,23 +88,23 @@ private:
     bool threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const;
 
     void growStateStack();
-    void growStateStackWithTransition(const std::shared_ptr<MCTransition>&);
-    void growTransitionStackRunning(const std::shared_ptr<MCTransition>&);
-    void virtuallyRunTransition(const std::shared_ptr<MCTransition>&);
+    void growStateStackWithTransition(const MCTransition&);
+    void growTransitionStackRunning(const MCTransition&);
+    void virtuallyRunTransition(const MCTransition&);
 
     /**
      * Inserts a backtracking point given a context of insertion (where in
      * the transition/state stacks to insert into etc.)
      */
     bool dynamicallyUpdateBacktrackSetsHelper(const
-      std::shared_ptr<MCTransition> &S_i,
-      const std::shared_ptr<MCStateStackItem> &preSi,
-      const std::shared_ptr<MCTransition> &nextSP,
+      MCTransition &S_i,
+      MCStateStackItem &preSi,
+      const MCTransition &nextSP,
       const std::unordered_set<tid_t> &enabledThreadsAtPreSi,
       int i, int p);
 
-    void incrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
-    void decrementThreadTransitionCountIfNecessary(const std::shared_ptr<MCTransition>&);
+    void incrementThreadTransitionCountIfNecessary(const MCTransition&);
+    void decrementThreadTransitionCountIfNecessary(const MCTransition&);
     uint32_t totalThreadExecutionDepth() const;
 
 public:
@@ -113,19 +113,20 @@ public:
 
     tid_t getThreadRunningTransitionAtIndex(int) const;
 
-    std::shared_ptr<MCTransition> getPendingTransitionForThread(tid_t) const;
-    std::shared_ptr<MCTransition> getTransitionAtIndex(int) const;
-    std::shared_ptr<MCTransition> getTransitionStackTop() const;
-    std::shared_ptr<MCStateStackItem> getStateItemAtIndex(int) const;
-    std::shared_ptr<MCStateStackItem> getStateStackTop() const;
+    MCTransition &getPendingTransitionForThread(tid_t) const;
+    MCTransition &getTransitionAtIndex(int) const;
+    MCTransition &getTransitionStackTop() const;
+    MCStateStackItem &getStateItemAtIndex(int) const;
+    MCStateStackItem &getStateStackTop() const;
 
-    std::shared_ptr<MCTransition> getNextTransitionForThread(MCThread *thread);
-    std::shared_ptr<MCTransition> getNextTransitionForThread(tid_t thread) const;
+    MCTransition &getNextTransitionForThread(MCThread *thread);
+    MCTransition &getNextTransitionForThread(tid_t thread) const;
+
     void setNextTransitionForThread(MCThread *, std::shared_ptr<MCTransition>);
     void setNextTransitionForThread(tid_t, std::shared_ptr<MCTransition>);
     void setNextTransitionForThread(tid_t, MCSharedTransition*, void *);
 
-    std::shared_ptr<MCTransition> getFirstEnabledTransitionFromNextStack();
+    const MCTransition *getFirstEnabledTransitionFromNextStack();
     std::unordered_set<tid_t> computeEnabledThreads();
 
     objid_t createNewThread();
@@ -149,7 +150,7 @@ public:
         return objectStorage.getObjectWithSystemAddress<Object>(systemId);
     }
 
-    void simulateRunningTransition(const std::shared_ptr<MCTransition>&, MCSharedTransition*, void *);
+    void simulateRunningTransition(const MCTransition&, MCSharedTransition*, void *);
 
     uint64_t getTransitionStackSize() const;
     uint64_t getStateStackSize() const;
@@ -164,7 +165,7 @@ public:
 
     bool programIsInDeadlock() const;
     bool programAchievedForwardProgressGoals() const;
-    bool programHasADataRaceWithNewTransition(const std::shared_ptr<MCTransition>&) const;
+    bool programHasADataRaceWithNewTransition(const MCTransition&) const;
 
     MCStateConfiguration getConfiguration() const;
 

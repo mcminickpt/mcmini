@@ -21,7 +21,7 @@ MCReadSemEnqueue(const MCSharedTransition *shmTransition, void *shmData, MCState
 }
 
 std::shared_ptr<MCTransition>
-MCSemEnqueue::staticCopy()
+MCSemEnqueue::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -32,7 +32,7 @@ MCSemEnqueue::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCSemEnqueue::dynamicCopyInState(const MCState *state)
+MCSemEnqueue::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCSemaphore> semInState = state->getObjectWithId<MCSemaphore>(sem->getObjectId());
@@ -47,15 +47,15 @@ MCSemEnqueue::applyToState(MCState *state)
 }
 
 bool
-MCSemEnqueue::coenabledWith(std::shared_ptr<MCTransition> other)
+MCSemEnqueue::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
+MCSemEnqueue::dependentWith(const MCTransition *other) const
 {
-    auto maybeSemaphoreInitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
+    const MCSemInit *maybeSemaphoreInitOperation = dynamic_cast<const MCSemInit*>(other);
     if (maybeSemaphoreInitOperation) {
         return *maybeSemaphoreInitOperation->sem == *this->sem;
     }
@@ -67,7 +67,7 @@ MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
     //    return *maybeSemaphoreWaitOperation->sem == *this->sem;
     //}
 
-    auto maybeSemaphoreEnqueueOperation = std::dynamic_pointer_cast<MCSemEnqueue, MCTransition>(other);
+    const MCSemEnqueue *maybeSemaphoreEnqueueOperation = dynamic_cast<const MCSemEnqueue*>(other);
     if (maybeSemaphoreEnqueueOperation) {
         return *maybeSemaphoreEnqueueOperation->sem == *this->sem;
     }
@@ -76,7 +76,7 @@ MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 void
-MCSemEnqueue::print()
+MCSemEnqueue::print() const
 {
     printf("thread %lu: sem_wait(%lu) (enter)\n", this->thread->tid, this->sem->getObjectId());
 }

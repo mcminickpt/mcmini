@@ -18,7 +18,7 @@ MCReadCondSignal(const MCSharedTransition *shmTransition, void *shmData, MCState
 }
 
 std::shared_ptr<MCTransition>
-MCCondSignal::staticCopy()
+MCCondSignal::staticCopy() const
 {
     auto threadCpy=
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
@@ -29,7 +29,7 @@ MCCondSignal::staticCopy()
 }
 
 std::shared_ptr<MCTransition>
-MCCondSignal::dynamicCopyInState(const MCState *state)
+MCCondSignal::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCConditionVariable> condInState = state->getObjectWithId<MCConditionVariable>(conditionVariable->getObjectId());
@@ -46,15 +46,15 @@ MCCondSignal::applyToState(MCState *state)
 }
 
 bool
-MCCondSignal::coenabledWith(std::shared_ptr<MCTransition> other)
+MCCondSignal::coenabledWith(const MCTransition *other) const
 {
     return true;
 }
 
 bool
-MCCondSignal::dependentWith(std::shared_ptr<MCTransition> other)
+MCCondSignal::dependentWith(const MCTransition *other) const
 {
-    auto maybeCondOperation = std::dynamic_pointer_cast<MCCondTransition, MCTransition>(other);
+    const MCCondTransition *maybeCondOperation = dynamic_cast<const MCCondTransition*>(other);
     if (maybeCondOperation) {
         return *maybeCondOperation->conditionVariable == *this->conditionVariable;
     }
@@ -62,7 +62,7 @@ MCCondSignal::dependentWith(std::shared_ptr<MCTransition> other)
 }
 
 void
-MCCondSignal::print()
+MCCondSignal::print() const
 {
     printf("thread %lu: pthread_cond_signal(%lu)\n", this->thread->tid, this->conditionVariable->getObjectId());
 }
