@@ -101,6 +101,7 @@ private:
     bool threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const;
 
     void growStateStack();
+    void growStateStack(const MCClockVector &cv, bool revertible);
     void growStateStackWithTransition(const MCTransition&);
     void growTransitionStackRunning(const MCTransition&);
     void virtuallyRunTransition(const MCTransition&);

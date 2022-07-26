@@ -77,10 +77,10 @@ MCStateStackItem::getClockVector() const
     return this->clockVector;
 }
 
-void 
-MCStateStackItem::setAssociatedClockVector(const MCClockVector &cv)
+bool 
+MCStateStackItem::isRevertible() const
 {
-    this->clockVector = cv;
+    return this->reversibleInState;
 }
 
 void 

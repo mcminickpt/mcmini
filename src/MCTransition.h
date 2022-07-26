@@ -139,37 +139,7 @@ public:
     virtual std::shared_ptr<MCTransition>
     dynamicCopyInState(const MCState* state) const = 0;
 
-    /**
-     * Performs the actions represented by this transition
-     *
-     * This method should modify the appropriate objects the
-     * transition interacts with so that those objects are in a
-     * state reflecting the fact that this transition has been
-     * executed.
-     *
-     * When implementing this method for your transition
-     * subclasses, you can assume that any object references have
-     * been resolved to point to live objects and not to copies of
-     * those objects. See `MCTransition::dynamicCopyInState()` and
-     * `MCTransition::staticCopy()` for more details.
-     *
-     * ** Important **
-     *
-     * It is critical that the transition update state correctly to
-     * match the semantics of the operation it represents.
-     * Failing to correctly apply the transition to match the
-     * semantics of the operation will again result in McMini
-     * misrepresenting states, which could lead to deadlock. See
-     * the discussion about `MCTransition::enabledInState()` for
-     * more details on how McMini relies on the state.
-     *
-     * @param state the state representation to modify. Any object
-     * references held onto by this instance refer to live objects
-     * in this state
-     */
-    virtual void applyToState(MCState *state) = 0;
-
-    /**
+        /**
      * Determines whether the thread running this transition would
      * be able to execute the transition without blocking
      *
@@ -219,6 +189,61 @@ public:
     {
         return true;
     }
+
+    /**
+     * Performs the actions represented by this transition
+     *
+     * This method should modify the appropriate objects the
+     * transition interacts with so that those objects are in a
+     * state reflecting the fact that this transition has been
+     * executed.
+     *
+     * When implementing this method for your transition
+     * subclasses, you can assume that any object references have
+     * been resolved to point to live objects and not to copies of
+     * those objects. See `MCTransition::dynamicCopyInState()` and
+     * `MCTransition::staticCopy()` for more details.
+     *
+     * ** Important **
+     *
+     * It is critical that the transition update state correctly to
+     * match the semantics of the operation it represents.
+     * Failing to correctly apply the transition to match the
+     * semantics of the operation will again result in McMini
+     * misrepresenting states, which could lead to deadlock. See
+     * the discussion about `MCTransition::enabledInState()` for
+     * more details on how McMini relies on the state.
+     *
+     * @param state the state representation to modify. Any object
+     * references held onto by this instance refer to live objects
+     * in this state
+     */
+    virtual void applyToState(MCState *state) = 0;
+
+    /**
+     * @brief 
+     * 
+     * @param state 
+     * @return true 
+     * @return false 
+     */
+    virtual bool 
+    isReversibleInState(const MCState *state) const
+    {
+        return false;
+    }
+
+    /**
+     * @brief 
+     * 
+     * @param state 
+     */
+    virtual void 
+    unapplyToState(MCState *state)
+    {
+        /* Do nothing by default */
+    }
+
 
     /**
      * Determines whether this transition is co-enabled with the
