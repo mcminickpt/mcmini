@@ -565,28 +565,35 @@ MCState::growTransitionStackRunning(const MCTransition &transition)
 void
 MCState::growStateStack()
 {
-    auto newState = std::make_shared<MCStateStackItem>();
+    this->growStateStack(MCClockVector::newEmptyClockVector(), false);
+}
+
+void 
+MCState::growStateStack(const MCClockVector &cv, bool revertible)
+{
+    auto newState = std::make_shared<MCStateStackItem>(cv, revertible);
     this->stateStackTop++;
     this->stateStack[this->stateStackTop] = newState;
 }
-
 
 void
 MCState::growStateStackWithTransition(const MCTransition &transition)
 {
     MC_ASSERT(this->stateStackTop >= 0);
 
-    MCStateStackItem &oldSTop = getStateStackTop();
+    const bool transitionIsRevertible = transition.isReversibleInState(this);
     const tid_t threadRunningTransition = transition.getThreadId();
     const unordered_set<tid_t> enabledThreads = computeEnabledThreads();
     MCThreadData &threadData = getThreadDataForThread(threadRunningTransition);
+    MCStateStackItem &oldSTop = getStateStackTop();
 
     // NOTE: Compute the clock vector BEFORE growing the state
     // stack. The clock vectors in the state stack *prior to* expansion
     // are searched 
     MCClockVector cv = transitionStackMaxClockVector(transition);
+    cv[threadRunningTransition] = this->transitionStackTop;
 
-    this->growStateStack();
+    this->growStateStack(cv, transitionIsRevertible);
 
     MCStateStackItem &newSTop = getStateStackTop();
     const unordered_set<tid_t> oldSleepSet = oldSTop.getSleepSet();
@@ -612,8 +619,6 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     // the transition (S' = S.t). Since state stack growth occurs
     // *after* the transition stack grows, the index
     // will be what the new current top of the transition stack points to
-    cv[threadRunningTransition] = this->transitionStackTop;
-    newSTop.setAssociatedClockVector(cv);
     threadData.setClockVector(cv);
 }
 

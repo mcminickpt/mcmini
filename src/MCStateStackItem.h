@@ -100,15 +100,25 @@ private:
     std::unordered_set<tid_t> enabledThreads;
 
     /**
-     * @brief 
-     * 
+     * @brief The clock vector associated with the 
+     * transition resulting in this state
      */
-    MCClockVector clockVector;
+    const MCClockVector clockVector;
+
+    /**
+     * @brief Whether or not the transition
+     * leaving from this state can be reverted
+     * to bring the concurrent system back into the
+     * given state
+     */
+    const bool reversibleInState;
 
 public:
 
-    MCStateStackItem(const MCClockVector &cv) : clockVector(cv) {}
-    MCStateStackItem() : MCStateStackItem(MCClockVector::newEmptyClockVector()) {}
+    MCStateStackItem() : MCStateStackItem(MCClockVector::newEmptyClockVector(), false) {}
+
+    MCStateStackItem(const MCClockVector &cv, const bool reversibleInState) : 
+    clockVector(cv), reversibleInState(reversibleInState) {}
 
       /**
      * @brief Puts the given thread into the
@@ -166,7 +176,6 @@ public:
      */
     void markThreadsEnabledInState(const std::unordered_set<tid_t> &threads);
 
-    void setAssociatedClockVector(const MCClockVector &cv);
     MCClockVector getClockVector() const;
     std::unordered_set<tid_t> getEnabledThreadsInState() const;
     std::unordered_set<tid_t> getSleepSet() const;
@@ -206,6 +215,14 @@ public:
      * the sleep set, and false otherwise
      */
     bool threadIsInSleepSet(tid_t tid) const;
+    
+    /**
+     * @brief 
+     * 
+     * @return true 
+     * @return false 
+     */
+    bool isRevertible() const;
 
     /**
      * @brief Removes and returns a thread 
