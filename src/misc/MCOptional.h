@@ -19,7 +19,7 @@ class MCOptional final {
 public:
 
     Value 
-    value_or(Value defaultValue) 
+    value_or(Value defaultValue) const
     { 
         return _hasValue ? value : defaultValue;
     }
@@ -45,13 +45,13 @@ public:
      * value are undefined
      *
      */
-    Value
+    Value&
     unsafelyUnwrapped()
     {
         return value;
     }
 
-    Value
+    Value&
     unwrapped()
     {
         if (!hasValue()) {
