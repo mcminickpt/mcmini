@@ -80,7 +80,7 @@ MCStateStackItem::getClockVector() const
 bool 
 MCStateStackItem::isRevertible() const
 {
-    return this->reversibleInState;
+    return this->spawningTransitionCanRevertState;
 }
 
 void 

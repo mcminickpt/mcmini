@@ -107,18 +107,17 @@ private:
 
     /**
      * @brief Whether or not the transition
-     * leaving from this state can be reverted
-     * to bring the concurrent system back into the
-     * given state
+     * that creates this state can be reverted
+     * from this state
      */
-    const bool reversibleInState;
+    const bool spawningTransitionCanRevertState;
 
 public:
 
     MCStateStackItem() : MCStateStackItem(MCClockVector::newEmptyClockVector(), false) {}
 
     MCStateStackItem(const MCClockVector &cv, const bool reversibleInState) : 
-    clockVector(cv), reversibleInState(reversibleInState) {}
+    clockVector(cv), spawningTransitionCanRevertState(reversibleInState) {}
 
       /**
      * @brief Puts the given thread into the

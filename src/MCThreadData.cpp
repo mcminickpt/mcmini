@@ -19,9 +19,10 @@ MCThreadData::decrementExecutionDepthIfNecessary()
 }
 
 void 
-MCThreadData::resetExecutionDepth()
+MCThreadData::resetExecutionData()
 {
     this->executionDepth = 0;
+    this->executionPoints = MCSortedStack<uint32_t>();
 }
 
 MCClockVector 
@@ -39,11 +40,28 @@ MCThreadData::setClockVector(const MCClockVector &cv)
 uint32_t
 MCThreadData::getLatestExecutionPoint() const
 {
-    return this->latestExecutionPoint;
+    if (this->executionPoints.empty())
+        return static_cast<uint32_t>(0);
+    return this->executionPoints.top();
 }
 
 void 
-MCThreadData::setLatestExecutionPoint(const uint32_t lep)
+MCThreadData::pushNewLatestExecutionPoint(const uint32_t depth)
 {
-    this->latestExecutionPoint = lep;
+    if (!this->executionPoints.empty()) { 
+        MC_ASSERT(this->executionPoints.top() <= depth);
+    } 
+    this->executionPoints.push(depth);
+}
+
+void 
+MCThreadData::popLatestExecutionPoint()
+{
+    this->executionPoints.pop();
+}
+
+void 
+MCThreadData::popExecutionPointsGreaterThan(const uint32_t index)
+{
+    this->executionPoints.popGreaterThan(index);
 }
