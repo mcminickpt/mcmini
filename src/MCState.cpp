@@ -152,6 +152,18 @@ MCState::registerVisibleOperationType(MCType type, MCSharedMemoryHandler handler
     this->sharedMemoryHandlerTypeMap.insert({type, handler});
 }
 
+MCStateStackItem&
+MCState::getDepartingStateForTransitionAtIndex(int i) const
+{
+    return this->getStateItemAtIndex(i);
+}
+
+MCStateStackItem&
+MCState::getResultingStateForTransitionAtIndex(int i) const
+{
+    return this->getStateItemAtIndex(i + 1);
+}
+
 MCTransition&
 MCState::getTransitionAtIndex(int i) const
 {
@@ -468,8 +480,15 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(const MCTransition &S_i,
 void 
 MCState::virtuallyApplyTransition(const MCTransition &transition)
 {
-    std::shared_ptr< MCTransition> dynamicCopy = transition.dynamicCopyInState(this);
+    shared_ptr<MCTransition> dynamicCopy = transition.dynamicCopyInState(this);
     dynamicCopy->applyToState(this);
+}
+
+void 
+MCState::virtuallyUnapplyTransition(const MCTransition &transition)
+{
+    shared_ptr<MCTransition> dynamicCopy = transition.dynamicCopyInState(this);
+    dynamicCopy->unapplyToState(this);
 }
 
 void
@@ -478,28 +497,33 @@ MCState::virtuallyRunTransition(const MCTransition &transition)
     const tid_t tid = transition.getThreadId();
     this->virtuallyApplyTransition(transition);
     this->incrementThreadTransitionCountIfNecessary(transition);
-    this->updateLatestExecutionPointForThread(tid, this->transitionStackTop);
+    this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(this->transitionStackTop);
 }
 
 void 
 MCState::virtuallyRerunTransitionAtIndex(int i)
 {
+    MC_ASSERT(i >= 0);
     const MCTransition &transition = this->getTransitionAtIndex(i);
     const tid_t tid = transition.getThreadId();
     this->virtuallyApplyTransition(transition);
     this->incrementThreadTransitionCountIfNecessary(transition);
-    this->updateLatestExecutionPointForThread(tid, i);
-
-    // The clock vector for transition `i`
+    this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(i);
     MCClockVector cv = clockVectorForTransitionAtIndex(i);
     this->getThreadDataForThread(tid).setClockVector(cv);
 }
 
 void 
-MCState::updateLatestExecutionPointForThread(tid_t tid, uint32_t newLatestExecution)
+MCState::virtuallyRevertTransitionAtIndex(int i)
 {
-  this->getThreadDataForThread(tid)
-    .setLatestExecutionPoint(newLatestExecution);
+    MC_ASSERT(i >= 0);
+    const MCTransition &transition = this->getTransitionAtIndex(i);
+    const tid_t tid = transition.getThreadId();
+    this->virtuallyUnapplyTransition(transition);
+    this->decrementThreadTransitionCountIfNecessary(transition);
+    this->getThreadDataForThread(tid).popLatestExecutionPoint();
+    MCClockVector cv = clockVectorForTransitionAtIndex(i);
+    this->getThreadDataForThread(tid).setClockVector(cv);
 }
 
 void
@@ -523,6 +547,16 @@ MCState::incrementThreadTransitionCountIfNecessary(const MCTransition &transitio
         const tid_t tid = transition.getThreadId();
         MCThreadData &threadData = getThreadDataForThread(tid);
         threadData.incrementExecutionDepth();
+    }
+}
+
+void
+MCState::decrementThreadTransitionCountIfNecessary(const MCTransition &transition)
+{
+    if (transition.countsAgainstThreadExecutionDepth()) {
+        const tid_t tid = transition.getThreadId();
+        MCThreadData &threadData = getThreadDataForThread(tid);
+        threadData.decrementExecutionDepthIfNecessary();
     }
 }
 
@@ -620,6 +654,10 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
     // *after* the transition stack grows, the index
     // will be what the new current top of the transition stack points to
     threadData.setClockVector(cv);
+
+    // Push the transition
+    if (!transitionIsRevertible)
+        irreversibleStatesStack.push(this->stateStackTop);
 }
 
 MCClockVector 
@@ -647,7 +685,9 @@ MCState::transitionStackMaxClockVector(const MCTransition &transition)
 MCClockVector 
 MCState::clockVectorForTransitionAtIndex(int i) const
 {
-    return this->getStateItemAtIndex(i).getClockVector();
+    // The clock vector for transition `i` resides in
+    // *resulting* state after the transition is executed
+    return this->getResultingStateForTransitionAtIndex(i).getClockVector();
 }
 
 void
@@ -670,73 +710,97 @@ MCState::reset()
 }
 
 void
-MCState::reflectStateAtTransitionDepth(uint32_t depth)
+MCState::reflectStateAtTransitionIndex(uint32_t index)
 {
-    MC_ASSERT(depth <= this->transitionStackTop);
+    MC_ASSERT(index <= this->transitionStackTop);
 
     /*
      * Note that this is the number of threads at the *current* (last(S)) state
      * It's possible that some of these threads will be in the embryo state
      * at depth _depth_
      */
-    const auto numThreadsToProcess = this->getNumProgramThreads();
+    const uint64_t numThreadsToProcess = this->getNumProgramThreads();
+
+    // The `irreversibleStatesStack` has indices into the state stack
+    // while the `index` points into the transition stack. Thus
+    // we add 1 to be in the same "coordinate space".
+    const uint32_t stateStackIndex = index + 1;
+    const bool canRunReverseOperationsToIndex = stateStackIndex >= irreversibleStatesStack.top();
 
     /* The transition stack at this point is untouched */
 
-    // 1. Reset the state of all of the objects
-    this->objectStorage.resetObjectsToInitialStateInStore();
+    if (!canRunReverseOperationsToIndex) { 
+        // 1. Reset the state of all of the objects
+        this->objectStorage.resetObjectsToInitialStateInStore();
 
-    // Zero the thread depth counts
-    for (tid_t tid = 0; tid < this->nextThreadId; tid++)
-        getThreadDataForThread(tid).resetExecutionDepth();
+        // Zero the thread depth counts
+        for (tid_t tid = 0; tid < this->nextThreadId; tid++)
+            getThreadDataForThread(tid).resetExecutionData();
 
-    /*
-     * Then, replay the transitions in the transition stack forward in time
-     * up until the specified depth. Note we include the _depth_ value itself
-     */
-    for (uint32_t i = 0u; i <= depth; i ++)
-        this->virtuallyRerunTransitionAtIndex(i);
+        /*
+        * Then, replay the transitions in the transition stack forward in time
+        * up until the specified depth. Note we include the _depth_ value itself
+        */
+        for (uint32_t i = 0u; i <= index; i++)
+            this->virtuallyRerunTransitionAtIndex(i);
+    } else { 
+        for (tid_t tid = 0; tid < this->nextThreadId; tid++)
+            getThreadDataForThread(tid).popExecutionPointsGreaterThan(index);
+
+        for (uint32_t i = this->transitionStackTop; i > index; i--)
+            this->virtuallyRevertTransitionAtIndex(i);
+    }
 
     {
         /*
          * Finally, fill in the set of next transitions by
          * following the transition stack from the top to _depth_ since
          * this implicitly holds what each thread *was* doing next
+         * 
+         * To reduce the number of dynamic copies, we can simply keep track
+         * of the _smallest_ index in the transition stack *greater than _depth_*
+         * for each thread, as that would have to be the most recent transition that
+         * that thread would have wanted to run next at transition depth _depth_
          */
 
-        // To reduce the number of dynamic copies, we can simply keep track
-        // of the _smallest_ index in the transition stack *greater than _depth_*
-        // for each thread, as that would have to be the most recent transition that
-        // that thread would have wanted to run next at transition depth _depth_
-        std::unordered_map<tid_t, uint32_t> mapThreadToClosestTransitionIndexToDepth;
-
-        for (auto i = this->transitionStackTop; i > depth; i--) {
-            const auto tid = this->getThreadRunningTransitionAtIndex(i);
-            mapThreadToClosestTransitionIndexToDepth[tid] = i;
+        std::unordered_map<tid_t, uint32_t> threadToClosestIndexMap;
+        for (int i = this->transitionStackTop; i > index; i--) {
+            const tid_t tid = this->getThreadRunningTransitionAtIndex(i);
+            threadToClosestIndexMap[tid] = i;
         }
 
-        for (const auto &elem : mapThreadToClosestTransitionIndexToDepth) {
-            auto tid = elem.first;
-            auto tStackIndex = elem.second;
-            this->nextTransitions[tid] = this->getTransitionAtIndex(tStackIndex).dynamicCopyInState(this);
+        for (const pair<tid_t, uint32_t> &elem : threadToClosestIndexMap) {
+            const tid_t tid = elem.first;
+            const uint32_t latestIndex = elem.second;
+            const MCThreadData &tData = this->getThreadDataForThread(tid);
+            const MCTransition &transition = this->getTransitionAtIndex(latestIndex);
+            const auto dynamicCopy = transition.dynamicCopyInState(this);
+            this->setNextTransitionForThread(tid, dynamicCopy);
         }
 
         /*
          * For threads that didn't run after depth _depth_, we still need to update
          * those transitions to reflect the new dynamic state since the objects
-         * those transitions refer to are no longer valid
+         * those transitions refer to are no longer valid. But if we can reverse
+         * the transitions,
          */
-        for (auto tid = 0; tid < numThreadsToProcess; tid++) {
-            if (mapThreadToClosestTransitionIndexToDepth.count(tid) == 0) {
-                this->nextTransitions[tid] = this->nextTransitions[tid]->dynamicCopyInState(this);
+        if (!canRunReverseOperationsToIndex) { 
+            for (tid_t tid = 0; tid < numThreadsToProcess; tid++) {
+                if (threadToClosestIndexMap.count(tid) == 0) {
+                    this->setNextTransitionForThread(tid, 
+                        this->getPendingTransitionForThread(tid).dynamicCopyInState(this));
+                }
             }
         }
     }
 
+    // Keep the set of irreversible states up to date
+    irreversibleStatesStack.popGreaterThan(stateStackIndex);
+
     {
         /* Reset where we now are in the transition/state stacks */
-        this->transitionStackTop = depth;
-        this->stateStackTop = depth + 1;
+        this->transitionStackTop = index;
+        this->stateStackTop = index + 1;
     }
 }
 

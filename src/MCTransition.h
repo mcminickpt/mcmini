@@ -221,11 +221,25 @@ public:
     virtual void applyToState(MCState *state) = 0;
 
     /**
-     * @brief 
+     * @brief Whether or not the transition can be reverted
+     * in the given state
      * 
-     * @param state 
-     * @return true 
-     * @return false 
+     * It's possible that a transition's effects can be 
+     * reverted. In such cases, override this method
+     * and return `true` and implement the 
+     * `MCTransition::unapplyToState(MCState*)` method.
+     * 
+     * McMini will use this information
+     * to dynamically determine if it can simply undo
+     * the effects of a sequence of reversible transitions 
+     * instead of resetting all of its local state for 
+     * backtracking. This can improve performance as 
+     * McMini would not be forced to restore shadow object 
+     * states.
+     * 
+     * @param state the state in which to determine reversibility
+     * @return true if the transition can be reversed in the given state,
+     * and false otherwise
      */
     virtual bool 
     isReversibleInState(const MCState *state) const
@@ -234,14 +248,43 @@ public:
     }
 
     /**
-     * @brief 
+     * Reverts the actions represented by this transition
+     *
+     * This method should modify the appropriate objects the
+     * transition interacts with so that those objects are in a
+     * state reflecting the fact that this transition has been
+     * _reverted_.
+     *
+     * As with `MCState::applyToState(MCState*)`,
+     * you can assume that any object references have
+     * been resolved to point to live objects and not to copies of
+     * those objects. See `MCTransition::dynamicCopyInState()` and
+     * `MCTransition::staticCopy()` for more details.
+     *
+     * ** Important **
      * 
-     * @param state 
+     * It is critical that the transition undo state correctly to
+     * match the (reverted) semantics of the operation it represents.
+     * In particular, the effect of unapplying the transition must be
+     * the EXACT opposite of applying the transition.
+     * Failing to correctly unapply the transition to match the
+     * semantics of the operation will result in McMini
+     * misrepresenting states, which could lead to deadlock. See
+     * the discussion about `MCTransition::enabledInState()` for
+     * more details on how McMini relies on the state.
+     *
+     * @param state the state representation to modify. Any object
+     * references held onto by this instance refer to live objects
+     * in this state
+     * 
+     * @throws std::runtime_error if you attempt to unapply the 
+     * transition when it's unsupported
      */
     virtual void 
     unapplyToState(MCState *state)
     {
-        /* Do nothing by default */
+        if (!isReversibleInState(state))
+            throw std::runtime_error("Attempted to revert a transition that cannot be reverted");
     }
 
 

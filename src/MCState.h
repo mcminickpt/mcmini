@@ -15,27 +15,13 @@ typedef MCTransition*(*MCSharedMemoryHandler)(const MCSharedTransition*, void*, 
 #include "MCClockVector.hpp"
 #include "MCThreadData.hpp"
 #include "objects/MCThread.h"
-#include <typeinfo>
+#include "misc/MCTypes.hpp"
+#include "misc/MCSortedStack.hpp"
+
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-using TypeInfoRef = std::reference_wrapper<const std::type_info>;
-using MCType = const std::type_info&;
-
-struct TypeHasher {
-    std::size_t operator()(TypeInfoRef code) const
-    {
-        return code.get().hash_code();
-    }
-};
-
-struct TypesEqual {
-    bool operator()(TypeInfoRef lhs, TypeInfoRef rhs) const
-    {
-        return lhs.get() == rhs.get();
-    }
-};
+#include <stack>
 
 class MCState {
 private:
@@ -61,7 +47,7 @@ private:
     std::shared_ptr<MCTransition> nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
 
     /**
-     * @brief 
+     * @brief Thread data
      * 
      */
     MCThreadData threadData[MAX_TOTAL_THREADS_IN_PROGRAM];
@@ -88,8 +74,19 @@ private:
     std::unordered_map<TypeInfoRef, MCSharedMemoryHandler, TypeHasher, TypesEqual>
     sharedMemoryHandlerTypeMap;
 
-    /* Maps thread ids to their respective object ids */
+    /**
+     * @brief Maps thread ids to their respective object ids
+     */
     std::unordered_map<tid_t, objid_t> threadIdMap;
+
+    /**
+     * @brief A stack of indices into the state
+     * stack which identify states at which
+     * 
+     * @invariant For elements e_i and e_j at indices
+     * i and j, e_i < e_j <--> i < j
+     */
+    MCSortedStack<int> irreversibleStatesStack;
 
 private:
 
@@ -104,9 +101,11 @@ private:
     void growStateStack(const MCClockVector &cv, bool revertible);
     void growStateStackWithTransition(const MCTransition&);
     void growTransitionStackRunning(const MCTransition&);
-    void virtuallyRunTransition(const MCTransition&);
     void virtuallyApplyTransition(const MCTransition&);
+    void virtuallyRunTransition(const MCTransition&);
     void virtuallyRerunTransitionAtIndex(int);
+    void virtuallyUnapplyTransition(const MCTransition&);
+    void virtuallyRevertTransitionAtIndex(int);
     MCClockVector transitionStackMaxClockVector(const MCTransition&);
     MCClockVector clockVectorForTransitionAtIndex(int i) const;
 
@@ -122,7 +121,7 @@ private:
       int i, int p);
 
     void incrementThreadTransitionCountIfNecessary(const MCTransition&);
-    void updateLatestExecutionPointForThread(tid_t, uint32_t);
+    void decrementThreadTransitionCountIfNecessary(const MCTransition&);
     uint32_t totalThreadExecutionDepth() const;
     
     MCThreadData &getThreadDataForThread(tid_t tid);
@@ -137,6 +136,8 @@ public:
     MCTransition &getPendingTransitionForThread(tid_t) const;
     MCTransition &getTransitionAtIndex(int) const;
     MCTransition &getTransitionStackTop() const;
+    MCStateStackItem &getDepartingStateForTransitionAtIndex(int) const;
+    MCStateStackItem &getResultingStateForTransitionAtIndex(int) const;
     MCStateStackItem &getStateItemAtIndex(int) const;
     MCStateStackItem &getStateStackTop() const;
 
@@ -198,7 +199,7 @@ public:
     // Restarting
     void start();
     void reset();
-    void reflectStateAtTransitionDepth(uint32_t);
+    void reflectStateAtTransitionIndex(uint32_t);
 
     // TODO: De-couple priting from the state stack + transitions somehow
     /* Printing */

@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 #include <vector>
+#include <stack>
 #include "MCClockVector.hpp"
+#include "misc/MCSortedStack.hpp"
 
 /**
  * @brief A simple C-like struct that McMini associates
@@ -14,20 +16,35 @@ struct MCThreadData final {
     uint32_t getExecutionDepth() const;
     void incrementExecutionDepth();
     void decrementExecutionDepthIfNecessary();
-    void resetExecutionDepth();
 
     MCClockVector getClockVector() const;
     void setClockVector(const MCClockVector &);
 
     uint32_t getLatestExecutionPoint() const;
-    void setLatestExecutionPoint(const uint32_t);
+    void pushNewLatestExecutionPoint(const uint32_t);
+    void popLatestExecutionPoint();
+    void popExecutionPointsGreaterThan(const uint32_t);
+
+    void resetExecutionData();
 
 private:
 
+    /**
+     * @brief 
+     * 
+     */
     uint32_t executionDepth = 0u;
 
-    uint32_t latestExecutionPoint = 0u;
+    /**
+     * @brief 
+     * 
+     */
+    MCSortedStack<uint32_t> executionPoints;
 
+    /**
+     * @brief 
+     * 
+     */
     MCClockVector clockVector = MCClockVector::newEmptyClockVector();
 };
 

@@ -131,7 +131,7 @@ mc_scheduler_main()
             // is enabled in this state
             tid_t backtrackThread = sTop.popThreadToBacktrackOn();
 
-            programState->reflectStateAtTransitionDepth(curTransitionStackDepth - 1);
+            programState->reflectStateAtTransitionIndex(curTransitionStackDepth - 1);
             const MCTransition &backtrackOperation = programState->getNextTransitionForThread(backtrackThread);
 
             program = mc_enter_gdb_debugging_session_if_necessary(traceId);
