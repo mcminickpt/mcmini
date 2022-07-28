@@ -36,7 +36,7 @@ MCThreadFinish::applyToState(MCState *state)
 
 bool
 MCThreadFinish::enabledInState(const MCState *) const {
-    return thread->enabled() && thread->tid != TID_MAIN_THREAD;
+    return thread->tid != TID_MAIN_THREAD;
 }
 
 bool

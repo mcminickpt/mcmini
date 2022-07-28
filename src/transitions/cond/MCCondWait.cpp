@@ -64,8 +64,7 @@ MCCondWait::applyToState(MCState *state)
 bool
 MCCondWait::enabledInState(const MCState *) const {
     const auto threadId = this->getThreadId();
-    return this->thread->enabled() &&
-            this->conditionVariable->threadCanExit(threadId) &&
+    return this->conditionVariable->threadCanExit(threadId) &&
             this->conditionVariable->mutex->canAcquire(threadId);
 }
 

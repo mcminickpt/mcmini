@@ -47,12 +47,6 @@ MCMutexUnlock::applyToState(MCState *state)
 }
 
 bool
-MCMutexUnlock::enabledInState(const MCState *state) const
-{
-    return this->thread->enabled();
-}
-
-bool
 MCMutexUnlock::coenabledWith(const MCTransition *transition) const
 {
     return true;
