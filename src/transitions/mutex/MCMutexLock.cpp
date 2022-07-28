@@ -49,7 +49,7 @@ MCMutexLock::applyToState(MCState *state)
 bool
 MCMutexLock::enabledInState(const MCState *state) const
 {
-    return this->thread->enabled() && this->mutex->canAcquire(this->getThreadId());
+    return this->mutex->canAcquire(this->getThreadId());
 }
 
 bool

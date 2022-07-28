@@ -15,7 +15,6 @@ public:
     void applyToState(MCState *) override;
     bool coenabledWith(const MCTransition*) const override;
     bool dependentWith(const MCTransition*) const override;
-    bool enabledInState(const MCState *) const override;
 
     void print() const override;
 };

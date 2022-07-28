@@ -37,7 +37,7 @@ MCThreadJoin::dynamicCopyInState(const MCState *state) const
 
 bool
 MCThreadJoin::enabledInState(const MCState *) const {
-    return thread->enabled() && target->getState() == MCThreadShadow::dead;
+    return target->getState() == MCThreadShadow::dead;
 }
 
 void
