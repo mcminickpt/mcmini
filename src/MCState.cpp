@@ -21,9 +21,7 @@ MCState::transitionIsEnabled(const MCTransition& transition)
     const tid_t tid = transition.getThreadId();
     const MCThreadData &threadData = getThreadDataForThread(tid);
     const unsigned numExecutions = threadData.getExecutionDepth();
-    const bool threadEnabledAccordingToConfig = numExecutions < this->configuration.maxThreadExecutionDepth;
-    const bool threadCanRunPastThreadDepthLimit = this->getThreadWithId(tid)->isInThreadCriticalSection;
-    const bool threadNotRestrictedByThreadExecutionDepth = threadEnabledAccordingToConfig || threadCanRunPastThreadDepthLimit;
+    const bool threadNotRestrictedByThreadExecutionDepth = numExecutions < this->configuration.maxThreadExecutionDepth;
     return threadNotRestrictedByThreadExecutionDepth && transition.enabledInState(this);
 }
 
@@ -226,7 +224,7 @@ MCState::computeEnabledThreads()
 }
 
 bool
-MCState::programIsInDeadlock() const
+MCState::isInDeadlock() const
 {
     /*
      * We artificially restrict deadlock reports to those in which the total
@@ -253,24 +251,7 @@ MCState::programIsInDeadlock() const
 }
 
 bool
-MCState::programAchievedForwardProgressGoals() const
-{
-    /* We've only need to check forward progress conditions when enabled */
-    if (!configuration.expectForwardProgressOfThreads) return true;
-
-    const auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
-        const auto thread = this->getThreadWithId(i);
-
-        if ( !thread->isInThreadCriticalSection && !thread->hasEncounteredThreadProgressGoal()) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool
-MCState::programHasADataRaceWithNewTransition(const MCTransition &transition) const
+MCState::hasADataRaceWithNewTransition(const MCTransition &transition) const
 {
     /*
      * There is a data race if, at any point in the program,
@@ -784,20 +765,6 @@ MCState::printNextTransitions() const
     auto numThreads = this->getNumProgramThreads();
     for (auto i = 0; i < numThreads; i++) {
         this->getPendingTransitionForThread(i).print();
-    }
-    printf("END\n");
-    mcflush();
-}
-
-void
-MCState::printForwardProgressViolations() const
-{
-    printf("VIOLATIONS\n");
-    auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
-        if (!this->getThreadWithId(i)->hasEncounteredThreadProgressGoal()) {
-            printf("thread %lu\n", (tid_t)i);
-        }
     }
     printf("END\n");
     mcflush();

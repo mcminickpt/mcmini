@@ -380,7 +380,7 @@ mc_exhaust_threads(const MCTransition &initialTransition)
         /* Check for data races */
         {
             const MCTransition &pendingTransition = programState->getPendingTransitionForThread(tid);
-            if (programState->programHasADataRaceWithNewTransition(pendingTransition)) {
+            if (programState->hasADataRaceWithNewTransition(pendingTransition)) {
                 mcprintf("*** DATA RACE DETECTED ***\n");
                 programState->printTransitionStack();
                 programState->printNextTransitions();
@@ -388,9 +388,8 @@ mc_exhaust_threads(const MCTransition &initialTransition)
         }
     } while ((t_next = programState->getFirstEnabledTransitionFromNextStack()) != nullptr);
 
-    const bool programIsInDeadlock = programState->programIsInDeadlock();
-    const bool programAchievedForwardProgressGoals = programState->programAchievedForwardProgressGoals();
-    const bool programHasNoErrors = !programIsInDeadlock && programAchievedForwardProgressGoals;
+    const bool programIsInDeadlock = programState->isInDeadlock();
+    const bool programHasNoErrors = !programIsInDeadlock;
 
     if (programIsInDeadlock) {
         puts("*** DEADLOCK DETECTED ***");
@@ -402,13 +401,6 @@ mc_exhaust_threads(const MCTransition &initialTransition)
             mcprintf("Number of transitions: %lu\n", transitionId);
             mc_exit(EXIT_SUCCESS);
         }
-    }
-
-    if (!programAchievedForwardProgressGoals) {
-        mcprintf("*** FORWARD PROGRESS VIOLATION DETECTED ***\n");
-        programState->printTransitionStack();
-        programState->printNextTransitions();
-        programState->printForwardProgressViolations();
     }
 
     if (programHasNoErrors) {

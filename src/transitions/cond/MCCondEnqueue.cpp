@@ -76,7 +76,7 @@ MCCondEnqueue::coenabledWith(const MCTransition *other) const
     const MCMutexTransition *maybeMutexOperation = dynamic_cast<const MCMutexTransition*>(other);
     if (maybeMutexOperation) {
         auto unlockMutex = std::make_shared<MCMutexUnlock>(this->thread, this->conditionVariable->mutex);
-        return MCTransitionFactory::transitionsCoenabledCommon(unlockMutex.get(), maybeMutexOperation);
+        return MCTransition::coenabledTransitions(unlockMutex.get(), maybeMutexOperation);
     }
 
     return true;
@@ -93,7 +93,7 @@ MCCondEnqueue::dependentWith(const MCTransition *other) const
     const MCMutexTransition *maybeMutexOperation = dynamic_cast<const MCMutexTransition*>(other);
     if (maybeMutexOperation) {
         auto unlockMutex = std::make_shared<MCMutexUnlock>(this->thread, this->conditionVariable->mutex);
-        return MCTransitionFactory::transitionsCoenabledCommon(unlockMutex.get(), maybeMutexOperation);
+        return MCTransition::coenabledTransitions(unlockMutex.get(), maybeMutexOperation);
     }
     return false;
 }
