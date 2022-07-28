@@ -183,9 +183,8 @@ public:
 
     void dynamicallyUpdateBacktrackSets();
 
-    bool programIsInDeadlock() const;
-    bool programAchievedForwardProgressGoals() const;
-    bool programHasADataRaceWithNewTransition(const MCTransition&) const;
+    bool isInDeadlock() const;
+    bool hasADataRaceWithNewTransition(const MCTransition&) const;
 
     MCStateConfiguration getConfiguration() const;
 
@@ -204,7 +203,6 @@ public:
     /* Printing */
     void printTransitionStack() const;
     void printNextTransitions() const;
-    void printForwardProgressViolations() const;
 };
 
 #endif //MC_MCSTATE_H

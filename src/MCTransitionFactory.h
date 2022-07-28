@@ -11,8 +11,6 @@ public:
 
     // Factory methods
     static std::shared_ptr<MCTransition> createInitialTransitionForThread(const std::shared_ptr<MCThread> &thread);
-    static bool transitionsCoenabledCommon(const MCTransition *t1, const MCTransition *t2);
-    static bool transitionsDependentCommon(const MCTransition *t1, const MCTransition *t2);
 };
 
 #endif //MC_MCTRANSITIONFACTORY_H

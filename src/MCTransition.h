@@ -56,31 +56,17 @@
  * actually does, McMini could be left in a deadlock.
  */
 struct MCTransition {
-protected:
-    std::shared_ptr<MCThread> thread;
 public:
     MCTransition(std::shared_ptr<MCThread> thread) : thread(thread) {}
     MCTransition(const MCTransition&) = default;
     MCTransition &operator=(const MCTransition&) = default;
 
-    /**
-     * FIXME: Move this to a different class potentially
-     * @return
-     */
     static bool dependentTransitions(const MCTransition&, const MCTransition&);
     static bool dependentTransitions(const MCTransition*, const MCTransition*);
 
-    /**
-     *  FIXME: Move this to a different class potentially
-     * @return
-     */
     static bool coenabledTransitions(const MCTransition&, const MCTransition&);
     static bool coenabledTransitions(const MCTransition*, const MCTransition*);
 
-    /**
-     * FIXME: Move this to a different class potentially
-     * @return
-     */
     static bool transitionsInDataRace(const MCTransition&, const MCTransition&);
     static bool transitionsInDataRace(const MCTransition*, const MCTransition*);
 
@@ -438,11 +424,25 @@ public:
     inline tid_t
     getThreadId() const
     {
-        return thread->tid;
+        return this->thread->tid;
     }
 
     // FIXME: De-couple printing from the interface
     virtual void print() const {}
+
+protected:
+
+    /**
+     * @brief 
+     * 
+     */
+    std::shared_ptr<MCThread> thread;
+
+private:
+
+    static bool transitionsCoenabledCommon(const MCTransition *t1, const MCTransition *t2);
+    static bool transitionsDependentCommon(const MCTransition *t1, const MCTransition *t2);
+
 };
 
 #endif //MC_MCTRANSITION_H
