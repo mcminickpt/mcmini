@@ -7,6 +7,8 @@
 #include <memory>
 #include <utility>
 
+struct MCState;
+
 /**
  * A base class representing a fundamental unit in DPOR: the
  * transition
@@ -69,6 +71,9 @@ public:
 
     static bool transitionsInDataRace(const MCTransition&, const MCTransition&);
     static bool transitionsInDataRace(const MCTransition*, const MCTransition*);
+
+    static bool transitionEnabledInState(const MCState*, const MCTransition&);
+    static bool transitionEnabledInState(const MCState*, const MCTransition*);
 
     /**
      * Creates a deep copy of this transition
@@ -180,13 +185,16 @@ public:
      * `MCTransition::dynamicCopyInState()` and
      * `MCTransition::staticCopy()` for more details.
      *
-     * Note that you do not need to check thread execution depths
+     * You do not need to check thread execution depths
      * when determining whether a transition is enabled: McMini
      * transparently prevents scheduling threads from executing
      * which have run past their execution depth limits (see
      * `MCState.cpp` and
      * `MCTransition::countsAgainstThreadExecutionDepth()` for more
-     * details).
+     * details). Furthermore, McMini also checks whether the thread
+     * executing this transition is enabled in the first place. Thus
+     * you can assume that the thread executing the transition
+     * is alive
      *
      *  ** Important **
      *
@@ -199,16 +207,8 @@ public:
      * don't match the semantics of the transition, McMini might
      * deadlock waiting for a thread that will never wake up.
      *
-     * By default, McMini treats a transition as enabled
-     * if the thread running it is alive (i.e not sleeping
-     * or a zombie)
-     *
-     * FIXME: We should have a `transitionEnabledCommon()` that
-     * simply checks if the thread itself is alive
-     * (thread->enabled()) that acts similar to the
-     * `transitionsDependentCommon()` and
-     * `transitionsCoenabledCommon()`. This will be easy
-
+     * By default, the method returns `true`.
+     * 
      * @param state a description of the state to run from
      * @return whether the thread can execute past the given
      * transition if it were tested in the state provided as an
@@ -217,7 +217,7 @@ public:
     virtual bool
     enabledInState(const MCState *state) const
     {
-        return thread->enabled();
+        return true;
     }
 
     /**
@@ -241,7 +241,7 @@ public:
      * be co-enabled with transitions of this type.
      *
      * Furthermore, McMini already handles the "standard" set of
-     * conditions under which two transitions are enabled. Thus,
+     * conditions under which two transitions are coenabled. Thus,
      * you can write and conditions for determining if this
      * transitions is co-enabled with the given one assuming that
      *
@@ -425,6 +425,26 @@ public:
     getThreadId() const
     {
         return this->thread->tid;
+    }
+
+    /**
+     * @brief Whether or not the thread
+     * running this transition can currently
+     * execute
+     * 
+     * A thread may not be able to execute
+     * a transition if it is e.g. asleep
+     * or an embryo thread. In the case that
+     * the thread is an embryo, it should not
+     * be able to run any transitions
+     * 
+     * @return true is the thread is in the 
+     * alive state, and false otherwise
+     */
+    inline bool
+    threadIsEnabled() const
+    {
+        return this->thread->enabled();
     }
 
     // FIXME: De-couple printing from the interface
