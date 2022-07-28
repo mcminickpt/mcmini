@@ -22,7 +22,7 @@ MCState::transitionIsEnabled(const MCTransition& transition)
     const MCThreadData &threadData = getThreadDataForThread(tid);
     const unsigned numExecutions = threadData.getExecutionDepth();
     const bool threadNotRestrictedByThreadExecutionDepth = numExecutions < this->configuration.maxThreadExecutionDepth;
-    return threadNotRestrictedByThreadExecutionDepth && transition.enabledInState(this);
+    return threadNotRestrictedByThreadExecutionDepth && MCTransition::transitionEnabledInState(this, transition);
 }
 
 MCTransition&
@@ -214,10 +214,11 @@ MCState::getFirstEnabledTransitionFromNextStack()
 std::unordered_set<tid_t>
 MCState::computeEnabledThreads()
 {
-    auto enabledThreadsInState = std::unordered_set<tid_t>();
-    const auto numThreads = this->getNumProgramThreads();
-    for (auto i = 0; i < numThreads; i++) {
-        if (this->getNextTransitionForThread(i).enabledInState(this))
+    std::unordered_set<tid_t> enabledThreadsInState;
+    const uint32_t numThreads = this->getNumProgramThreads();
+    for (uint32_t i = 0; i < numThreads; i++) {
+        MCTransition &next = this->getNextTransitionForThread(i);
+        if (MCTransition::transitionEnabledInState(this, next))
             enabledThreadsInState.insert(i);
     }
     return enabledThreadsInState;
@@ -244,7 +245,7 @@ MCState::isInDeadlock() const
         // We don't use the wrapper here (this->transitionIsEnabled)
         // because we only care about if the schedule *could* keep going:
         // we wouldn't be in deadlock if we artificially restricted the threads
-        if (nextTransitionForTid.enabledInState(this))
+        if (MCTransition::transitionEnabledInState(this, nextTransitionForTid))
             return false;
     }
     return true;

@@ -1,7 +1,8 @@
 #include "MCTransition.h"
+#include "MCState.h"
 #include "transitions/threads/MCThreadDefs.h"
 
-bool
+bool 
 MCTransition::dependentTransitions(const MCTransition &t1, const MCTransition &t2)
 {
     return MCTransition::dependentTransitions(&t1, &t2);
@@ -10,37 +11,50 @@ MCTransition::dependentTransitions(const MCTransition &t1, const MCTransition &t
 bool
 MCTransition::coenabledTransitions(const MCTransition &t1, const MCTransition &t2)
 {
-   return MCTransition::coenabledTransitions(&t1, &t2);
+    return MCTransition::coenabledTransitions(&t1, &t2);
 }
 
-bool
+bool 
 MCTransition::transitionsInDataRace(const MCTransition &t1, const MCTransition &t2)
 {
     return MCTransition::transitionsInDataRace(&t1, &t2);
 }
 
 bool
+MCTransition::transitionEnabledInState(const MCState *state, const MCTransition &t1)
+{
+    return MCTransition::transitionEnabledInState(state, &t1);
+}
+
+bool 
 MCTransition::dependentTransitions(const MCTransition *t1, const MCTransition *t2)
 {
     return MCTransition::transitionsDependentCommon(t1, t2) || t1->dependentWith(t2) || t2->dependentWith(t1);
 }
 
-bool
+bool 
 MCTransition::coenabledTransitions(const MCTransition *t1, const MCTransition *t2)
 {
     return MCTransition::transitionsCoenabledCommon(t1, t2) && t1->coenabledWith(t2) && t2->coenabledWith(t1);
 }
 
-bool
+bool 
 MCTransition::transitionsInDataRace(const MCTransition *t1, const MCTransition *t2)
 {
     return t1->isRacingWith(t2) || t2->isRacingWith(t1);
 }
 
-bool
+bool 
+MCTransition::transitionEnabledInState(const MCState *state, const MCTransition *t1)
+{
+    // Is the thread enabled?
+    return t1->threadIsEnabled() && t1->enabledInState(state);
+}
+
+bool 
 MCTransition::transitionsCoenabledCommon(const MCTransition *t1, const MCTransition *t2)
 {
-    if (t1->getThreadId() == t2->getThreadId()) 
+    if (t1->getThreadId() == t2->getThreadId())
         return false;
 
     {
@@ -48,7 +62,7 @@ MCTransition::transitionsCoenabledCommon(const MCTransition *t1, const MCTransit
         if (maybeThreadCreate_t1 != nullptr)
             return !maybeThreadCreate_t1->doesCreateThread(t2->getThreadId());
 
-        const MCThreadCreate * maybeThreadCreate_t2 = dynamic_cast<const MCThreadCreate*>(t2);
+        const MCThreadCreate *maybeThreadCreate_t2 = dynamic_cast<const MCThreadCreate*>(t2);
         if (maybeThreadCreate_t2)
             return !maybeThreadCreate_t2->doesCreateThread(t1->getThreadId());
     }
@@ -66,7 +80,7 @@ MCTransition::transitionsCoenabledCommon(const MCTransition *t1, const MCTransit
     return true;
 }
 
-bool
+bool 
 MCTransition::transitionsDependentCommon(const MCTransition *t1, const MCTransition *t2)
 {
     if (t1->getThreadId() == t2->getThreadId())
@@ -77,7 +91,7 @@ MCTransition::transitionsDependentCommon(const MCTransition *t1, const MCTransit
         if (maybeThreadCreate_t1 != nullptr)
             return maybeThreadCreate_t1->doesCreateThread(t2->getThreadId());
 
-        const MCThreadCreate * maybeThreadCreate_t2 = dynamic_cast<const MCThreadCreate*>(t2);
+        const MCThreadCreate *maybeThreadCreate_t2 = dynamic_cast<const MCThreadCreate*>(t2);
         if (maybeThreadCreate_t2)
             return maybeThreadCreate_t2->doesCreateThread(t1->getThreadId());
     }
