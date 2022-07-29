@@ -46,6 +46,25 @@ MCMutexUnlock::applyToState(MCState *state)
     this->mutex->unlock();
 }
 
+void 
+MCMutexUnlock::unapplyToState(MCState *state)
+{
+    // Assumes that we were holding onto the lock
+    // before executing the unlock operation! 
+    //
+    // If we execute an unlock from a different
+    // thread, this is undefined behavior that
+    // McMini should hopefully report before
+    // we'd ever reach a bad state like that
+    this->mutex->lock(this->getThreadId());
+}
+
+bool 
+MCMutexUnlock::isReversibleInState(const MCState *state) const
+{
+    return true;
+}
+
 bool
 MCMutexUnlock::coenabledWith(const MCTransition *transition) const
 {

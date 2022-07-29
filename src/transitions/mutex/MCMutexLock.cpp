@@ -27,8 +27,7 @@ MCMutexLock::staticCopy() const
             std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
     auto mutexCpy =
             std::static_pointer_cast<MCMutex, MCVisibleObject>(this->mutex->copy());
-    auto mutexLock = new MCMutexLock(threadCpy, mutexCpy);
-    return std::shared_ptr<MCTransition>(mutexLock);
+    return std::make_shared<MCMutexLock>(threadCpy, mutexCpy);
 }
 
 std::shared_ptr<MCTransition>
@@ -36,14 +35,25 @@ MCMutexLock::dynamicCopyInState(const MCState *state) const
 {
     std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
     std::shared_ptr<MCMutex> mutexInState = state->getObjectWithId<MCMutex>(mutex->getObjectId());
-    auto cpy = new MCMutexLock(threadInState, mutexInState);
-    return std::shared_ptr<MCTransition>(cpy);
+    return std::make_shared<MCMutexLock>(threadInState, mutexInState);
 }
 
 void
 MCMutexLock::applyToState(MCState *state)
 {
     this->mutex->lock(this->getThreadId());
+}
+
+void 
+MCMutexLock::unapplyToState(MCState *state)
+{
+    this->mutex->unlock();
+}
+
+bool 
+MCMutexLock::isReversibleInState(const MCState *state) const
+{
+    return false;
 }
 
 bool

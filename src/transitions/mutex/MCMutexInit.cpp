@@ -45,6 +45,18 @@ MCMutexInit::applyToState(MCState *state)
     this->mutex->init();
 }
 
+void 
+MCMutexInit::unapplyToState(MCState *state)
+{
+    this->mutex->deinit();
+}
+
+bool 
+MCMutexInit::isReversibleInState(const MCState *state) const
+{
+    return true;
+}
+
 bool
 MCMutexInit::coenabledWith(const MCTransition *other) const
 {
