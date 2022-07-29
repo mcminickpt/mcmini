@@ -41,6 +41,18 @@ MCThreadCreate::applyToState(MCState *state)
     this->target->spawn();
 }
 
+void 
+MCThreadCreate::unapplyToState(MCState *state)
+{
+    this->target->despawn();
+}
+
+bool 
+MCThreadCreate::isReversibleInState(const MCState *state) const
+{
+    return true;
+}
+
 bool
 MCThreadCreate::coenabledWith(const MCTransition *transition) const
 {
