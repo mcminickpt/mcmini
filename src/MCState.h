@@ -123,6 +123,8 @@ private:
     void incrementThreadTransitionCountIfNecessary(const MCTransition&);
     void decrementThreadTransitionCountIfNecessary(const MCTransition&);
     uint32_t totalThreadExecutionDepth() const;
+
+    bool canReverseStateToStateAtIndex(uint32_t) const;
     
     MCThreadData &getThreadDataForThread(tid_t tid);
     const MCThreadData &getThreadDataForThread(tid_t tid) const;

@@ -526,6 +526,13 @@ MCState::virtuallyRevertTransitionAtIndex(int i)
     this->getThreadDataForThread(tid).setClockVector(cv);
 }
 
+bool
+MCState::canReverseStateToStateAtIndex(uint32_t stateStackIndex) const
+{
+    if (irreversibleStatesStack.empty()) return true;
+    return stateStackIndex >= irreversibleStatesStack.top();
+}
+
 void
 MCState::simulateRunningTransition(const MCTransition &transition, MCSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
 {
@@ -725,7 +732,7 @@ MCState::reflectStateAtTransitionIndex(uint32_t index)
     // while the `index` points into the transition stack. Thus
     // we add 1 to be in the same "coordinate space".
     const uint32_t stateStackIndex = index + 1;
-    const bool canRunReverseOperationsToIndex = stateStackIndex >= irreversibleStatesStack.top();
+    const bool canRunReverseOperationsToIndex = canReverseStateToStateAtIndex(stateStackIndex);
 
     /* The transition stack at this point is untouched */
 
@@ -744,6 +751,11 @@ MCState::reflectStateAtTransitionIndex(uint32_t index)
         for (uint32_t i = 0u; i <= index; i++)
             this->virtuallyRerunTransitionAtIndex(i);
     } else { 
+
+        // In the case we can revert the transitions in the transition
+        // stack, all we need to do is revert the transitions
+        // up until the index, making sure _not_ to revert the transition
+        // at _index_
         for (tid_t tid = 0; tid < this->nextThreadId; tid++)
             getThreadDataForThread(tid).popExecutionPointsGreaterThan(index);
 
