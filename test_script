@@ -1,0 +1,139 @@
+#!/usr/bin/env python3
+
+# Script for the execution of tests programs
+
+import os
+import argparse
+
+program_msg = "Specify which program do you wish to run without saying whether its a deadlock version or not? If not specified the script will run all programs deadlock or non-deadlock based on the deadlock flag"
+deadlock_msg = "An optional flag for running a deadlock version of the program(s)."
+directory_msg = "Path for the directory in which you want to store the output of the program(s)."
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-p', '--program', type = str, help = program_msg) #args.program
+parser.add_argument('-d', '--deadlock', action = 'store_true', help = deadlock_msg) #args.deadlock
+parser.add_argument('-dir', '--directory', type = str, help = directory_msg) #args.directory
+args = parser.parse_args()
+
+print(args)
+
+'''
+DEADLOCK PROGRAMS
+'''
+
+# Running a specified deadlock program with a defualt output path
+if (args.deadlock and args.program != "" and args.directory == ""):
+    os.system("(time ./mcmini ../tests/deadlock_programs/" + args.program + ") 2>&1 | tee ../tests/output_deadlock/" + args.program)
+
+# Running a specified deadlock program with a custom output path
+if (args.deadlock and args.program != "" and args.directory != ""):
+    os.system("(time ./mcmini ../tests/deadlock_programs" + args.program + ") 2>&1 | tee " + args.directory + args.program)
+
+# Running all deadlock programs with a default output path
+if (args.deadlock and args.program == "" and args.directory == ""):
+    os.system("(time ./mcmini ../tests/deadlock_programs/barber_shop_deadlock) 2>&1 | tee ../tests/output_deadlock/barber_shop_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/producer_consumer_deadlock) 2>&1 | tee ../tests/output_deadlock/producer_consumer_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/philosophers_semaphores_deadlock) 2>&1 | tee ../tests/output_deadlock/philosophers_semaphores_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/philosophers_mutex_deadlock) 2>&1 | tee ../tests/output_deadlock/philosophers_mutex_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_braodcast_with_semaphore_deadlock1) 2>&1 | tee ../tests/output_deadlock/simple_cond_braodcast_with_semaphore_deadlock1")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_barrier_with_threads_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_barrier_with_threads_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_barrier_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_barrier_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_writer_preferred_deadlock) 2>&1 | tee ../tests/output_deadlock/reader_writer_writer_preferred_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer__reader_preferred_deadlock) 2>&1 | tee ../tests/output_deadlock/reader_writer__reader_preferred_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_mostly_writer_preferred_deadlock) 2>&1 | tee ../tests/output_deadlock/reader_writer_mostly_writer_preferred_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_fifo_deadlock) 2>&1 | tee ../tests/output_deadlock/reader_writer_fifo_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_cond_deadlock) 2>&1 | tee ../tests/output_deadlock/reader_writer_cond_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_mutex_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_mutex_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_cond_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_broadcast_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_cond_broadcast_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_braodcast_with_semaphore_deadlock2) 2>&1 | tee ../tests/output_deadlock/simple_cond_braodcast_with_semaphore_deadlock2")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_semaphores_with_threads_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_semaphores_with_threads_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_semaphores_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_semaphores_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_semaphore_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_semaphore_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_mutex_with_threads_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_mutex_with_threads_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/custom/philosophers_custom_semaphore_deadlock) 2>&1 | tee ../tests/output_deadlock/philosophers_custom_semaphore_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/custom/simple_custom_cond_broadcast_deadlock) 2>&1 | tee ../tests/output_deadlock/simple_custom_cond_broadcast_deadlock")
+
+# Running all deadlock programs and putting their output in a specified directory by providing its path
+if (args.deadlock and args.program == "" and args.directory == ""):
+    os.system("(time ./mcmini ../tests/deadlock_programs/barber_shop_deadlock) 2>&1 | tee " + args.directory + "/barber_shop_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/producer_consumer_deadlock) 2>&1 | tee " + args.directory + "/producer_consumer_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/philosophers_semaphores_deadlock) 2>&1 | tee " + args.directory + "/philosophers_semaphores_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/philosophers_mutex_deadlock) 2>&1 | tee " + args.directory + "/philosophers_mutex_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_braodcast_with_semaphore_deadlock1) 2>&1 | tee " + args.directory + "/simple_cond_braodcast_with_semaphore_deadlock1")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_barrier_with_threads_deadlock) 2>&1 | tee " + args.directory + "/simple_barrier_with_threads_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_barrier_deadlock) 2>&1 | tee " + args.directory + "/simple_barrier_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_writer_preferred_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_writer_preferred_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer__reader_preferred_deadlock) 2>&1 | tee " + args.directory + "/reader_writer__reader_preferred_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_mostly_writer_preferred_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_mostly_writer_preferred_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_fifo_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_fifo_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/reader_writer/reader_writer_cond_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_cond_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_mutex_deadlock) 2>&1 | tee " + args.directory + "/simple_mutex_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_deadlock) 2>&1 | tee " + args.directory + "/simple_cond_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_broadcast_deadlock) 2>&1 | tee " + args.directory + "/simple_cond_broadcast_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_cond_braodcast_with_semaphore_deadlock2) 2>&1 | tee " + args.directory + "/simple_cond_braodcast_with_semaphore_deadlock2")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_semaphores_with_threads_deadlock) 2>&1 | tee " + args.directory + "/simple_semaphores_with_threads_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_semaphores_deadlock) 2>&1 | tee " + args.directory + "/simple_semaphores_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_semaphore_deadlock) 2>&1 | tee " + args.directory + "/simple_semaphore_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/simple_mutex_with_threads_deadlock) 2>&1 | tee " + args.directory + "/simple_mutex_with_threads_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/custom/philosophers_custom_semaphore_deadlock) 2>&1 | tee " + args.directory + "/philosophers_custom_semaphore_deadlock")
+    os.system("(time ./mcmini ../tests/deadlock_programs/custom/simple_custom_cond_broadcast_deadlock) 2>&1 | tee " + args.directory + "/simple_custom_cond_broadcast_deadlock")
+
+'''
+NON-DEADLOCK PROGRAMS
+'''
+# Running a specified non-deadlock program with a defualt output path
+if ((not (args.deadlock)) and args.program != "" and args.directory == ""):
+    os.system("(time ./mcmini ../tests/programs/" + args.program + ") 2>&1 | tee ../tests/output_non_deadlock/" + args.program)
+
+# Running a specified non-deadlock program with a custom output path
+if ((not (args.deadlock)) and args.program != "" and args.directory != ""):
+    os.system("(time ./mcmini ../tests/programs/" + args.program + ") 2>&1 | tee " + args.directory + args.program)
+
+# Running all non-deadlock programs with a default output path
+if ((not (args.deadlock)) and args.program == "" and args.directory == ""):
+    os.system("(time ./mcmini ../tests/programs/barber_shop) 2>&1 | tee ../tests/output_non_deadlock/barber_shop")
+    os.system("(time ./mcmini ../tests/programs/philosophers_semaphores) 2>&1 | tee ../tests/output_non_deadlock/philosophers_semaphores")
+    os.system("(time ./mcmini ../tests/programs/philosophers_mutex) 2>&1 | tee ../tests/output_non_deadlock/philosophers_mutex")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer_writer_preferred) 2>&1 | tee ../tests/output_non_deadlock/reader_writer_writer_preferred")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer__reader_preferred) 2>&1 | tee ../tests/output_non_deadlock/reader_writer__reader_preferred")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer_fifo) 2>&1 | tee ../tests/output_non_deadlock/reader_writer_fifo")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer_cond) 2>&1 | tee ../tests/output_non_deadlock/reader_writer_cond")
+    os.system("(time ./mcmini ../tests/programs/producer_consumer) 2>&1 | tee ../tests/output_non_deadlock/producer_consumer")
+    os.system("(time ./mcmini ../tests/programs/simple_cond_braodcast) 2>&1 | tee ../tests/output_non_deadlock/simple_cond_braodcast")
+    os.system("(time ./mcmini ../tests/programs/simple_barrier_with_threads) 2>&1 | tee ../tests/output_non_deadlock/simple_barrier_with_threads")
+    os.system("(time ./mcmini ../tests/programs/simple_barrier) 2>&1 | tee ../tests/output_non_deadlock/simple_barrier")
+    os.system("(time ./mcmini ../tests/programs/simple_mutex) 2>&1 | tee ../tests/output_non_deadlock/simple_mutex") 
+    os.system("(time ./mcmini ../tests/programs/simple_cond) 2>&1 | tee ../tests/output_non_deadlock/simple_cond")
+    os.system("(time ./mcmini ../tests/programs/simple_cond_broadcast_with_semaphore) 2>&1 | tee ../tests/output_non_deadlock/simple_cond_broadcast_with_semaphore")
+    os.system("(time ./mcmini ../tests/programs/simple_semaphores_with_threads) 2>&1 | tee ../tests/output_non_deadlock/simple_semaphores_with_threads")
+    os.system("(time ./mcmini ../tests/programs/simple_semaphores) 2>&1 | tee ../tests/output_non_deadlock/simple_semaphores")
+    os.system("(time ./mcmini ../tests/programs/simple_mutex_with_threads) 2>&1 | tee ../tests/output_non_deadlock/simple_mutex_with_threads")
+    os.system("(time ./mcmini ../tests/programs/simple_threads) 2>&1 | tee ../tests/output_non_deadlock/simple_threads")
+    os.system("(time ./mcmini ../tests/programs/custom/philosophers_custom_semaphores) 2>&1 | tee ../tests/output_non_deadlock/philosophers_custom_semaphores")
+    os.system("(time ./mcmini ../tests/programs/custom/simple_custom_barrier_with_threads) 2>&1 | tee ../tests/output_non_deadlock/simple_custom_barrier_with_threads")
+    os.system("(time ./mcmini ../tests/programs/custom/simple_custom_cond_broadcast) 2>&1 | tee ../tests/output_non_deadlock/simple_custom_cond_broadcast")
+
+# Running all non-deadlock programs and putting them in a specified directory by providing its path
+if ((not (args.deadlock)) and args.program == "" and args.directory != ""):
+    os.system("(time ./mcmini ../tests/programs/barber_shop) 2>&1 | tee " + args.directory + "/barber_shop")
+    os.system("(time ./mcmini ../tests/programs/philosophers_semaphores) 2>&1 | tee " + args.directory + "/philosophers_semaphores")
+    os.system("(time ./mcmini ../tests/programs/philosophers_mutex) 2>&1 | tee " + args.directory + "/philosophers_mutex")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer_writer_preferred) 2>&1 | tee " + args.directory + "/reader_writer_writer_preferred")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer__reader_preferred) 2>&1 | tee " + args.directory + "/reader_writer__reader_preferred")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer_fifo) 2>&1 | tee " + args.directory + "/reader_writer_fifo")
+    os.system("(time ./mcmini ../tests/programs/reader_writer/reader_writer_cond) 2>&1 | tee " + args.directory + "/reader_writer_cond")
+    os.system("(time ./mcmini ../tests/programs/producer_consumer) 2>&1 | tee " + args.directory + "/producer_consumer")
+    os.system("(time ./mcmini ../tests/programs/simple_cond_braodcast) 2>&1 | tee " + args.directory + "/simple_cond_braodcast")
+    os.system("(time ./mcmini ../tests/programs/simple_barrier_with_threads) 2>&1 | tee " + args.directory + "/simple_barrier_with_threads")
+    os.system("(time ./mcmini ../tests/programs/simple_barrier) 2>&1 | tee " + args.directory + "/simple_barrier")
+    os.system("(time ./mcmini ../tests/programs/simple_mutex) 2>&1 | tee " + args.directory + "/simple_mutex") 
+    os.system("(time ./mcmini ../tests/programs/simple_cond) 2>&1 | tee " + args.directory + "/simple_cond")
+    os.system("(time ./mcmini ../tests/programs/simple_cond_broadcast_with_semaphore) 2>&1 | tee " + args.directory + "/simple_cond_broadcast_with_semaphore")
+    os.system("(time ./mcmini ../tests/programs/simple_semaphores_with_threads) 2>&1 | tee " + args.directory + "/simple_semaphores_with_threads")
+    os.system("(time ./mcmini ../tests/programs/simple_semaphores) 2>&1 | tee " + args.directory + "/simple_semaphores")
+    os.system("(time ./mcmini ../tests/programs/simple_mutex_with_threads) 2>&1 | tee " + args.directory + "/simple_mutex_with_threads")
+    os.system("(time ./mcmini ../tests/programs/simple_threads) 2>&1 | tee " + args.directory + "/simple_threads")
+    os.system("(time ./mcmini ../tests/programs/custom/philosophers_custom_semaphores) 2>&1 | tee " + args.directory + "/philosophers_custom_semaphores")
+    os.system("(time ./mcmini ../tests/programs/custom/simple_custom_barrier_with_threads) 2>&1 | tee " + args.directory + "/simple_custom_barrier_with_threads")
+    os.system("(time ./mcmini ../tests/programs/custom/simple_custom_cond_broadcast) 2>&1 | tee " + args.directory + "/simple_custom_cond_broadcast")
