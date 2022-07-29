@@ -34,6 +34,18 @@ MCThreadFinish::applyToState(MCState *state)
     this->target->die();
 }
 
+void 
+MCThreadFinish::unapplyToState(MCState *state)
+{
+    this->target->spawn();
+}
+
+bool 
+MCThreadFinish::isReversibleInState(const MCState *state) const
+{
+    return true;
+}
+
 bool
 MCThreadFinish::enabledInState(const MCState *) const {
     return thread->tid != TID_MAIN_THREAD;
