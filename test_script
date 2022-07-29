@@ -27,7 +27,7 @@ if (args.deadlock and args.program != "" and args.directory == ""):
 
 # Running a specified deadlock program with a custom output path
 if (args.deadlock and args.program != "" and args.directory != ""):
-    os.system("(time ./mcmini ../tests/deadlock_programs" + args.program + ") 2>&1 | tee " + args.directory + args.program)
+    os.system("(time ./mcmini ../tests/deadlock_programs" + args.program + ") 2>&1 | tee " + args.directory)
 
 # Running all deadlock programs with a default output path
 if (args.deadlock and args.program == "" and args.directory == ""):
@@ -88,7 +88,7 @@ if ((not (args.deadlock)) and args.program != "" and args.directory == ""):
 
 # Running a specified non-deadlock program with a custom output path
 if ((not (args.deadlock)) and args.program != "" and args.directory != ""):
-    os.system("(time ./mcmini ../tests/programs/" + args.program + ") 2>&1 | tee " + args.directory + args.program)
+    os.system("(time ./mcmini ../tests/programs/" + args.program + ") 2>&1 | tee " + args.directory)
 
 # Running all non-deadlock programs with a default output path
 if ((not (args.deadlock)) and args.program == "" and args.directory == ""):
