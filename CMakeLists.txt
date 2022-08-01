@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 project(McMini 
-    VERSION 0.0.0
+    VERSION 0.0.1
     DESCRIPTION "A bite-sized model checker"
     LANGUAGES C CXX)
 
