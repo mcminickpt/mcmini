@@ -2,6 +2,8 @@
 # GoogleTest cases and for testing custom
 # programs against McMini
 
+include(GoogleTest)
+
 # @brief: Adds a test case for CTest based
 # on the contents of a file containing Google Tests
 #
