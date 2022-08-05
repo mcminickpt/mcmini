@@ -1,40 +1,26 @@
-# DPOR
-Dynamic Partial Order Reduction model checker for C programs
-
+# McMini
+A bite-size C/C++ model checker using Dynamic Partial Order Reduction
 
 ## High-Level Overview of Functionality
+McMini is an _extensible_ model checker which inspects
+programs using _Dynamic Partial Order Reduction_ (or DPOR for
+short), a technique for reducing the number of thread orderings 
+that need to be searched. The algorithm is described in the seminal
+2005 paper by Flannagan and Godefroid bearing the algorithm's title.
 
-## To Build and Test:
+## Building McMini
+McMini uses [CMake](https://cmake.org) to generate its targets. You can 
+build McMini by running the following commands
+
 ```bash
-  git clone THIS_REPO
-  cd THIS_REPO/src
-  cmake .
-  make -j5
+git clone THIS_REPO
 
-  cd ../src/test
-  make -j5
-  ../src/mcmini EXECUTABLE
+# Build with debug symbols. Use -DCMAKE_BUILD_TYPE=Release
+# for speed optimizations and for benchmarks 
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
+
+# Build the targets
+cmake --build build -j 10
 ```
-
----
-
-## API Naming Reference:
-
-The C APIs are inspired by that of Core Foundation (a low-level framework written in C for iOS/macOS). In Core Foundation, the notion of ownership over memory
-is implied through the names of the functions operating on the data you work with. The goal is to alert you when you should remember to free and destroy "object"
-(structs) you receive from callers, and it helps to keep everyone consistent throughout the codebase regarding memory to prevent leaks.
-
-There are a couple of naming rules that have thus far been observed (and ideally should be kept up to keep us consistent):
-
-1. Pointers to any defined structs are followed by `_ref` to remind you that the data you are working with has _reference semantics_; that is,
-	it reminds you that you may be modifying data referenced elsewhere. This differs from types that have _value semantics_, where values are
-	copied around.
-
-2. Functions that return memory that you do **not** own are followed by *`_get`*. You should not free the memory that you receive from
-such functions, as the results would be undefined since the memory is managed elsewhere (think use-after-free bugs, double free, nasty stuff).
-
-3. Functions that return memory that you **do** own are followed either by *`_copy`*, *`_create`*, or *`_alloc`* It is your responsibility
-to clean up any memory created after invoking these functions to ensure you don't leak memory
-
-Core Foundation has more advanced notions of ownership *count*, giving some struct types automatic reference counting-like semantics. This project
-doesn't require such detail and does not implement the more complicated features
+CMake will place the generated binaries/libraries into directories
+in the build tree corresponding to the directories in the source tree
