@@ -8,7 +8,7 @@
 #   If evaluated to anything cmake-equivalent
 #   to TRUE, a call to `add_subdirectory()` is made
 #
-#   REASON: A string describing why the 
+#   REASON: A string describing why the
 #   `add_subdirectory()` call is optional. For example,
 #   the subdirectory may include code that only
 #   compiles on a certain platform
@@ -35,7 +35,7 @@ endfunction()
 #   If evaluated to anything cmake-equivalent
 #   to TRUE, a call to `include()` is made
 #
-#   REASON: A string describing why the 
+#   REASON: A string describing why the
 #   `include()` call is optional. For example,
 #   the CMake module may handle configuration
 #   for a specific platform

@@ -15,7 +15,7 @@ mutex_unlock
 pthread_create
 pthread_join
 
-enum visible_operation_type { 
+enum visible_operation_type {
 	SEMAPHORE,
 	MUTEX,
 	GLOBAL_ACCESS,
@@ -24,10 +24,10 @@ enum visible_operation_type {
 
 Sequence of transitions -> some sort of list
 
-struct transition { 
+struct transition {
 	mc_thread executor;
 	visible_operation_type type;
-	union { 
+	union {
 		mc_semaphore_op semaphore_op;
 		mc_mutex_op mutex_op;
 		mc_global_op global_op;
@@ -45,7 +45,7 @@ struct mc_semaphore {
 };
 
 enum mc_semaphore_op_code { SEM_INIT, SEM_WAIT, SEM_POST, SEM_GETVALUE };
-struct mc_semaphore_op { 
+struct mc_semaphore_op {
 	struct mc_semaphore semaphore;
 	enum mc_semaphore_op_code code;
 };
@@ -93,7 +93,7 @@ struct mc_thread_spawn_op {
 def depends(tr1, tr2):
 	if proc(tr1) == proc(tr2):
 		return True
-	
+
 	if tr1.type == THREAD_SPAWN && tr2.type == THREAD_SPAWN:
 		return depends_thread(tr1, tr2)
 
@@ -102,7 +102,7 @@ def depends(tr1, tr2):
 
 	if tr1.type == MUTEX && tr2.type == MUTEX:
 		return depends_lock(tr1.mutex_op, tr2.mutex_op)
-	
+
 	if tr1.type == GLOBAL_ACCESS && tr2.type == GLOBAL_ACCESS:
 		return depends_global(tr1.global_op, tr2.global_op)
 
@@ -118,7 +118,7 @@ def depends_thread(op1, op2):
 
 # Assume different threads, same semaphore
 def depends_semaphore(op1, op2):
-	
+
 	if op1.code == SEM_INIT && op2.code == SEM_INIT:
 		return False
 	elif op1.code == SEM_INIT || op2.code == SEM_INIT:
@@ -128,7 +128,7 @@ def depends_semaphore(op1, op2):
 		return False
 	elif op1.code == SEM_GETVALUE || op2.code == SEM_GETVALUE:
 		return True
-	
+
 	if op1.code == SEM_WAIT || op2.code == SEM_WAIT:
 		return True
 

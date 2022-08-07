@@ -1,9 +1,10 @@
-#include "MCTransitionFactory.h"
-#include "transitions/threads/MCThreadCreate.h"
-#include "transitions/threads/MCThreadJoin.h"
+#include "mcmini/MCTransitionFactory.h"
+#include "mcmini/transitions/threads/MCThreadCreate.h"
+#include "mcmini/transitions/threads/MCThreadJoin.h"
 
 std::shared_ptr<MCTransition>
-MCTransitionFactory::createInitialTransitionForThread(const std::shared_ptr<MCThread> &thread)
+MCTransitionFactory::createInitialTransitionForThread(
+  const std::shared_ptr<MCThread> &thread)
 {
-    return std::make_shared<MCThreadStart>(thread);
+  return std::make_shared<MCThreadStart>(thread);
 }

@@ -1,4 +1,4 @@
-#include "MCThreadJoin.h"
+#include "mcmini/transitions/threads/MCThreadJoin.h"
 
 MCTransition *
 MCReadThreadJoin(const MCSharedTransition *shmTransition,

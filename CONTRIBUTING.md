@@ -1,13 +1,13 @@
 # Git Workflow
 
-## Contributing to McMini 
+## Contributing to McMini
 
 Start by forking McMini on GitHub and clone down your new fork with
 
 ``` git clone <your-repo-url> ```
 
 Then add the shared McMini repo as a new remote in your local checkout
-with 
+with
 
 ``` git remote add <main McMini repo name> <main McMini URL> ```
 
@@ -24,7 +24,7 @@ branch of the shared repo
 The `main` branch should contain the most stable version of McMini.
 After cloning the repo and checking out the `main` branch, users
 should be able to build and run the application without any egregious
-bugs (e.g. immediate segfaults) 
+bugs (e.g. immediate segfaults)
 
 Importantly, the `main` branch should *always* be free from
 compilation errors and should build without any issues. Any commit
@@ -46,10 +46,10 @@ PRs.
 
 The shared McMini repository is intended to have a linear commit
 history.  This should result in a cleaner commit history and make
-tools such as `git bisect` easier to use. 
+tools such as `git bisect` easier to use.
 
 **Keep your local branches updated with `main` and update branches
-frequently, rebasing changes onto `main` in the main repo** 
+frequently, rebasing changes onto `main` in the main repo**
 
 ## Commits
 
@@ -84,11 +84,11 @@ larger diff than necessary
 ### Titling and commenting commits
 
 Write commits using the imperative mood; for example, if a commit
-changes the behavior of a certain class in the project, title it 
+changes the behavior of a certain class in the project, title it
 
   "Change the behavior of ..."
 
-instead of 
+instead of
 
   "Change*d* the behavior of ..."
 

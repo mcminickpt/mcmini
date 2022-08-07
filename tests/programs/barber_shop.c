@@ -14,9 +14,9 @@
 
 // Define the semaphores.
 
-// waitingRoom Limits the # of customers allowed 
+// waitingRoom Limits the # of customers allowed
 // to enter the waiting room at one time.
-sem_t waitingRoom;   
+sem_t waitingRoom;
 
 // barberChair ensures mutually exclusive access to
 // the barber chair.
@@ -27,7 +27,7 @@ sem_t barberChair;
 sem_t barberPillow;
 
 // seatBelt is used to make the customer to wait until
-// the barber is done cutting his/her hair. 
+// the barber is done cutting his/her hair.
 sem_t seatBelt;
 
 // Flag to stop the barber thread when all customers
@@ -108,31 +108,31 @@ int main(int argc, char *argv[]) {
     long RandSeed;
     int i, numCustomers, numChairs;
     int Number[MAX_CUSTOMERS];
-    
-        
+
+
     // Check to make sure there are the right number of
     // command line arguments.
     if (argc != 4) {
         printf("Use: SleepBarber <Num Customers> <Num Chairs> <rand seed>\n");
         exit(-1);
     }
-    
+
     // Get the command line arguments and convert them
     // into integers.
     numCustomers = atoi(argv[1]);
     numChairs = atoi(argv[2]);
     RandSeed = atol(argv[3]);
-    
+
     // Make sure the number of threads is less than the number of
     // customers we can support.
     if (numCustomers > MAX_CUSTOMERS) {
         printf("The maximum number of Customers is %d.\n", MAX_CUSTOMERS);
         exit(-1);
     }
-    
+
     printf("\nSleepBarber.c\n\n");
     printf("A solution to the sleeping barber problem using semaphores.\n");
-    
+
     // Initialize the random number generator with a new seed.
     srand48(RandSeed);
 
@@ -140,13 +140,13 @@ int main(int argc, char *argv[]) {
     for (i=0; i<MAX_CUSTOMERS; i++) {
 	    Number[i] = i;
     }
-		
+
     // Initialize the semaphores with initial values...
     sem_init(&waitingRoom, 0, numChairs);
     sem_init(&barberChair, 0, 1);
     sem_init(&barberPillow, 0, 0);
     sem_init(&seatBelt, 0, 0);
-    
+
     // Create the barber.
     pthread_create(&btid, NULL, barber, NULL);
 

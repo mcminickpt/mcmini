@@ -1,4 +1,4 @@
-#include "MCEnv.h"
+#include "mcmini/MCEnv.h"
 #include <assert.h>
 #include <libgen.h>
 #include <stdio.h>

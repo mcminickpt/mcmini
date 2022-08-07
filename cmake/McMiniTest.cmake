@@ -33,7 +33,7 @@ function(add_gtest_suite TESTNAME)
         PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}"
     )
 
-    if (VERBOSE_TESTING) 
+    if (VERBOSE_TESTING)
         message(STATUS "GTest test suite ${TESTNAME} added")
     endif()
 endfunction()

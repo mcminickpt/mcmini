@@ -1,67 +1,66 @@
-#include "MCThreadData.hpp"
+#include "mcmini/MCThreadData.hpp"
 
-uint32_t 
+uint32_t
 MCThreadData::getExecutionDepth() const
 {
-    return this->executionDepth;
+  return this->executionDepth;
 }
 
-void 
+void
 MCThreadData::incrementExecutionDepth()
 {
-    this->executionDepth++;
+  this->executionDepth++;
 }
 
-void 
+void
 MCThreadData::decrementExecutionDepthIfNecessary()
 {
-    this->executionDepth--;
+  this->executionDepth--;
 }
 
-void 
+void
 MCThreadData::resetExecutionData()
 {
-    this->executionDepth = 0;
-    this->executionPoints = MCSortedStack<uint32_t>();
+  this->executionDepth  = 0;
+  this->executionPoints = MCSortedStack<uint32_t>();
 }
 
-MCClockVector 
+MCClockVector
 MCThreadData::getClockVector() const
 {
-    return this->clockVector;
+  return this->clockVector;
 }
 
-void 
+void
 MCThreadData::setClockVector(const MCClockVector &cv)
 {
-    this->clockVector = cv;
+  this->clockVector = cv;
 }
 
 uint32_t
 MCThreadData::getLatestExecutionPoint() const
 {
-    if (this->executionPoints.empty())
-        return static_cast<uint32_t>(0);
-    return this->executionPoints.top();
+  if (this->executionPoints.empty()) return static_cast<uint32_t>(0);
+  return this->executionPoints.top();
 }
 
-void 
+void
 MCThreadData::pushNewLatestExecutionPoint(const uint32_t depth)
 {
-    if (!this->executionPoints.empty()) { 
-        MC_ASSERT(this->executionPoints.top() <= depth);
-    } 
-    this->executionPoints.push(depth);
+  if (!this->executionPoints.empty()) {
+    MC_ASSERT(this->executionPoints.top() <= depth);
+  }
+  this->executionPoints.push(depth);
 }
 
-void 
+void
 MCThreadData::popLatestExecutionPoint()
 {
-    this->executionPoints.pop();
+  this->executionPoints.pop();
 }
 
-void 
+void
 MCThreadData::popExecutionPointsGreaterThan(const uint32_t index)
 {
-    this->executionPoints.popGreaterThan(index);
+  this->executionPoints.popGreaterThan(index);
 }

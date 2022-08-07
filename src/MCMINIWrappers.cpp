@@ -1,2 +1,2 @@
-#include "MCMINIWrappers.h"
-#include "MCMINI_Private.h"
+#include "mcmini/MCMINIWrappers.h"
+#include "mcmini/MCMINI_Private.h"
