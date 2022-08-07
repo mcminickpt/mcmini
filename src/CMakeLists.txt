@@ -67,24 +67,34 @@ set(MC_CPP_FILES
         MCCommon.c MCCommon.h
         MCEnv.h MCMINI.h)
 
-add_executable(MCMINI ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
 
 # -lrt -> shared memory
 # -pthread -> libpthread.so
 # -lm -> math library
 # -ldl -> dlsym etc.
 set(MC_LINK_TARGET_FLAGS -lrt -pthread -lm -ldl)
-target_link_libraries(MCMINI PUBLIC ${MC_LINK_TARGET_FLAGS})
 
-# -g3 -> debug symbols
-#-fsanitize=undefined (-lubsan)
-target_compile_options(MCMINI PUBLIC)
+add_executable(mcmini_demo ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
+add_executable(McMini::Demo ALIAS mcmini_demo)
 
-# Shared library
-add_library(mcminichecker SHARED ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
-target_compile_definitions(mcminichecker PUBLIC MC_SHARED_LIBRARY=1)
-target_link_libraries(mcminichecker PUBLIC ${MC_LINK_TARGET_FLAGS})
-target_compile_options(mcminichecker PUBLIC)
+set_target_properties(mcmini_demo PROPERTIES OUTPUT_NAME "mcmini-demo")
+
+target_link_libraries(mcmini_demo
+  PUBLIC
+    ${MC_LINK_TARGET_FLAGS})
+
+
+add_library(mcmini_checker SHARED ${MC_CPP_FILES} ${MC_C_FILES} ${MAIN_FUNCTION})
+add_library(McMini::Dylib ALIAS mcmini_checker)
+
+set_target_properties(mcmini_checker PROPERTIES OUTPUT_NAME "mcmini")
+
+target_compile_definitions(mcmini_checker
+  PUBLIC
+    MC_SHARED_LIBRARY=1)
+target_link_libraries(mcmini_checker
+  PUBLIC
+    ${MC_LINK_TARGET_FLAGS})
 
 # Executable that loads the shared library
 set(MAIN_FUNCTION launch.c)

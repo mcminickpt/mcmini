@@ -5,12 +5,20 @@
 #include "MCTransition.h"
 #include "transitions/threads/MCThreadStart.h"
 
-class MCTransitionFactory final {
-public:
-    MCTransitionFactory() = delete;
+namespace mcmini {
 
-    // Factory methods
-    static std::shared_ptr<MCTransition> createInitialTransitionForThread(const std::shared_ptr<MCThread> &thread);
+class TransitionFactory final {
+public:
+  TransitionFactory() = delete;
+
+  // Factory methods
+  static std::shared_ptr<MCTransition>
+  createInitialTransitionForThread(
+    const std::shared_ptr<MCThread> &thread);
 };
 
-#endif //MC_MCTRANSITIONFACTORY_H
+} // namespace mcmini
+
+using MCTransitionFactory = mcmini::TransitionFactory;
+
+#endif // MC_MCTRANSITIONFACTORY_H

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(McMini 
+project(McMini
     VERSION 0.0.1
     DESCRIPTION "A bite-sized model checker"
     LANGUAGES C CXX)
@@ -20,7 +20,6 @@ set(MCMINI_SCRIPTS_DIR ${CMAKE_SOURCE_DIR}/scripts)
 set(MCMINI_DOCS_DIR ${CMAKE_SOURCE_DIR}/docs)
 set(MCMINI_GOOGLE_TEST_DIR ${CMAKE_SOURCE_DIR}/external/googletest)
 set(MCMINI_GOOGLE_TEST_INCLUDE_DIR ${MCMINI_GOOGLE_TEST_DIR}/include)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "products")
 
 # Include the "cmake/" directory as a location to look for CMake modules
 list(APPEND CMAKE_MODULE_PATH "${MCMINI_CMAKE_MODULE_DIR}")
