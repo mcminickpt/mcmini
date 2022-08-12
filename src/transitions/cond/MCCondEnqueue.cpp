@@ -35,16 +35,21 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
   const auto mutexAssociatedWithConditionVariable =
     condThatExists->mutex;
 
-  if (mutexAssociatedWithConditionVariable != nullptr) {
+  // NOTE: It's possible (and likely) for a condition variable
+  // to NOT already be associated with a mutex at this point.
+  // E.g., the first call to pthread_cond_wait() will have a
+  // condition variable that isn't associated with a mutex.
+  if (mutexAssociatedWithConditionVariable) {
     MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-      *mutexThatExists == *mutexAssociatedWithConditionVariable,
+      *mutexAssociatedWithConditionVariable == *mutexThatExists,
       "A mutex has already been associated with this condition "
-      "variable. Attempting "
-      "to use another mutex with the same condition variable is "
-      "undefined");
+      "variable. Attempting to wait on a condition variable using "
+      "more "
+      "than one mutex is undefined");
   }
 
-  auto threadThatRan = state->getThreadWithId(threadThatRanId);
+  condThatExists->mutex = mutexThatExists;
+  auto threadThatRan    = state->getThreadWithId(threadThatRanId);
   return new MCCondEnqueue(threadThatRan, condThatExists,
                            mutexThatExists);
 }
@@ -80,8 +85,7 @@ void
 MCCondEnqueue::applyToState(MCState *state)
 {
   /* Insert this thread into the waiting queue */
-  this->conditionVariable->enterSleepingQueue(this->getThreadId());
-  this->conditionVariable->mutex = this->mutex;
+  this->conditionVariable->addWaiter(this->getThreadId());
   this->mutex->unlock();
 }
 

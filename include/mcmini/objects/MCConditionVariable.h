@@ -1,7 +1,9 @@
-#ifndef MC_MCCONDITIONVARIABLE_H
-#define MC_MCCONDITIONVARIABLE_H
+#ifndef INCLUDE_MCMINI_OBJECTS_MCCONDITIONVARIABLE_HPP
+#define INCLUDE_MCMINI_OBJECTS_MCCONDITIONVARIABLE_HPP
 
 #include "mcmini/misc/MCOptional.h"
+#include "mcmini/misc/cond/MCConditionVariableSignalPolicy.hpp"
+#include "mcmini/misc/cond/MCConditionVariableWakeupPolicy.hpp"
 #include "mcmini/objects/MCMutex.h"
 #include "mcmini/objects/MCVisibleObject.h"
 #include <deque>
@@ -13,61 +15,53 @@ struct MCSharedMemoryConditionVariable {
 
   MCSharedMemoryConditionVariable(pthread_cond_t *cond,
                                   pthread_mutex_t *mutex)
-    : cond(cond), mutex(mutex) {}
+    : cond(cond), mutex(mutex)
+  {}
 };
 
-struct MCConditionVariableShadow {
-  pthread_cond_t *cond;
-  enum MCConditionVariableState {
-    undefined,
-    initialized,
-    destroyed
-  } state;
-  explicit MCConditionVariableShadow(pthread_cond_t *cond)
-    : cond(cond), state(undefined) {}
-};
+namespace mcmini {
 
-struct MCConditionVariable : public MCVisibleObject {
-private:
+struct ConditionVariable : public MCVisibleObject {
+public:
+
   /**
-   * The total number of spurious wake ups that
-   * are allowed for threads waiting on the semaphore
-   */
-  unsigned spuriousWakeupCount = 0;
-
-  /*
-   * Whether a thread that is allowed to
-   * wake on the semaphore by virtue of its position
-   * in the semaphore's sleeping queue should instead
-   * awake because it was awoken by a spurious wake-up
+   * @brief
    *
-   * This condition only affects whether the semaphore
-   * should
    */
-  const bool preferSpuriousWakeupsWhenPossible = true;
+  struct Shadow {
+    pthread_cond_t *cond;
 
-  MCConditionVariableShadow condShadow;
+    enum State {
+      undefined,
+      initialized,
+      destroyed
+    } state = undefined;
+
+    explicit Shadow(pthread_cond_t *cond) : cond(cond) {}
+  };
+
+private:
 
   /**
-   * The collection of threads are currently asleep waiting
-   * to be awoken by this queue
+   * @brief The C-like shadow struct describing the basic state of
+   * the condition variable
    */
-  std::deque<tid_t> sleepQueue;
-  std::deque<tid_t> wakeQueue;
+  Shadow condShadow;
 
-  void removeSleepingThread(tid_t);
-  void removeWakingThread(tid_t);
-  bool threadIsInWaitingQueue(tid_t);
+  std::unique_ptr<ConditionVariableSignalPolicy> signalPolicy;
+  std::unique_ptr<ConditionVariableWakeupPolicy> wakeupPolicy;
 
-  inline explicit MCConditionVariable(
-    MCConditionVariableShadow condShadow,
-    std::shared_ptr<MCMutex> mutex, objid_t id)
-    : MCVisibleObject(id), condShadow(condShadow), mutex(mutex) {}
+  inline explicit ConditionVariable(
+    Shadow condShadow, std::shared_ptr<MCMutex> mutex,
+    std::unique_ptr<ConditionVariableSignalPolicy> &signalPolicy,
+    std::unique_ptr<ConditionVariableWakeupPolicy> &wakeupPolicy,
+    objid_t id)
+    : MCVisibleObject(id), condShadow(condShadow), mutex(mutex),
+      signalPolicy(std::move(signalPolicy)),
+      wakeupPolicy(std::move(wakeupPolicy))
+  {}
 
 public:
-  // TODO: Figure out how to make this API a bit neater. For now
-  // we avoid the best interface here to get condition variables to
-  // work
 
   // The lock that is used to gain access to this condition variable
   // This value may be NULL before the condition variable has received
@@ -77,20 +71,30 @@ public:
   // two different locks
   std::shared_ptr<MCMutex> mutex;
 
-  inline explicit MCConditionVariable(
-    MCConditionVariableShadow condShadow,
+  inline explicit ConditionVariable(
+    Shadow condShadow,
+    std::unique_ptr<ConditionVariableSignalPolicy> &signalPolicy,
+    std::unique_ptr<ConditionVariableWakeupPolicy> &wakeupPolicy)
+    : ConditionVariable(condShadow, signalPolicy, wakeupPolicy,
+                        nullptr)
+  {}
+
+  inline explicit ConditionVariable(
+    Shadow condShadow,
+    std::unique_ptr<ConditionVariableSignalPolicy> &signalPolicy,
+    std::unique_ptr<ConditionVariableWakeupPolicy> &wakeupPolicy,
     std::shared_ptr<MCMutex> mutex)
-    : MCVisibleObject(), condShadow(condShadow), mutex(mutex) {}
+    : MCVisibleObject(), condShadow(condShadow), mutex(mutex),
+      signalPolicy(std::move(signalPolicy)),
+      wakeupPolicy(std::move(wakeupPolicy))
+  {}
 
-  inline explicit MCConditionVariable(
-    MCConditionVariableShadow condShadow)
-    : MCVisibleObject(), condShadow(condShadow), mutex(nullptr) {}
-
-  inline MCConditionVariable(const MCConditionVariable &cond)
+  inline ConditionVariable(const ConditionVariable &cond)
     : MCVisibleObject(cond.getObjectId()),
       condShadow(cond.condShadow), mutex(nullptr),
-      sleepQueue(cond.sleepQueue), wakeQueue(cond.wakeQueue),
-      spuriousWakeupCount(cond.spuriousWakeupCount) {
+      wakeupPolicy(cond.wakeupPolicy->clone()),
+      signalPolicy(cond.signalPolicy->clone())
+  {
 
     if (cond.mutex != nullptr) {
       mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(
@@ -101,22 +105,25 @@ public:
   std::shared_ptr<MCVisibleObject> copy() override;
   MCSystemID getSystemId() override;
 
-  bool operator==(const MCConditionVariable &) const;
-  bool operator!=(const MCConditionVariable &) const;
+  bool operator==(const ConditionVariable &) const;
+  bool operator!=(const ConditionVariable &) const;
 
   bool isInitialized() const;
   bool isDestroyed() const;
 
   void initialize();
   void destroy();
-  void enterSleepingQueue(tid_t);
-  void wakeThread(tid_t);
-  void wakeFirstThreadIfPossible();
-  void wakeAllSleepingThreads();
-  void removeThread(tid_t);
-  bool threadCanExit(tid_t);
-  bool threadCanExitWithSpuriousWakeup(tid_t) const;
-  bool threadCanExitBasedOnSleepPosition(tid_t) const;
+
+  void addWaiter(tid_t tid);
+  void removeWaiter(tid_t tid);
+  bool waiterCanExit(tid_t tid);
+  void sendSignalMessage();
+  void sendBroadcastMessage();
 };
 
-#endif // MC_MCCONDITIONVARIABLE_H
+} // namespace mcmini
+
+using MCConditionVariable       = mcmini::ConditionVariable;
+using MCConditionVariableShadow = mcmini::ConditionVariable::Shadow;
+
+#endif // INCLUDE_MCMINI_OBJECTS_MCCONDITIONVARIABLE_HPP

@@ -33,8 +33,7 @@ MCCondBroadcast::staticCopy() const
   auto condCpy =
     std::static_pointer_cast<MCConditionVariable, MCVisibleObject>(
       this->conditionVariable->copy());
-  auto cpy = new MCCondBroadcast(threadCpy, condCpy);
-  return std::shared_ptr<MCTransition>(cpy);
+  return std::make_shared<MCCondBroadcast>(threadCpy, condCpy);
 }
 
 std::shared_ptr<MCTransition>
@@ -45,14 +44,14 @@ MCCondBroadcast::dynamicCopyInState(const MCState *state) const
   std::shared_ptr<MCConditionVariable> condInState =
     state->getObjectWithId<MCConditionVariable>(
       conditionVariable->getObjectId());
-  auto cpy = new MCCondBroadcast(threadInState, condInState);
-  return std::shared_ptr<MCTransition>(cpy);
+  return std::make_shared<MCCondBroadcast>(threadInState,
+                                           condInState);
 }
 
 void
 MCCondBroadcast::applyToState(MCState *state)
 {
-  this->conditionVariable->wakeAllSleepingThreads();
+  this->conditionVariable->sendBroadcastMessage();
 }
 
 bool
