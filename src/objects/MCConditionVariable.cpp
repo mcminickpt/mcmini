@@ -70,13 +70,17 @@ MCConditionVariable::waiterCanExit(tid_t tid)
 void
 MCConditionVariable::sendSignalMessage()
 {
-  this->signalPolicy->receiveSignalMessage();
+  const WakeGroup newGroup =
+    this->signalPolicy->receiveSignalMessage();
+  this->wakeupPolicy->pushWakeupGroup(newGroup);
 }
 
 void
 MCConditionVariable::sendBroadcastMessage()
 {
-  this->signalPolicy->receiveBroadcastMessage();
+  const WakeGroup newGroup =
+    this->signalPolicy->receiveBroadcastMessage();
+  this->wakeupPolicy->pushWakeupGroup(newGroup);
 }
 
 void
