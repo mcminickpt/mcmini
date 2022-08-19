@@ -20,7 +20,7 @@ CondVarSingleGroupSignalPolicy::addWaiter(tid_t tid)
 void
 CondVarSingleGroupSignalPolicy::removeWaiter(tid_t tid)
 {
-  const list<tid_t>::iterator iter =
+  const vector<tid_t>::iterator iter =
     find(this->waiters.begin(), this->waiters.end(), tid);
   if (iter != this->waiters.end()) this->waiters.erase(iter);
 }
@@ -28,13 +28,11 @@ CondVarSingleGroupSignalPolicy::removeWaiter(tid_t tid)
 WakeGroup
 CondVarSingleGroupSignalPolicy::receiveSignalMessage()
 {
-  // FIXME: Add all threads with a signal group
-  return WakeGroup();
+  return WakeGroup(WakeGroup::Type::signal, this->waiters);
 }
 
 WakeGroup
 CondVarSingleGroupSignalPolicy::receiveBroadcastMessage()
 {
-  // FIXME: Add all threads with a broadcast group
-  return WakeGroup();
+  return WakeGroup(WakeGroup::Type::broadcast, this->waiters);
 }

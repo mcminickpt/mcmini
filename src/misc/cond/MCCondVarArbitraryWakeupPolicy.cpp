@@ -21,10 +21,9 @@ CondVarArbitraryWakeupPolicy::pushWakeupGroup(const WakeGroup &wg)
 bool
 CondVarArbitraryWakeupPolicy::threadCanExit(tid_t tid) const
 {
-  // return any_of(
-  //   wakeGroups.begin(), wakeGroups.end(),
-  //   [tid](const WakeGroup &wg) { return wg.containsThread(tid); });
-  return false;
+  return any_of(
+    wakeGroups.begin(), wakeGroups.end(),
+    [tid](const WakeGroup &wg) { return wg.containsThread(tid); });
 }
 
 void

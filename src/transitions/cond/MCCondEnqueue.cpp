@@ -48,6 +48,12 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
       "than one mutex is undefined");
   }
 
+  // NOTE: We have to associate the mutex with the condition
+  // variable when the transition is encountered; otherwise,
+  // we wouldn't be able to determine if, e.g., a pthread_cond_wait()
+  // enqueue call were dependent with a pthread_mutex_lock(). Note
+  // that we ALSO must assign the mutex when the operation is APPLIED
+  // to the condition variable
   condThatExists->mutex = mutexThatExists;
   auto threadThatRan    = state->getThreadWithId(threadThatRanId);
   return new MCCondEnqueue(threadThatRan, condThatExists,
@@ -86,6 +92,7 @@ MCCondEnqueue::applyToState(MCState *state)
 {
   /* Insert this thread into the waiting queue */
   this->conditionVariable->addWaiter(this->getThreadId());
+  this->conditionVariable->mutex = this->mutex;
   this->mutex->unlock();
 }
 
@@ -136,7 +143,8 @@ MCCondEnqueue::dependentWith(const MCTransition *other) const
 void
 MCCondEnqueue::print() const
 {
-  printf("thread %lu: pthread_cond_wait(%lu, %lu) (awake)\n",
-         this->thread->tid, this->conditionVariable->getObjectId(),
-         this->mutex->getObjectId());
+  printf(
+    "thread %lu: pthread_cond_wait(%lu, %lu) (awake -> asleep)\n",
+    this->thread->tid, this->conditionVariable->getObjectId(),
+    this->mutex->getObjectId());
 }

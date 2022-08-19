@@ -136,7 +136,8 @@ MCCondWait::dependentWith(const MCTransition *other) const
 void
 MCCondWait::print() const
 {
-  printf("thread %lu: pthread_cond_wait(%lu, %lu) (asleep)\n",
-         this->thread->tid, this->conditionVariable->getObjectId(),
-         this->conditionVariable->mutex->getObjectId());
+  printf(
+    "thread %lu: pthread_cond_wait(%lu, %lu) (asleep -> awake)\n",
+    this->thread->tid, this->conditionVariable->getObjectId(),
+    this->conditionVariable->mutex->getObjectId());
 }

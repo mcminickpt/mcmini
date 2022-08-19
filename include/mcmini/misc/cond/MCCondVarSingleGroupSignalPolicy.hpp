@@ -2,7 +2,7 @@
 #define INCLUDE_MCMINI_MISC_COND_MCCONDVARSINGLEGROUPSIGNALPOLICY_HPP
 
 #include "mcmini/misc/cond/MCConditionVariableSignalPolicy.hpp"
-#include <list>
+#include <vector>
 
 namespace mcmini {
 
@@ -23,7 +23,7 @@ struct CondVarSingleGroupSignalPolicy :
 
 private:
 
-  std::list<tid_t> waiters;
+  std::vector<tid_t> waiters;
 };
 
 } // namespace mcmini
