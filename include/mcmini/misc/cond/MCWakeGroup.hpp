@@ -1,7 +1,8 @@
-#ifndef INCLUDE_MCMINI_MISC_MCWAKEGROUP_HPP
-#define INCLUDE_MCMINI_MISC_MCWAKEGROUP_HPP
+#ifndef INCLUDE_MCMINI_MISC_COND_MCWAKEGROUP_HPP
+#define INCLUDE_MCMINI_MISC_COND_MCWAKEGROUP_HPP
 
 #include "mcmini/MCShared.h"
+#include "mcmini/misc/MCOptional.h"
 #include <cstdlib>
 #include <set>
 #include <vector>
@@ -41,6 +42,13 @@ struct WakeGroup final {
   WakeGroup(Type type);
   WakeGroup(Type type, const std::vector<tid_t> &);
 
+  /**
+   * @brief Whether or not the given thread is contained in the group
+   *
+   * @param tid the thread to test for membership in the wakegroup
+   * @return true if the thread is contained in the wakegroup
+   * @return false if the thread is not contained in the wakegroup
+   */
   bool containsThread(tid_t tid) const;
 
   /**
@@ -56,6 +64,26 @@ struct WakeGroup final {
    * @param tid
    */
   void wakeThread(tid_t tid);
+
+  MCOptional<tid_t>
+  threadAtIndex(int index) const
+  {
+    if (index < 0 || index >= threads.size())
+      return MCOptional<tid_t>::nil();
+    return MCOptional<tid_t>::some(threads[index]);
+  }
+
+  MCOptional<tid_t>
+  top() const
+  {
+    return this->threadAtIndex(0);
+  }
+
+  MCOptional<tid_t>
+  back() const
+  {
+    return this->threadAtIndex(this->threads.size() - 1);
+  }
 
   inline ssize_t
   size() const
@@ -76,4 +104,4 @@ private:
 };
 } // namespace mcmini
 
-#endif // INCLUDE_MCMINI_MISC_MCWAKEGROUP_HPP
+#endif // INCLUDE_MCMINI_MISC_COND_MCWAKEGROUP_HPP

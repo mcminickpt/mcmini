@@ -17,7 +17,10 @@ set(MC_CPP_FILES
   MCClockVector.cpp
   MCStateConfiguration.cpp
 
+  misc/cond/MCCondVarWakeupPolicyImpl.cpp
   misc/cond/MCCondVarArbitraryWakeupPolicy.cpp
+  misc/cond/MCCondVarOrderedWakeupPolicy.cpp
+
   misc/cond/MCCondVarSingleGroupSignalPolicy.cpp
   misc/cond/MCWakeGroup.cpp
 
