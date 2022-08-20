@@ -39,9 +39,19 @@ public:
   clone() const = 0;
 
   /**
-   * @brief Adds a wakegroup to the queue managed
+   * @brief Pushes the given wakegroup to the end of the wakeup queue
+   * managed by the policy
    *
-   * @param group
+   * @invariant if wake groups are created via a (well-formed)
+   * ConditionVariableSignalPolicy, then the wake groups following and
+   * including the first wake group to contain thread `i` will all
+   * contain thread `i`. This can be deduced by noting that a thread
+   * which was elligible to wake-up at a prior signal-point will
+   * remain elligible to wake up if it has not already done so by the
+   * time a subsequent signal/broadcast is sent to the condition
+   * variable.
+   *
+   * @param group the group to push to the end of the policy
    */
   virtual void pushWakeupGroup(const WakeGroup &group) = 0;
 
