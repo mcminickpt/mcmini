@@ -441,7 +441,7 @@ mc_exhaust_threads(const MCTransition &initialTransition)
   const bool programHasNoErrors  = !programIsInDeadlock;
 
   if (programIsInDeadlock) {
-    puts("*** DEADLOCK DETECTED ***");
+    mcprintf("*** DEADLOCK DETECTED AT TRACE %lu***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
 
@@ -494,11 +494,11 @@ mc_report_undefined_behavior(const char *msg)
   fprintf(stderr,
           "\t Undefined Behavior Detected! \t\n"
           "\t ............................ \t\n"
-          "\t The model checker aborted the execution because\t\n"
+          "\t mcmini aborted the execution of trace %lu because\t\n"
           "\t it detected undefined behavior\t\n"
           "\t ............................ \t\n"
           "\t %s \t\n",
-          msg);
+          traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();
   exit(EXIT_FAILURE);
