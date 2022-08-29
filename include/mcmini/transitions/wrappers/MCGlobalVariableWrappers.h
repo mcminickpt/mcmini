@@ -6,7 +6,7 @@
 MC_EXTERN void *mcmini_read(void *);
 MC_EXTERN void mcmini_write(void *, void *);
 
-#define READ(x)         mcmini_read(x)
-#define WRITE(old, new) mcmini_write(old, new)
+#define MC_TRACK_READ(x)         mcmini_read(x)
+#define MC_TRACK_WRITE(x, x_new) mcmini_write(x, x_new)
 
 #endif // MC_MCGLOBALVARIABLEWRAPPERS_H
