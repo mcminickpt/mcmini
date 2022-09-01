@@ -1,84 +1,96 @@
-#include "MCSemEnqueue.h"
-#include "MCSemInit.h"
-#include "MCSemWait.h"
-#include "MCMINI.h"
+#include "mcmini/transitions/semaphore/MCSemEnqueue.h"
+#include "mcmini/MCMINI_Private.h"
+#include "mcmini/transitions/semaphore/MCSemInit.h"
+#include "mcmini/transitions/semaphore/MCSemWait.h"
 
-MCTransition*
-MCReadSemEnqueue(const MCSharedTransition *shmTransition, void *shmData, MCState *state)
+MCTransition *
+MCReadSemEnqueue(const MCSharedTransition *shmTransition,
+                 void *shmData, MCState *state)
 {
-    auto semInShm = *static_cast<sem_t**>(shmData);
-    auto semThatExists = state->getVisibleObjectWithSystemIdentity<MCSemaphore>((MCSystemID)semInShm);
+  auto semInShm = *static_cast<sem_t **>(shmData);
+  auto semThatExists =
+    state->getVisibleObjectWithSystemIdentity<MCSemaphore>(
+      (MCSystemID)semInShm);
 
-    // Catch undefined behavior
-    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(semThatExists != nullptr, "Attempting to wait on an uninitialized semaphore");
-    if (semThatExists->isDestroyed()) {
-        MC_REPORT_UNDEFINED_BEHAVIOR("Attempting to wait on a semaphore that has been destroyed");
-    }
+  // Catch undefined behavior
+  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
+    semThatExists != nullptr,
+    "Attempting to wait on an uninitialized semaphore");
+  if (semThatExists->isDestroyed()) {
+    MC_REPORT_UNDEFINED_BEHAVIOR(
+      "Attempting to wait on a semaphore that has been destroyed");
+  }
 
-    tid_t threadThatRanId = shmTransition->executor;
-    auto threadThatRan = state->getThreadWithId(threadThatRanId);
-    return new MCSemEnqueue(threadThatRan, semThatExists);
+  tid_t threadThatRanId = shmTransition->executor;
+  auto threadThatRan    = state->getThreadWithId(threadThatRanId);
+  return new MCSemEnqueue(threadThatRan, semThatExists);
 }
 
 std::shared_ptr<MCTransition>
-MCSemEnqueue::staticCopy()
+MCSemEnqueue::staticCopy() const
 {
-    auto threadCpy=
-            std::static_pointer_cast<MCThread, MCVisibleObject>(this->thread->copy());
-    auto semCpy =
-            std::static_pointer_cast<MCSemaphore, MCVisibleObject>(this->sem->copy());
-    auto mutexInit = new MCSemEnqueue(threadCpy, semCpy);
-    return std::shared_ptr<MCTransition>(mutexInit);
+  auto threadCpy =
+    std::static_pointer_cast<MCThread, MCVisibleObject>(
+      this->thread->copy());
+  auto semCpy =
+    std::static_pointer_cast<MCSemaphore, MCVisibleObject>(
+      this->sem->copy());
+  auto mutexInit = new MCSemEnqueue(threadCpy, semCpy);
+  return std::shared_ptr<MCTransition>(mutexInit);
 }
 
 std::shared_ptr<MCTransition>
-MCSemEnqueue::dynamicCopyInState(const MCState *state)
+MCSemEnqueue::dynamicCopyInState(const MCState *state) const
 {
-    std::shared_ptr<MCThread> threadInState = state->getThreadWithId(thread->tid);
-    std::shared_ptr<MCSemaphore> semInState = state->getObjectWithId<MCSemaphore>(sem->getObjectId());
-    auto cpy = new MCSemEnqueue(threadInState, semInState);
-    return std::shared_ptr<MCTransition>(cpy);
+  std::shared_ptr<MCThread> threadInState =
+    state->getThreadWithId(thread->tid);
+  std::shared_ptr<MCSemaphore> semInState =
+    state->getObjectWithId<MCSemaphore>(sem->getObjectId());
+  auto cpy = new MCSemEnqueue(threadInState, semInState);
+  return std::shared_ptr<MCTransition>(cpy);
 }
 
 void
 MCSemEnqueue::applyToState(MCState *state)
 {
-    this->sem->enterWaitingQueue(this->getThreadId());
+  this->sem->enterWaitingQueue(this->getThreadId());
 }
 
 bool
-MCSemEnqueue::coenabledWith(std::shared_ptr<MCTransition> other)
+MCSemEnqueue::coenabledWith(const MCTransition *other) const
 {
-    return true;
+  return true;
 }
 
 bool
-MCSemEnqueue::dependentWith(std::shared_ptr<MCTransition> other)
+MCSemEnqueue::dependentWith(const MCTransition *other) const
 {
-    auto maybeSemaphoreInitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
-    if (maybeSemaphoreInitOperation) {
-        return *maybeSemaphoreInitOperation->sem == *this->sem;
-    }
+  const MCSemInit *maybeSemaphoreInitOperation =
+    dynamic_cast<const MCSemInit *>(other);
+  if (maybeSemaphoreInitOperation) {
+    return *maybeSemaphoreInitOperation->sem == *this->sem;
+  }
 
-    // The enqueue operation is only dependent with a sem_wait
-    // when the semaphore wakes threads using LIFO
-    //auto maybeSemaphoreWaitOperation = std::dynamic_pointer_cast<MCSemInit, MCTransition>(other);
-    //if (maybeSemaphoreWaitOperation) {
-    //    return *maybeSemaphoreWaitOperation->sem == *this->sem;
-    //}
+  // The enqueue operation is only dependent with a sem_wait
+  // when the semaphore wakes threads using LIFO
+  // auto maybeSemaphoreWaitOperation =
+  // std::dynamic_pointer_cast<MCSemInit, MCTransition>(other); if
+  // (maybeSemaphoreWaitOperation) {
+  //    return *maybeSemaphoreWaitOperation->sem == *this->sem;
+  //}
 
-    auto maybeSemaphoreEnqueueOperation = std::dynamic_pointer_cast<MCSemEnqueue, MCTransition>(other);
-    if (maybeSemaphoreEnqueueOperation) {
-        return *maybeSemaphoreEnqueueOperation->sem == *this->sem;
-    }
+  const MCSemEnqueue *maybeSemaphoreEnqueueOperation =
+    dynamic_cast<const MCSemEnqueue *>(other);
+  if (maybeSemaphoreEnqueueOperation) {
+    return *maybeSemaphoreEnqueueOperation->sem == *this->sem;
+  }
 
-    return false;
+  return false;
 }
 
 void
-MCSemEnqueue::print()
+MCSemEnqueue::print() const
 {
-    printf("thread %lu: sem_wait(%lu) (enter)\n", this->thread->tid, this->sem->getObjectId());
+  printf("thread %lu: sem_wait(%lu) (enter)\n", this->thread->tid,
+         this->sem->getObjectId());
 }
-
-

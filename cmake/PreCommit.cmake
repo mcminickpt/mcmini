@@ -1,0 +1,20 @@
+message(STATUS "Looking for pre-commit program...")
+find_program(PRE_COMMIT_PROGRAM pre-commit)
+
+if (NOT "${PRE_COMMIT_PROGRAM}" STREQUAL "PRE_COMMIT_PROGRAM-NOTFOUND")
+    option(INSTALL_PRE_COMMIT_HOOKS "Run \'pre-commit install\' when cmake is run" OFF)
+    message(STATUS "pre-commit program found with name ${PRE_COMMIT_PROGRAM}")
+    if (INSTALL_PRE_COMMIT_HOOKS)
+        message(STATUS "Configuring git pre-commit hooks with pre-commit")
+        execute_process(COMMAND ${PRE_COMMIT_PROGRAM} install
+                        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                        RESULT_VARIABLE PRE_COMMIT_RESULT)
+        if(PRE_COMMIT_RESULT EQUAL "0")
+            message("Pre-commit hooks configured")
+        else()
+            message(FATAL_ERROR "\'pre-commit install\' failed with error ${PRE_COMMIT_RESULT}")
+        endif()
+    endif()
+else()
+    message(STATUS "Could not find pre-commit program")
+endif()
