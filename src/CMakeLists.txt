@@ -20,6 +20,7 @@ set(MC_CPP_FILES
   misc/cond/MCCondVarWakeupPolicyImpl.cpp
   misc/cond/MCCondVarArbitraryWakeupPolicy.cpp
   misc/cond/MCCondVarOrderedWakeupPolicy.cpp
+  misc/cond/MCCondVarGLibcSignalPolicy.cpp
 
   misc/cond/MCCondVarSingleGroupSignalPolicy.cpp
   misc/cond/MCWakeGroup.cpp

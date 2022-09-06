@@ -1,5 +1,6 @@
 #include "mcmini/transitions/cond/MCCondInit.h"
 #include "mcmini/misc/cond/MCCondVarArbitraryWakeupPolicy.hpp"
+#include "mcmini/misc/cond/MCCondVarGLibcWakeupPolicy.hpp"
 #include "mcmini/misc/cond/MCCondVarOrderedWakeupPolicy.hpp"
 #include "mcmini/misc/cond/MCCondVarSingleGroupSignalPolicy.hpp"
 
@@ -25,10 +26,10 @@ MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData,
 
     auto wakeupPolicy = unique_ptr<ConditionVariableWakeupPolicy>(
       new CondVarOrderedWakeupPolicy(
-        CondVarOrderedWakeupPolicy::WakeupOrder::lifo));
+        CondVarOrderedWakeupPolicy::WakeupOrder::fifo));
 
     auto signalPolicy = unique_ptr<ConditionVariableSignalPolicy>(
-      new CondVarSingleGroupSignalPolicy());
+      new CondVarGLibcWakeupPolicy());
 
     auto newCond = std::make_shared<ConditionVariable>(
       shadow, signalPolicy, wakeupPolicy);
