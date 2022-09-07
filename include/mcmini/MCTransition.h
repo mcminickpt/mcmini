@@ -35,7 +35,7 @@ struct MCState;
  *
  * Transitions are used to move McMini from state to state in order
  * to perform searches through a concurrent system's state space.
- * McMini keeps around. McMini uses *static* copies when it needs
+ * McMini uses *static* copies when it needs
  * to save the states of a transition and its references for use at
  * a later date. On the other hand, McMini creates *dynamic copies*
  * of transitions when it needs the references in the transition to
@@ -59,6 +59,9 @@ struct MCState;
  */
 struct MCTransition {
 public:
+
+  virtual ~MCTransition() = default;
+
   MCTransition(std::shared_ptr<MCThread> thread) : thread(thread) {}
   MCTransition(const MCTransition &)            = default;
   MCTransition &operator=(const MCTransition &) = default;
@@ -192,7 +195,8 @@ public:
    * transition if it were tested in the state provided as an
    * argument to this method
    */
-  virtual bool enabledInState(const MCState *state) const
+  virtual bool
+  enabledInState(const MCState *state) const
   {
     return true;
   }
@@ -248,7 +252,8 @@ public:
    * @return true if the transition can be reversed in the given
    * state, and false otherwise
    */
-  virtual bool isReversibleInState(const MCState *state) const
+  virtual bool
+  isReversibleInState(const MCState *state) const
   {
     return false;
   }
@@ -286,7 +291,8 @@ public:
    * @throws std::runtime_error if you attempt to unapply the
    * transition when it's unsupported
    */
-  virtual void unapplyToState(MCState *state)
+  virtual void
+  unapplyToState(MCState *state)
   {
     if (!isReversibleInState(state))
       throw std::runtime_error(
@@ -330,7 +336,8 @@ public:
    * @return whether this transition is co-enabled, in the formal
    * sense, with the given one
    */
-  virtual bool coenabledWith(const MCTransition *other) const
+  virtual bool
+  coenabledWith(const MCTransition *other) const
   {
     return true;
   }
@@ -395,7 +402,8 @@ public:
    * @return whether this transition is dependent, in the formal
    * sense, with the given one
    */
-  virtual bool dependentWith(const MCTransition *other) const
+  virtual bool
+  dependentWith(const MCTransition *other) const
   {
     return true;
   }
@@ -411,7 +419,8 @@ public:
    * @returns whether this transition is in a data race with the
    * transition specified
    */
-  virtual bool isRacingWith(const MCTransition *other) const
+  virtual bool
+  isRacingWith(const MCTransition *other) const
   {
     return false;
   }
@@ -447,7 +456,11 @@ public:
    * will not be in a deadlock
    *
    */
-  virtual bool ensuresDeadlockIsImpossible() const { return false; }
+  virtual bool
+  ensuresDeadlockIsImpossible() const
+  {
+    return false;
+  }
 
   /**
    * Determines whether this transition should be considered
@@ -474,7 +487,8 @@ public:
    * @return whether this transition should be considered
    * when determining the number of transitions a thread has run
    */
-  virtual bool countsAgainstThreadExecutionDepth() const
+  virtual bool
+  countsAgainstThreadExecutionDepth() const
   {
     return true;
   }
@@ -485,7 +499,11 @@ public:
    * @return the id for the thread that executes
    * this transition
    */
-  inline tid_t getThreadId() const { return this->thread->tid; }
+  inline tid_t
+  getThreadId() const
+  {
+    return this->thread->tid;
+  }
 
   /**
    * @brief Whether or not the thread
@@ -501,15 +519,19 @@ public:
    * @return true is the thread is in the
    * alive state, and false otherwise
    */
-  inline bool threadIsEnabled() const
+  inline bool
+  threadIsEnabled() const
   {
     return this->thread->enabled();
   }
 
   // FIXME: De-couple printing from the interface
-  virtual void print() const {}
+  virtual void
+  print() const
+  {}
 
 protected:
+
   /**
    * @brief
    *
@@ -517,6 +539,7 @@ protected:
   std::shared_ptr<MCThread> thread;
 
 private:
+
   static bool transitionsCoenabledCommon(const MCTransition *t1,
                                          const MCTransition *t2);
   static bool transitionsDependentCommon(const MCTransition *t1,

@@ -28,6 +28,7 @@ set(MC_CPP_FILES
   objects/MCThread.cpp
   objects/MCVisibleObject.cpp
   objects/MCMutex.cpp
+  objects/MCRWLock.cpp
   objects/MCSemaphore.cpp
   objects/MCGlobalVariable.cpp
   objects/MCBarrier.cpp
@@ -56,6 +57,10 @@ set(MC_CPP_FILES
   transitions/threads/MCThreadFinish.cpp
   transitions/threads/MCThreadJoin.cpp
   transitions/threads/MCThreadStart.cpp
+  transitions/rwlock/MCRWLockInit.cpp
+  transitions/rwlock/MCRWLockReaderLock.cpp
+  transitions/rwlock/MCRWLockWriterLock.cpp
+  transitions/rwlock/MCRWLockUnlock.cpp
   transitions/wrappers/MCBarrierWrappers.cpp
   transitions/wrappers/MCConditionVariableWrappers.cpp
   transitions/wrappers/MCGlobalVariableWrappers.cpp
@@ -63,6 +68,7 @@ set(MC_CPP_FILES
   transitions/wrappers/MCSemaphoreTransitionWrappers.cpp
   transitions/wrappers/MCSharedLibraryWrappers.c
   transitions/wrappers/MCThreadTransitionWrappers.cpp
+  transitions/wrappers/MCRWLockWrappers.cpp
 )
 
 # -lrt -> shared memory

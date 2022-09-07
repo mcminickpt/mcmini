@@ -7,6 +7,7 @@
 #include "mcmini/transitions/cond/MCCondDefs.h"
 #include "mcmini/transitions/misc/MCMiscDefs.h"
 #include "mcmini/transitions/mutex/MCMutexDefs.h"
+#include "mcmini/transitions/rwlock/MCRWLockDefs.h"
 #include "mcmini/transitions/semaphore/MCSemaphoreDefs.h"
 #include "mcmini/transitions/threads/MCThreadDefs.h"
 #include <pthread.h>
@@ -17,7 +18,7 @@ extern "C" {
 }
 
 /* Source program thread control */
-template <typename SharedMemoryData>
+template<typename SharedMemoryData>
 void
 thread_post_visible_operation_hit(const std::type_info &type,
                                   SharedMemoryData *shmData)
