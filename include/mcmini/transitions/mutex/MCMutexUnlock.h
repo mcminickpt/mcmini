@@ -22,7 +22,6 @@ public:
   bool isReversibleInState(const MCState *) const override;
   bool coenabledWith(const MCTransition *) const override;
   bool dependentWith(const MCTransition *) const override;
-
   void print() const override;
 };
 

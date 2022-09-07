@@ -5,6 +5,7 @@
 #include "mcmini/transitions/wrappers/MCConditionVariableWrappers.h"
 #include "mcmini/transitions/wrappers/MCGlobalVariableWrappers.h"
 #include "mcmini/transitions/wrappers/MCMutexTransitionWrappers.h"
+#include "mcmini/transitions/wrappers/MCRWLockWrappers.h"
 #include "mcmini/transitions/wrappers/MCSemaphoreTransitionWrappers.h"
 #include "mcmini/transitions/wrappers/MCThreadTransitionWrappers.h"
 

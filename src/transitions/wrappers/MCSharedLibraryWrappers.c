@@ -3,6 +3,7 @@
 #include "mcmini/transitions/wrappers/MCBarrierWrappers.h"
 #include "mcmini/transitions/wrappers/MCConditionVariableWrappers.h"
 #include "mcmini/transitions/wrappers/MCMutexTransitionWrappers.h"
+#include "mcmini/transitions/wrappers/MCRWLockWrappers.h"
 #include "mcmini/transitions/wrappers/MCSemaphoreTransitionWrappers.h"
 #include "mcmini/transitions/wrappers/MCThreadTransitionWrappers.h"
 
@@ -21,6 +22,10 @@ typeof(&pthread_cond_init) pthread_cond_init_ptr;
 typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
 typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
 typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
+typeof(&pthread_rwlock_init) pthread_rwlock_init_ptr;
+typeof(&pthread_rwlock_rdlock) pthread_rwlock_rdlock_ptr;
+typeof(&pthread_rwlock_wrlock) pthread_rwlock_wrlock_ptr;
+typeof(&pthread_rwlock_unlock) pthread_rwlock_unlock_ptr;
 typeof(&sleep) sleep_ptr;
 
 void
@@ -38,9 +43,16 @@ mc_load_shadow_routines()
   exit_ptr                 = dlsym(RTLD_NEXT, "exit");
   pthread_barrier_init_ptr = dlsym(RTLD_NEXT, "pthread_barrier_init");
   pthread_barrier_wait_ptr = dlsym(RTLD_NEXT, "pthread_barrier_wait");
-  pthread_cond_init_ptr    = dlsym(RTLD_NEXT, "pthread_cond_init");
-  pthread_cond_wait_ptr    = dlsym(RTLD_NEXT, "pthread_cond_wait");
-  pthread_cond_signal_ptr  = dlsym(RTLD_NEXT, "pthread_cond_signal");
+  pthread_rwlock_init_ptr  = dlsym(RTLD_NEXT, "pthread_rdlock_init");
+  pthread_rwlock_rdlock_ptr =
+    dlsym(RTLD_NEXT, "pthread_rwlock_rdlock");
+  pthread_rwlock_wrlock_ptr =
+    dlsym(RTLD_NEXT, "pthread_rwlock_wrlock");
+  pthread_rwlock_unlock_ptr =
+    dlsym(RTLD_NEXT, "pthread_rwlock_unlock");
+  pthread_cond_init_ptr   = dlsym(RTLD_NEXT, "pthread_cond_init");
+  pthread_cond_wait_ptr   = dlsym(RTLD_NEXT, "pthread_cond_wait");
+  pthread_cond_signal_ptr = dlsym(RTLD_NEXT, "pthread_cond_signal");
   pthread_cond_broadcast_ptr =
     dlsym(RTLD_NEXT, "pthread_cond_broadcast");
   sleep_ptr = dlsym(RTLD_NEXT, "sleep");
@@ -56,6 +68,10 @@ mc_load_shadow_routines()
   exit_ptr                   = &exit;
   pthread_barrier_init_ptr   = &pthread_barrier_init;
   pthread_barrier_wait_ptr   = &pthread_barrier_wait;
+  pthread_rwlock_init_ptr    = &pthread_rwlock_init;
+  pthread_rwlock_unlock_ptr  = &pthread_rwlock_unlock;
+  pthread_rwlock_rdlock_ptr  = &pthread_rwlock_rdlock;
+  pthread_rwlock_wrlock_ptr  = &pthread_rwlock_wrlock;
   pthread_cond_init_ptr      = &pthread_cond_init;
   pthread_cond_wait_ptr      = &pthread_cond_wait;
   pthread_cond_signal_ptr    = &pthread_cond_signal;
@@ -137,6 +153,37 @@ pthread_barrier_wait(pthread_barrier_t *barrier)
 }
 
 int
+pthread_rwlock_init(pthread_rwlock_t *rwlock,
+                    const pthread_rwlockattr_t *attr)
+{
+  return mc_pthread_rwlock_init(rwlock, attr);
+}
+
+int
+pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
+{
+  return mc_pthread_rwlock_rdlock(rwlock);
+}
+
+int
+pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
+{
+  return mc_pthread_rwlock_wrlock(rwlock);
+}
+
+int
+pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
+{
+  return mc_pthread_rwlock_unlock(rwlock);
+}
+
+int
+pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
+{
+  return mc_pthread_rwlock_destroy(rwlock);
+}
+
+int
 pthread_cond_init(pthread_cond_t *cond,
                   const pthread_condattr_t *attr)
 {
@@ -164,7 +211,7 @@ pthread_cond_broadcast(pthread_cond_t *cond)
 unsigned int
 sleep(unsigned int seconds)
 {
-  /* Treat it as if no signal handler was called */
+  /* Treat it as if no  time passed */
   return 0;
 }
 

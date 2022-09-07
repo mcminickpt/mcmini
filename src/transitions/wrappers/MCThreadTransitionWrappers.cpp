@@ -62,7 +62,7 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
   int return_value = __real_pthread_create(
     thread, attr, &mc_thread_routine_wrapper, dpor_thread_arg);
 
-  // We need to ensure that the thread is
+  // We need to ensure that the thread that is
   // created has fully registered itself with the
   // concurrent system; otherwise, there is a race condition
   // in which two thread creates in the child might
@@ -109,7 +109,7 @@ mc_transparent_exit(int status)
   __real_exit(status);
 }
 
-template <typename T>
+template<typename T>
 void
 mc_pthread_reach_point()
 {

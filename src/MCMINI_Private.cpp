@@ -120,6 +120,14 @@ mc_create_program_state()
                                              &MCReadCondWait);
   programState->registerVisibleOperationType(typeid(MCCondEnqueue),
                                              &MCReadCondEnqueue);
+  programState->registerVisibleOperationType(typeid(MCRWLockInit),
+                                             &MCReadRWLockInit);
+  programState->registerVisibleOperationType(
+    typeid(MCRWLockReaderLock), &MCReadRWLockReaderLock);
+  programState->registerVisibleOperationType(
+    typeid(MCRWLockWriterLock), &MCReadRWLockWriterLock);
+  programState->registerVisibleOperationType(typeid(MCRWLockUnlock),
+                                             &MCReadRWLockUnlock);
   programState->registerVisibleOperationType(
     typeid(MCGlobalVariableRead), &MCReadGlobalRead);
   programState->registerVisibleOperationType(

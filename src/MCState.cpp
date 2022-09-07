@@ -489,8 +489,7 @@ MCState::dynamicallyUpdateBacktrackSetsHelper(
       for (tid_t q : enabledThreadsAtPreSi)
         if (!preSi.threadIsInSleepSet(q))
           preSi.addBacktrackingThreadIfUnsearched(q);
-    }
-    else {
+    } else {
       for (tid_t q : E) {
         // If there is a thread in preSi that we
         // are already backtracking AND which is contained
@@ -794,8 +793,7 @@ MCState::reflectStateAtTransitionIndex(uint32_t index)
      */
     for (uint32_t i = 0u; i <= index; i++)
       this->virtuallyRerunTransitionAtIndex(i);
-  }
-  else {
+  } else {
 
     // In the case we can revert the transitions in the transition
     // stack, all we need to do is revert the transitions
