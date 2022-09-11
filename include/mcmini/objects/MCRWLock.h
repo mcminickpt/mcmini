@@ -4,6 +4,7 @@
 #include "mcmini/misc/MCOptional.h"
 #include "mcmini/objects/MCVisibleObject.h"
 #include <pthread.h>
+#include <queue>
 #include <unordered_set>
 
 struct MCRWLockShadow {
@@ -24,16 +25,14 @@ struct MCRWLockShadow {
 struct MCRWLock : public MCVisibleObject {
 private:
 
-  enum Type {
-    writer_preferred,
-    reader_preferred,
-    mostly_writer_preferred,
-    mostly_reader_preferred
-  } type;
+  enum Type { writer_preferred, reader_preferred, unspecified } type;
 
   MCRWLockShadow shadow;
-  MCOptional<tid_t> writer = MCOptional<tid_t>::nil();
-  std::unordered_set<tid_t> readers;
+  MCOptional<tid_t> active_writer = MCOptional<tid_t>::nil();
+  std::unordered_set<tid_t> active_readers;
+
+  std::queue<tid_t> reader_queue = std::queue<tid_t>();
+  std::queue<tid_t> writer_queue = std::queue<tid_t>();
 
 public:
 
@@ -52,11 +51,16 @@ public:
 
   bool canAcquireAsReader(tid_t) const;
   bool canAcquireAsWriter(tid_t) const;
+  bool hasEnqueuedWriters() const;
+  bool hasEnqueuedReaders() const;
+
   bool isReaderLocked() const;
   bool isWriterLocked() const;
   bool isUnlocked() const;
   bool isDestroyed() const;
 
+  void enqueue_as_reader(tid_t);
+  void enqueue_as_writer(tid_t);
   void reader_lock(tid_t);
   void writer_lock(tid_t);
   void unlock(tid_t);

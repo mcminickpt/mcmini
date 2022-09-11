@@ -52,6 +52,12 @@ MCRWLockWriterLock::applyToState(MCState *state)
 }
 
 bool
+MCRWLockWriterLock::enabledInState(const MCState *state) const
+{
+  return this->rwlock->canAcquireAsWriter(this->getThreadId());
+}
+
+bool
 MCRWLockWriterLock::coenabledWith(const MCTransition *other) const
 {
   {
