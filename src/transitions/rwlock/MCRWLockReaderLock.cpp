@@ -52,6 +52,12 @@ MCRWLockReaderLock::applyToState(MCState *state)
 }
 
 bool
+MCRWLockReaderLock::enabledInState(const MCState *state) const
+{
+  return this->rwlock->canAcquireAsReader(this->getThreadId());
+}
+
+bool
 MCRWLockReaderLock::coenabledWith(const MCTransition *other) const
 {
   {

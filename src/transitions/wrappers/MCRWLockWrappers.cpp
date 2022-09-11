@@ -22,6 +22,11 @@ int
 mc_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
 {
   MCRWLockShadow lock(rwlock);
+
+  thread_post_visible_operation_hit<MCRWLockShadow>(
+    typeid(MCRWLockReaderEnqueue), &lock);
+  thread_await_mc_scheduler();
+
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockReaderLock), &lock);
   thread_await_mc_scheduler();
@@ -33,6 +38,11 @@ int
 mc_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
 {
   MCRWLockShadow lock(rwlock);
+
+  thread_post_visible_operation_hit<MCRWLockShadow>(
+    typeid(MCRWLockWriterEnqueue), &lock);
+  thread_await_mc_scheduler();
+
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockWriterLock), &lock);
   thread_await_mc_scheduler();

@@ -61,6 +61,8 @@ set(MC_CPP_FILES
   transitions/rwlock/MCRWLockReaderLock.cpp
   transitions/rwlock/MCRWLockWriterLock.cpp
   transitions/rwlock/MCRWLockUnlock.cpp
+  transitions/rwlock/MCRWLockWriterEnqueue.cpp
+  transitions/rwlock/MCRWLockReaderEnqueue.cpp
   transitions/wrappers/MCBarrierWrappers.cpp
   transitions/wrappers/MCConditionVariableWrappers.cpp
   transitions/wrappers/MCGlobalVariableWrappers.cpp
