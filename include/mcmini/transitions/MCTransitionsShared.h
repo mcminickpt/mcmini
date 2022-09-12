@@ -1,5 +1,5 @@
-#ifndef MC_MCTRANSITIONSSHARED_H
-#define MC_MCTRANSITIONSSHARED_H
+#ifndef INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
+#define INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
 
 #include "mcmini/MCMINI_Private.h"
 #include "mcmini/MCShared.h"
@@ -37,4 +37,4 @@ void thread_await_mc_scheduler_for_thread_start_transition();
 void thread_awake_mc_scheduler_for_thread_finish_transition();
 void mc_exit_main_thread();
 
-#endif // MC_MCTRANSITIONSSHARED_H
+#endif // INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
