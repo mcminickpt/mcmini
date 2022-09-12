@@ -41,8 +41,13 @@ MCRWLock::hasEnqueuedReaders() const
 bool
 MCRWLock::canAcquireAsReader(tid_t tid) const
 {
-  if (this->type == Type::writer_preferred && hasEnqueuedWriters())
+  if (this->type == Type::writer_preferred && hasEnqueuedWriters()) {
     return false;
+  }
+
+  if (this->type == Type::no_preference) {
+    return !isWriterLocked() && this->acquire_queue.front() == tid;
+  }
 
   return !isWriterLocked() && this->reader_queue.front() == tid;
 }
@@ -50,8 +55,14 @@ MCRWLock::canAcquireAsReader(tid_t tid) const
 bool
 MCRWLock::canAcquireAsWriter(tid_t tid) const
 {
-  if (this->type == Type::reader_preferred && hasEnqueuedReaders())
+  if (this->type == Type::reader_preferred && hasEnqueuedReaders()) {
     return false;
+  }
+
+  if (this->type == Type::no_preference) {
+    return isUnlocked() && this->acquire_queue.front() == tid;
+  }
+
   return isUnlocked() && this->writer_queue.front() == tid;
 }
 
@@ -83,17 +94,28 @@ void
 MCRWLock::reader_lock(tid_t tid)
 {
   this->active_readers.insert(tid);
+
+  MC_ASSERT(!this->reader_queue.empty());
+  MC_ASSERT(!this->acquire_queue.empty());
+
+  // Remove reader from the reader_queue
+  MC_ASSERT(this->reader_queue.front() == tid);
+
+  this->reader_queue.pop();
+  this->acquire_queue.pop();
 }
 
 void
 MCRWLock::writer_lock(tid_t tid)
 {
   MC_ASSERT(!this->active_writer.hasValue());
+  MC_ASSERT(!this->writer_queue.empty());
 
-  if (!this->writer_queue.empty()) {
-    MC_ASSERT(!this->writer_queue.front() == tid);
-    this->writer_queue.pop();
-  }
+  // Remove reader from the reader_queue
+  MC_ASSERT(this->writer_queue.front() == tid);
+
+  this->writer_queue.pop();
+  this->acquire_queue.pop();
   this->active_writer = MCOptional<tid_t>::some(tid);
 }
 
@@ -101,12 +123,14 @@ void
 MCRWLock::enqueue_as_reader(tid_t tid)
 {
   this->reader_queue.push(tid);
+  this->acquire_queue.push(tid);
 }
 
 void
 MCRWLock::enqueue_as_writer(tid_t tid)
 {
   this->writer_queue.push(tid);
+  this->acquire_queue.push(tid);
 }
 
 void

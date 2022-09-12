@@ -25,7 +25,11 @@ struct MCRWLockShadow {
 struct MCRWLock : public MCVisibleObject {
 private:
 
-  enum Type { writer_preferred, reader_preferred, unspecified } type;
+  enum Type {
+    writer_preferred,
+    reader_preferred,
+    no_preference
+  } type;
 
   MCRWLockShadow shadow;
   MCOptional<tid_t> active_writer = MCOptional<tid_t>::nil();
@@ -33,6 +37,11 @@ private:
 
   std::queue<tid_t> reader_queue = std::queue<tid_t>();
   std::queue<tid_t> writer_queue = std::queue<tid_t>();
+
+  // INVARIANT: Represents an interleaving of
+  // the reader and writer queues. The acquisition
+  // queue is used for locks with a Type of no_preference
+  std::queue<tid_t> acquire_queue = std::queue<tid_t>();
 
 public:
 
