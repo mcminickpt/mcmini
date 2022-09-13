@@ -9,7 +9,7 @@ class MCOptional final {
   bool _hasValue;
 
   union {
-    const Value value;
+    Value value;
   };
 
   /* Construct the `nil` value */

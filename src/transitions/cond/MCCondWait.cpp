@@ -76,18 +76,16 @@ MCCondWait::dynamicCopyInState(const MCState *state) const
 void
 MCCondWait::applyToState(MCState *state)
 {
-  const auto threadId = this->getThreadId();
+  const tid_t threadId = this->getThreadId();
   this->conditionVariable->mutex->lock(threadId);
-  this->conditionVariable->removeThread(
-    threadId); /* When we actually apply the wait, we are moving out
-                  of it */
+  this->conditionVariable->removeWaiter(threadId);
 }
 
 bool
 MCCondWait::enabledInState(const MCState *) const
 {
-  const auto threadId = this->getThreadId();
-  return this->conditionVariable->threadCanExit(threadId) &&
+  const tid_t threadId = this->getThreadId();
+  return this->conditionVariable->waiterCanExit(threadId) &&
          this->conditionVariable->mutex->canAcquire(threadId);
 }
 
@@ -138,7 +136,8 @@ MCCondWait::dependentWith(const MCTransition *other) const
 void
 MCCondWait::print() const
 {
-  printf("thread %lu: pthread_cond_wait(%lu, %lu) (asleep)\n",
-         this->thread->tid, this->conditionVariable->getObjectId(),
-         this->conditionVariable->mutex->getObjectId());
+  printf(
+    "thread %lu: pthread_cond_wait(%lu, %lu) (asleep -> awake)\n",
+    this->thread->tid, this->conditionVariable->getObjectId(),
+    this->conditionVariable->mutex->getObjectId());
 }

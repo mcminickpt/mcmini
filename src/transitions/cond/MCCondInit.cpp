@@ -1,4 +1,11 @@
 #include "mcmini/transitions/cond/MCCondInit.h"
+#include "mcmini/misc/cond/MCCondVarArbitraryWakeupPolicy.hpp"
+#include "mcmini/misc/cond/MCCondVarGLibcWakeupPolicy.hpp"
+#include "mcmini/misc/cond/MCCondVarOrderedWakeupPolicy.hpp"
+#include "mcmini/misc/cond/MCCondVarSingleGroupSignalPolicy.hpp"
+
+using namespace std;
+using namespace mcmini;
 
 MCTransition *
 MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData,
@@ -11,15 +18,25 @@ MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData,
       systemId);
 
   if (condThatExists == nullptr) {
-    auto shadow  = MCConditionVariableShadow(*condInShm);
-    auto newCond = new MCConditionVariable(shadow);
-    auto newMutexSharedPtr =
-      std::shared_ptr<MCVisibleObject>(newCond);
-    state->registerVisibleObjectWithSystemIdentity(systemId,
-                                                   newMutexSharedPtr);
+    auto shadow = MCConditionVariableShadow(*condInShm);
+
+    // FIXME: Allow dynamic selection of wakeup policies.
+    // For now, we hard-code it here. Not great, but at least
+    // we can change it relatively easily still
+
+    auto wakeupPolicy = unique_ptr<ConditionVariableWakeupPolicy>(
+      new CondVarOrderedWakeupPolicy(
+        CondVarOrderedWakeupPolicy::WakeupOrder::fifo));
+
+    auto signalPolicy = unique_ptr<ConditionVariableSignalPolicy>(
+      new CondVarGLibcWakeupPolicy());
+
+    auto newCond = std::make_shared<ConditionVariable>(
+      shadow, signalPolicy, wakeupPolicy);
+    state->registerVisibleObjectWithSystemIdentity(systemId, newCond);
     condThatExists =
       std::static_pointer_cast<MCConditionVariable, MCVisibleObject>(
-        newMutexSharedPtr);
+        newCond);
   }
 
   tid_t threadThatRanId = shmTransition->executor;

@@ -35,16 +35,27 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
   const auto mutexAssociatedWithConditionVariable =
     condThatExists->mutex;
 
-  if (mutexAssociatedWithConditionVariable != nullptr) {
+  // NOTE: It's possible (and likely) for a condition variable
+  // to NOT already be associated with a mutex at this point.
+  // E.g., the first call to pthread_cond_wait() will have a
+  // condition variable that isn't associated with a mutex.
+  if (mutexAssociatedWithConditionVariable) {
     MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-      *mutexThatExists == *mutexAssociatedWithConditionVariable,
+      *mutexAssociatedWithConditionVariable == *mutexThatExists,
       "A mutex has already been associated with this condition "
-      "variable. Attempting "
-      "to use another mutex with the same condition variable is "
-      "undefined");
+      "variable. Attempting to wait on a condition variable using "
+      "more "
+      "than one mutex is undefined");
   }
 
-  auto threadThatRan = state->getThreadWithId(threadThatRanId);
+  // NOTE: We have to associate the mutex with the condition
+  // variable when the transition is encountered; otherwise,
+  // we wouldn't be able to determine if, e.g., a pthread_cond_wait()
+  // enqueue call were dependent with a pthread_mutex_lock(). Note
+  // that we ALSO must assign the mutex when the operation is APPLIED
+  // to the condition variable
+  condThatExists->mutex = mutexThatExists;
+  auto threadThatRan    = state->getThreadWithId(threadThatRanId);
   return new MCCondEnqueue(threadThatRan, condThatExists,
                            mutexThatExists);
 }
@@ -80,7 +91,7 @@ void
 MCCondEnqueue::applyToState(MCState *state)
 {
   /* Insert this thread into the waiting queue */
-  this->conditionVariable->enterSleepingQueue(this->getThreadId());
+  this->conditionVariable->addWaiter(this->getThreadId());
   this->conditionVariable->mutex = this->mutex;
   this->mutex->unlock();
 }
@@ -132,7 +143,8 @@ MCCondEnqueue::dependentWith(const MCTransition *other) const
 void
 MCCondEnqueue::print() const
 {
-  printf("thread %lu: pthread_cond_wait(%lu, %lu) (awake)\n",
-         this->thread->tid, this->conditionVariable->getObjectId(),
-         this->mutex->getObjectId());
+  printf(
+    "thread %lu: pthread_cond_wait(%lu, %lu) (awake -> asleep)\n",
+    this->thread->tid, this->conditionVariable->getObjectId(),
+    this->mutex->getObjectId());
 }

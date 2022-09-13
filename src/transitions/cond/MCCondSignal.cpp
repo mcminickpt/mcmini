@@ -52,9 +52,7 @@ MCCondSignal::dynamicCopyInState(const MCState *state) const
 void
 MCCondSignal::applyToState(MCState *state)
 {
-  /* Here's where the algorithm can change for signal */
-  /* For simplicity, we assume that the first thread can be awoken */
-  this->conditionVariable->wakeFirstThreadIfPossible();
+  this->conditionVariable->sendSignalMessage();
 }
 
 bool

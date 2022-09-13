@@ -1,8 +1,8 @@
-#ifndef MCMINI_MCMINI_H
-#define MCMINI_MCMINI_H
+#ifndef INCLUDE_MCMINI_MCMINI_HPP
+#define INCLUDE_MCMINI_MCMINI_HPP
 
 #include "mcmini/MCMINIWrappers.h"
 #include "mcmini/MCShared.h"
 
 MC_CTOR void mc_init();
-#endif // MCMINI_MCMINI_H
+#endif // INCLUDE_MCMINI_MCMINI_HPP

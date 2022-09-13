@@ -176,8 +176,7 @@ mc_scheduler_main()
         static_cast<int>(programState->getStateStackSize());
       curTransitionStackDepth =
         static_cast<int>(programState->getTransitionStackSize());
-    }
-    else {
+    } else {
       curStateStackDepth--;
       curTransitionStackDepth--;
     }
@@ -204,8 +203,7 @@ mc_create_shared_memory_region()
       fprintf(stderr,
               "Shared memory region '%s' not owned by this process\n",
               dpor);
-    }
-    else {
+    } else {
       perror("shm_open");
     }
     mc_exit(EXIT_FAILURE);
@@ -299,8 +297,7 @@ mc_spawn_child()
   if (FORK_IS_CHILD_PID(childpid)) {
     signal(SIGUSR1, &sigusr1_handler_child);
     return MC_SOURCE_PROGRAM;
-  }
-  else {
+  } else {
     MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) !=
                      SIG_ERR);
     return MC_SCHEDULER;
@@ -325,8 +322,7 @@ mc_spawn_child_following_transition_stack()
         programState->getThreadRunningTransitionAtIndex(i);
       mc_run_thread_to_next_visible_operation(nextTid);
     }
-  }
-  else {
+  } else {
     // We need to reset the concurrent system
     // for the child since, at the time this method
     // is invoked, it will have a complete copy of
@@ -445,7 +441,7 @@ mc_exhaust_threads(const MCTransition &initialTransition)
   const bool programHasNoErrors  = !programIsInDeadlock;
 
   if (programIsInDeadlock) {
-    puts("*** DEADLOCK DETECTED ***");
+    mcprintf("*** DEADLOCK DETECTED AT TRACE %lu***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
 
@@ -498,11 +494,11 @@ mc_report_undefined_behavior(const char *msg)
   fprintf(stderr,
           "\t Undefined Behavior Detected! \t\n"
           "\t ............................ \t\n"
-          "\t The model checker aborted the execution because\t\n"
+          "\t mcmini aborted the execution of trace %lu because\t\n"
           "\t it detected undefined behavior\t\n"
           "\t ............................ \t\n"
           "\t %s \t\n",
-          msg);
+          traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();
   exit(EXIT_FAILURE);
@@ -644,8 +640,9 @@ mc_is_scheduler()
 void
 mc_exit(int status)
 {
-  if (mc_is_scheduler()) { __real_exit(status); }
-  else {
+  if (mc_is_scheduler()) {
+    __real_exit(status);
+  } else {
     _Exit(status);
   }
 }

@@ -1,5 +1,5 @@
-#ifndef MCMINI_MCCOMMON_H
-#define MCMINI_MCCOMMON_H
+#ifndef INCLUDE_MCMINI_MCCOMMON_HPP
+#define INCLUDE_MCMINI_MCCOMMON_HPP
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -9,4 +9,4 @@ int mcprintf(const char *format, ...);
 void mcwrite(const char *str);
 void mcflush();
 
-#endif // MCMINI_MCCOMMON_H
+#endif /* INCLUDE_MCMINI_MCCOMMON_HPP */

@@ -89,6 +89,6 @@ MCSemWait::enabledInState(const MCState *) const
 void
 MCSemWait::print() const
 {
-  printf("thread %lu: sem_wait(%lu) (attempt exit)\n",
+  printf("thread %lu: sem_wait(%lu) (asleep -> awake)\n",
          this->thread->tid, this->sem->getObjectId());
 }
