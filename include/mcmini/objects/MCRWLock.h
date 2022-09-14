@@ -33,7 +33,7 @@ private:
 
   MCRWLockShadow shadow;
   MCOptional<tid_t> active_writer = MCOptional<tid_t>::nil();
-  std::unordered_set<tid_t> active_readers;
+  std::vector<tid_t> active_readers;
 
   std::queue<tid_t> reader_queue = std::queue<tid_t>();
   std::queue<tid_t> writer_queue = std::queue<tid_t>();

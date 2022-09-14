@@ -1,4 +1,5 @@
 #include "mcmini/objects/MCRWLock.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -93,7 +94,7 @@ MCRWLock::isDestroyed() const
 void
 MCRWLock::reader_lock(tid_t tid)
 {
-  this->active_readers.insert(tid);
+  this->active_readers.push_back(tid);
 
   MC_ASSERT(!this->reader_queue.empty());
   MC_ASSERT(!this->acquire_queue.empty());
@@ -142,9 +143,12 @@ MCRWLock::unlock(tid_t tid)
     MC_ASSERT(active_writer.unwrapped() == tid);
     MC_ASSERT(isWriterLocked());
     this->active_writer = MCOptional<tid_t>::nil();
-  } else if (active_readers.count(tid) > 0) {
+  } else if (active_readers.empty()) {
     MC_ASSERT(isReaderLocked());
-    active_readers.erase(tid);
+    const vector<tid_t>::iterator iter = std::find(
+      this->active_readers.begin(), this->active_readers.end(), tid);
+    MC_ASSERT(iter != this->active_readers.end());
+    this->active_readers.erase(iter);
   }
 }
 

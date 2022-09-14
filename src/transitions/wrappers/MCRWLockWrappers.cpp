@@ -15,7 +15,7 @@ mc_pthread_rwlock_init(pthread_rwlock_t *rwlock,
     typeid(MCRWLockInit), &newLock);
   thread_await_mc_scheduler();
 
-  return pthread_rwlock_init(rwlock, attr);
+  return __real_pthread_rwlock_init(rwlock, attr);
 }
 
 int
@@ -31,7 +31,7 @@ mc_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
     typeid(MCRWLockReaderLock), &lock);
   thread_await_mc_scheduler();
 
-  return pthread_rwlock_rdlock(rwlock);
+  return __real_pthread_rwlock_rdlock(rwlock);
 }
 
 int
@@ -47,7 +47,7 @@ mc_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
     typeid(MCRWLockWriterLock), &lock);
   thread_await_mc_scheduler();
 
-  return pthread_rwlock_wrlock(rwlock);
+  return __real_pthread_rwlock_wrlock(rwlock);
 }
 
 int
@@ -58,12 +58,12 @@ mc_pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
     typeid(MCRWLockUnlock), &lock);
   thread_await_mc_scheduler();
 
-  return pthread_rwlock_wrlock(rwlock);
+  return __real_pthread_rwlock_unlock(rwlock);
 }
 
 int
 mc_pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
 {
   // Unimplemented at the moment...
-  return pthread_rwlock_destroy(rwlock);
+  return 0;
 }
