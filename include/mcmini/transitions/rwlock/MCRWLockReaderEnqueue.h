@@ -18,6 +18,11 @@ struct MCRWLockReaderEnqueue : public MCRWLockTransition {
   void applyToState(MCState *) override;
   bool coenabledWith(const MCTransition *) const override;
   bool dependentWith(const MCTransition *) const override;
+  bool
+  countsAgainstThreadExecutionDepth() const override
+  {
+    return false;
+  }
   void print() const override;
 };
 

@@ -43,7 +43,7 @@ mc_load_shadow_routines()
   exit_ptr                 = dlsym(RTLD_NEXT, "exit");
   pthread_barrier_init_ptr = dlsym(RTLD_NEXT, "pthread_barrier_init");
   pthread_barrier_wait_ptr = dlsym(RTLD_NEXT, "pthread_barrier_wait");
-  pthread_rwlock_init_ptr  = dlsym(RTLD_NEXT, "pthread_rdlock_init");
+  pthread_rwlock_init_ptr  = dlsym(RTLD_NEXT, "pthread_rwlock_init");
   pthread_rwlock_rdlock_ptr =
     dlsym(RTLD_NEXT, "pthread_rwlock_rdlock");
   pthread_rwlock_wrlock_ptr =
