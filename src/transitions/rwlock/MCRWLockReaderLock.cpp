@@ -63,9 +63,7 @@ MCRWLockReaderLock::coenabledWith(const MCTransition *other) const
   {
     const MCRWLockReaderLock *maybeReaderLock =
       dynamic_cast<const MCRWLockReaderLock *>(other);
-    if (maybeReaderLock) {
-      return *maybeReaderLock->rwlock != *this->rwlock;
-    }
+    if (maybeReaderLock) { return true; }
   }
 
   {
