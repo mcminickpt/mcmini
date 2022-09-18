@@ -8,4 +8,4 @@ MC_EXTERN int mc_sem_init(sem_t *, int, unsigned int);
 MC_EXTERN int mc_sem_post(sem_t *);
 MC_EXTERN int mc_sem_wait(sem_t *);
 
-#endif /* INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCSEMAPHORETRANSITIONWRAPPERS_HPP */
+#endif // INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCSEMAPHORETRANSITIONWRAPPERS_HPP

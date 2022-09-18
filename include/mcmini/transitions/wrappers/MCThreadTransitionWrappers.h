@@ -9,4 +9,4 @@ MC_EXTERN int mc_pthread_create(pthread_t *, const pthread_attr_t *,
                                 void *(*)(void *), void *);
 MC_EXTERN int mc_pthread_join(pthread_t, void **);
 
-#endif /* INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCTHREADTRANSITIONWRAPPERS_HPP */
+#endif // INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCTHREADTRANSITIONWRAPPERS_HPP

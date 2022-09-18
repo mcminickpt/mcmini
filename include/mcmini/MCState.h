@@ -1,5 +1,5 @@
-#ifndef MC_MCSTATE_H
-#define MC_MCSTATE_H
+#ifndef INCLUDE_MCMINI_MCSTATE_HPP
+#define INCLUDE_MCMINI_MCSTATE_HPP
 
 struct MCTransition;
 struct MCSharedTransition;
@@ -26,6 +26,7 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 
 class MCState {
 private:
+
   /**
    * @brief
    *
@@ -93,6 +94,7 @@ private:
   MCSortedStack<int> irreversibleStatesStack;
 
 private:
+
   bool transitionIsEnabled(const MCTransition &);
 
   bool happensBefore(int i, int j) const;
@@ -135,6 +137,7 @@ private:
   const MCThreadData &getThreadDataForThread(tid_t tid) const;
 
 public:
+
   MCState(MCStateConfiguration config) : configuration(config) {}
 
   tid_t getThreadRunningTransitionAtIndex(int) const;
@@ -169,13 +172,14 @@ public:
   registerNewObject(const std::shared_ptr<MCVisibleObject> &object);
   std::shared_ptr<MCThread> getThreadWithId(tid_t id) const;
 
-  template <typename Object>
-  std::shared_ptr<Object> getObjectWithId(objid_t id) const
+  template<typename Object>
+  std::shared_ptr<Object>
+  getObjectWithId(objid_t id) const
   {
     return objectStorage.getObjectWithId<Object>(id);
   }
 
-  template <typename Object>
+  template<typename Object>
   std::shared_ptr<Object>
   getVisibleObjectWithSystemIdentity(MCSystemID systemId)
   {
@@ -220,4 +224,4 @@ public:
   void printNextTransitions() const;
 };
 
-#endif // MC_MCSTATE_H
+#endif // INCLUDE_MCMINI_MCSTATE_HPP

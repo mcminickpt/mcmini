@@ -132,6 +132,24 @@ mc_create_program_state()
     typeid(MCRWLockReaderLock), &MCReadRWLockReaderLock);
   programState->registerVisibleOperationType(typeid(MCRWLockUnlock),
                                              &MCReadRWLockUnlock);
+
+  programState->registerVisibleOperationType(typeid(MCRWWLockInit),
+                                             &MCReadRWWLockInit);
+  programState->registerVisibleOperationType(
+    typeid(MCRWWLockReaderEnqueue), &MCReadRWWLockReaderEnqueue);
+  programState->registerVisibleOperationType(
+    typeid(MCRWWLockReaderLock), &MCReadRWWLockReaderLock);
+  programState->registerVisibleOperationType(
+    typeid(MCRWWLockWriter1Enqueue), &MCReadRWWLockWriter1Enqueue);
+  programState->registerVisibleOperationType(
+    typeid(MCRWWLockWriter1Lock), &MCReadRWWLockWriter1Lock);
+  programState->registerVisibleOperationType(
+    typeid(MCRWWLockWriter2Enqueue), &MCReadRWWLockWriter2Enqueue);
+  programState->registerVisibleOperationType(
+    typeid(MCRWWLockWriter2Lock), &MCReadRWWLockWriter2Lock);
+  programState->registerVisibleOperationType(typeid(MCRWWLockUnlock),
+                                             &MCReadRWWLockUnlock);
+
   programState->registerVisibleOperationType(
     typeid(MCGlobalVariableRead), &MCReadGlobalRead);
   programState->registerVisibleOperationType(
