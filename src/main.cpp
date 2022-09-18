@@ -141,11 +141,14 @@
 //}
 
 #include <mcmini/MCMINI.h>
+#include <mcmini/export/rwwlock.h>
 #include <pthread.h>
 
 #define THREAD_NUM 2
 
-pthread_mutex_t mutex;
+// pthread_mutex_t mutex;
+pthread_rwwlock_t rwwlock;
+
 sem_t sem;
 pthread_cond_t cond;
 pthread_t thread[THREAD_NUM];
@@ -153,9 +156,8 @@ pthread_t thread[THREAD_NUM];
 void *
 thread_doit(void *unused)
 {
-  mc_pthread_mutex_lock(&mutex);
-  mc_pthread_cond_wait(&cond, &mutex);
-  mc_pthread_mutex_unlock(&mutex);
+  mc_pthread_rwwlock_wr1lock(&rwwlock);
+  mc_pthread_rwwlock_unlock(&rwwlock);
   return NULL;
 }
 
@@ -163,15 +165,11 @@ int
 main(int argc, char *argv[])
 {
   mc_init();
-  mc_pthread_mutex_init(&mutex, NULL);
-  mc_pthread_cond_init(&cond, NULL);
+  mc_pthread_rwwlock_init(&rwwlock);
 
   for (int i = 0; i < THREAD_NUM; i++) {
-    mc_pthread_create(&thread[i], NULL, &thread_doit, NULL);
+    mc_pthread_create(&thread[i], NULL, thread_doit, NULL);
   }
-  mc_pthread_mutex_lock(&mutex);
-  mc_pthread_cond_broadcast(&cond);
-  mc_pthread_mutex_unlock(&mutex);
 
   for (int i = 0; i < THREAD_NUM; i++) {
     mc_pthread_join(thread[i], NULL);

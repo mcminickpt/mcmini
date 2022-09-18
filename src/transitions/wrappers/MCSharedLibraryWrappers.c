@@ -1,11 +1,6 @@
 #define _GNU_SOURCE
 #include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
-#include "mcmini/transitions/wrappers/MCBarrierWrappers.h"
-#include "mcmini/transitions/wrappers/MCConditionVariableWrappers.h"
-#include "mcmini/transitions/wrappers/MCMutexTransitionWrappers.h"
-#include "mcmini/transitions/wrappers/MCRWLockWrappers.h"
-#include "mcmini/transitions/wrappers/MCSemaphoreTransitionWrappers.h"
-#include "mcmini/transitions/wrappers/MCThreadTransitionWrappers.h"
+#include "mcmini/MCMINIWrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -215,4 +210,39 @@ sleep(unsigned int seconds)
   return 0;
 }
 
+int
+pthread_rwwlock_init(pthread_rwwlock_t *rwwlock)
+{
+  return mc_pthread_rwwlock_init(rwwlock);
+}
+
+int
+pthread_rwwlock_rdlock(pthread_rwwlock_t *rwwlock)
+{
+  return mc_pthread_rwwlock_rdlock(rwwlock);
+}
+
+int
+pthread_rwwlock_wr1lock(pthread_rwwlock_t *rwwlock)
+{
+  return mc_pthread_rwwlock_wr1lock(rwwlock);
+}
+
+int
+pthread_rwwlock_wr2lock(pthread_rwwlock_t *rwwlock)
+{
+  return mc_pthread_rwwlock_wr2lock(rwwlock);
+}
+
+int
+pthread_rwwlock_unlock(pthread_rwwlock_t *rwwlock)
+{
+  return mc_pthread_rwwlock_unlock(rwwlock);
+}
+
+int
+pthread_rwwlock_destroy(pthread_rwwlock_t *rwwlock)
+{
+  return mc_pthread_rwwlock_destroy(rwwlock);
+}
 #endif

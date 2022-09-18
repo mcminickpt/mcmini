@@ -29,6 +29,7 @@ set(MC_CPP_FILES
   objects/MCVisibleObject.cpp
   objects/MCMutex.cpp
   objects/MCRWLock.cpp
+  objects/MCRWWLock.cpp
   objects/MCSemaphore.cpp
   objects/MCGlobalVariable.cpp
   objects/MCBarrier.cpp
@@ -63,6 +64,14 @@ set(MC_CPP_FILES
   transitions/rwlock/MCRWLockUnlock.cpp
   transitions/rwlock/MCRWLockWriterEnqueue.cpp
   transitions/rwlock/MCRWLockReaderEnqueue.cpp
+  transitions/rwwlock/MCRWWLockInit.cpp
+  transitions/rwwlock/MCRWWLockReaderEnqueue.cpp
+  transitions/rwwlock/MCRWWLockReaderLock.cpp
+  transitions/rwwlock/MCRWWLockWriter1Enqueue.cpp
+  transitions/rwwlock/MCRWWLockWriter1Lock.cpp
+  transitions/rwwlock/MCRWWLockWriter2Enqueue.cpp
+  transitions/rwwlock/MCRWWLockWriter2Lock.cpp
+  transitions/rwwlock/MCRWWLockUnlock.cpp
   transitions/wrappers/MCBarrierWrappers.cpp
   transitions/wrappers/MCConditionVariableWrappers.cpp
   transitions/wrappers/MCGlobalVariableWrappers.cpp
@@ -71,6 +80,7 @@ set(MC_CPP_FILES
   transitions/wrappers/MCSharedLibraryWrappers.c
   transitions/wrappers/MCThreadTransitionWrappers.cpp
   transitions/wrappers/MCRWLockWrappers.cpp
+  transitions/wrappers/MCRWWLockWrappers.cpp
 )
 
 # -lrt -> shared memory
@@ -104,3 +114,9 @@ set(MAIN_FUNCTION launch.c)
 add_executable(mcmini ${MAIN_FUNCTION})
 target_include_directories(mcmini PUBLIC "${MCMINI_INCLUDE_DIR}")
 target_compile_options(mcmini PUBLIC)
+
+# Exported test libraries
+add_library(mcrwlock_lib STATIC export/rwwlock.c)
+add_library(McMini::RWWLockLib ALIAS mcrwlock_lib)
+target_include_directories(mcrwlock_lib PUBLIC "${MCMINI_INCLUDE_DIR}")
+target_link_libraries(mcmini_demo PUBLIC McMini::RWWLockLib)

@@ -8,6 +8,7 @@
 #include "mcmini/transitions/misc/MCMiscDefs.h"
 #include "mcmini/transitions/mutex/MCMutexDefs.h"
 #include "mcmini/transitions/rwlock/MCRWLockDefs.h"
+#include "mcmini/transitions/rwwlock/MCRWWLockDefs.h"
 #include "mcmini/transitions/semaphore/MCSemaphoreDefs.h"
 #include "mcmini/transitions/threads/MCThreadDefs.h"
 #include <pthread.h>
