@@ -10,7 +10,8 @@ MCReadRWLockInit(const MCSharedTransition *shmTransition,
     state->getVisibleObjectWithSystemIdentity<MCRWLock>(systemId);
 
   if (rwLock == nullptr) {
-    auto newRWLock = std::make_shared<MCRWLock>(*rwlockInShm);
+    auto newRWLock = std::make_shared<MCRWLock>(
+      *rwlockInShm, MCRWLock::Type::no_preference);
     state->registerVisibleObjectWithSystemIdentity(systemId,
                                                    newRWLock);
     rwLock = newRWLock;

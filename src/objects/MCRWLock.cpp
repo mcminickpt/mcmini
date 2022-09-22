@@ -49,7 +49,6 @@ MCRWLock::canAcquireAsReader(tid_t tid) const
   if (this->type == Type::no_preference) {
     return !isWriterLocked() && this->acquire_queue.front() == tid;
   }
-
   return !isWriterLocked() && this->reader_queue.front() == tid;
 }
 

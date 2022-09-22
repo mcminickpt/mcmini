@@ -25,12 +25,6 @@ struct MCRWLockShadow {
 struct MCRWLock : public MCVisibleObject {
 private:
 
-  enum Type {
-    writer_preferred,
-    reader_preferred,
-    no_preference
-  } type;
-
   MCRWLockShadow shadow;
   MCOptional<tid_t> active_writer = MCOptional<tid_t>::nil();
   std::vector<tid_t> active_readers;
@@ -45,11 +39,22 @@ private:
 
 public:
 
-  inline explicit MCRWLock(MCRWLockShadow shadow)
-    : MCVisibleObject(), shadow(shadow)
+  enum Type {
+    writer_preferred,
+    reader_preferred,
+    no_preference
+  } type = Type::no_preference;
+
+  inline explicit MCRWLock(MCRWLockShadow shadow, Type type)
+    : MCVisibleObject(), shadow(shadow), type(type)
   {}
   inline MCRWLock(const MCRWLock &rwlock)
-    : MCVisibleObject(rwlock.getObjectId()), shadow(rwlock.shadow)
+    : MCVisibleObject(rwlock.getObjectId()), shadow(rwlock.shadow),
+      type(rwlock.type), active_writer(rwlock.active_writer),
+      active_readers(rwlock.active_readers),
+      reader_queue(rwlock.reader_queue),
+      writer_queue(rwlock.writer_queue),
+      acquire_queue(rwlock.acquire_queue)
   {}
 
   std::shared_ptr<MCVisibleObject> copy() override;
