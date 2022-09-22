@@ -30,13 +30,13 @@ MCRWLock::operator!=(const MCRWLock &other) const
 bool
 MCRWLock::hasEnqueuedWriters() const
 {
-  return this->writer_queue.empty();
+  return !this->writer_queue.empty();
 }
 
 bool
 MCRWLock::hasEnqueuedReaders() const
 {
-  return this->reader_queue.empty();
+  return !this->reader_queue.empty();
 }
 
 bool
@@ -143,12 +143,14 @@ MCRWLock::unlock(tid_t tid)
     MC_ASSERT(active_writer.unwrapped() == tid);
     MC_ASSERT(isWriterLocked());
     this->active_writer = MCOptional<tid_t>::nil();
-  } else if (active_readers.empty()) {
+  } else if (!active_readers.empty()) {
     MC_ASSERT(isReaderLocked());
     const vector<tid_t>::iterator iter = std::find(
       this->active_readers.begin(), this->active_readers.end(), tid);
     MC_ASSERT(iter != this->active_readers.end());
     this->active_readers.erase(iter);
+  } else {
+    MC_FATAL();
   }
 }
 
