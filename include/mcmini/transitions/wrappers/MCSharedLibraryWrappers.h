@@ -15,7 +15,7 @@ extern typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 extern typeof(&sem_wait) sem_wait_ptr;
 extern typeof(&sem_post) sem_post_ptr;
 extern typeof(&sem_init) sem_init_ptr;
-extern typeof(&exit) exit_ptr;
+extern __attribute__ ((__noreturn__)) typeof(&exit) exit_ptr;
 extern typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
 extern typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 extern typeof(&pthread_cond_init) pthread_cond_init_ptr;

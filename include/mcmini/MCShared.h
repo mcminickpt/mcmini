@@ -31,7 +31,7 @@ typedef void *MCSystemID;
 #ifdef __cplusplus
 #define MC_NO_RETURN [[noreturn]]
 #else
-#define MC_NO_RETURN
+#define MC_NO_RETURN __attribute__ ((__noreturn__))
 #endif
 
 #define MC_ASSERT(__X) assert(__X)
