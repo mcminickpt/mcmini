@@ -64,7 +64,7 @@ MCConditionVariable::removeWaiter(tid_t tid)
 bool
 MCConditionVariable::waiterCanExit(tid_t tid)
 {
-  this->wakeupPolicy->threadCanExit(tid);
+  return this->wakeupPolicy->threadCanExit(tid);
 }
 
 void
