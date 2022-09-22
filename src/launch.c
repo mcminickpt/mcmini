@@ -8,9 +8,9 @@
 #include <unistd.h>
 
 int
-main(int argc, const char **argv)
+main(int argc, char *argv[])
 {
-  char **cur_arg = argv + 1;
+  char **cur_arg = &argv[1];
   if (argc == 1) {
     cur_arg[0] = "--help";
     cur_arg[1] = NULL;
