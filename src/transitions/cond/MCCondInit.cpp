@@ -25,11 +25,10 @@ MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData,
     // we can change it relatively easily still
 
     auto wakeupPolicy = unique_ptr<ConditionVariableWakeupPolicy>(
-      new CondVarOrderedWakeupPolicy(
-        CondVarOrderedWakeupPolicy::WakeupOrder::fifo));
+      new CondVarArbitraryWakeupPolicy());
 
     auto signalPolicy = unique_ptr<ConditionVariableSignalPolicy>(
-      new CondVarGLibcWakeupPolicy());
+      new CondVarSingleGroupSignalPolicy());
 
     auto newCond = std::make_shared<ConditionVariable>(
       shadow, signalPolicy, wakeupPolicy);
