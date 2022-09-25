@@ -61,7 +61,7 @@ MCThreadCreate::unapplyToState(MCState *state)
 bool
 MCThreadCreate::isReversibleInState(const MCState *state) const
 {
-  return true;
+  return false;
 }
 
 bool

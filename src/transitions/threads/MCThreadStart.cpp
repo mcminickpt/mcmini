@@ -42,7 +42,7 @@ MCThreadStart::unapplyToState(MCState *state)
 bool
 MCThreadStart::isReversibleInState(const MCState *state) const
 {
-  return true;
+  return false;
 }
 
 bool
