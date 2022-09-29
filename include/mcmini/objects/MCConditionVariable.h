@@ -42,6 +42,8 @@ public:
 
 private:
 
+  unsigned int numRemainingSpuriousWakeups = 0;
+
   /**
    * @brief The C-like shadow struct describing the basic state of
    * the condition variable
@@ -93,7 +95,8 @@ public:
     : MCVisibleObject(cond.getObjectId()),
       condShadow(cond.condShadow), mutex(nullptr),
       wakeupPolicy(cond.wakeupPolicy->clone()),
-      signalPolicy(cond.signalPolicy->clone())
+      signalPolicy(cond.signalPolicy->clone()),
+      numRemainingSpuriousWakeups(cond.numRemainingSpuriousWakeups)
   {
 
     if (cond.mutex != nullptr) {

@@ -59,12 +59,21 @@ MCConditionVariable::removeWaiter(tid_t tid)
 {
   this->signalPolicy->removeWaiter(tid);
   this->wakeupPolicy->wakeThread(tid);
+
+  // If there are any spurious wake ups allowed,
+  // we always allow the thread to wake up
+  // due to a spurious wake up and decrement the
+  // number of future such wakeups allowed
+  if (this->numRemainingSpuriousWakeups > 0) {
+    this->numRemainingSpuriousWakeups--;
+  }
 }
 
 bool
 MCConditionVariable::waiterCanExit(tid_t tid)
 {
-  return this->wakeupPolicy->threadCanExit(tid);
+  return this->numRemainingSpuriousWakeups > 0 ||
+         this->wakeupPolicy->threadCanExit(tid);
 }
 
 void
