@@ -13,3 +13,11 @@ CFLAGS=-g3 -O0 -pthread
 
 %.exe: %.cpp
 	g++ ${CFLAGS} $< -o $@
+
+rwwlock-lib:
+	gcc -c -Wall -fpic rwwlock.c
+	gcc -shared -Wall -o librwwlock.so rwwlock.o
+	rm rwwlock.o
+
+rwwlock: rwwlock-lib
+	gcc -g3 -O0 -Wl,-rpath,'$$0RIGIN' reader_writer_rwwlock.c -L. -lrwwlock -pthread -o reader_writer_rwwlock
