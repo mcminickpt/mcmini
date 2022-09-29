@@ -20,4 +20,4 @@ rwwlock-lib:
 	rm rwwlock.o
 
 rwwlock: rwwlock-lib
-	gcc -g3 -O0 -Wl,-rpath,'$$0RIGIN' reader_writer_rwwlock.c -L. -lrwwlock -pthread -o reader_writer_rwwlock
+	gcc -g3 -O0 -Wl,-rpath,'$$ORIGIN' reader_writer_rwwlock.c -L. -lrwwlock -pthread -o reader_writer_rwwlock
