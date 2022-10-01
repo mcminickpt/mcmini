@@ -302,11 +302,32 @@ sigusr1_handler_child(int sig)
 }
 
 void
+sigusr2_handler_child(int sig)
+{
+  // FIXME:
+  kill(scheduler_pid, SIGUSR2);
+}
+
+void
 sigusr1_handler_scheduler(int sig)
 {
   mc_kill_child();
   puts("******* Something went wrong in the source program... "
        "*******************");
+  _exit(1);
+}
+
+void
+sigusr2_handler_scheduler(int sig)
+{
+  // FIXME: To trigger a print-out of an
+  // assertion failure, the child
+  // intercepts
+  mc_kill_child();
+  mcprintf("*** ASSERTION FAILURE DETECTED AT TRACE %lu***\n",
+           traceId);
+  programState->printTransitionStack();
+  programState->printNextTransitions();
   _exit(1);
 }
 
@@ -326,9 +347,12 @@ mc_spawn_child()
 
   if (FORK_IS_CHILD_PID(childpid)) {
     signal(SIGUSR1, &sigusr1_handler_child);
+    signal(SIGUSR2, &sigusr2_handler_child);
     return MC_SOURCE_PROGRAM;
   } else {
     MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) !=
+                     SIG_ERR);
+    MC_FATAL_ON_FAIL(signal(SIGUSR2, &sigusr2_handler_scheduler) !=
                      SIG_ERR);
     return MC_SCHEDULER;
   }

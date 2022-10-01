@@ -42,7 +42,7 @@ public:
 
 private:
 
-  unsigned int numRemainingSpuriousWakeups = 0;
+  unsigned int numRemainingSpuriousWakeups = 1;
 
   /**
    * @brief The C-like shadow struct describing the basic state of
