@@ -34,14 +34,16 @@ do_consume()
 void
 consumer(void)
 {
-  do_consume();
-  number_consumed++;
+  while (1) {
+    do_consume();
+    number_consumed++;
+  }
 }
 
 void
 producer()
 {
-  {
+  while (1) {
     pthread_mutex_lock(&mut);
     num_elements_to_consume++;
     pthread_cond_signal(&cond);
@@ -60,10 +62,10 @@ main()
               5}; // Just used for numbering the producer and consumer
 
   for (int i = 0; i < 1; i++) {
-    pthread_create(&con[i], NULL, consumer, (void *)&a[i]);
+    pthread_create(&pro[i], NULL, producer, (void *)&a[i]);
   }
   for (int i = 0; i < 1; i++) {
-    pthread_create(&pro[i], NULL, producer, (void *)&a[i]);
+    pthread_create(&con[i], NULL, consumer, (void *)&a[i]);
   }
 
   for (int i = 0; i < 1; i++) { pthread_join(pro[i], NULL); }
