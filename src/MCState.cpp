@@ -325,13 +325,6 @@ MCState::happensBefore(int i, int j) const
 }
 
 bool
-MCState::happensBeforeThread(int i,
-                             const std::shared_ptr<MCThread> &p) const
-{
-  return this->happensBeforeThread(i, p->tid);
-}
-
-bool
 MCState::happensBeforeThread(int i, tid_t p) const
 {
   const tid_t tid        = getThreadRunningTransitionAtIndex(i);

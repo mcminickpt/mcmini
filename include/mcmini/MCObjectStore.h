@@ -8,18 +8,33 @@
 #include <unordered_map>
 
 struct PointerHasher {
-  std::size_t operator()(void *code) const
+  std::size_t
+  operator()(void *code) const
   {
     return (std::size_t)(code);
   }
 };
 
 struct PointersEqual {
-  bool operator()(void *lhs, void *rhs) const { return lhs == rhs; }
+  bool
+  operator()(void *lhs, void *rhs) const
+  {
+    return lhs == rhs;
+  }
 };
 
+/**
+ * @brief Provides storage for all objects known
+ * to McMini and keeps track of all object data
+ * since the object's creation
+ */
 class MCObjectStore {
 private:
+
+  /**
+   * @brief The actual data that is created
+   * for each object added into an MCObjectStore
+   */
   struct StorageObject final {
     std::shared_ptr<MCVisibleObject> current;
     const std::shared_ptr<MCVisibleObject> initialState;
@@ -27,12 +42,11 @@ private:
     StorageObject(std::shared_ptr<MCVisibleObject> current,
                   std::shared_ptr<MCVisibleObject> initialState)
       : current(current), initialState(initialState)
-    {
-    }
+    {}
   };
 
-  objid_t storageTop =
-    -1; /* Points to the most recent item in the storage */
+  /* Points to the most recent item in the storage */
+  objid_t storageTop = -1;
   std::shared_ptr<StorageObject>
     storage[MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM];
 
@@ -57,6 +71,7 @@ private:
   }
 
 public:
+
   inline MCObjectStore() { bzero(storage, sizeof(storage)); }
 
   inline objid_t
@@ -65,20 +80,21 @@ public:
     return this->_registerNewObject(object);
   }
 
-  template <typename Object>
-  inline std::shared_ptr<Object> getObjectWithId(objid_t id) const
+  template<typename Object>
+  inline std::shared_ptr<Object>
+  getObjectWithId(objid_t id) const
   {
     return std::static_pointer_cast<Object, MCVisibleObject>(
       this->storage[id]->current);
   }
 
-  inline void mapSystemAddressToShadow(MCSystemID systemAddress,
-                                       objid_t shadowId)
+  inline void
+  mapSystemAddressToShadow(MCSystemID systemAddress, objid_t shadowId)
   {
     systemVisibleObjectMap.insert({systemAddress, shadowId});
   }
 
-  template <typename Object>
+  template<typename Object>
   inline std::shared_ptr<Object>
   getObjectWithSystemAddress(void *systemAddress)
   {
@@ -87,8 +103,7 @@ public:
     if (kvPair != systemVisibleObjectMap.end()) {
       objid_t shadowObjectId = kvPair->second;
       return this->getObjectWithId<Object>(shadowObjectId);
-    }
-    else {
+    } else {
       return nullptr;
     }
   }

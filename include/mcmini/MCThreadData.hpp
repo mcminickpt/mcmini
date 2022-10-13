@@ -20,7 +20,11 @@ struct MCThreadData final {
   MCClockVector getClockVector() const;
   void setClockVector(const MCClockVector &);
 
+  // FIXME: We can probably remove execution points
+  // from MCThreadData, but a deeper investigation
+  // is needed
   uint32_t getLatestExecutionPoint() const;
+
   void pushNewLatestExecutionPoint(const uint32_t);
   void popLatestExecutionPoint();
   void popExecutionPointsGreaterThan(const uint32_t);
@@ -29,8 +33,9 @@ struct MCThreadData final {
 private:
 
   /**
-   * @brief
-   *
+   * @brief The number of transitions that
+   * the thread described by this data has
+   * executed
    */
   uint32_t executionDepth = 0u;
 

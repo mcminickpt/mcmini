@@ -31,6 +31,7 @@
  */
 struct MCStateStackItem final {
 private:
+
   /**
    * @brief A collection of threads that
    * are scheduled to be run from this state
@@ -112,17 +113,16 @@ private:
   const bool spawningTransitionCanRevertState;
 
 public:
+
   MCStateStackItem()
     : MCStateStackItem(MCClockVector::newEmptyClockVector(), false)
-  {
-  }
+  {}
 
   MCStateStackItem(const MCClockVector &cv,
                    const bool reversibleInState)
     : clockVector(cv),
       spawningTransitionCanRevertState(reversibleInState)
-  {
-  }
+  {}
 
   /**
    * @brief Puts the given thread into the

@@ -24,31 +24,40 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <unordered_set>
 #include <vector>
 
+/**
+ * @brief A reflection of the state of the program under which McMini
+ * is model checking
+ *
+ * The MCState class represents
+ *
+ * FIXME: This class has grown too large. We need to split it
+ * up into more manageable chunks
+ */
 class MCState {
 private:
 
   /**
-   * @brief
+   * @field objectStorage: Holds all objects known to McMini that
+   * exist (or have existed) in the test program
    *
+   * @field configuration: A struct holding configuration parameters
+   * for the current execution
    */
   MCObjectStore objectStorage;
-
-  /**
-   * @brief
-   *
-   */
   const MCStateConfiguration configuration;
 
   /**
-   * @brief
-   *
+   * @brief Tracks, for each thread known to
+   * McMini to have existed at some point during
+   * the execution of the program, what each thread is
+   * ABOUT to execute as its next transition
    */
   tid_t nextThreadId = 0;
   std::shared_ptr<MCTransition>
     nextTransitions[MAX_TOTAL_THREADS_IN_PROGRAM];
 
   /**
-   * @brief Thread data
+   * @brief
    *
    */
   MCThreadData threadData[MAX_TOTAL_THREADS_IN_PROGRAM];
@@ -64,16 +73,19 @@ private:
    * A pointer to the top-most element in the state stack
    */
   int stateStackTop = -1;
-
-  /**
-   * The current backtracking states at this particular moment in time
-   */
   std::shared_ptr<MCStateStackItem>
     stateStack[MAX_TOTAL_STATES_IN_STATE_STACK];
 
   /**
-   * A collection of shared object types that the scheduler knows how
-   * to handle
+   * @brief Associates a handler function that McMini
+   * invokes when threads in the program hit wrapper
+   * functions for each transition type supported by McMini
+   *
+   * You register handlers with each transition subclass
+   * using the method `MCState::registerVisibleOperationType()`
+   * to tell McMini how data written by each wrapper function
+   * should be processed to create the corresponding objects
+   * mcMini knows how to handle
    */
   std::unordered_map<TypeInfoRef, MCSharedMemoryHandler, TypeHasher,
                      TypesEqual>
@@ -95,24 +107,124 @@ private:
 
 private:
 
+  /**
+   * @brief A decorator around MCTransition::enabledInState()
+   * that adds additional transparent checks to determine
+   * whether a transition is enabled
+   *
+   * McMini may aritifically restrict enabled transitions
+   * from running in certain circumstances. For example,
+   * if the thread has run past the number of transitions
+   * allocated to it, i.e. if it has run past the maxmimum
+   * execution depth allowed for any given thread, although
+   * the next transition for that thread may be enabled,
+   * McMini will artificially consider that transition to
+   * be disabled to prevent the thread from running any further
+   *
+   * @return whether or not if the given
+   * transition can be chosen for execution
+   */
   bool transitionIsEnabled(const MCTransition &);
 
+  /**
+   * @brief Determines, given two indices in the transition stack,
+   * whether or not there is a "happens-before" relation (according to
+   * the DPOR definition) between those two points, given the current
+   * transition stack
+   *
+   * @param i the index into the transition stack in the left-hand
+   * side of the relation
+   * @param j the index into the transition stack in the right-hand
+   * side of the relation
+   * @return true if there is a happens-before relation between the
+   * transitions at indices `i` and `j` in the transition stack
+   * @return false if i > j or if there is not such a happens-before
+   * relation
+   */
   bool happensBefore(int i, int j) const;
-  bool happensBeforeThread(int i,
-                           const std::shared_ptr<MCThread> &) const;
-  bool happensBeforeThread(int i, tid_t) const;
+
+  /**
+   * @brief Determines, given an index in the transition stack and a
+   * thread id whether or not there is a "happens-before" relation
+   * (according to the DPOR definition) between that thread and the
+   * point in the transition stack given the current transition stack
+   *
+   * @param i the index into the transition stack in the left-hand
+   * side of the relation
+   * @param tid the thread id to check in the happens-before relation
+   * @return whether or not there is a happens-before relation between
+   * the transitions at indices `i` and `j` in the transition stack
+   */
+  bool happensBeforeThread(int i, tid_t tid) const;
+
+  /**
+   * @brief Determines whether there is a race condition between
+   * threads `q` and `p` such that DPOR dictates that that order
+   * in which those threads executed should be checked in reverse
+   *
+   * This method is a helper function corresponding to the fifth line
+   * of the DPOR pseudocode and determines membership in set `E` as
+   * described in the algorithm
+   *
+   * @param depth an index into the t
+   * @param q the first thread in the check
+   * @param p the second thread in the check
+   * @return whether or not thread `q` is in set `E`
+   */
   bool threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const;
 
+  //
   void growStateStack();
   void growStateStack(const MCClockVector &cv, bool revertible);
+
+  //
   void growStateStackWithTransition(const MCTransition &);
   void growTransitionStackRunning(const MCTransition &);
+
+  /**
+   * @brief Performs the actual execution of the given transition on
+   * the "live" objects of the current state
+   *
+   * When a transition is applied, the state is updated (according to
+   * the particular transition subclass and implementation of the
+   * `MCTransition::applyToState()`) to reflect the fact that the
+   * transition was executed by the given thread. Intuitively, you
+   * can imagine that the thread executing the transition finished
+   * calling its wrapper function
+   */
   void virtuallyApplyTransition(const MCTransition &);
+
+  /**
+   * @brief Executes a transition using the "live" objects of the
+   * current state and additionally performs other state updates for
+   * the thread executing the transition
+   *
+   * When a transition is executed in the target program, McMini first
+   * applies the effect of the transition on the state
+   * (MCState::virtuallyApplyTransition()) and then updates the
+   * per-thread data of the thread which executed the transition
+   */
   void virtuallyRunTransition(const MCTransition &);
+
   void virtuallyRerunTransitionAtIndex(int);
   void virtuallyUnapplyTransition(const MCTransition &);
   void virtuallyRevertTransitionAtIndex(int);
+
+  /**
+   * @brief Computes the maximum clock vector from all clock vectors
+   * in the transition stack
+   *
+   * @return MCClockVector
+   */
   MCClockVector transitionStackMaxClockVector(const MCTransition &);
+
+  /**
+   * @brief Fetches the clock vector associated with the `i`th
+   * transition in the transition stack, if such a clock vector exists
+   *
+   * @param i the index in the transition stack to which the returned
+   * clock vector correpsonds
+   */
   MCClockVector clockVectorForTransitionAtIndex(int i) const;
 
   /**
@@ -127,8 +239,19 @@ private:
 
   void
   incrementThreadTransitionCountIfNecessary(const MCTransition &);
+
   void
   decrementThreadTransitionCountIfNecessary(const MCTransition &);
+
+  /**
+   * @brief Computes the number of execution steps _which count
+   * against the execution depth of the thread_ of all threads in the
+   * program
+   *
+   * @return uint32_t the total number of "atomic" transitions all
+   * threads have executed, roughly corresponding to the number of
+   * distinct function calls were made to wrapper functions
+   */
   uint32_t totalThreadExecutionDepth() const;
 
   bool canReverseStateToStateAtIndex(uint32_t) const;

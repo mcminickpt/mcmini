@@ -66,8 +66,7 @@ struct MCStateConfiguration final {
       stackContentDumpTraceNumber(stackContentDumpTraceNumber),
       stopAtFirstDeadlock(firstDeadlock),
       expectForwardProgressOfThreads(expectForwardProgressOfThreads)
-  {
-  }
+  {}
 };
 
 #endif // MC_MCSTATECONFIGURATION_H
