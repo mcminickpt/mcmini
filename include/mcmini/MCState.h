@@ -206,17 +206,55 @@ private:
    */
   void virtuallyRunTransition(const MCTransition &);
 
+  /**
+   * @brief
+   *
+   */
   void virtuallyRerunTransitionAtIndex(int);
+
+  /**
+   * @brief Performs the actual un-execution of the given transition
+   * on the "live" objects of the current state
+   *
+   * When a transition is unapplied, the state is reversed the last
+   * visited state (according to the particular transition subclass
+   * and implementation of the `MCTransition::unapplyToState()`) to
+   * reflect the fact that the transition was reversed by the given
+   * thread. Intuitively, you can imagine that the thread "undo-ing"
+   * the transition it just executed to reach its current state
+   */
   void virtuallyUnapplyTransition(const MCTransition &);
+
+  /**
+   * @brief Reverses a transition in the transition stack using the
+   * "live" objects of the current state and additionally performs
+   * other state updates for the thread executing the transition
+   *
+   * When a transition is reversed to regenerate past object states
+   * for backtracking, McMini first unapplies the effect of the
+   * transition on the state (MCState::virtuallyUnapplyTransition())
+   * and then updates the per-thread data of the thread which executed
+   * the transition
+   */
   void virtuallyRevertTransitionAtIndex(int);
 
   /**
    * @brief Computes the maximum clock vector from all clock vectors
-   * in the transition stack
+   * in the transition stack whose transition is dependent with the
+   * given one
    *
+   * The maxmimum clock vector is needed for backtracking the involves
+   * clock vectors. The "maxmium" clock vector of the transition stack
+   * is the component-wise maxmium of all clock vectors associated
+   * with the transitions in the stack that are dependent with the See
+   * the pseudocode using clock vectors in section 4 of the original
+   * DPOR paper for more details
+   *
+   * @param t the transition to compute the maxmium clock vector
+   * against
    * @return MCClockVector
    */
-  MCClockVector transitionStackMaxClockVector(const MCTransition &);
+  MCClockVector transitionStackMaxClockVector(const MCTransition &t);
 
   /**
    * @brief Fetches the clock vector associated with the `i`th
@@ -230,12 +268,18 @@ private:
   /**
    * Inserts a backtracking point given a context of insertion (where
    * in the transition/state stacks to insert into etc.)
+   *
+   * The parameters to this helper method mirror the notation that
+   * appears in Flanagan and Godefroid's DPOR paper
+   *
+   * @param S_i the `i`th transition in the transition stack
+   * @param preSi the state from which `S_i` executes from
+   * @param nextSP the next transition of a particular thread `p` when
+   * performing the logic checks in DPOR
    */
   bool dynamicallyUpdateBacktrackSetsHelper(
     const MCTransition &S_i, MCStateStackItem &preSi,
-    const MCTransition &nextSP,
-    const std::unordered_set<tid_t> &enabledThreadsAtPreSi, int i,
-    int p);
+    const MCTransition &nextSP, int i, int p);
 
   void
   incrementThreadTransitionCountIfNecessary(const MCTransition &);
@@ -263,18 +307,29 @@ public:
 
   MCState(MCStateConfiguration config) : configuration(config) {}
 
-  tid_t getThreadRunningTransitionAtIndex(int) const;
+  // MARK: Transition stack
 
-  MCTransition &getPendingTransitionForThread(tid_t) const;
   MCTransition &getTransitionAtIndex(int) const;
   MCTransition &getTransitionStackTop() const;
-  MCStateStackItem &getDepartingStateForTransitionAtIndex(int) const;
-  MCStateStackItem &getResultingStateForTransitionAtIndex(int) const;
+  uint64_t getTransitionStackSize() const;
+  bool transitionStackIsEmpty() const;
+  tid_t getThreadRunningTransitionAtIndex(int) const;
+  std::vector<tid_t> getThreadIdBacktrace() const;
+
+  // MARK: State stack
+
   MCStateStackItem &getStateItemAtIndex(int) const;
   MCStateStackItem &getStateStackTop() const;
+  uint64_t getStateStackSize() const;
+  bool stateStackIsEmpty() const;
 
-  MCTransition &getNextTransitionForThread(MCThread *thread);
+  MCStateStackItem &getDepartingStateForTransitionAtIndex(int) const;
+  MCStateStackItem &getResultingStateForTransitionAtIndex(int) const;
+
+  // MARK: Next "List" (what each thread runs next)
+
   MCTransition &getNextTransitionForThread(tid_t thread) const;
+  const MCTransition *getFirstEnabledTransition();
 
   void setNextTransitionForThread(MCThread *,
                                   std::shared_ptr<MCTransition>);
@@ -283,9 +338,16 @@ public:
   void setNextTransitionForThread(tid_t, MCSharedTransition *,
                                   void *);
 
-  const MCTransition *getFirstEnabledTransitionFromNextStack();
-  std::unordered_set<tid_t> computeEnabledThreads();
+  // FIXME: The logic testing a configuration probably should be
+  // adjusted
+  MCStateConfiguration getConfiguration() const;
 
+  uint64_t getNumProgramThreads() const;
+  std::unordered_set<tid_t> getCurrentlyEnabledThreads();
+
+  // MARK: Object Creation
+  // FIXME: This should not be a part of the state. Object creation
+  // should happen externally in a future design
   objid_t createNewThread();
   objid_t createNewThread(MCThreadShadow &);
   objid_t createMainThread();
@@ -309,31 +371,26 @@ public:
     return objectStorage.getObjectWithSystemAddress<Object>(systemId);
   }
 
-  void simulateRunningTransition(const MCTransition &,
-                                 MCSharedTransition *, void *);
-
-  uint64_t getTransitionStackSize() const;
-  uint64_t getStateStackSize() const;
-  bool transitionStackIsEmpty() const;
-  bool stateStackIsEmpty() const;
-
-  // Registering new types
+  // MARK: Adding new types
+  // FIXME: Again, this should be broken out. I have some ideas
+  // about what we need. Most of the logic itself ca (and should) stay
+  // relatively in-tact, but the organization needs to be improved
+  // greatly
   void registerVisibleOperationType(MCType, MCSharedMemoryHandler);
   void registerVisibleObjectWithSystemIdentity(
     MCSystemID, std::shared_ptr<MCVisibleObject>);
 
+  // MARK:
+
+  void simulateRunningTransition(const MCTransition &,
+                                 MCSharedTransition *, void *);
   void dynamicallyUpdateBacktrackSets();
 
   bool isInDeadlock() const;
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
-  MCStateConfiguration getConfiguration() const;
-
-  uint64_t getNumProgramThreads() const;
-
   bool isTargetTraceIdForGDB(trid_t) const;
   bool isTargetTraceIdForStackContents(trid_t) const;
-  std::vector<tid_t> getThreadIdTraceOfTransitionStack() const;
 
   // Restarting
   void start();

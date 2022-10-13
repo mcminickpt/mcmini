@@ -385,6 +385,7 @@ mc_spawn_child_following_transition_stack()
     // in the transition stack; otherwise, shadow resource
     // allocations will be off
     programState->reset();
+    programState->start();
     mc_register_main_thread();
   }
 
@@ -478,7 +479,7 @@ mc_exhaust_threads(const MCTransition &initialTransition)
     /* Check for data races */
     {
       const MCTransition &pendingTransition =
-        programState->getPendingTransitionForThread(tid);
+        programState->getNextTransitionForThread(tid);
       if (programState->hasADataRaceWithNewTransition(
             pendingTransition)) {
         mcprintf("*** DATA RACE DETECTED ***\n");
@@ -486,10 +487,8 @@ mc_exhaust_threads(const MCTransition &initialTransition)
         programState->printNextTransitions();
       }
     }
-  } while (
-    (t_next =
-       programState->getFirstEnabledTransitionFromNextStack()) !=
-    nullptr);
+  } while ((t_next = programState->getFirstEnabledTransition()) !=
+           nullptr);
 
   const bool programIsInDeadlock = programState->isInDeadlock();
   const bool programHasNoErrors  = !programIsInDeadlock;
@@ -606,7 +605,7 @@ mc_spawn_daemon_thread()
    * rerunning the trace/schedule
    */
   auto trace = new std::vector<tid_t>();
-  *trace     = programState->getThreadIdTraceOfTransitionStack();
+  *trace     = programState->getThreadIdBacktrace();
 
   pthread_t daemon;
   pthread_attr_t attr;
@@ -635,7 +634,7 @@ mc_daemon_thread_simulate_program(void *trace)
 
   for (tid_t tid : *tracePtr) {
     const MCTransition &t_next =
-      programState->getPendingTransitionForThread(tid);
+      programState->getNextTransitionForThread(tid);
     t_next.print();
     mc_run_thread_to_next_visible_operation(tid);
     programState->simulateRunningTransition(

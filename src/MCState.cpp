@@ -28,12 +28,6 @@ MCState::transitionIsEnabled(const MCTransition &transition)
 }
 
 MCTransition &
-MCState::getNextTransitionForThread(MCThread *thread)
-{
-  return *this->nextTransitions[thread->tid];
-}
-
-MCTransition &
 MCState::getNextTransitionForThread(tid_t thread) const
 {
   return *this->nextTransitions[thread];
@@ -206,14 +200,8 @@ MCState::getStateStackTop() const
   return this->getStateItemAtIndex(this->stateStackTop);
 }
 
-MCTransition &
-MCState::getPendingTransitionForThread(tid_t tid) const
-{
-  return *this->nextTransitions[tid];
-}
-
 const MCTransition *
-MCState::getFirstEnabledTransitionFromNextStack()
+MCState::getFirstEnabledTransition()
 {
   const uint64_t threadsInProgram = this->getNumProgramThreads();
   const MCStateStackItem &sTop    = getStateStackTop();
@@ -236,7 +224,7 @@ MCState::getFirstEnabledTransitionFromNextStack()
 }
 
 std::unordered_set<tid_t>
-MCState::computeEnabledThreads()
+MCState::getCurrentlyEnabledThreads()
 {
   std::unordered_set<tid_t> enabledThreadsInState;
   const uint32_t numThreads = this->getNumProgramThreads();
@@ -293,7 +281,7 @@ MCState::hasADataRaceWithNewTransition(
   for (auto i = 0; i < numThreads; i++) {
     if (i == threadRunningTransition) continue;
     const MCTransition &nextTransitionForThreadI =
-      this->getPendingTransitionForThread(i);
+      this->getNextTransitionForThread(i);
 
     if (MCTransition::transitionsInDataRace(nextTransitionForThreadI,
                                             transition))
@@ -409,7 +397,7 @@ MCState::dynamicallyUpdateBacktrackSets()
     this->getTransitionStackTop();
   const tid_t mostRecentThreadId = transitionStackTop.getThreadId();
   const MCTransition &nextTransitionForMostRecentThread =
-    this->getPendingTransitionForThread(mostRecentThreadId);
+    this->getNextTransitionForThread(mostRecentThreadId);
   remainingThreadsToProcess.erase(mostRecentThreadId);
 
   // O(# threads)
@@ -422,10 +410,10 @@ MCState::dynamicallyUpdateBacktrackSets()
 
     for (tid_t tid : remainingThreadsToProcess) {
       const MCTransition &nextSP =
-        this->getPendingTransitionForThread(tid);
+        this->getNextTransitionForThread(tid);
       this->dynamicallyUpdateBacktrackSetsHelper(
-        S_n, s_n, nextSP, enabledThreadsAt_s_n,
-        transitionStackTopBeforeBacktracking, (int)tid);
+        S_n, s_n, nextSP, transitionStackTopBeforeBacktracking,
+        (int)tid);
     }
   }
 
@@ -439,11 +427,9 @@ MCState::dynamicallyUpdateBacktrackSets()
        i--) {
     const MCTransition &S_i = this->getTransitionAtIndex(i);
     MCStateStackItem &preSi = this->getStateItemAtIndex(i);
-    const unordered_set<tid_t> enabledThreadsAtPreSi =
-      preSi.getEnabledThreadsInState();
-    const bool shouldStop = dynamicallyUpdateBacktrackSetsHelper(
-      S_i, preSi, nextTransitionForMostRecentThread,
-      enabledThreadsAtPreSi, i, (int)mostRecentThreadId);
+    const bool shouldStop   = dynamicallyUpdateBacktrackSetsHelper(
+        S_i, preSi, nextTransitionForMostRecentThread, i,
+        (int)mostRecentThreadId);
     /*
      * Stop when we find the first such i; this
      * will be the maxmimum `i` since we're searching
@@ -456,10 +442,10 @@ MCState::dynamicallyUpdateBacktrackSets()
 bool
 MCState::dynamicallyUpdateBacktrackSetsHelper(
   const MCTransition &S_i, MCStateStackItem &preSi,
-  const MCTransition &nextSP,
-  const std::unordered_set<tid_t> &enabledThreadsAtPreSi, int i,
-  int p)
+  const MCTransition &nextSP, int i, int p)
 {
+  const unordered_set<tid_t> enabledThreadsAtPreSi =
+    preSi.getEnabledThreadsInState();
   const bool shouldProcess =
     MCTransition::dependentTransitions(S_i, nextSP) &&
     MCTransition::coenabledTransitions(S_i, nextSP) &&
@@ -655,7 +641,8 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
   const bool transitionIsRevertible =
     transition.isReversibleInState(this);
   const tid_t threadRunningTransition = transition.getThreadId();
-  const unordered_set<tid_t> enabledThreads = computeEnabledThreads();
+  const unordered_set<tid_t> enabledThreads =
+    getCurrentlyEnabledThreads();
   MCThreadData &threadData =
     getThreadDataForThread(threadRunningTransition);
   MCStateStackItem &oldSTop = getStateStackTop();
@@ -840,8 +827,9 @@ MCState::reflectStateAtTransitionIndex(uint32_t index)
       for (tid_t tid = 0; tid < numThreadsToProcess; tid++) {
         if (threadToClosestIndexMap.count(tid) == 0) {
           this->setNextTransitionForThread(
-            tid, this->getPendingTransitionForThread(tid)
-                   .dynamicCopyInState(this));
+            tid,
+            this->getNextTransitionForThread(tid).dynamicCopyInState(
+              this));
         }
       }
     }
@@ -888,7 +876,7 @@ MCState::printNextTransitions() const
   printf("THREAD STATES\n");
   auto numThreads = this->getNumProgramThreads();
   for (auto i = 0; i < numThreads; i++) {
-    this->getPendingTransitionForThread(i).print();
+    this->getNextTransitionForThread(i).print();
   }
   printf("END\n");
   mcflush();
@@ -907,7 +895,7 @@ MCState::isTargetTraceIdForStackContents(trid_t trid) const
 }
 
 std::vector<tid_t>
-MCState::getThreadIdTraceOfTransitionStack() const
+MCState::getThreadIdBacktrace() const
 {
   auto trace                       = std::vector<tid_t>();
   const auto transitionStackHeight = this->getTransitionStackSize();
