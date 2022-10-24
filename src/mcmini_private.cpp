@@ -24,13 +24,14 @@ using namespace std;
 
 /* Synchronization primitives */
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
-pid_t cpid                     = -1;
+pid_t trace_pid                = -1;
 
 /**
  * The process id of the scheduler
  */
-pid_t scheduler_pid                                       = -1;
-mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM] = nullptr;
+pid_t scheduler_pid = -1;
+mc_shared_cv (*trace_sleep_queue)[MAX_TOTAL_THREADS_IN_PROGRAM] =
+  nullptr;
 sem_t mc_pthread_create_binary_sem;
 
 /*
@@ -46,14 +47,14 @@ void *shmStart                            = nullptr;
 MCSharedTransition *shmTransitionTypeInfo = nullptr;
 void *shmTransitionData                   = nullptr;
 const size_t shmAllocationSize =
-  sizeof(*threadQueue) +
+  sizeof(*trace_sleep_queue) +
   (sizeof(*shmTransitionTypeInfo) + MAX_SHARED_MEMORY_ALLOCATION);
 
 /* Program state */
 MCDeferred<MCState> programState;
 
 MC_CTOR void
-mc_init()
+mcmini_main()
 {
   mc_load_shadow_routines();
   mc_create_program_state();
@@ -267,12 +268,13 @@ mc_initialize_shared_memory_region()
   void *shm              = mc_create_shared_memory_region();
   void *threadQueueStart = shm;
   void *shmTransitionTypeInfoStart =
-    (char *)threadQueueStart + sizeof(*threadQueue);
+    (char *)threadQueueStart + sizeof(*trace_sleep_queue);
   void *shmTransitionDataStart = (char *)shmTransitionTypeInfoStart +
                                  sizeof(*shmTransitionTypeInfo);
 
-  shmStart    = shm;
-  threadQueue = static_cast<typeof(threadQueue)>(threadQueueStart);
+  shmStart = shm;
+  trace_sleep_queue =
+    static_cast<typeof(trace_sleep_queue)>(threadQueueStart);
   shmTransitionTypeInfo = static_cast<typeof(shmTransitionTypeInfo)>(
     shmTransitionTypeInfoStart);
   shmTransitionData = shmTransitionDataStart;
@@ -282,15 +284,15 @@ void
 mc_create_thread_sleep_points()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
-    mc_shared_cv_init(&(*threadQueue)[i]);
+    mc_shared_cv_init(&(*trace_sleep_queue)[i]);
 }
 
 void
 mc_reset_cv_locks()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
-    mc_shared_cv_destroy(&(*threadQueue)[i]);
-    mc_shared_cv_init(&(*threadQueue)[i]);
+    mc_shared_cv_destroy(&(*trace_sleep_queue)[i]);
+    mc_shared_cv_init(&(*trace_sleep_queue)[i]);
   }
 }
 
@@ -335,14 +337,14 @@ mc_spawn_child()
 {
   // Ensure that a child does not already exist to prevent fork
   // bombing
-  MC_ASSERT(cpid == -1);
+  MC_ASSERT(trace_pid == -1);
 
   pid_t childpid;
   if ((childpid = fork()) < 0) {
     perror("fork");
     abort();
   }
-  cpid = childpid;
+  trace_pid = childpid;
 
   if (FORK_IS_CHILD_PID(childpid)) {
     signal(SIGUSR1, &sigusr1_handler_child);
@@ -428,7 +430,7 @@ void
 mc_run_thread_to_next_visible_operation(tid_t tid)
 {
   MC_ASSERT(tid != TID_INVALID);
-  mc_shared_cv_ref cv = &(*threadQueue)[tid];
+  mc_shared_cv_ref cv = &(*trace_sleep_queue)[tid];
   mc_shared_cv_wake_thread(cv);
   mc_shared_cv_wait_for_thread(cv);
 }
@@ -436,17 +438,17 @@ mc_run_thread_to_next_visible_operation(tid_t tid)
 void
 mc_kill_child()
 {
-  if (cpid == -1) return; // No child
-  kill(cpid, SIGUSR1);
-  waitpid(cpid, NULL, 0);
-  cpid = -1;
+  if (trace_pid == -1) return; // No child
+  kill(trace_pid, SIGUSR1);
+  waitpid(trace_pid, NULL, 0);
+  trace_pid = -1;
 }
 
 void
 mc_child_wait()
 {
-  MC_ASSERT(cpid != -1);
-  waitpid(cpid, nullptr, 0);
+  MC_ASSERT(trace_pid != -1);
+  waitpid(trace_pid, nullptr, 0);
 }
 
 void

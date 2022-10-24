@@ -45,7 +45,7 @@ writer(void *notused)
 int
 main()
 {
-  mc_init();
+  mcmini_main();
   pthread_t read_thread[NUM_READERS];
   pthread_t write_thread[NUM_WRITERS];
   mc_pthread_rwwlock_init(&rw);

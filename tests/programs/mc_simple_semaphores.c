@@ -9,7 +9,7 @@ sem_t sem;
 int
 main(int argc, char *argv[])
 {
-  mc_init();
+  mcmini_main();
   mc_sem_init(&sem, 0, START_NUM);
 
   for (int i = 0; i < START_NUM; i++) { mc_sem_wait(&sem); }
