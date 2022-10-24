@@ -33,7 +33,7 @@ philosopher_doit(void *forks_arg)
 int
 main(int argc, char *argv[])
 {
-  mc_init();
+  mcmini_main();
   pthread_t thread[NUM_THREADS];
   pthread_mutex_t mutex_resource[NUM_THREADS];
 

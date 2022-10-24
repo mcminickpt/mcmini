@@ -11,19 +11,64 @@ extern "C" {
 #include "mcmini/MCCommon.h"
 #include "mcmini/MCEnv.h"
 #include "mcmini/mc_shared_cv.h"
-#include <semaphore.h>
 }
 
-/* Synchronization primitives */
-extern MC_THREAD_LOCAL tid_t tid_self;
-extern pid_t cpid;
-extern mc_shared_cv (*threadQueue)[MAX_TOTAL_THREADS_IN_PROGRAM];
+/**
+ * @brief The entry point of McMini from which model checking begins
+ *
+ * Execution begins inside this function (marked as the constructor
+ * for the dynamic library compiled from this source and called
+ * directly with source code mixing McMini functions). Besides running
+ * the DPOR engine itself, the function initializes several important
+ * global variables managing the program state, shared memory, and
+ * symbols in the underlying thread libraries
+ */
+MC_CTOR void mcmini_main();
 
-/*
- * Allows new threads to be created in a race-free manner
+/**
+ * @brief The ID McMini uses to identify THIS thread, viz.
+ * the thread that has access to this data
+ *
+ * Each new thread object (an instance of type MCThread) created
+ * inside the scheduler is associated with a positive integer which is
+ * used by the scheduler to identify threads executing in the trace
+ * processes.
+ *
+ * Thread IDs are monotonically-increasing, with each subsequent
+ * thread receiving an ID one greater than the previously created
+ * thread.
+ *
+ * Since trace processes are ephemeral (they are discarded after the
+ * scheduler has determined it can't execute the trace any further),
+ * as new threads in each trace process are created, they must assign
+ * themselves to the next available ID through the `MCProgramState`
+ * instance available to that process (see the `programState` global
+ * variable defined below). Thus, both trace processes and the
+ * scheduler process manage creating thread IDs separately in such a
+ * way that the scheduler has the absolute "view" of all threads
+ * across traces while a particular trace understands the thread IDs
+ * within a single branch of McMini
+ */
+extern MC_THREAD_LOCAL tid_t tid_self;
+
+/**
+ * @brief A fixed-size array assigning to each possible
+ * trace-process thread McMini can support at any given time a loction
+ * to receive notifications from a(nd send notifications to) the
+ * scheduler.
+ */
+extern mc_shared_cv (
+  *trace_sleep_queue)[MAX_TOTAL_THREADS_IN_PROGRAM];
+
+/**
+ * @brief A binary semaphore that is used to ensure that threads
+ * created in trace processes have fully blocked before the scheduler
+ * is notified of the thread creation operation completing
+ *
+ * When a thread in a trace process is scheduled to execute a function
+ * which creates a *new* thread (e.g. pthread_create()), McMini
  */
 extern sem_t mc_pthread_create_binary_sem;
-extern trid_t traceId;
 
 /* Data transfer */
 extern void *shmStart;
@@ -34,8 +79,12 @@ extern const size_t shmAllocationSize;
 /* State */
 extern MCDeferred<MCState> programState;
 
-MC_CTOR void mc_init();
 void mc_child_panic();
+
+/**
+ * @brief
+ *
+ */
 void mc_report_undefined_behavior(const char *);
 
 #define MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(x, str)                \
