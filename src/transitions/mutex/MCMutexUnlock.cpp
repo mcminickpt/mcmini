@@ -1,6 +1,6 @@
 #include "mcmini/transitions/mutex/MCMutexUnlock.h"
-#include "mcmini/MCMINI_Private.h"
 #include "mcmini/MCTransitionFactory.h"
+#include "mcmini/mcmini_private.h"
 
 MCTransition *
 MCReadMutexUnlock(const MCSharedTransition *shmTransition,
@@ -17,8 +17,7 @@ MCReadMutexUnlock(const MCSharedTransition *shmTransition,
   if (mutexThatExists->isUnlocked()) {
     MC_REPORT_UNDEFINED_BEHAVIOR(
       "Attempting to unlock a mutex that is already unlocked");
-  }
-  else if (mutexThatExists->isDestroyed()) {
+  } else if (mutexThatExists->isDestroyed()) {
     MC_REPORT_UNDEFINED_BEHAVIOR(
       "Attempting to unlock a mutex that has been destroyed");
   }

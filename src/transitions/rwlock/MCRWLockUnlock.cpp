@@ -1,5 +1,5 @@
 #include "mcmini/transitions/rwlock/MCRWLockUnlock.h"
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 
 MCTransition *
 MCReadRWLockUnlock(const MCSharedTransition *shmTransition,

@@ -6,7 +6,7 @@ CXX=g++
 override CFLAGS+=-I${ROOT}/include -fPIC -DMC_SHARED_LIBRARY=1 -Dmcmini_checker_EXPORTS
 override CXXFLAGS=${CFLAGS} -std=gnu++11
 
-LIBOBJS1=src/MCObjectStore.o src/MCSharedTransition.o src/MCTransition.o src/MCMINI_Private.o src/MCState.o src/MCTransitionFactory.o src/MCStateStackItem.o src/MCThreadData.o src/MCClockVector.o src/MCStateConfiguration.o
+LIBOBJS1=src/MCObjectStore.o src/MCSharedTransition.o src/MCTransition.o src/mcmini_private.o src/MCState.o src/MCTransitionFactory.o src/MCStateStackItem.o src/MCThreadData.o src/MCClockVector.o src/MCStateConfiguration.o
 
 LIBOBJS2=src/misc/cond/MCCondVarWakeupPolicyImpl.o src/misc/cond/MCCondVarArbitraryWakeupPolicy.o src/misc/cond/MCCondVarOrderedWakeupPolicy.o src/misc/cond/MCCondVarGLibcSignalPolicy.o src/misc/cond/MCCondVarSingleGroupSignalPolicy.o src/misc/cond/MCWakeGroup.o
 

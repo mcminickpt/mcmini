@@ -1,5 +1,5 @@
 #include "mcmini/transitions/wrappers/MCThreadTransitionWrappers.h"
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/objects/MCThread.h"
 #include "mcmini/transitions/MCTransitionsShared.h"
 #include "mcmini/transitions/misc/MCExitTransition.h"

@@ -1,5 +1,5 @@
 #include "mcmini/transitions/semaphore/MCSemEnqueue.h"
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/transitions/semaphore/MCSemInit.h"
 #include "mcmini/transitions/semaphore/MCSemWait.h"
 

@@ -1,5 +1,5 @@
 #include "mcmini/transitions/rwwlock/MCRWWLockWriter1Lock.h"
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/transitions/rwwlock/MCRWWLockReaderLock.h"
 #include "mcmini/transitions/rwwlock/MCRWWLockWriter2Lock.h"
 

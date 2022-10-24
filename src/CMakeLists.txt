@@ -9,7 +9,7 @@ set(MC_CPP_FILES
   MCObjectStore.cpp
   MCSharedTransition.cpp
   MCTransition.cpp
-  MCMINI_Private.cpp
+  mcmini_private.cpp
   MCState.cpp
   MCTransitionFactory.cpp
   MCStateStackItem.cpp

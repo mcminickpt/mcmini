@@ -1,6 +1,6 @@
 #include "mcmini/transitions/cond/MCCondWait.h"
-#include "mcmini/MCMINI_Private.h"
 #include "mcmini/MCTransitionFactory.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/transitions/mutex/MCMutexLock.h"
 #include "mcmini/transitions/mutex/MCMutexTransition.h"
 

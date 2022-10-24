@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
 
-#include "mcmini/MCMINI_Private.h"
 #include "mcmini/MCShared.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/transitions/barrier/MCBarrierDefs.h"
 #include "mcmini/transitions/cond/MCCondDefs.h"
 #include "mcmini/transitions/misc/MCMiscDefs.h"

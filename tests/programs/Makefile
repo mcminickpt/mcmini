@@ -6,7 +6,7 @@ EXECUTABLES=$(patsubst %.c,%,$(wildcard *.c)) \
 MC_EXECUTABLES=$(patsubst %.c,mc_%,$(wildcard *.c)) \
                $(patsubst %.cpp,mc_%,$(wildcard *.cpp))
 
-# '-I${MCMINI_ROOT}/src' is for MCMINI.h, etc.
+# '-I${MCMINI_ROOT}/src' is for mcmini.h, etc.
 CFLAGS=-g3 -O0 -I${MCMINI_ROOT}/src -pthread
 CXXFLAGS=-g3 -O0 -I${MCMINI_ROOT}/src -pthread
 
