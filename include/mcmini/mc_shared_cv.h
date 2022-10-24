@@ -1,5 +1,5 @@
-#ifndef DPOR_MC_SHARED_CV_H
-#define DPOR_MC_SHARED_CV_H
+#ifndef INCLUDE_MCMINI_MC_SHARED_CV_HPP
+#define INCLUDE_MCMINI_MC_SHARED_CV_HPP
 
 #include "mcmini/MCShared.h"
 #include <semaphore.h>
@@ -18,4 +18,4 @@ void mc_shared_cv_wait_for_scheduler(mc_shared_cv_ref);
 void mc_shared_cv_wake_thread(mc_shared_cv_ref);
 void mc_shared_cv_wake_scheduler(mc_shared_cv_ref);
 
-#endif // DPOR_MC_SHARED_CV_H
+#endif // INCLUDE_MCMINI_MC_SHARED_CV_HPP

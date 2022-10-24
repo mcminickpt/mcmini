@@ -1,5 +1,5 @@
-#include "mcmini/MCMINI.h"
 #include "mcmini/export/rwwlock.h"
+#include "mcmini/mcmini.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>

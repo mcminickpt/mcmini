@@ -1,5 +1,5 @@
 #include "mcmini/transitions/mutex/MCMutexLock.h"
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/transitions/mutex/MCMutexUnlock.h"
 #include "mcmini/transitions/threads/MCThreadCreate.h"
 #include <memory>

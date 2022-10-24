@@ -1,5 +1,5 @@
 #include "mcmini/transitions/cond/MCCondBroadcast.h"
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/transitions/mutex/MCMutexTransition.h"
 
 MCTransition *

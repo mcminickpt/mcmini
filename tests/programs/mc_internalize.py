@@ -20,8 +20,8 @@ incl_line = next((i for i in range(len(program))
                   if program[i].startswith("#include")), None)
 new_incl_line = next((i for i in range(incl_line, len(program)-incl_line)
                       if not program[i].startswith("#include")), None)
-program.insert(new_incl_line,'#include "mcmini/MCMINI.h"\n' +
-                             '#include "mcmini/MCMINIWrappers.h"\n')
+program.insert(new_incl_line,'#include "mcmini/mcmini.h"\n' +
+                             '#include "mcmini/mcmini_wrappers.h"\n')
 
 program = ''.join(program)
 

@@ -1,5 +1,5 @@
-#include "mcmini/MCMINI.h"
-#include "mcmini/MCMINIWrappers.h"
+#include "mcmini/mcmini.h"
+#include "mcmini/mcmini_wrappers.h"
 #include <pthread.h>
 #include <semaphore.h>
 #define START_NUM 5

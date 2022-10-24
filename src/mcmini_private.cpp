@@ -1,7 +1,6 @@
-#include "mcmini/MCMINI_Private.h"
+#include "mcmini/mcmini_private.h"
 #include "mcmini/MCSharedTransition.h"
 #include "mcmini/MCTransitionFactory.h"
-#include "mcmini/MC_Private.h"
 #include "mcmini/transitions/MCTransitionsShared.h"
 #include <vector>
 
