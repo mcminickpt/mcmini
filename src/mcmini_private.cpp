@@ -56,10 +56,10 @@ MCDeferred<MCState> programState;
 MC_CTOR void
 mcmini_main()
 {
-  mc_load_shadow_routines();
-  mc_create_program_state();
+  mc_load_intercepted_symbol_addresses();
+  mc_create_global_state_object();
   mc_initialize_shared_memory_region();
-  mc_create_thread_sleep_points();
+  mc_initialize_trace_sleep_queue();
 
   // Mark this process as the scheduler
   scheduler_pid = getpid();
@@ -76,7 +76,7 @@ mcmini_main()
 }
 
 void
-mc_create_program_state()
+mc_create_global_state_object()
 {
   auto config = get_config_for_execution_environment();
   programState.Construct(config);
@@ -281,7 +281,7 @@ mc_initialize_shared_memory_region()
 }
 
 void
-mc_create_thread_sleep_points()
+mc_initialize_trace_sleep_queue()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
     mc_shared_cv_init(&(*trace_sleep_queue)[i]);

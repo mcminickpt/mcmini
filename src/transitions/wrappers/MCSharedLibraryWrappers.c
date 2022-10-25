@@ -24,7 +24,7 @@ typeof(&pthread_rwlock_unlock) pthread_rwlock_unlock_ptr;
 typeof(&sleep) sleep_ptr;
 
 void
-mc_load_shadow_routines()
+mc_load_intercepted_symbol_addresses()
 {
 #if MC_SHARED_LIBRARY
   pthread_create_ptr       = dlsym(RTLD_NEXT, "pthread_create");

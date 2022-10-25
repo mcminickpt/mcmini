@@ -15,7 +15,7 @@ extern typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 extern typeof(&sem_wait) sem_wait_ptr;
 extern typeof(&sem_post) sem_post_ptr;
 extern typeof(&sem_init) sem_init_ptr;
-extern __attribute__ ((__noreturn__)) typeof(&exit) exit_ptr;
+extern __attribute__((__noreturn__)) typeof(&exit) exit_ptr;
 extern typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
 extern typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 extern typeof(&pthread_cond_init) pthread_cond_init_ptr;
@@ -49,6 +49,23 @@ extern typeof(&sleep) sleep_ptr;
 #define __real_pthread_rwlock_unlock  (*pthread_rwlock_unlock_ptr)
 #define __real_sleep                  (*sleep_ptr)
 
-void mc_load_shadow_routines();
+/**
+ * @brief Retrieves the addresses of the symbols exposed by the
+ * dynamic libraries that McMini redefines to override the
+ * functions' original behavior to provide its own behavior
+ *
+ * McMini re-defines and exports symbols defined in other dynamic
+ * libraries to change the behavior of a program which is dynamically
+ * linked to the libraries containing those symbols. When McMini as a
+ * dynamic libarary is loaded into memory, a process making calls to
+ * the dynamic library will result in McMini's symbols being
+ * dynamically chosen instead.
+ *
+ * If the original behavior of the intercepted symbols is still
+ * needed, they must be retrieved using dlsym(3) and other functions.
+ * This function loads those symbols into the variables redefined
+ * above
+ */
+void mc_load_intercepted_symbol_addresses();
 
 #endif // INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCSHAREDLIBRARYWRAPPERS_HPP
