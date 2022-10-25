@@ -7,7 +7,7 @@ void
 thread_await_mc_scheduler()
 {
   MC_ASSERT(tid_self != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_queue)[tid_self];
+  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
   mc_shared_cv_wake_scheduler(cv);
   mc_shared_cv_wait_for_scheduler(cv);
 }
@@ -23,7 +23,7 @@ void
 thread_await_mc_scheduler_for_thread_start_transition()
 {
   MC_ASSERT(tid_self != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_queue)[tid_self];
+  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
   mc_shared_cv_wait_for_scheduler(cv);
 }
 
@@ -31,7 +31,7 @@ void
 thread_awake_mc_scheduler_for_thread_finish_transition()
 {
   MC_ASSERT(tid_self != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_queue)[tid_self];
+  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
   mc_shared_cv_wake_scheduler(cv);
 }
 

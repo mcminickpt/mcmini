@@ -21,7 +21,7 @@ extern "C" {
  * directly with source code mixing McMini functions). Besides running
  * the DPOR engine itself, the function initializes several important
  * global variables managing the program state, shared memory, and
- * symbols in the underlying thread libraries
+ * symbols in the underlying thread libraries.
  */
 MC_CTOR void mcmini_main();
 
@@ -56,47 +56,237 @@ extern MC_THREAD_LOCAL tid_t tid_self;
  * trace-process thread McMini can support at any given time a loction
  * to receive notifications from a(nd send notifications to) the
  * scheduler.
+ *
+ * When a thread in a trace process is created, it blocks on a
+ * semaphore in shared memory uniquely pre-assigned to it contained
+ * within this list. The thread ID assigned to it by McMini is treated
+ * as an index into this list
+ *
+ * The list is of a fixed size to give the scheduler awareness of the
+ * threads that it will have to deal with and, more importantly, so
+ * that it can initialize the semaphores contained in the list to the
+ * appropriate values
+ *
+ * FIXME: It *may* be possible to allow the list to have a variable
+ * size. This would have to be communicated somehow back to the
+ * scheduler, which would be complicated as the scheduler cannot know
+ * a prior if new threads will be created. It's something to consider
+ * in the future
+ *
+ * FIXME: Shared memory management should occur within a dedicated
+ * object perhaps that wraps the memory and makes sure it is cleaned
+ * up when the object is destroyed. Furthermore, we should de-couple
+ * indexing the list with the thread ID and instead think of the
+ * thread ID as a key in a map
  */
-extern mc_shared_cv (
-  *trace_sleep_queue)[MAX_TOTAL_THREADS_IN_PROGRAM];
+extern mc_shared_cv (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM];
+
+/**
+ * @brief Initializes the variables in the global `trace_sleep_list`
+ */
+void mc_initialize_trace_sleep_list();
+
+/**
+ * @brief Destorys and then re-initializes the elements of
+ * `trace_sleep_list`
+ *
+ * When the scheduler decides to explore a new trace, it must ensure
+ * that the semaphores the threads in the *next* trace process will
+ * access (which are the SAME as those used by the threads in the
+ * previous trace) are initialized to their initial values. Otherwise
+ * the scheduler and trace process will race with one another and will
+ * invoke undefined behavior since the counts of the semaphores may
+ * not correspond to that of a fresh trace having been created
+ */
+void mc_reset_trace_sleep_list();
 
 /**
  * @brief A binary semaphore that is used to ensure that threads
- * created in trace processes have fully blocked before the scheduler
- * is notified of the thread creation operation completing
+ * created in trace processes have fully initialized before the
+ * scheduler is notified of the thread creation operation completing
  *
  * When a thread in a trace process is scheduled to execute a function
- * which creates a *new* thread (e.g. pthread_create()), McMini
+ * which creates a *new* thread (e.g. pthread_create()), McMini blocks
+ * as with any transition it executes and waits until
  */
 extern sem_t mc_pthread_create_binary_sem;
 
 /**
- * @brief
- *
+ * @brief The address at which the shared memory mailbox begins to
+ * allow threads in a trace process to communicate with the scheduler
  */
 extern void *shmStart;
 
-extern MCSharedTransition *shmTransitionTypeInfo;
-extern void *shmTransitionData;
+/**
+ * @brief The size of the shared memory allocation in bytes
+ */
 extern const size_t shmAllocationSize;
 
 /**
- * @brief A representation of the state of the current trace process
- * in this DPOR state space branch
+ * @brief The address in shared memory at which information about the
+ * *type* of the transition hit by the thread in the trace process
+ * last scheduled by the scheduler process is written into
+ */
+extern MCSharedTransition *shmTransitionTypeInfo;
+
+/**
+ * @brief The address in shared memory at which information about the
+ * *payload* of the transition hit by the thread in the trace process
+ * last scheduled by the scheduler process is written into
+ */
+extern void *shmTransitionData;
+
+/**
+ * @brief Allocates space for the shared memory mailbox used for XPC
+ * between forked trace processes and the scheduler process
  *
- * The
+ * @return void* The address of the shared memory allocated by this
+ * function, or NULL if the memory could not be allocated
+ */
+void *mc_allocate_shared_memory_region();
+
+/**
+ * @brief Initializes the global variables related to shared memory as
+ * defined above
+ */
+void mc_initialize_shared_memory_globals();
+
+/**
+ * @brief A representation of the state of the current branch in the
+ * state space explored by the scheduler under DPOR
  *
+ * The program state is McMini's representation of the states of the
+ * visible objects and threads of the target program at any given
+ * point in time. As a trace process evolves and executes more
+ * transitions, the state is updated to reflect this fact.
  */
 extern MCDeferred<MCState> programState;
 
 /**
- * @brief Initialize the global program state object
+ * @brief Initialize the global program state object `programState`
  *
  * FIXME: A better alternative is that we shouldn't need this function
  * and instead the global state is only locally accessible perhaps?
- *
  */
 void mc_create_global_state_object();
+
+/**
+ * @brief Performs the model checking for the program McMini was
+ * dynamically loaded into
+ *
+ * After the initialization phase, this function is invoked to perform
+ * the actual model-checking using DPOR of the test program
+ *
+ * @return MC_PROGRAM_TYPE An identifier for which program exited the
+ * call to the function. This gives the information callers need to
+ * allow fork()-ed trace process to escape into the target program for
+ * testing
+ */
+MC_PROGRAM_TYPE mc_do_model_checking();
+
+/**
+ * @brief
+ *
+ * @param transition
+ * @return MC_PROGRAM_TYPE
+ */
+MC_PROGRAM_TYPE
+mc_search_next_dpor_branch(const MCTransition &transition);
+
+/**
+ * @brief
+ *
+ * @param transition
+ */
+void mc_search_dpor_branch(const MCTransition &transition);
+
+/* Source program management */
+/*
+ * FIXME: We should have a mcmini::ProcessVendor() here which manages
+ * the lifetimes of processes. This may help simplify the logic and
+ * will remove MC_PROGRAM_TYPE in favor of an enum of the same name
+ */
+
+/**
+ * @brief Forks a new trace process whose execution begins immediately
+ * after this function
+ *
+ * When a new trace process is created, its execution begins inside
+ * the control flow of the scheduler which spawned it. As the trace is
+ * responsible only for allowing processes
+ *
+ * Note that all global variables are effectively *duplicated* across
+ * calls to this method (it eventually makes a call to fork(2)). Thus
+ * modifications to all variables (not explicitly mapped into shared
+ * memory) are private to each the scheduler and newly-spawned trace
+ * processes
+ *
+ * @return The process identifier. The caller should allow
+ * the process to escape into the target program as quickly
+ * as possible to allow the scheduler to begin controlling its
+ * execution
+ */
+MC_PROGRAM_TYPE mc_fork_new_trace();
+
+/**
+ * @brief Forks a new trace process whose execution is blocked until
+ * the scheduler wakes it
+ *
+ * Conceptually, you can imagine that the trace is about to enter the
+ * main routine of the target program. The newly-created trace will be
+ * blocked waiting to enter the main function until the scheduler
+ * later allows the thread to exit
+ *
+ * @return The process identifier. The caller should allow
+ * the process to escape into the target program as quickly
+ * as possible
+ */
+MC_PROGRAM_TYPE mc_fork_new_trace_at_main(bool);
+
+/**
+ * @brief Forks a new trace process whose run-time state reflects that
+ * maintained by the scheduler in `programState`
+ *
+ * When the scheduler decides to explore a different branch of the
+ * state space (i.e. if DPOR decides that some other needs to be
+ * searched), it must regenerate a trace process whose "state" (i.e.
+ * memory and threads) matches that originally recorded by the
+ * scheduler at the particular point in the past (i.e. backtracking
+ * point)
+ *
+ * @return The process identifier. The caller should allow
+ * the process to escape into the target program as quickly
+ * as possible
+ */
+MC_PROGRAM_TYPE mc_new_trace_at_current_state();
+
+/**
+ * @brief Unblocks the thread corresponding to _tid_ in the current
+ * trace process so it can execute a visible operation
+ *
+ * The caller will block until the thread in the trace process
+ *
+ * FIXME: We currently do not properly handle the case where the trace
+ * process dies unexpectedly. Instead of deadlocking in the scheduler,
+ * a more graceful approach would be to detect this with e.g. the
+ * result of waitpid() in a separate thread spawned by McMini that
+ * simply acts as a "watchdog" for bad events such as these
+ *
+ * @param tid the ID of the thread to allow to execute in the trace
+ * process
+ */
+void mc_run_thread_to_next_visible_operation(tid_t tid);
+
+/**
+ * @brief Blocks execution of the calling thread until the current
+ * trace process has fully exited
+ */
+void mc_wait_for_trace();
+
+/**
+ * @brief Halts the current trace and waits for it to exit
+ */
+void mc_terminate_trace();
 
 /**
  * @brief Alerts the DPOR scheduler process an unrecoverable error
@@ -108,10 +298,31 @@ void mc_create_global_state_object();
  * initialization-time of McMini (see `mcmini_main()` for more
  * details).
  *
- * The function blocks indefinitely and the process will later be
- * killed by the parent process
+ * The function blocks indefinitely and the calling process will later
+ * be killed by the parent process
  */
-void mc_child_panic();
+void mc_trace_panic();
+
+/**
+ * @brief Exit the program as if exit(2) were called
+ *
+ * To handle target programs which make a call to exit(2), McMini
+ * intercepts the "exit" symbol and treats exit() as a visible
+ * operation that is never enabled.
+ *
+ * The bigger problem is that McMini registers an at_exit() handler
+ * that handles the case where the *main* thread exits the main
+ * routine. Thus a call to exit(2), even through __real_exit() defined
+ * by McMini, in the trace process results in the at_exit() handler
+ * being invoked which causes a deadlock (since at_exit() handler
+ * merely acts as a direct call to exit(2) by the main thread).
+ *
+ * Hence, you should *always* call this method instead of directly
+ * invoking exit(2) or __real_exit().
+ */
+void mc_exit(int);
+
+/* Erroneous Behavior */
 
 /**
  * @brief
@@ -129,12 +340,16 @@ void mc_report_undefined_behavior(const char *);
 #define MC_REPORT_UNDEFINED_BEHAVIOR(str) \
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(false, str)
 
-/* Scheduler control */
-MC_PROGRAM_TYPE mc_scheduler_main();
-void mc_exhaust_threads(const MCTransition &);
-MC_PROGRAM_TYPE mc_readvance_main(const MCTransition &);
-void mc_create_initial_scheduler_state();
-void mc_exit(int);
+// FIXME: Document this
+
+/* Thread control */
+
+void thread_await_mc_scheduler();
+void thread_await_mc_scheduler_for_thread_start_transition();
+void thread_awake_mc_scheduler_for_thread_finish_transition();
+
+// FIXME: This is stil experimental and likely will need work,
+// although the concepts are technically in place
 
 /* GDB interface */
 bool mc_should_enter_gdb_debugging_session_with_trace_id(trid_t);
@@ -142,6 +357,7 @@ MC_PROGRAM_TYPE mc_enter_gdb_debugging_session_if_necessary(trid_t);
 MC_PROGRAM_TYPE mc_enter_gdb_debugging_session();
 void mc_spawn_daemon_thread();
 void *mc_daemon_thread_simulate_program(void *);
+
 MCStateConfiguration get_config_for_execution_environment();
 
 /* Trace prints */
@@ -150,26 +366,5 @@ void mc_exit_with_trace_if_necessary(trid_t);
 /* Registering and accessing threads */
 tid_t mc_register_thread();
 tid_t mc_register_main_thread();
-
-/* Shared memory management */
-void *mc_create_shared_memory_region();
-void mc_initialize_shared_memory_region();
-
-void mc_initialize_trace_sleep_queue();
-void mc_reset_thread_sleep_points();
-
-/* Source program management */
-MC_PROGRAM_TYPE mc_spawn_child();
-MC_PROGRAM_TYPE mc_spawn_child_following_transition_stack();
-MC_PROGRAM_TYPE
-mc_begin_target_program_at_main(bool spawnDaemonThread);
-void mc_run_thread_to_next_visible_operation(tid_t);
-void mc_kill_child();
-void mc_child_wait();
-
-/* Thread control */
-void thread_await_mc_scheduler();
-void thread_await_mc_scheduler_for_thread_start_transition();
-void thread_awake_mc_scheduler_for_thread_finish_transition();
 
 #endif // INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
