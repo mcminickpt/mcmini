@@ -1,17 +1,17 @@
-#ifndef MC_MCSHAREDTRANSITION_H
-#define MC_MCSHAREDTRANSITION_H
+#ifndef INCLUDE_MCMINI_MCSHAREDTRANSITION_HPP
+#define INCLUDE_MCMINI_MCSHAREDTRANSITION_HPP
 
 #include "mcmini/MCShared.h"
 #include "mcmini/MCTransition.h"
 
 struct MCSharedTransition {
 public:
+
   const std::type_info &type;
   tid_t executor;
   MCSharedTransition(tid_t executor, const std::type_info &type)
     : executor(executor), type(type)
-  {
-  }
+  {}
 };
 
 void MCSharedTransitionReplace(MCSharedTransition *,
@@ -26,4 +26,4 @@ static_assert(std::is_trivially_copyable<MCSharedTransition>::value,
               "map to types instead"
               "This is currently unsupported at the moment");
 
-#endif // MC_MCSHAREDTRANSITION_H
+#endif // INCLUDE_MCMINI_MCSHAREDTRANSITION_HPP

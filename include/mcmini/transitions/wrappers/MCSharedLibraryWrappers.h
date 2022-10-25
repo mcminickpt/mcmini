@@ -52,7 +52,7 @@ extern typeof(&sleep) sleep_ptr;
 /**
  * @brief Retrieves the addresses of the symbols exposed by the
  * dynamic libraries that McMini redefines to override the
- * functions' original behavior to provide its own behavior
+ * functions' original behavior
  *
  * McMini re-defines and exports symbols defined in other dynamic
  * libraries to change the behavior of a program which is dynamically
