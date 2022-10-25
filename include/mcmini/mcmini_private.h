@@ -70,15 +70,47 @@ extern mc_shared_cv (
  */
 extern sem_t mc_pthread_create_binary_sem;
 
-/* Data transfer */
+/**
+ * @brief
+ *
+ */
 extern void *shmStart;
+
 extern MCSharedTransition *shmTransitionTypeInfo;
 extern void *shmTransitionData;
 extern const size_t shmAllocationSize;
 
-/* State */
+/**
+ * @brief A representation of the state of the current trace process
+ * in this DPOR state space branch
+ *
+ * The
+ *
+ */
 extern MCDeferred<MCState> programState;
 
+/**
+ * @brief Initialize the global program state object
+ *
+ * FIXME: A better alternative is that we shouldn't need this function
+ * and instead the global state is only locally accessible perhaps?
+ *
+ */
+void mc_create_global_state_object();
+
+/**
+ * @brief Alerts the DPOR scheduler process an unrecoverable error
+ * occurred while executing the trace
+ *
+ * When this function is called in a trace process, the trace delivers
+ * a SIGUSR1 to the scheduler process (viz. the trace's parent), which
+ * the scheduler is registered to respond to via signal(2) at
+ * initialization-time of McMini (see `mcmini_main()` for more
+ * details).
+ *
+ * The function blocks indefinitely and the process will later be
+ * killed by the parent process
+ */
 void mc_child_panic();
 
 /**
@@ -96,9 +128,6 @@ void mc_report_undefined_behavior(const char *);
 
 #define MC_REPORT_UNDEFINED_BEHAVIOR(str) \
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(false, str)
-
-/* Scheduler state */
-void mc_create_program_state();
 
 /* Scheduler control */
 MC_PROGRAM_TYPE mc_scheduler_main();
@@ -121,13 +150,12 @@ void mc_exit_with_trace_if_necessary(trid_t);
 /* Registering and accessing threads */
 tid_t mc_register_thread();
 tid_t mc_register_main_thread();
-tid_t thread_get_self();
 
 /* Shared memory management */
 void *mc_create_shared_memory_region();
 void mc_initialize_shared_memory_region();
 
-void mc_create_thread_sleep_points();
+void mc_initialize_trace_sleep_queue();
 void mc_reset_thread_sleep_points();
 
 /* Source program management */
