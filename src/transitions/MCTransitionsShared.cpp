@@ -4,7 +4,7 @@
 // is asleep (called dpor_run_thread_to_next_visible_operation); the
 // behavior is undefined otherwise
 void
-thread_await_mc_scheduler()
+thread_await_scheduler()
 {
   MC_ASSERT(tid_self != TID_INVALID);
   mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
@@ -20,7 +20,7 @@ thread_await_mc_scheduler()
 // process is asleep; but upon initialization this is not true. Hence,
 // this method is invoked instead
 void
-thread_await_mc_scheduler_for_thread_start_transition()
+thread_await_scheduler_for_thread_start_transition()
 {
   MC_ASSERT(tid_self != TID_INVALID);
   mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
@@ -28,7 +28,7 @@ thread_await_mc_scheduler_for_thread_start_transition()
 }
 
 void
-thread_awake_mc_scheduler_for_thread_finish_transition()
+thread_awake_scheduler_for_thread_finish_transition()
 {
   MC_ASSERT(tid_self != TID_INVALID);
   mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];

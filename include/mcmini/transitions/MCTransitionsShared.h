@@ -33,9 +33,9 @@ thread_post_visible_operation_hit(const std::type_info &type,
 
 void thread_post_visible_operation_hit(const std::type_info &type);
 
-void thread_await_mc_scheduler();
-void thread_await_mc_scheduler_for_thread_start_transition();
-void thread_awake_mc_scheduler_for_thread_finish_transition();
+void thread_await_scheduler();
+void thread_await_scheduler_for_thread_start_transition();
+void thread_awake_scheduler_for_thread_finish_transition();
 void mc_exit_main_thread();
 
 #endif // INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP

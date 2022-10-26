@@ -325,28 +325,20 @@ void mc_exit(int);
 /* Erroneous Behavior */
 
 /**
- * @brief
+ * @brief Stops model checking and reports that undefined behavior in
+ * the current trace was encountered
  *
+ * If a trace exhibits undefined behavior, McMini will abort model
+ * checking and report the trace leading to undefined behavior.
+ *
+ * McMini assumes that the behavior of the program if well-defined;
+ * undefined behavior provides no guarantees about the behavior of the
+ * underlying program and McMini makes no attempt to guess at it
+ * (indeed you can't). The appropriate modifications to the program
+ * must be made before model-checking is to begin again (otherwise the
+ * same undefined behavior will repeatedly be encountered)
  */
 void mc_report_undefined_behavior(const char *);
-
-#define MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(x, str)                \
-  do {                                                              \
-    if (!static_cast<bool>(x)) {                                    \
-      mc_report_undefined_behavior(static_cast<const char *>(str)); \
-    }                                                               \
-  } while (0)
-
-#define MC_REPORT_UNDEFINED_BEHAVIOR(str) \
-  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(false, str)
-
-// FIXME: Document this
-
-/* Thread control */
-
-void thread_await_mc_scheduler();
-void thread_await_mc_scheduler_for_thread_start_transition();
-void thread_awake_mc_scheduler_for_thread_finish_transition();
 
 // FIXME: This is stil experimental and likely will need work,
 // although the concepts are technically in place

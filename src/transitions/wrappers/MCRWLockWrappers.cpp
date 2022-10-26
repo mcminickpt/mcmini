@@ -13,7 +13,7 @@ mc_pthread_rwlock_init(pthread_rwlock_t *rwlock,
   MCRWLockShadow newLock(rwlock);
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockInit), &newLock);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   return __real_pthread_rwlock_init(rwlock, attr);
 }
@@ -25,11 +25,11 @@ mc_pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
 
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockReaderEnqueue), &lock);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockReaderLock), &lock);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   return __real_pthread_rwlock_rdlock(rwlock);
 }
@@ -41,11 +41,11 @@ mc_pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
 
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockWriterEnqueue), &lock);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockWriterLock), &lock);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   return __real_pthread_rwlock_wrlock(rwlock);
 }
@@ -56,7 +56,7 @@ mc_pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
   MCRWLockShadow lock(rwlock);
   thread_post_visible_operation_hit<MCRWLockShadow>(
     typeid(MCRWLockUnlock), &lock);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   return __real_pthread_rwlock_unlock(rwlock);
 }

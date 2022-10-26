@@ -15,7 +15,7 @@ mc_pthread_barrier_init(pthread_barrier_t *barrier,
   auto newlyCreatedShadow = MCBarrierShadow(barrier, count);
   thread_post_visible_operation_hit<MCBarrierShadow>(
     typeid(MCBarrierInit), &newlyCreatedShadow);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
   return __real_pthread_barrier_init(barrier, attr, count);
 }
 
@@ -29,7 +29,7 @@ mc_pthread_barrier_wait(pthread_barrier_t *barrier)
   auto newlyCreatedShadow = MCBarrierShadow(barrier, 0);
   thread_post_visible_operation_hit<MCBarrierShadow>(
     typeid(MCBarrierWait), &newlyCreatedShadow);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   // We don't directly call pthread_barrier_wait here since we'd have
   // to do so for ALL threads waiting on the barrier. Instead we can
