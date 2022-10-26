@@ -28,13 +28,13 @@ mc_thread_routine_wrapper(void *arg)
   // Simulates being blocked at thread creation -> THREAD_START for
   // this thread NOTE: Don't write into shared memory here! The
   // scheduler already knows how to handle the case of thread creation
-  thread_await_mc_scheduler_for_thread_start_transition();
+  thread_await_scheduler_for_thread_start_transition();
   void *return_value = unwrapped_arg->routine(unwrapped_arg->arg);
 
   // Simulates being blocked after the thread exits
   // NOTE: Thread exit requires only data about the thread that ran
   thread_post_visible_operation_hit(typeid(MCThreadFinish));
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   // See where the thread_wrapper is created. The memory is malloc'ed
   // and should be freed
@@ -42,7 +42,7 @@ mc_thread_routine_wrapper(void *arg)
 
   // NOTE: Thread exit requires only data about the thread that ran
   thread_post_visible_operation_hit(typeid(MCThreadFinish));
-  thread_awake_mc_scheduler_for_thread_finish_transition();
+  thread_awake_scheduler_for_thread_finish_transition();
   return return_value;
 }
 
@@ -72,7 +72,7 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
   auto newlyCreatedThread = MCThreadShadow(arg, routine, *thread);
   thread_post_visible_operation_hit<MCThreadShadow>(
     typeid(MCThreadCreate), &newlyCreatedThread);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   return return_value;
 }
@@ -84,7 +84,7 @@ mc_pthread_join(pthread_t thread, void **output)
   auto newlyCreatedThread = MCThreadShadow(nullptr, nullptr, thread);
   thread_post_visible_operation_hit<MCThreadShadow>(
     typeid(MCThreadJoin), &newlyCreatedThread);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   // TODO: What should we do when this fails
   return __real_pthread_join(thread, output);
@@ -97,7 +97,7 @@ mc_exit_main_thread()
     MCThreadShadow(nullptr, nullptr, pthread_self());
   thread_post_visible_operation_hit(typeid(MCThreadFinish),
                                     &newlyCreatedThread);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 }
 
 MC_NO_RETURN void
@@ -105,7 +105,7 @@ mc_transparent_exit(int status)
 {
   thread_post_visible_operation_hit(typeid(MCExitTransition),
                                     &status);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
   __real_exit(status);
 }
 
@@ -115,5 +115,5 @@ mc_pthread_reach_point()
 {
   tid_t thread = tid_self;
   thread_post_visible_operation_hit(typeid(T), &thread);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 }

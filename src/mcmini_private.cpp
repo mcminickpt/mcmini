@@ -415,7 +415,7 @@ mc_fork_new_trace_at_main(bool spawnDaemonThread)
 
     if (spawnDaemonThread) mc_spawn_daemon_thread();
 
-    thread_await_mc_scheduler_for_thread_start_transition();
+    thread_await_scheduler_for_thread_start_transition();
   }
   return program;
 }

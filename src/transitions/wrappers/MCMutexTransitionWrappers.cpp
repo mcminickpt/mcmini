@@ -16,7 +16,7 @@ mc_pthread_mutex_init(pthread_mutex_t *mutex,
   auto newlyCreatedMutex = MCMutexShadow(mutex);
   thread_post_visible_operation_hit<MCMutexShadow>(
     typeid(MCMutexInit), &newlyCreatedMutex);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   // TODO: What should we do when this fails
   return __real_pthread_mutex_init(mutex, attr);
@@ -29,7 +29,7 @@ mc_pthread_mutex_lock(pthread_mutex_t *mutex)
   auto newlyCreatedMutex = MCMutexShadow(mutex);
   thread_post_visible_operation_hit<MCMutexShadow>(
     typeid(MCMutexLock), &newlyCreatedMutex);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   // TODO: What should we do when this fails
   return __real_pthread_mutex_lock(mutex);
@@ -42,7 +42,7 @@ mc_pthread_mutex_unlock(pthread_mutex_t *mutex)
   auto newlyCreatedMutex = MCMutexShadow(mutex);
   thread_post_visible_operation_hit<MCMutexShadow>(
     typeid(MCMutexUnlock), &newlyCreatedMutex);
-  thread_await_mc_scheduler();
+  thread_await_scheduler();
 
   // TODO: What should we do when this fails
   return __real_pthread_mutex_unlock(mutex);

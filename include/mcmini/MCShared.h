@@ -31,7 +31,7 @@ typedef void *MCSystemID;
 #ifdef __cplusplus
 #define MC_NO_RETURN [[noreturn]]
 #else
-#define MC_NO_RETURN __attribute__ ((__noreturn__))
+#define MC_NO_RETURN __attribute__((__noreturn__))
 #endif
 
 #define MC_ASSERT(__X) assert(__X)
@@ -47,6 +47,18 @@ typedef void *MCSystemID;
     ((expr) ? void(0) : abort()); \
   } while (0)
 #endif
+
+#define MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(x, str)                \
+  do {                                                              \
+    if (!static_cast<bool>(x)) {                                    \
+      mc_report_undefined_behavior(static_cast<const char *>(str)); \
+    }                                                               \
+  } while (0)
+
+#define MC_REPORT_UNDEFINED_BEHAVIOR(str) \
+  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(false, str)
+
+#define MC_IS_TRIVIALL_COPYABLE(x)
 
 #define MC_FATAL() abort()
 #define MC_STRUCT_DECL(type)       \
