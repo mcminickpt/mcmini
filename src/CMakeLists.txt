@@ -15,7 +15,6 @@ set(MC_CPP_FILES
   MCStateStackItem.cpp
   MCThreadData.cpp
   MCClockVector.cpp
-  MCStateConfiguration.cpp
 
   misc/cond/MCCondVarWakeupPolicyImpl.cpp
   misc/cond/MCCondVarArbitraryWakeupPolicy.cpp
