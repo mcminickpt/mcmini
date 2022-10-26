@@ -17,7 +17,7 @@ public:
 void MCSharedTransitionReplace(MCSharedTransition *,
                                MCSharedTransition *);
 
-static_assert(std::is_trivially_copyable<MCSharedTransition>::value,
+static_assert(MC_IS_TRIVIALLY_COPYABLE(MCSharedTransition),
               "The shared transition is not trivially copiable. "
               "Performing a memcpy of this type "
               "is undefined behavior according to the C++ standard. "
