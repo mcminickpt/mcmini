@@ -1,6 +1,6 @@
 #include "mcmini/objects/MCThread.h"
 
-static_assert(std::is_trivially_copyable<MCThreadShadow>::value,
+static_assert(MC_IS_TRIVIALLY_COPYABLE(MCThreadShadow),
               "The shared transition is not trivially copiable. "
               "Performing a memcpy of this type "
               "is undefined behavior according to the C++ standard.");

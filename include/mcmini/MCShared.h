@@ -58,7 +58,12 @@ typedef void *MCSystemID;
 #define MC_REPORT_UNDEFINED_BEHAVIOR(str) \
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(false, str)
 
-#define MC_IS_TRIVIALL_COPYABLE(x)
+#if __GNUG__ && __GNUC__ < 5
+#define MC_IS_TRIVIALLY_COPYABLE(T) __has_trivial_copy(T)
+#else
+#define MC_IS_TRIVIALLY_COPYABLE(T) \
+  std::is_trivially_copyable<T>::value
+#endif
 
 #define MC_FATAL() abort()
 #define MC_STRUCT_DECL(type)       \
