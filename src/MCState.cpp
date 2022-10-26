@@ -343,12 +343,14 @@ MCState::dynamicallyUpdateBacktrackSets()
    * ASSUMPTIONS
    *
    * 1. The state reflects last(S) for the transition stack
-   * 2. The next transition for the thread that ran the most
+   *
+   * 2. The thread that ran last is at the top of the transition
+   * stack (this should always be true)
+   *
+   * 3. The next transition for the thread that ran the most
    * recent transition in the transition stack (the transition at the
    * top of the stack) has been properly updated to reflect what that
    * thread will do next
-   * 3. The thread that ran last was the one that is at the top
-   * of the transition stack (this should always be true)
    *
    * WLOG, assume there are `n` transitions in the transition stack
    * and `k` threads that are known to exist at the time of updating
@@ -360,7 +362,6 @@ MCState::dynamicallyUpdateBacktrackSets()
    *  S_i = ith backtracking state item
    *  T_i = ith transition
    *  N_p = the next transition for thread p (next(s, p))
-   *
    *
    * ALGORITHM:
    *
@@ -377,54 +378,44 @@ MCState::dynamicallyUpdateBacktrackSets()
    * S_n for the other threads by comparing N_p, for all p != i.
    *
    * 3. Get a reference to N_i and traverse the transition stack
-   * to determine if a backtracking is needed anywhere for thread `i`
+   * to determine if a backtracking point is needed anywhere for
+   * thread `i`
    */
+  const uint64_t num_threads = this->getNumProgramThreads();
 
-  // 1. Save current state info
-  const int transitionStackTopBeforeBacktracking =
-    this->transitionStackTop;
-
-  // 2. Map which thread ids still need to be processed
-  const uint64_t numThreadsBeforeBacktracking =
-    this->getNumProgramThreads();
-
-  std::unordered_set<tid_t> remainingThreadsToProcess;
-  for (tid_t i = 0; i < numThreadsBeforeBacktracking; i++)
-    remainingThreadsToProcess.insert(i);
+  std::unordered_set<tid_t> thread_ids;
+  for (tid_t i = 0; i < num_threads; i++) thread_ids.insert(i);
 
   // 3. Determine the i
-  const MCTransition &transitionStackTop =
-    this->getTransitionStackTop();
-  const tid_t mostRecentThreadId = transitionStackTop.getThreadId();
+  const MCTransition &tStackTop  = this->getTransitionStackTop();
+  const tid_t mostRecentThreadId = tStackTop.getThreadId();
   const MCTransition &nextTransitionForMostRecentThread =
     this->getNextTransitionForThread(mostRecentThreadId);
-  remainingThreadsToProcess.erase(mostRecentThreadId);
+  thread_ids.erase(mostRecentThreadId);
 
   // O(# threads)
   {
     const MCTransition &S_n = this->getTransitionStackTop();
     MCStateStackItem &s_n =
-      this->getStateItemAtIndex(transitionStackTopBeforeBacktracking);
+      this->getStateItemAtIndex(this->transitionStackTop);
     const std::unordered_set<tid_t> enabledThreadsAt_s_n =
       s_n.getEnabledThreadsInState();
 
-    for (tid_t tid : remainingThreadsToProcess) {
+    for (tid_t tid : thread_ids) {
       const MCTransition &nextSP =
         this->getNextTransitionForThread(tid);
       this->dynamicallyUpdateBacktrackSetsHelper(
-        S_n, s_n, nextSP, transitionStackTopBeforeBacktracking,
-        (int)tid);
+        S_n, s_n, nextSP, this->transitionStackTop, (int)tid);
     }
   }
 
   // O(transition stack size)
 
   // It only remains to add backtracking points at the necessary
-  // points for thread `mostRecentThreadId` We start at one step below
-  // the top since we know that transition to not be co-enabled (since
-  // it was by assumption run by `mostRecentThreadId`
-  for (int i = transitionStackTopBeforeBacktracking - 1; i >= 0;
-       i--) {
+  // points for thread `mostRecentThreadId`. We start at one step
+  // below the top since we know that transition to not be co-enabled
+  // (since it was by assumption run by `mostRecentThreadId`
+  for (int i = this->transitionStackTop - 1; i >= 0; i--) {
     const MCTransition &S_i = this->getTransitionAtIndex(i);
     MCStateStackItem &preSi = this->getStateItemAtIndex(i);
     const bool shouldStop   = dynamicallyUpdateBacktrackSetsHelper(
