@@ -14,7 +14,7 @@ class MCOptional final {
 
   /* Construct the `nil` value */
   MCOptional() : _hasValue(false) {}
-  MCOptional(Value value) : value(value), _hasValue(true) {}
+  MCOptional(Value value) : _hasValue(true), value(value) {}
 
 public:
 

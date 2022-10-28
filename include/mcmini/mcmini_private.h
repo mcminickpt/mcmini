@@ -94,7 +94,7 @@ void mc_initialize_trace_sleep_list();
  * that the semaphores the threads in the *next* trace process will
  * access (which are the SAME as those used by the threads in the
  * previous trace) are initialized to their initial values. Otherwise
- * the scheduler and trace process will race with one another and will
+ * the scheduler and trace process may race with one another and will
  * invoke undefined behavior since the counts of the semaphores may
  * not correspond to that of a fresh trace having been created
  */
@@ -107,7 +107,17 @@ void mc_reset_trace_sleep_list();
  *
  * When a thread in a trace process is scheduled to execute a function
  * which creates a *new* thread (e.g. pthread_create()), McMini blocks
- * as with any transition it executes and waits until
+ * as with any transition it executes and waits until thread creation
+ * has completed.
+ *
+ * Thread creation is a bit of an edge case however. We must ensure
+ * that the newly-spawned thread that is created has been assigned to
+ * a thread ID BEFORE waking the scheduler; otherwise a race can
+ * ensure whereby multiple
+ *
+ * This semaphore is used to ensure that newly-spawned threads have
+ * initialized themselves before the spawning thread wakes the
+ * scheduler.
  */
 extern sem_t mc_pthread_create_binary_sem;
 
@@ -166,7 +176,7 @@ extern MCDeferred<MCState> programState;
  * @brief Initialize the global program state object `programState`
  *
  * FIXME: A better alternative is that we shouldn't need this function
- * and instead the global state is only locally accessible perhaps?
+ * and instead the global state is only locally accessible perhaps
  */
 void mc_create_global_state_object();
 
@@ -185,10 +195,16 @@ void mc_create_global_state_object();
 MC_PROGRAM_TYPE mc_do_model_checking();
 
 /**
- * @brief
+ * @brief Begins searching a new branch in the state space starting
+ * with the given transition executing from the current program state
  *
- * @param transition
- * @return MC_PROGRAM_TYPE
+ * @param transition the first step to be taken from the current
+ * program state (i.e. where in the state space we should search next)
+ *
+ * @return The process identifier. The caller should allow
+ * the process to escape into the target program as quickly
+ * as possible to allow the scheduler to begin controlling its
+ * execution
  */
 MC_PROGRAM_TYPE
 mc_search_next_dpor_branch(const MCTransition &transition);

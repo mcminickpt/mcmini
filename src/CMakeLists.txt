@@ -82,6 +82,7 @@ set(MC_CPP_FILES
   transitions/wrappers/MCRWWLockWrappers.cpp
 )
 
+set(MC_COMPILER_EXPLICIT_COMPILER_FLAGS -Wall)
 # -lrt -> shared memory
 # -pthread -> libpthread.so
 # -lm -> math library
@@ -104,6 +105,9 @@ target_include_directories(mcmini_checker PUBLIC "${MCMINI_INCLUDE_DIR}")
 target_compile_definitions(mcmini_checker
   PUBLIC
     MC_SHARED_LIBRARY=1)
+target_compile_options(mcmini_checker
+  PRIVATE
+    ${MC_COMPILER_EXPLICIT_COMPILER_FLAGS})
 target_link_libraries(mcmini_checker
   PUBLIC
     ${MC_LINK_TARGET_FLAGS})
