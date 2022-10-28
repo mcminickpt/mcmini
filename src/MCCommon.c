@@ -20,5 +20,4 @@ mcflush()
 
 void
 mcwrite(const char *str)
-{
-}
+{}

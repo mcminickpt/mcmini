@@ -44,6 +44,7 @@ private:
    * for the current execution
    */
   MCObjectStore objectStorage;
+
   const MCStateConfiguration configuration;
 
   /**
@@ -97,8 +98,9 @@ private:
   std::unordered_map<tid_t, objid_t> threadIdMap;
 
   /**
-   * @brief A stack of indices into the state
-   * stack which identify states at which
+   * @brief A stack of indices into the state stack which identify
+   * states at which the transition can be reverted for state
+   * regeneration
    *
    * @invariant For elements e_i and e_j at indices
    * i and j, e_i < e_j <--> i < j
@@ -115,14 +117,14 @@ private:
    * McMini may aritifically restrict enabled transitions
    * from running in certain circumstances. For example,
    * if the thread has run past the number of transitions
-   * allocated to it, i.e. if it has run past the maxmimum
-   * execution depth allowed for any given thread, although
+   * allocated to it (i.e. if it has run past the maxmimum
+   * execution depth allowed for any given thread). Although
    * the next transition for that thread may be enabled,
    * McMini will artificially consider that transition to
    * be disabled to prevent the thread from running any further
    *
-   * @return whether or not if the given
-   * transition can be chosen for execution
+   * @return whether or not if the given transition can be chosen for
+   * execution
    */
   bool transitionIsEnabled(const MCTransition &);
 
@@ -207,8 +209,8 @@ private:
   void virtuallyRunTransition(const MCTransition &);
 
   /**
-   * @brief
-   *
+   * @brief Fully re-execute a transition, updating any per-thread
+   * data structures as if the transition were executed anew
    */
   void virtuallyRerunTransitionAtIndex(int);
 
@@ -281,11 +283,8 @@ private:
     const MCTransition &S_i, MCStateStackItem &preSi,
     const MCTransition &nextSP, int i, int p);
 
-  void
-  incrementThreadTransitionCountIfNecessary(const MCTransition &);
-
-  void
-  decrementThreadTransitionCountIfNecessary(const MCTransition &);
+  void incrementThreadDepthIfNecessary(const MCTransition &);
+  void decrementThreadDepthIfNecessary(const MCTransition &);
 
   /**
    * @brief Computes the number of execution steps _which count
@@ -380,8 +379,10 @@ public:
   void registerVisibleObjectWithSystemIdentity(
     MCSystemID, std::shared_ptr<MCVisibleObject>);
 
-  // MARK:
-
+  // FIXME: This is too closely tied to the
+  // mailbox containing the actual data where the next
+  // transition is run. Essentially, this function does too many
+  // things
   void simulateRunningTransition(const MCTransition &,
                                  MCSharedTransition *, void *);
   void dynamicallyUpdateBacktrackSets();
@@ -395,11 +396,35 @@ public:
   // Restarting
   void start();
   void reset();
-  void reflectStateAtTransitionIndex(uint32_t);
+
+  /**
+   * @brief Mutates this state object such that all program state is
+   * reflective of how it was when the given transition was at the top
+   * of the transition stack
+   *
+   * At any given point, this state object can only represent a
+   * *single* state of a program, which is essentially the collective
+   * state of visible objects, threads, and the transitions those
+   * threads are about to (and have) executed. Thus after a sequence
+   * of transitions S is executed against this state, the state will
+   * be that of last(S) (in the notation of DPOR)
+   *
+   * But DPOR requires that we visit previously visited states in
+   * order to search a new branch of the state space (in particular,
+   * at a particular point in the transition stack [perhaps right
+   * before some transition T]). You invoke this method when you need
+   * the object and thread states to be as they were at a particular
+   * point in time
+   *
+   * @param tIndex The index in the transition stack that describes
+   * the last transition in the sequence (starting from the bottom of
+   * the transition stack) that should have been executed in the
+   * program this state reflects. In other words, the state becomes
+   * last(transition_stack[0...tIndex])
+   */
+  void reflectStateAtTransitionIndex(uint32_t tIndex);
 
   // TODO: De-couple priting from the state stack + transitions
-  // somehow
-  /* Printing */
   void printTransitionStack() const;
   void printNextTransitions() const;
 };

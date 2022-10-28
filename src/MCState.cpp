@@ -495,7 +495,7 @@ MCState::virtuallyRunTransition(const MCTransition &transition)
 {
   const tid_t tid = transition.getThreadId();
   this->virtuallyApplyTransition(transition);
-  this->incrementThreadTransitionCountIfNecessary(transition);
+  this->incrementThreadDepthIfNecessary(transition);
   this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(
     this->transitionStackTop);
 }
@@ -507,7 +507,7 @@ MCState::virtuallyRerunTransitionAtIndex(int i)
   const MCTransition &transition = this->getTransitionAtIndex(i);
   const tid_t tid                = transition.getThreadId();
   this->virtuallyApplyTransition(transition);
-  this->incrementThreadTransitionCountIfNecessary(transition);
+  this->incrementThreadDepthIfNecessary(transition);
   this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(i);
   MCClockVector cv = clockVectorForTransitionAtIndex(i);
   this->getThreadDataForThread(tid).setClockVector(cv);
@@ -520,7 +520,7 @@ MCState::virtuallyRevertTransitionAtIndex(int i)
   const MCTransition &transition = this->getTransitionAtIndex(i);
   const tid_t tid                = transition.getThreadId();
   this->virtuallyUnapplyTransition(transition);
-  this->decrementThreadTransitionCountIfNecessary(transition);
+  this->decrementThreadDepthIfNecessary(transition);
   this->getThreadDataForThread(tid).popLatestExecutionPoint();
   MCClockVector cv = clockVectorForTransitionAtIndex(i);
   this->getThreadDataForThread(tid).setClockVector(cv);
@@ -551,7 +551,7 @@ MCState::simulateRunningTransition(
 }
 
 void
-MCState::incrementThreadTransitionCountIfNecessary(
+MCState::incrementThreadDepthIfNecessary(
   const MCTransition &transition)
 {
   if (transition.countsAgainstThreadExecutionDepth()) {
@@ -562,7 +562,7 @@ MCState::incrementThreadTransitionCountIfNecessary(
 }
 
 void
-MCState::decrementThreadTransitionCountIfNecessary(
+MCState::decrementThreadDepthIfNecessary(
   const MCTransition &transition)
 {
   if (transition.countsAgainstThreadExecutionDepth()) {
@@ -840,10 +840,8 @@ void
 MCState::registerVisibleObjectWithSystemIdentity(
   MCSystemID systemId, std::shared_ptr<MCVisibleObject> object)
 {
-  // TODO: This can be simplified easily
   objid_t id = this->objectStorage.registerNewObject(object);
   this->objectStorage.mapSystemAddressToShadow(systemId, id);
-  //    object->id = id;
 }
 
 void
