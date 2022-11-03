@@ -98,7 +98,7 @@ private:
   std::unordered_map<tid_t, objid_t> threadIdMap;
 
   /**
-   * @brief A stack of indices into the state stack which identify
+   * @brief A stack of indices into the state stack, which identifies
    * states at which the transition can be reverted for state
    * regeneration
    *
@@ -121,7 +121,7 @@ private:
    * execution depth allowed for any given thread). Although
    * the next transition for that thread may be enabled,
    * McMini will artificially consider that transition to
-   * be disabled to prevent the thread from running any further
+   * be disabled to prevent the thread from running any further.
    *
    * @return whether or not if the given transition can be chosen for
    * execution
@@ -404,10 +404,10 @@ public:
    *
    * At any given point, this state object can only represent a
    * *single* state of a program, which is essentially the collective
-   * state of visible objects, threads, and the transitions those
-   * threads are about to (and have) executed. Thus after a sequence
+   * state of visible objects, threads, and the transitions that those
+   * threads are about to (and have) executed. Thus, after a sequence
    * of transitions S is executed against this state, the state will
-   * be that of last(S) (in the notation of DPOR)
+   * be that of last(S) (in the notation of DPOR).
    *
    * But DPOR requires that we visit previously visited states in
    * order to search a new branch of the state space (in particular,
