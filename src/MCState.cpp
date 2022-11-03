@@ -414,7 +414,7 @@ MCState::dynamicallyUpdateBacktrackSets()
   // It only remains to add backtracking points at the necessary
   // points for thread `mostRecentThreadId`. We start at one step
   // below the top since we know that transition to not be co-enabled
-  // (since it was by assumption run by `mostRecentThreadId`
+  // (since it was, by assumption, run by `mostRecentThreadId`
   for (int i = this->transitionStackTop - 1; i >= 0; i--) {
     const MCTransition &S_i = this->getTransitionAtIndex(i);
     MCStateStackItem &preSi = this->getStateItemAtIndex(i);

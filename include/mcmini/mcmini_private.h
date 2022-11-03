@@ -40,21 +40,21 @@ MC_CTOR void mcmini_main();
  *
  * Since trace processes are ephemeral (they are discarded after the
  * scheduler has determined it can't execute the trace any further),
- * as new threads in each trace process are created, they must assign
- * themselves to the next available ID through the `MCProgramState`
- * instance available to that process (see the `programState` global
- * variable defined below). Thus, both trace processes and the
- * scheduler process manage creating thread IDs separately in such a
- * way that the scheduler has the absolute "view" of all threads
- * across traces while a particular trace understands the thread IDs
- * within a single branch of McMini
+ * when new threads in each trace process are created, they must
+ * assign themselves to the next available ID through the
+ * `MCProgramState` instance available to that process (see the
+ * `programState` global variable defined below). Thus, both trace
+ * processes and the scheduler process manage creating thread IDs
+ * separately in such a way that the scheduler has the absolute "view"
+ * of all threads across traces while a particular trace understands
+ * the thread IDs within a single branch of McMini
  */
 extern MC_THREAD_LOCAL tid_t tid_self;
 
 /**
  * @brief A fixed-size array assigning to each possible
- * trace-process thread McMini can support at any given time a loction
- * to receive notifications from a(nd send notifications to) the
+ * thread of a McMini trace-process a location that at any given time
+ * can receive notifications (and send notifications to) the
  * scheduler.
  *
  * When a thread in a trace process is created, it blocks on a
@@ -103,17 +103,24 @@ void mc_reset_trace_sleep_list();
 /**
  * @brief A binary semaphore that is used to ensure that threads
  * created in trace processes have fully initialized before the
- * scheduler is notified of the thread creation operation completing
+ * scheduler is notified of the completion of the thread creation
+ * operation.
  *
  * When a thread in a trace process is scheduled to execute a function
- * which creates a *new* thread (e.g. pthread_create()), McMini blocks
- * as with any transition it executes and waits until thread creation
- * has completed.
+ * that creates a *new* thread (e.g. pthread_create()), McMini blocks
+ * (as with any transition it executes) and waits until thread
+ * creation has completed.
  *
  * Thread creation is a bit of an edge case however. We must ensure
  * that the newly-spawned thread that is created has been assigned to
  * a thread ID BEFORE waking the scheduler; otherwise a race can
- * ensure whereby multiple
+ * ensure whereby multiple spawned threads race to acquire thread IDs
+ * within a trace. This can result in a mismatch between the IDs the
+ * scheduler assigned to the threads and those the threads acquired
+ * themselves (recall that threads acquire IDs via the current state,
+ * which is private to both the trace AND the scheduler) since the
+ * scheduler assigns higher thread IDs to threads created deeper in
+ * the execution of the program
  *
  * This semaphore is used to ensure that newly-spawned threads have
  * initialized themselves before the spawning thread wakes the
@@ -134,7 +141,7 @@ extern const size_t shmAllocationSize;
 
 /**
  * @brief The address in shared memory at which information about the
- * *type* of the transition hit by the thread in the trace process
+ * *type* of the transition invoked by the thread in the trace process
  * last scheduled by the scheduler process is written into
  */
 extern MCSharedTransition *shmTransitionTypeInfo;
@@ -147,8 +154,9 @@ extern MCSharedTransition *shmTransitionTypeInfo;
 extern void *shmTransitionData;
 
 /**
- * @brief Allocates space for the shared memory mailbox used for XPC
- * between forked trace processes and the scheduler process
+ * @brief Allocates space for the shared memory mailbox used for
+ * cross-process communication between forked trace processes and the
+ * scheduler process
  *
  * @return void* The address of the shared memory allocated by this
  * function, or NULL if the memory could not be allocated
@@ -228,14 +236,14 @@ void mc_search_dpor_branch(const MCTransition &transition);
  * after this function
  *
  * When a new trace process is created, its execution begins inside
- * the control flow of the scheduler which spawned it. As the trace is
+ * the control flow of the scheduler that spawned it. As the trace is
  * responsible only for allowing processes
  *
  * Note that all global variables are effectively *duplicated* across
  * calls to this method (it eventually makes a call to fork(2)). Thus
  * modifications to all variables (not explicitly mapped into shared
- * memory) are private to each the scheduler and newly-spawned trace
- * processes
+ * memory) are isolated to the scheduler and each newly-spawned
+ * trace
  *
  * @return The process identifier. The caller should allow
  * the process to escape into the target program as quickly
@@ -248,8 +256,8 @@ MC_PROGRAM_TYPE mc_fork_new_trace();
  * @brief Forks a new trace process whose execution is blocked until
  * the scheduler wakes it
  *
- * Conceptually, you can imagine that the trace is about to enter the
- * main routine of the target program. The newly-created trace will be
+ * Conceptually, one can imagine that the trace is about to enter the
+ * main routine of the target program. The newly created trace will be
  * blocked waiting to enter the main function until the scheduler
  * later allows the thread to exit
  *
@@ -264,9 +272,9 @@ MC_PROGRAM_TYPE mc_fork_new_trace_at_main(bool);
  * maintained by the scheduler in `programState`
  *
  * When the scheduler decides to explore a different branch of the
- * state space (i.e. if DPOR decides that some other needs to be
- * searched), it must regenerate a trace process whose "state" (i.e.
- * memory and threads) matches that originally recorded by the
+ * state space (i.e. if DPOR decides that some other branch needs to
+ * be searched), it must regenerate a trace process whose "state"
+ * (i.e. memory and threads) matches that originally recorded by the
  * scheduler at the particular point in the past (i.e. backtracking
  * point)
  *
@@ -315,7 +323,7 @@ void mc_terminate_trace();
  * details).
  *
  * The function blocks indefinitely and the calling process will later
- * be killed by the parent process
+ * be killed by the parent process.
  */
 void mc_trace_panic();
 
@@ -330,7 +338,7 @@ void mc_trace_panic();
  * that handles the case where the *main* thread exits the main
  * routine. Thus a call to exit(2), even through __real_exit() defined
  * by McMini, in the trace process results in the at_exit() handler
- * being invoked which causes a deadlock (since at_exit() handler
+ * being invoked which causes a deadlock (since the at_exit() handler
  * merely acts as a direct call to exit(2) by the main thread).
  *
  * Hence, you should *always* call this method instead of directly
@@ -345,14 +353,16 @@ void mc_exit(int);
  * the current trace was encountered
  *
  * If a trace exhibits undefined behavior, McMini will abort model
- * checking and report the trace leading to undefined behavior.
+ * checking and report the trace leading to undefined behavior. For
+ * example, if the trace used an uninitialized mutex or semaphore it
+ * would be invoking undefined behavior.
  *
- * McMini assumes that the behavior of the program if well-defined;
+ * McMini assumes that the behavior of the program is well-defined;
  * undefined behavior provides no guarantees about the behavior of the
  * underlying program and McMini makes no attempt to guess at it
- * (indeed you can't). The appropriate modifications to the program
- * must be made before model-checking is to begin again (otherwise the
- * same undefined behavior will repeatedly be encountered)
+ * (indeed it can't). The appropriate modifications to the program
+ * must be made before model-checking is to begin again. (Otherwise
+ * the same undefined behavior will repeatedly be encountered.)
  */
 void mc_report_undefined_behavior(const char *);
 
