@@ -7,8 +7,9 @@ MC_EXECUTABLES=$(patsubst %.c,mc_%,$(wildcard *.c)) \
                $(patsubst %.cpp,mc_%,$(wildcard *.cpp))
 
 # '-I${MCMINI_ROOT}/src' is for mcmini.h, etc.
-CFLAGS=-g3 -O0 -I${MCMINI_ROOT}/src -pthread
-CXXFLAGS=-g3 -O0 -I${MCMINI_ROOT}/src -pthread
+## On WSL-2 (Nov., 2022), -gdwarf-4 must be added to expand macro definitions.
+CFLAGS=-g3 -gdwarf-4 -O0 -I${MCMINI_ROOT}/src -pthread --std=c99
+CXXFLAGS=-g3 -gdwarf-4 -O0 -I${MCMINI_ROOT}/src -pthread
 
 default: ${EXECUTABLES}
 
