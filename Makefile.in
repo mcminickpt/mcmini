@@ -19,12 +19,19 @@ LIBOBJS=${LIBOBJS1} ${LIBOBJS2} ${LIBOBJS3} ${LIBOBJS4} \
 
 all: mcmini libmcmini.so mcmini-demo
 
+# If McMini was already built, first do:  'make clean'
 debug:
-	make CFLAGS='-g3 -O0' CXXFLAGS='-g3 -O0' all
+	${MAKE} CFLAGS='-g3 -O0' CXXFLAGS='-g3 -O0' all
 
-check: mcmini
-	cd tests/programs && make philosophers_mutex
-	./mcmini tests/programs/philosophers_mutex
+tests/programs/producer_consumer: tests/programs/producer_consumer.c
+	cd tests/programs && make producer_consumer
+
+check: all tests/programs/producer_consumer
+	./mcmini tests/programs/producer_consumer
+
+# If McMini was already built, first do:  'make clean'
+check-gdb: debug tests/programs/producer_consumer
+	gdb -x gdbinit --args ./mcmini tests/programs/producer_consumer
 
 mcmini: src/launch.c libmcmini.so
 	${CC} -g3 -O0 -Iinclude -o $@ $<
@@ -46,7 +53,7 @@ mcmini-demo: ${LIBOBJS} libmcrwlock_lib.a
 	${CXX} ${CXXFLAGS} -c -o $@ $<
 
 clean:
-	rm -f ${LIBOBJS}
+	rm -f ${LIBOBJS} mcmini mcmini-demo
 
 dist: clean
 	dir=`basename $$PWD` && cd .. && tar zcvf $$dir.tar.gz ./$$dir

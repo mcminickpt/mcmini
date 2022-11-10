@@ -20,7 +20,10 @@ to generate its targets.
 git clone THIS_REPO
 cd mcmini
 ./configure && make -j10 && make check
-```
+
+# To then run under GDB:
+make clean && make -j10 check-gdb
+# For syntax with GDB and other tragets, do:  make -n check-gdb
 
 ## Other options:
 ```bash
