@@ -200,6 +200,16 @@ MCState::getStateStackTop() const
   return this->getStateItemAtIndex(this->stateStackTop);
 }
 
+MCOptional<int>
+MCState::getDeepestDPORBranchPoint()
+{
+  for (int j = this->stateStackTop; j >= 0; j--) {
+    const auto &s = this->getStateItemAtIndex(j);
+    if (s.hasThreadsToBacktrackOn()) return MCOptional<int>::some(j);
+  }
+  return MCOptional<int>::nil();
+}
+
 const MCTransition *
 MCState::getFirstEnabledTransition()
 {

@@ -236,10 +236,11 @@ MC_PROGRAM_TYPE mc_run_initial_trace();
 
 /**
  * @brief Begins searching a new branch in the state space starting
- * with the given transition executing from the current program state
+ * with the given thread executing from the current program state
  *
- * @param transition the first step to be taken from the current
- * program state (i.e. where in the state space we should search next)
+ * @param leadThread the thread whose execution should be followed
+ * from the current program state to continue the DPOR, depth-first
+ * search.
  *
  * @return The process identifier. The caller should allow
  * the process to escape into the target program as quickly
@@ -247,14 +248,30 @@ MC_PROGRAM_TYPE mc_run_initial_trace();
  * execution
  */
 MC_PROGRAM_TYPE
-mc_search_next_dpor_branch(const MCTransition &transition);
+mc_search_next_dpor_branch_following_thread(const tid_t leadThread);
 
 /**
- * @brief
+ * @brief Begins searching a new branch in the state space starting
+ * with the given thread executing from the current program state
  *
- * @param transition
+ * This method makes two assumptions:
+ *
+ * 1. There is a trace process forked and waiting for the scheduler to
+ * send requests for threads to execute through the mailbox (see the
+ * global variables residing in shared memory declared at the start of
+ * the header file)
+ *
+ * 2. The thread that is about to execute is enabled in the given
+ * state.
+ *
+ * If either assumption is invalid, McMini will abort the backtracking
+ * session; for otherwise McMini would be stuck in a deadlock
+ *
+ * @param leadThread the thread whose execution should be followed
+ * from the current program state to continue the DPOR, depth-first
+ * search.
  */
-void mc_search_dpor_branch(const MCTransition &transition);
+void mc_search_dpor_branch_following_thread(const tid_t leadThread);
 
 /* Source program management */
 /*

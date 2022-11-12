@@ -373,6 +373,16 @@ public:
   bool stateStackIsEmpty() const;
 
   /**
+   * @brief Retrieves the index of the state closest to the top of the
+   * state stack that contains at least one backtracking point
+   *
+   * @return MCOptional<int>::some() containing the index into the
+   * state stack containing a state with at least one state to
+   * backtrack on, or MCOptional<int>::nil() if no such state exists
+   */
+  MCOptional<int> getDeepestDPORBranchPoint();
+
+  /**
    * @brief Retrieves the state (represented by the item in the state
    * stack) from which the transition at the given index executes
    *
