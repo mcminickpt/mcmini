@@ -168,10 +168,7 @@ mc_run_initial_trace()
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
 
-  MCTransition &initialTransition =
-    programState->getNextTransitionForThread(TID_MAIN_THREAD);
-  mc_search_dpor_branch(initialTransition);
-
+  mc_search_dpor_branch_following_thread(TID_MAIN_THREAD);
   mc_exit_with_trace_if_necessary(traceId);
   program = mc_enter_gdb_debugging_session_if_necessary(traceId);
   traceId++;
@@ -184,45 +181,38 @@ mc_do_model_checking()
 {
   mc_prepare_to_model_check_new_program();
 
+  // TODO: This idiom is fairly common... This simply allows
+  // the forked process to exit the constructor all of the stack
+  // frames find themselves in. Perhaps we could jump to the
+  // appropriate point with a getcontext()/setcontext() that will
+  // bring the trace process to the correct process as an alternative?
+  // It hurts readability to have the forked traces needing to escape
+  // in this wasy
   MC_PROGRAM_TYPE program = mc_run_initial_trace();
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
 
-  // TODO: Perform DPOR loop check
+  MCOptional<int> nextBranchPoint =
+    programState->getDeepestDPORBranchPoint();
 
-  int curStateStackDepth =
-    static_cast<int>(programState->getStateStackSize());
-  int curTransitionStackDepth =
-    static_cast<int>(programState->getTransitionStackSize());
+  while (nextBranchPoint.hasValue()) {
+    const int bp = nextBranchPoint.unwrapped();
+    auto &sNext  = programState->getStateItemAtIndex(bp);
+    const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
 
-  while (curStateStackDepth > 0) {
-    MCStateStackItem &sTop =
-      programState->getStateItemAtIndex(curStateStackDepth - 1);
+    // Prepare the scheduler's model of the next trace
+    programState->reflectStateAtTransitionIndex(bp - 1);
 
-    if (sTop.hasThreadsToBacktrackOn()) {
-      // DPOR ensures that any thread in the backtrack set
-      // is enabled in this state
-      tid_t backtrackThread = sTop.popThreadToBacktrackOn();
+    // Search the next branch that DPOR dictated needed to be searched
+    program =
+      mc_search_next_dpor_branch_following_thread(backtrackThread);
+    if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
 
-      programState->reflectStateAtTransitionIndex(
-        curTransitionStackDepth - 1);
-      const MCTransition &backtrackOperation =
-        programState->getNextTransitionForThread(backtrackThread);
+    mc_exit_with_trace_if_necessary(traceId);
+    program = mc_enter_gdb_debugging_session_if_necessary(traceId);
+    if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
 
-      program = mc_enter_gdb_debugging_session_if_necessary(traceId);
-      if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
-
-      program = mc_search_next_dpor_branch(backtrackOperation);
-      if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
-      mc_exit_with_trace_if_necessary(traceId++);
-
-      curStateStackDepth =
-        static_cast<int>(programState->getStateStackSize());
-      curTransitionStackDepth =
-        static_cast<int>(programState->getTransitionStackSize());
-    } else {
-      curStateStackDepth--;
-      curTransitionStackDepth--;
-    }
+    traceId++;
+    nextBranchPoint = programState->getDeepestDPORBranchPoint();
   }
   return MC_SCHEDULER;
 }
@@ -475,34 +465,41 @@ mc_trace_panic()
 }
 
 void
-mc_search_dpor_branch(const MCTransition &initialTransition)
+mc_search_dpor_branch_following_thread(const tid_t leadingThread)
 {
-  uint64_t debug_depth       = programState->getTransitionStackSize();
+  uint64_t debug_depth = programState->getTransitionStackSize();
+  const MCTransition &initialTransition =
+    programState->getNextTransitionForThread(leadingThread);
   const MCTransition *t_next = &initialTransition;
+
+  // TODO: Assert whether or not t_next is enabled
+  // TODO: Assert whether a trace process exists at this point
 
   do {
     debug_depth++;
     transitionId++;
 
-    tid_t tid = t_next->getThreadId();
+    const tid_t tid = t_next->getThreadId();
     mc_run_thread_to_next_visible_operation(tid);
+
     programState->simulateRunningTransition(
       *t_next, shmTransitionTypeInfo, shmTransitionData);
     programState->dynamicallyUpdateBacktrackSets();
 
     /* Check for data races */
     {
-      const MCTransition &pendingTransition =
+      const MCTransition &nextTransitionForTid =
         programState->getNextTransitionForThread(tid);
       if (programState->hasADataRaceWithNewTransition(
-            pendingTransition)) {
+            nextTransitionForTid)) {
         mcprintf("*** DATA RACE DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
       }
     }
-  } while ((t_next = programState->getFirstEnabledTransition()) !=
-           nullptr);
+
+    t_next = programState->getFirstEnabledTransition();
+  } while (t_next != nullptr);
 
   const bool hasDeadlock        = programState->isInDeadlock();
   const bool programHasNoErrors = !hasDeadlock;
@@ -529,11 +526,11 @@ mc_search_dpor_branch(const MCTransition &initialTransition)
 }
 
 MC_PROGRAM_TYPE
-mc_search_next_dpor_branch(const MCTransition &nextTransitionToTest)
+mc_search_next_dpor_branch_following_thread(const tid_t leadingThread)
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace_to_current_state();
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
-  mc_search_dpor_branch(nextTransitionToTest);
+  mc_search_dpor_branch_following_thread(leadingThread);
   return MC_SCHEDULER;
 }
 
