@@ -144,7 +144,6 @@ mc_create_global_state_object()
     typeid(MCRWWLockWriter2Lock), &MCReadRWWLockWriter2Lock);
   programState->registerVisibleOperationType(typeid(MCRWWLockUnlock),
                                              &MCReadRWWLockUnlock);
-
   programState->registerVisibleOperationType(
     typeid(MCGlobalVariableRead), &MCReadGlobalRead);
   programState->registerVisibleOperationType(
@@ -152,24 +151,43 @@ mc_create_global_state_object()
   programState->start();
 }
 
-MC_PROGRAM_TYPE
-mc_do_model_checking()
+void
+mc_prepare_to_model_check_new_program()
 {
   mc_register_main_thread();
-
   auto mainThread = programState->getThreadWithId(TID_MAIN_THREAD);
   auto initialTransition =
     MCTransitionFactory::createInitialTransitionForThread(mainThread);
   programState->setNextTransitionForThread(TID_MAIN_THREAD,
                                            initialTransition);
+}
 
+MC_PROGRAM_TYPE
+mc_run_initial_trace()
+{
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
 
-  mc_search_dpor_branch(*initialTransition);
+  MCTransition &initialTransition =
+    programState->getNextTransitionForThread(TID_MAIN_THREAD);
+  mc_search_dpor_branch(initialTransition);
+
   mc_exit_with_trace_if_necessary(traceId);
-  program = mc_enter_gdb_debugging_session_if_necessary(traceId++);
+  program = mc_enter_gdb_debugging_session_if_necessary(traceId);
+  traceId++;
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+  return MC_SCHEDULER;
+}
+
+MC_PROGRAM_TYPE
+mc_do_model_checking()
+{
+  mc_prepare_to_model_check_new_program();
+
+  MC_PROGRAM_TYPE program = mc_run_initial_trace();
+  if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+
+  // TODO: Perform DPOR loop check
 
   int curStateStackDepth =
     static_cast<int>(programState->getStateStackSize());
@@ -206,7 +224,7 @@ mc_do_model_checking()
       curTransitionStackDepth--;
     }
   }
-  return false;
+  return MC_SCHEDULER;
 }
 
 void *
@@ -354,7 +372,7 @@ mc_fork_new_trace()
 }
 
 MC_PROGRAM_TYPE
-mc_new_trace_at_current_state()
+mc_fork_new_trace_to_current_state()
 {
   mc_reset_cv_locks();
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
@@ -513,7 +531,7 @@ mc_search_dpor_branch(const MCTransition &initialTransition)
 MC_PROGRAM_TYPE
 mc_search_next_dpor_branch(const MCTransition &nextTransitionToTest)
 {
-  MC_PROGRAM_TYPE program = mc_new_trace_at_current_state();
+  MC_PROGRAM_TYPE program = mc_fork_new_trace_to_current_state();
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
   mc_search_dpor_branch(nextTransitionToTest);
   return MC_SCHEDULER;

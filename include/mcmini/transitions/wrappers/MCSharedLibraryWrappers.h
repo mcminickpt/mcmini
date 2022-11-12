@@ -64,7 +64,7 @@ extern typeof(&sleep) sleep_ptr;
  * If the original behavior of the intercepted symbols is still
  * needed, they must be retrieved using dlsym(3) and other functions.
  * This function loads those symbols into the variables redefined
- * above
+ * above.
  */
 void mc_load_intercepted_symbol_addresses();
 
