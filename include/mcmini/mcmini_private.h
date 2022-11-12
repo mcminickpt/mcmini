@@ -120,7 +120,7 @@ void mc_reset_trace_sleep_list();
  * themselves (recall that threads acquire IDs via the current state,
  * which is private to both the trace AND the scheduler) since the
  * scheduler assigns higher thread IDs to threads created deeper in
- * the execution of the program
+ * the execution of the program.
  *
  * This semaphore is used to ensure that newly-spawned threads have
  * initialized themselves before the spawning thread wakes the
@@ -189,6 +189,16 @@ extern MCDeferred<MCState> programState;
 void mc_create_global_state_object();
 
 /**
+ * @brief Perform setup for the global program state object in
+ * preparation for a new model checking session
+ *
+ * This method registers the main thread and marks that thread as
+ * waiting to execute. Every program begins in a state with the main
+ * thread suspended and about to execute the main routine.
+ */
+void mc_prepare_to_model_check_new_program();
+
+/**
  * @brief Performs the model checking for the program McMini was
  * dynamically loaded into
  *
@@ -201,6 +211,28 @@ void mc_create_global_state_object();
  * testing
  */
 MC_PROGRAM_TYPE mc_do_model_checking();
+
+/**
+ * @brief Perform the first (depth-first) search of the state space
+ * and fill the state with backtracking points for later searching
+ *
+ * From the perspective of any userspace program, every program begins
+ * with the main thread about to enter the main function (ignoring any
+ * processing the main thread actually does to its dynamic library
+ * dependencies). This method prepares the `programState` object for
+ * execution from the beginning of the program
+ *
+ * Executing the initial trace is not much different than executing
+ * any other trace. The primary difference resides in the fact that
+ * the state is set-up to have only a single thread -- the main thread
+ * in particular -- waiting to execute the "thread start" transition.
+ *
+ * @return MC_PROGRAM_TYPE An identifier for which program exited the
+ * call to the function. This gives the information callers need to
+ * allow fork()-ed trace process to escape into the target program for
+ * testing
+ */
+MC_PROGRAM_TYPE mc_run_initial_trace();
 
 /**
  * @brief Begins searching a new branch in the state space starting
@@ -282,7 +314,7 @@ MC_PROGRAM_TYPE mc_fork_new_trace_at_main(bool);
  * the process to escape into the target program as quickly
  * as possible
  */
-MC_PROGRAM_TYPE mc_new_trace_at_current_state();
+MC_PROGRAM_TYPE mc_fork_new_trace_to_current_state();
 
 /**
  * @brief Unblocks the thread corresponding to _tid_ in the current

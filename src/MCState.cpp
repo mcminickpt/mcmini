@@ -165,7 +165,7 @@ MCState::getDepartingStateForTransitionAtIndex(int i) const
 }
 
 MCStateStackItem &
-MCState::getResultingStateForTransitionAtIndex(int i) const
+MCState::getResultantStateForTransitionAtIndex(int i) const
 {
   return this->getStateItemAtIndex(i + 1);
 }
@@ -527,7 +527,7 @@ MCState::virtuallyRevertTransitionAtIndex(int i)
 }
 
 bool
-MCState::canReverseStateToStateAtIndex(uint32_t stateStackIndex) const
+MCState::canRunInReverseToStateAtIndex(uint32_t stateStackIndex) const
 {
   if (irreversibleStatesStack.empty()) return true;
   return stateStackIndex >= irreversibleStatesStack.top();
@@ -542,7 +542,7 @@ MCState::simulateRunningTransition(
   // the state stack for clock vector updates
   // to occur properly
   this->growTransitionStackRunning(transition);
-  this->growStateStackWithTransition(transition);
+  this->growStateStackRunningTransition(transition);
   this->virtuallyRunTransition(transition);
 
   tid_t tid = transition.getThreadId();
@@ -613,11 +613,12 @@ MCState::growTransitionStackRunning(const MCTransition &transition)
 void
 MCState::growStateStack()
 {
-  this->growStateStack(MCClockVector::newEmptyClockVector(), false);
+  this->growStateStackWith(MCClockVector::newEmptyClockVector(),
+                           false);
 }
 
 void
-MCState::growStateStack(const MCClockVector &cv, bool revertible)
+MCState::growStateStackWith(const MCClockVector &cv, bool revertible)
 {
   auto newState = std::make_shared<MCStateStackItem>(cv, revertible);
   this->stateStackTop++;
@@ -625,7 +626,8 @@ MCState::growStateStack(const MCClockVector &cv, bool revertible)
 }
 
 void
-MCState::growStateStackWithTransition(const MCTransition &transition)
+MCState::growStateStackRunningTransition(
+  const MCTransition &transition)
 {
   MC_ASSERT(this->stateStackTop >= 0);
 
@@ -644,7 +646,7 @@ MCState::growStateStackWithTransition(const MCTransition &transition)
   MCClockVector cv = transitionStackMaxClockVector(transition);
   cv[threadRunningTransition] = this->transitionStackTop;
 
-  this->growStateStack(cv, transitionIsRevertible);
+  this->growStateStackWith(cv, transitionIsRevertible);
 
   MCStateStackItem &newSTop              = getStateStackTop();
   const unordered_set<tid_t> oldSleepSet = oldSTop.getSleepSet();
@@ -705,7 +707,7 @@ MCState::clockVectorForTransitionAtIndex(int i) const
 {
   // The clock vector for transition `i` resides in
   // *resulting* state after the transition is executed
-  return this->getResultingStateForTransitionAtIndex(i)
+  return this->getResultantStateForTransitionAtIndex(i)
     .getClockVector();
 }
 
@@ -745,7 +747,7 @@ MCState::reflectStateAtTransitionIndex(uint32_t index)
   // we add 1 to be in the same "coordinate space".
   const uint32_t stateStackIndex = index + 1;
   const bool canRunReverseOperationsToIndex =
-    canReverseStateToStateAtIndex(stateStackIndex);
+    canRunInReverseToStateAtIndex(stateStackIndex);
 
   /* The transition stack at this point is untouched */
 
