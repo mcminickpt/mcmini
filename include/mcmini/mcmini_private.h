@@ -214,7 +214,7 @@ MC_PROGRAM_TYPE mc_do_model_checking();
 
 /**
  * @brief Perform the first (depth-first) search of the state space
- * and fill the state with backtracking points for later searching
+ * and fill the state with backtrack points for later searching
  *
  * From the perspective of any userspace program, every program begins
  * with the main thread about to enter the main function (ignoring any
@@ -224,19 +224,19 @@ MC_PROGRAM_TYPE mc_do_model_checking();
  *
  * Executing the initial trace is not much different than executing
  * any other trace. The primary difference resides in the fact that
- * the state is set-up to have only a single thread -- the main thread
+ * the state is set up to have only a single thread -- the main thread
  * in particular -- waiting to execute the "thread start" transition.
  *
  * @return MC_PROGRAM_TYPE An identifier for which program exited the
  * call to the function. This gives the information callers need to
- * allow fork()-ed trace process to escape into the target program for
- * testing
+ * allow a fork()-ed trace process to escape into the target program
+ * for testing
  */
 MC_PROGRAM_TYPE mc_run_initial_trace();
 
 /**
  * @brief Begins searching a new branch in the state space starting
- * with the given thread executing from the current program state
+ * with "leadThread" executing from the current program state
  *
  * @param leadThread the thread whose execution should be followed
  * from the current program state to continue the DPOR, depth-first
@@ -248,30 +248,30 @@ MC_PROGRAM_TYPE mc_run_initial_trace();
  * execution
  */
 MC_PROGRAM_TYPE
-mc_search_next_dpor_branch_following_thread(const tid_t leadThread);
+mc_search_next_dpor_branch_with_initial_thread(
+  const tid_t leadThread);
 
 /**
  * @brief Begins searching a new branch in the state space starting
- * with the given thread executing from the current program state
+ * with "leadThread" executing from the current program state
  *
  * This method makes two assumptions:
- *
- * 1. There is a trace process forked and waiting for the scheduler to
- * send requests for threads to execute through the mailbox (see the
- * global variables residing in shared memory declared at the start of
- * the header file)
- *
- * 2. The thread that is about to execute is enabled in the given
- * state.
+ *   1. There is a trace process forked and waiting for the scheduler
+ *      to send requests for threads to execute through the mailbox
+ *      (see the global variables residing in shared memory declared
+ *      at the start of the header file).
+ *   2. The thread that is about to execute is enabled in the given
+ *      state.
  *
  * If either assumption is invalid, McMini will abort the backtracking
- * session; for otherwise McMini would be stuck in a deadlock
+ * session; for otherwise McMini would be stuck in a deadlock.
  *
  * @param leadThread the thread whose execution should be followed
  * from the current program state to continue the DPOR, depth-first
  * search.
  */
-void mc_search_dpor_branch_following_thread(const tid_t leadThread);
+void
+mc_search_dpor_branch_with_initial_thread(const tid_t leadThread);
 
 /* Source program management */
 /*

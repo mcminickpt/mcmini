@@ -168,7 +168,7 @@ mc_run_initial_trace()
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
-  mc_search_dpor_branch_following_thread(TID_MAIN_THREAD);
+  mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
   mc_exit_with_trace_if_necessary(traceId);
   program = mc_enter_gdb_debugging_session_if_necessary(traceId);
   traceId++;
@@ -204,7 +204,7 @@ mc_do_model_checking()
 
     // Search the next branch that DPOR dictated needed to be searched
     program =
-      mc_search_next_dpor_branch_following_thread(backtrackThread);
+      mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
     mc_exit_with_trace_if_necessary(traceId);
@@ -465,7 +465,7 @@ mc_trace_panic()
 }
 
 void
-mc_search_dpor_branch_following_thread(const tid_t leadingThread)
+mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 {
   uint64_t debug_depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
@@ -526,11 +526,12 @@ mc_search_dpor_branch_following_thread(const tid_t leadingThread)
 }
 
 MC_PROGRAM_TYPE
-mc_search_next_dpor_branch_following_thread(const tid_t leadingThread)
+mc_search_next_dpor_branch_with_initial_thread(
+  const tid_t leadingThread)
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-  mc_search_dpor_branch_following_thread(leadingThread);
+  mc_search_dpor_branch_with_initial_thread(leadingThread);
   return MC_SCHEDULER;
 }
 
