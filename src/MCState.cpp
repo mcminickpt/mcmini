@@ -384,12 +384,12 @@ MCState::dynamicallyUpdateBacktrackSets()
    * queued as running "next" for all of the **other** threads
    * that exist
    *
-   * 2. Test whether a backtracking point is needed at state
-   * S_n for the other threads by comparing N_p, for all p != i.
+   *  2. Test whether a backtrack point is needed at state
+   *  S_n for the other threads by comparing N_p, for all p != i.
    *
-   * 3. Get a reference to N_i and traverse the transition stack
-   * to determine if a backtracking point is needed anywhere for
-   * thread `i`
+   *  3. Get a reference to N_i and traverse the transition stack
+   *  to determine if a backtrack point is needed anywhere for
+   *  thread `i`
    */
   const uint64_t num_threads = this->getNumProgramThreads();
 
@@ -421,7 +421,7 @@ MCState::dynamicallyUpdateBacktrackSets()
 
   // O(transition stack size)
 
-  // It only remains to add backtracking points at the necessary
+  // It only remains to add backtrack points at the necessary
   // points for thread `mostRecentThreadId`. We start at one step
   // below the top since we know that transition to not be co-enabled
   // (since it was, by assumption, run by `mostRecentThreadId`
