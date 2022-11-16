@@ -182,18 +182,54 @@ private:
   void growStateStack();
 
   /**
-   * @brief Pushes a new item onto the state stack
+   * @brief Directly pushes a new item onto the state stack
    *
-   * @param cv
-   * @param revertible
+   * This simply pushes a new item onto the state stack directly. You
+   * usually shouldn't call this method directly, as its role is that
+   * of a helper; rather, you should call
+   * `growStateStackRunningTransition()` in order that the proper
+   * clock vector, sleep set, and done set updates are propagated
+   * properly
+   *
+   * @param cv The clock vector injected into the state. See the
+   * pseudocode of section 5 in the original DPOR paper, where clock
+   * vectors are pushed onto the transition stack
+   *
+   * TODO: We should push clock vectors onto the transition stack
+   * rather than into the states those transitions result in. This
+   * would make the algorithm closer to that of the original
+   * pseudocode
+   *
+   * @param revertible whether or not the transition that can be
+   * thought of as executing from the _previous state_ and resulting
+   * in the new state has side effects that can be reverted. See
+   * `MCTransition::isReversibleInState()` for more details
    */
   void growStateStackWith(const MCClockVector &cv, bool revertible);
 
   /**
-   * @brief Pushes a new item onto the state stack with
+   * @brief Pushes a new item onto the state stack by executing the
+   * given transition
    *
+   * A new state object (MCStateStackItem) is also pushed onto
+   * the stack. More importantly, this method performs updates to the
+   * *current* state at the top of the state stack (representing
+   * what the current trace looks like _right now_). In particular,
+   * the thread which executed is added to the sleep set of the
+   * previous state and is marked as having executed from that state.
+   * Furthermore, the clock vector for the new state (and for the
+   * thread which executed) is computed and assigned appropriately
+   *
+   * @param t a reference to the transition that should be executed
+   * against the current state. The transition itself is not directly
+   * pushed onto the transition stack; instead a static copy of the
+   * transition is pushed onto the transition stack recording the
+   * current state of the object references that the transition is
+   * currently holding onto. For more details on static and dynamic
+   * object references, see the documentation of
+   * MCTransition::staticCopy().
    */
-  void growStateStackRunningTransition(const MCTransition &);
+  void growStateStackRunningTransition(const MCTransition &t);
 
   /**
    * @brief Pushes a new transition onto the transition stack
