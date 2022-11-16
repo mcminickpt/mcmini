@@ -636,14 +636,12 @@ MCState::growStateStackWith(const MCClockVector &cv, bool revertible)
 }
 
 void
-MCState::growStateStackRunningTransition(
-  const MCTransition &transition)
+MCState::growStateStackRunningTransition(const MCTransition &t)
 {
   MC_ASSERT(this->stateStackTop >= 0);
 
-  const bool transitionIsRevertible =
-    transition.isReversibleInState(this);
-  const tid_t threadRunningTransition = transition.getThreadId();
+  const bool transitionIsRevertible   = t.isReversibleInState(this);
+  const tid_t threadRunningTransition = t.getThreadId();
   const unordered_set<tid_t> enabledThreads =
     getCurrentlyEnabledThreads();
   MCThreadData &threadData =
@@ -653,7 +651,7 @@ MCState::growStateStackRunningTransition(
   // NOTE: Compute the clock vector BEFORE growing the state
   // stack. The clock vectors in the state stack *prior to* expansion
   // are searched
-  MCClockVector cv = transitionStackMaxClockVector(transition);
+  MCClockVector cv            = transitionStackMaxClockVector(t);
   cv[threadRunningTransition] = this->transitionStackTop;
 
   this->growStateStackWith(cv, transitionIsRevertible);
@@ -666,7 +664,7 @@ MCState::growStateStackRunningTransition(
   // that would be contained in that sleep set.
   for (const tid_t &tid : oldSleepSet) {
     const MCTransition &tidNext = getNextTransitionForThread(tid);
-    if (!MCTransition::dependentTransitions(tidNext, transition))
+    if (!MCTransition::dependentTransitions(tidNext, t))
       newSTop.addThreadToSleepSet(tid);
   }
 
