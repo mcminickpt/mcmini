@@ -362,7 +362,7 @@ mc_fork_new_trace()
 }
 
 MC_PROGRAM_TYPE
-mc_fork_new_trace_to_current_state()
+mc_fork_new_trace_at_current_state()
 {
   mc_reset_cv_locks();
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
@@ -528,7 +528,7 @@ mc_search_dpor_branch_following_thread(const tid_t leadingThread)
 MC_PROGRAM_TYPE
 mc_search_next_dpor_branch_following_thread(const tid_t leadingThread)
 {
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_to_current_state();
+  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
   if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
   mc_search_dpor_branch_following_thread(leadingThread);
   return MC_SCHEDULER;
