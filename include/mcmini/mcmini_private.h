@@ -331,7 +331,7 @@ MC_PROGRAM_TYPE mc_fork_new_trace_at_main(bool);
  * the process to escape into the target program as quickly
  * as possible
  */
-MC_PROGRAM_TYPE mc_fork_new_trace_to_current_state();
+MC_PROGRAM_TYPE mc_fork_new_trace_at_current_state();
 
 /**
  * @brief Unblocks the thread corresponding to _tid_ in the current
