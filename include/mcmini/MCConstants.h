@@ -27,11 +27,11 @@ typedef uint64_t trid_t;
 
 #define MC_PROGRAM_TYPE           bool
 #define MC_SCHEDULER              (false)
-#define MC_SOURCE_PROGRAM         (true)
+#define MC_TARGET_PROGRAM         (true)
 #define MC_IS_SCHEDULER(expr) \
   (static_cast<bool>(expr) == MC_SCHEDULER)
-#define MC_IS_SOURCE_PROGRAM(expr) \
-  (static_cast<bool>(expr) == MC_SOURCE_PROGRAM)
+#define MC_IS_TARGET_PROGRAM(expr) \
+  (static_cast<bool>(expr) == MC_TARGET_PROGRAM)
 
 #ifdef MC_SHARED_LIBRARY
 #define MC_CTOR __attribute__((constructor))

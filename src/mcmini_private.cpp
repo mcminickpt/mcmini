@@ -62,7 +62,7 @@ mcmini_main()
     __real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
   MC_PROGRAM_TYPE program = mc_do_model_checking();
-  if (MC_IS_SOURCE_PROGRAM(program)) return;
+  if (MC_IS_TARGET_PROGRAM(program)) return;
 
   mcprintf("***** Model checking completed! *****\n");
   mcprintf("Number of transitions: %lu\n", transitionId);
@@ -166,13 +166,13 @@ MC_PROGRAM_TYPE
 mc_run_initial_trace()
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
-  if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
   mc_search_dpor_branch_following_thread(TID_MAIN_THREAD);
   mc_exit_with_trace_if_necessary(traceId);
   program = mc_enter_gdb_debugging_session_if_necessary(traceId);
   traceId++;
-  if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
   return MC_SCHEDULER;
 }
 
@@ -189,7 +189,7 @@ mc_do_model_checking()
   // It hurts readability to have the forked traces needing to escape
   // in this wasy
   MC_PROGRAM_TYPE program = mc_run_initial_trace();
-  if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
   MCOptional<int> nextBranchPoint =
     programState->getDeepestDPORBranchPoint();
@@ -205,11 +205,11 @@ mc_do_model_checking()
     // Search the next branch that DPOR dictated needed to be searched
     program =
       mc_search_next_dpor_branch_following_thread(backtrackThread);
-    if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
     mc_exit_with_trace_if_necessary(traceId);
     program = mc_enter_gdb_debugging_session_if_necessary(traceId);
-    if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
     traceId++;
     nextBranchPoint = programState->getDeepestDPORBranchPoint();
@@ -351,7 +351,7 @@ mc_fork_new_trace()
   if (FORK_IS_CHILD_PID(childpid)) {
     signal(SIGUSR1, &sigusr1_handler_child);
     signal(SIGUSR2, &sigusr2_handler_child);
-    return MC_SOURCE_PROGRAM;
+    return MC_TARGET_PROGRAM;
   } else {
     MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) !=
                      SIG_ERR);
@@ -399,7 +399,7 @@ MC_PROGRAM_TYPE
 mc_fork_new_trace_at_main(bool spawnDaemonThread)
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace();
-  if (MC_IS_SOURCE_PROGRAM(program)) {
+  if (MC_IS_TARGET_PROGRAM(program)) {
     // NOTE: Technically, the child will be frozen
     // inside of dpor_init until it is scheduled. But
     // this is only a technicality: it doesn't actually
@@ -529,7 +529,7 @@ MC_PROGRAM_TYPE
 mc_search_next_dpor_branch_following_thread(const tid_t leadingThread)
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
-  if (MC_IS_SOURCE_PROGRAM(program)) return MC_SOURCE_PROGRAM;
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
   mc_search_dpor_branch_following_thread(leadingThread);
   return MC_SCHEDULER;
 }
