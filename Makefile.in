@@ -27,11 +27,18 @@ tests/programs/producer_consumer: tests/programs/producer_consumer.c
 	cd tests/programs && make producer_consumer
 
 check: all tests/programs/producer_consumer
-	./mcmini tests/programs/producer_consumer
+	./mcmini tests/programs/producer_consumer --quiet
 
 # If McMini was already built, first do:  'make clean'
 check-gdb: debug tests/programs/producer_consumer
-	gdb -x gdbinit --args ./mcmini tests/programs/producer_consumer
+	@ if gdb --version | grep '\<[0-9][0-9]*\.[0-9]' | \
+	 sed -e 's%^.* \([0-9][0-9]*\.[0-9]\).*$$%\1%' | grep --quiet 8; then \
+	  echo GDB version is 8.x.  Version 8.1 known to have a bug; \
+	  echo "  when using 'set detach-fork-mode 0' needed by McMini GDB."; \
+	  echo After 15 seconds, GDB will start, but it may not work properly.;\
+	  sleep 15; \
+	fi
+	gdb -x gdbinit --args ./mcmini tests/programs/producer_consumer --quiet
 
 mcmini: src/launch.c libmcmini.so
 	${CC} -g3 -O0 -Iinclude -o $@ $<

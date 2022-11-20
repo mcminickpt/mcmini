@@ -1,6 +1,9 @@
 # Configure GDB in a reasonable way
 set breakpoint pending on
 set pagination off
+# Suppress "Missing separate debuginfos" message:
+## This is now done in 'mcmini forward'
+## set build-id-verbose 0
 # GDB will track both parent and child
 set detach-on-fork off
 set print pretty
@@ -24,13 +27,15 @@ set schedule-multiple on
 
 source gdbinit_commands.py
 
+# Stop at main in scheduler.
+# Later, whenever we fork into target process, stop at main.
 break main
 run
 
-break execvp
+tbreak execvp
 continue
 
-break 'mcmini_main()'
+tbreak 'mcmini_main()'
 continue
 
 ## WE WANT TO DO:  break __real_sem_init
@@ -62,20 +67,23 @@ continue
 # break 'mc_initialize_trace_sleep_list()'
 # break *sem_init_ptr
 
-# break fork
+# tbreak fork
 # continue
 # continue
 
-# Continue through 'fork' and into target (child) process
+# Continue through 'fork' and into 'main' for target (child) process
+tbreak main
 continue
 
 ## Python nextTransition will set this:
 ## break mc_new_trace_at_current_state()
 ## break mc_shared_cv_wait_for_scheduler
 # break thread_await_scheduler_for_thread_start_transition
-# NOT NEEDED:
-#   set follow-fork-mode child
+# NOT NEEDED:  set follow-fork-mode child
+#   We 'set detach-on-fork off'
+#   So, we can set breakpoints in parent or child process, and they take effect.
 
 # Print Python-based GDB commands:
 help user-defined
-echo \n\ \ *** Type 'mcmini help' for usage. ***\n\n
+echo \n\ \ *** Type 'mcmini help' for usage. ***\n
+echo     \ \ (Do 'set print address on' for more verbose outpus.)\n\n

@@ -23,7 +23,7 @@ cd mcmini
 
 # To then run under GDB:
 make clean && make -j10 check-gdb
-# For syntax with GDB and other tragets, do:  make -n check-gdb
+# For syntax with GDB and other targets, do:  make -n check-gdb
 
 ## Other options:
 ```bash
