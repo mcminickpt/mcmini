@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
 
@@ -13,6 +14,8 @@ the solution. You can always play with these values.
 #define BufferSize 5 // Size of the buffer
 #define NUM_PRODUCERS 2
 #define NUM_CONSUMERS 1
+
+int do_print = 1;
 
 sem_t empty;
 sem_t full;
@@ -29,8 +32,10 @@ void *producer(void *pno)
         sem_wait(&empty);
         pthread_mutex_lock(&mutex);
         buffer[in] = item;
-        printf("Producer %d: Insert Item %d at %d\n",
-               *((int *)pno),buffer[in],in);
+        if (do_print) {
+          printf("Producer %d: Insert Item %d at %d\n",
+                 *((int *)pno),buffer[in],in);
+        }
         in = (in+1)%BufferSize;
         pthread_mutex_unlock(&mutex);
         sem_post(&full);
@@ -43,8 +48,10 @@ void *consumer(void *cno)
         sem_wait(&full);
         pthread_mutex_lock(&mutex);
         int item = buffer[out];
-        printf("Consumer %d: Remove Item %d from %d\n",
-               *((int *)cno),item, out);
+        if (do_print) {
+          printf("Consumer %d: Remove Item %d from %d\n",
+                 *((int *)cno),item, out);
+        }
         out = (out+1)%BufferSize;
         pthread_mutex_unlock(&mutex);
         sem_post(&empty);
@@ -52,7 +59,10 @@ void *consumer(void *cno)
     return NULL;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc >= 2 && strcmp(argv[1], "--quiet") == 0) {
+      do_print = 0;
+    }
     pthread_t pro[5],con[5];
 
     pthread_mutex_init(&mutex, NULL);
