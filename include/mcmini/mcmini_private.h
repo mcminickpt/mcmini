@@ -314,7 +314,7 @@ MC_PROGRAM_TYPE mc_fork_new_trace();
  * the process to escape into the target program as quickly
  * as possible
  */
-MC_PROGRAM_TYPE mc_fork_new_trace_at_main(bool);
+MC_PROGRAM_TYPE mc_fork_new_trace_at_main();
 
 /**
  * @brief Forks a new trace process whose run-time state reflects that
@@ -419,11 +419,19 @@ void mc_report_undefined_behavior(const char *);
 // although the concepts are technically in place
 
 /* GDB interface */
+
+/**
+ * @brief Determines whether or not McMini's execution of
+ * the current trace is under control of GDB
+ *
+ * @return true if the current trace matches that of the trace marked
+ * for GDB to be debugged, and false otherwise
+ */
+bool mc_is_debugging_current_trace();
+
 bool mc_should_enter_gdb_debugging_session_with_trace_id(trid_t);
 MC_PROGRAM_TYPE mc_enter_gdb_debugging_session_if_necessary(trid_t);
 MC_PROGRAM_TYPE mc_enter_gdb_debugging_session();
-void mc_spawn_daemon_thread();
-void *mc_daemon_thread_simulate_program(void *);
 
 MCStateConfiguration get_config_for_execution_environment();
 

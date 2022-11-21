@@ -9,7 +9,7 @@
  * not limited to an execution depth)
  */
 #define MC_STATE_CONFIG_THREAD_NO_LIMIT         (UINT64_MAX)
-#define MC_STATE_CONFIG_NO_TRACE                (UINT64_MAX)
+#define MC_STATE_CONFIG_NO_GDB_TRACE            (UINT64_MAX)
 #define MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP (UINT64_MAX)
 
 /**
