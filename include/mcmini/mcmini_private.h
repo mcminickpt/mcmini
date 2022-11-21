@@ -415,23 +415,20 @@ void mc_exit(int);
  */
 void mc_report_undefined_behavior(const char *);
 
-// FIXME: This is stil experimental and likely will need work,
-// although the concepts are technically in place
-
-/* GDB interface */
+/* Interactive Debugging Support */
 
 /**
- * @brief Determines whether or not McMini's execution of
- * the current trace is under control of GDB
+ * @brief Re-execute the current trace as many times as needed
  *
- * @return true if the current trace matches that of the trace marked
- * for GDB to be debugged, and false otherwise
+ * When this method is invoked, the current trace can be re-executed
+ * an arbitrary number of times. By default, the function will not
+ * cause any re-executions.
+ *
+ * @return The process identifier. The caller should allow
+ * the process to escape into the target program as quickly
+ * as possible
  */
-bool mc_is_debugging_current_trace();
-
-bool mc_should_enter_gdb_debugging_session_with_trace_id(trid_t);
-MC_PROGRAM_TYPE mc_enter_gdb_debugging_session_if_necessary(trid_t);
-MC_PROGRAM_TYPE mc_enter_gdb_debugging_session();
+MC_PROGRAM_TYPE mc_rerun_current_trace_as_needed();
 
 MCStateConfiguration get_config_for_execution_environment();
 
