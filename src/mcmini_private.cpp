@@ -37,6 +37,24 @@ sem_t mc_pthread_create_binary_sem;
 trid_t traceId      = 0;
 trid_t transitionId = 0;
 
+/*
+ * Dynamically updated by GDB to control how
+ * McMini proceeds with its execution.
+ *
+ * gdbInterruptTraceId: After McMini executes the trace with the
+ * given ID, McMini will enter a loop within which it will repeatedly
+ * execute and re-execute the trace.
+ *
+ * If at any point during the (re-)execution of the trace while under
+ * GDB McMini realizes that the current trace is no longer
+ * interesting to GDB (viz. when McMini sees that this value
+ * differs from the global _traceId), it will continue searching new
+ * traces as before until either the state space has been exhausted or
+ * possibly McMini stops again to re-execute a future trace
+ */
+trid_t gdbInterruptTraceId   = MC_STATE_CONFIG_NO_GDB_TRACE;
+bool rerunCurrentTraceForGDB = false;
+
 /* Data transfer */
 void *shmStart                            = nullptr;
 MCSharedTransition *shmTransitionTypeInfo = nullptr;
@@ -165,7 +183,7 @@ mc_prepare_to_model_check_new_program()
 MC_PROGRAM_TYPE
 mc_run_initial_trace()
 {
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
+  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
   mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
@@ -365,12 +383,32 @@ MC_PROGRAM_TYPE
 mc_fork_new_trace_at_current_state()
 {
   mc_reset_cv_locks();
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(false);
+  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
 
   if (MC_IS_SCHEDULER(program)) {
-    const int transition_stack_height =
-      programState->getTransitionStackSize();
-    for (int i = 0; i < transition_stack_height; i++) {
+    const int tStackHeight = programState->getTransitionStackSize();
+
+    for (int i = 0; i < tStackHeight; i++) {
+      // If we're currently debugging but we want to
+      // move to a different point in the trace for
+      // debugging purposes, we can simply break
+      // out of the loop moving the current execution
+      // forward in order to start a new one
+
+      // NOTE: Do not place mc_is_debugging_current_trace()
+      // into a local variable without knowing the other
+      // consequences! GDB can change whether or not
+      // re-execution of the given trace should continue
+      // at any point; hence, we must always test directly
+      // instead of caching the value
+      if (mc_is_debugging_current_trace() &&
+          rerunCurrentTraceForGDB) {
+        // Reset automatically for convience of the
+        // GDB scripting
+        rerunCurrentTraceForGDB = false;
+        break;
+      }
+
       // NOTE: This is reliant on the fact
       // that threads are created in the same order
       // when we create them. This will always be consistent,
@@ -396,7 +434,7 @@ mc_fork_new_trace_at_current_state()
 }
 
 MC_PROGRAM_TYPE
-mc_fork_new_trace_at_main(bool spawnDaemonThread)
+mc_fork_new_trace_at_main()
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace();
   if (MC_IS_TARGET_PROGRAM(program)) {
@@ -420,8 +458,6 @@ mc_fork_new_trace_at_main(bool spawnDaemonThread)
     // library is unloaded. In the transparent target, we need
     // to be able to handle this case gracefully
     MC_FATAL_ON_FAIL(atexit(&mc_exit_main_thread) == 0);
-
-    if (spawnDaemonThread) mc_spawn_daemon_thread();
 
     thread_await_scheduler_for_thread_start_transition();
   }
@@ -590,70 +626,33 @@ mc_exit_with_trace_if_necessary(trid_t trid)
 }
 
 bool
+mc_is_debugging_current_trace()
+{
+  return traceId == gdbInterruptTraceId;
+}
+
+bool
 mc_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
 {
-  return programState->isTargetTraceIdForGDB(trid);
+  return trid == gdbInterruptTraceId;
+}
+
+bool
+mc_should_continue_debugging_current_trace()
+{
+  // Debugging the current trace remains
+  return mc_is_debugging_current_trace();
 }
 
 MC_PROGRAM_TYPE
 mc_enter_gdb_debugging_session()
 {
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main(true);
-  if (MC_IS_SCHEDULER(program)) {
-    mc_wait_for_trace(); /* The daemon thread will take the place of
-                        the parent process */
-    mc_exit(EXIT_SUCCESS);
+  while (mc_should_continue_debugging_current_trace()) {
+    MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
+    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+    mc_terminate_trace();
   }
-  return program;
-}
-
-void
-mc_spawn_daemon_thread()
-{
-  /*
-   * Make sure to copy the transition sequence since we
-   * will eventually reset the `programState` before
-   * rerunning the trace/schedule
-   */
-  auto trace = new std::vector<tid_t>();
-  *trace     = programState->getThreadIdBacktrace();
-
-  pthread_t daemon;
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  __real_pthread_create(&daemon, nullptr,
-                        &mc_daemon_thread_simulate_program, trace);
-  pthread_attr_destroy(&attr);
-}
-
-void *
-mc_daemon_thread_simulate_program(void *trace)
-{
-  programState->reset();
-  programState->start();
-  mc_register_main_thread();
-
-  shared_ptr<MCThread> mainThread =
-    programState->getThreadWithId(TID_MAIN_THREAD);
-  shared_ptr<MCTransition> initialTransition =
-    MCTransitionFactory::createInitialTransitionForThread(mainThread);
-  programState->setNextTransitionForThread(TID_MAIN_THREAD,
-                                           initialTransition);
-
-  auto tracePtr = static_cast<std::vector<tid_t> *>(trace);
-
-  for (tid_t tid : *tracePtr) {
-    const MCTransition &t_next =
-      programState->getNextTransitionForThread(tid);
-    t_next.print();
-    mc_run_thread_to_next_visible_operation(tid);
-    programState->simulateRunningTransition(
-      t_next, shmTransitionTypeInfo, shmTransitionData);
-  }
-  delete tracePtr;
-  mc_exit(0);
-  return nullptr; /* Ignored (unreached anyway) */
+  return MC_SCHEDULER;
 }
 
 MCStateConfiguration
@@ -665,7 +664,7 @@ get_config_for_execution_environment()
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
-  trid_t gdbTraceNumber   = MC_STATE_CONFIG_NO_TRACE;
+  trid_t gdbTraceNumber   = MC_STATE_CONFIG_NO_GDB_TRACE;
   trid_t stackContentDumpTraceNumber =
     MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
   bool firstDeadlock                  = false;
