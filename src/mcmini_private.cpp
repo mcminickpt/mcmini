@@ -38,22 +38,26 @@ trid_t traceId      = 0;
 trid_t transitionId = 0;
 
 /*
- * Dynamically updated by GDB to control how
- * McMini proceeds with its execution.
+ * Dynamically updated to control how McMini proceeds with its
+ * execution.
  *
- * gdbInterruptTraceId: After McMini executes the trace with the
- * given ID, McMini will enter a loop within which it will repeatedly
- * execute and re-execute the trace.
+ * If at any point during the (re-)execution of the trace McMini
+ * realizes that the current trace is no longer interesting it will
+ * continue searching new traces as before until either the state
+ * space has been exhausted or possibly McMini stops again to
+ * re-execute a future trace
  *
- * If at any point during the (re-)execution of the trace while under
- * GDB McMini realizes that the current trace is no longer
- * interesting to GDB (viz. when McMini sees that this value
- * differs from the global _traceId), it will continue searching new
- * traces as before until either the state space has been exhausted or
- * possibly McMini stops again to re-execute a future trace
+ * NOTE: Misusing this variable could cause all sorts of bad stuff to
+ * happen. McMini relies on this value to determine if it should stop
+ * execution in the middle of regenerating a trace.
+ *
+ * TODO: We should perhaps figure out a way to absorb this information
+ * into the debugger, or perhaps make it a local variable.
+ * Effectively, we should make it more difficult to set this value
+ * since it affects the behavior of a rather important function for
+ * state regeneration (viz. mc_fork_new_trace_at_current_state())
  */
-trid_t gdbInterruptTraceId   = MC_STATE_CONFIG_NO_GDB_TRACE;
-bool rerunCurrentTraceForGDB = false;
+bool rerunCurrentTraceForDebugger = false;
 
 /* Data transfer */
 void *shmStart                            = nullptr;
@@ -188,7 +192,7 @@ mc_run_initial_trace()
 
   mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
   mc_exit_with_trace_if_necessary(traceId);
-  program = mc_enter_gdb_debugging_session_if_necessary(traceId);
+  program = mc_rerun_current_trace_as_needed();
   traceId++;
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
   return MC_SCHEDULER;
@@ -226,7 +230,7 @@ mc_do_model_checking()
     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
     mc_exit_with_trace_if_necessary(traceId);
-    program = mc_enter_gdb_debugging_session_if_necessary(traceId);
+    program = mc_rerun_current_trace_as_needed();
     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
     traceId++;
@@ -389,25 +393,11 @@ mc_fork_new_trace_at_current_state()
     const int tStackHeight = programState->getTransitionStackSize();
 
     for (int i = 0; i < tStackHeight; i++) {
-      // If we're currently debugging but we want to
-      // move to a different point in the trace for
-      // debugging purposes, we can simply break
-      // out of the loop moving the current execution
-      // forward in order to start a new one
-
-      // NOTE: Do not place mc_is_debugging_current_trace()
-      // into a local variable without knowing the other
-      // consequences! GDB can change whether or not
-      // re-execution of the given trace should continue
-      // at any point; hence, we must always test directly
-      // instead of caching the value
-      if (mc_is_debugging_current_trace() &&
-          rerunCurrentTraceForGDB) {
-        // Reset automatically for convience of the
-        // GDB scripting
-        rerunCurrentTraceForGDB = false;
-        break;
-      }
+      // If we're currently working with a debugger and we want to
+      // move to a different point in the trace, we can simply break
+      // out of the loop moving the execution forward of the current
+      // trace in order to start a new one.
+      if (rerunCurrentTraceForDebugger) { break; }
 
       // NOTE: This is reliant on the fact
       // that threads are created in the same order
@@ -606,14 +596,6 @@ mc_report_undefined_behavior(const char *msg)
 
 /* GDB Interface */
 
-MC_PROGRAM_TYPE
-mc_enter_gdb_debugging_session_if_necessary(trid_t trid)
-{
-  if (mc_should_enter_gdb_debugging_session_with_trace_id(trid))
-    return mc_enter_gdb_debugging_session();
-  return MC_SCHEDULER;
-}
-
 void
 mc_exit_with_trace_if_necessary(trid_t trid)
 {
@@ -625,29 +607,15 @@ mc_exit_with_trace_if_necessary(trid_t trid)
   }
 }
 
-bool
-mc_is_debugging_current_trace()
-{
-  return traceId == gdbInterruptTraceId;
-}
-
-bool
-mc_should_enter_gdb_debugging_session_with_trace_id(trid_t trid)
-{
-  return trid == gdbInterruptTraceId;
-}
-
-bool
-mc_should_continue_debugging_current_trace()
-{
-  // Debugging the current trace remains
-  return mc_is_debugging_current_trace();
-}
-
 MC_PROGRAM_TYPE
-mc_enter_gdb_debugging_session()
+mc_rerun_current_trace_as_needed()
 {
-  while (mc_should_continue_debugging_current_trace()) {
+  while (rerunCurrentTraceForDebugger) {
+    // McMini will only re-execute a trace
+    // once. If a debugger wishes to trigger
+    // McMini to execute more than once, it
+    // could reset this value to `true`.
+    rerunCurrentTraceForDebugger = false;
     MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
     mc_terminate_trace();
