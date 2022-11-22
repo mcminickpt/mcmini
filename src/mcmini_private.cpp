@@ -516,10 +516,10 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
     }
   }
 
-  if (programHasNoErrors) {
-    // mcprintf("*** NO FAILURE DETECTED ***\n");
-    // programState->printTransitionStack();
-    // programState->printNextTransitions();
+  if (programHasNoErrors && getenv(ENV_VERBOSE)) {
+    mcprintf("*** NO FAILURE DETECTED ***\n");
+    programState->printTransitionStack();
+    programState->printNextTransitions();
   }
 
   mc_terminate_trace();
