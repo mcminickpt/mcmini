@@ -11,6 +11,10 @@ typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
 typeof(&sem_init) sem_init_ptr;
 typeof(&exit) exit_ptr;
+// Special declaration needed;  return type is not the implicit 'int'.
+typedef __attribute__ ((__noreturn__)) void (*abort_t)();
+abort_t *abort_ptr;
+// __attribute__ ((__noreturn__)) abort_t *abort_ptr;
 typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
 typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 typeof(&pthread_cond_init) pthread_cond_init_ptr;
@@ -36,6 +40,7 @@ mc_load_intercepted_symbol_addresses()
   sem_post_ptr             = dlsym(RTLD_NEXT, "sem_post");
   sem_init_ptr             = dlsym(RTLD_NEXT, "sem_init");
   exit_ptr                 = dlsym(RTLD_NEXT, "exit");
+  abort_ptr                = dlsym(RTLD_NEXT, "abort");
   pthread_barrier_init_ptr = dlsym(RTLD_NEXT, "pthread_barrier_init");
   pthread_barrier_wait_ptr = dlsym(RTLD_NEXT, "pthread_barrier_wait");
   pthread_rwlock_init_ptr  = dlsym(RTLD_NEXT, "pthread_rwlock_init");
@@ -61,6 +66,7 @@ mc_load_intercepted_symbol_addresses()
   sem_wait_ptr               = &sem_wait;
   sem_init_ptr               = &sem_init;
   exit_ptr                   = &exit;
+  abort_ptr                  = &abort;
   pthread_barrier_init_ptr   = &pthread_barrier_init;
   pthread_barrier_wait_ptr   = &pthread_barrier_wait;
   pthread_rwlock_init_ptr    = &pthread_rwlock_init;

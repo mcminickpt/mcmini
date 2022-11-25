@@ -15,7 +15,10 @@ extern typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 extern typeof(&sem_wait) sem_wait_ptr;
 extern typeof(&sem_post) sem_post_ptr;
 extern typeof(&sem_init) sem_init_ptr;
-extern __attribute__((__noreturn__)) typeof(&exit) exit_ptr;
+// Special declaration needed;  return type is not the implicit 'int'.
+extern __attribute__ ((__noreturn__)) typeof(&exit) exit_ptr;
+typedef __attribute__ ((__noreturn__)) void (*abort_t)();
+extern abort_t *abort_ptr;
 extern typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
 extern typeof(&pthread_barrier_wait) pthread_barrier_wait_ptr;
 extern typeof(&pthread_cond_init) pthread_cond_init_ptr;
@@ -37,6 +40,7 @@ extern typeof(&sleep) sleep_ptr;
 #define __real_sem_post               (*sem_post_ptr)
 #define __real_sem_init               (*sem_init_ptr)
 #define __real_exit                   (*exit_ptr)
+#define __real_abort                  (*abort_ptr)
 #define __real_pthread_barrier_init   (*pthread_barrier_init_ptr)
 #define __real_pthread_barrier_wait   (*pthread_barrier_wait_ptr)
 #define __real_pthread_cond_init      (*pthread_cond_init_ptr)
