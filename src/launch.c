@@ -1,5 +1,6 @@
 #include "mcmini/MCEnv.h"
 #include <assert.h>
+#include <ctype.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,13 +21,23 @@ main(int argc, char *argv[])
   while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
     if (strcmp(cur_arg[0], "--max-trace-depth") == 0 ||
         strcmp(cur_arg[0], "-m") == 0) {
+      // FIXME: "env_max_thread_depth":Just use "MCMINI_MAX_THREAD_DEPTH" below.
       setenv(ENV_MAX_THREAD_DEPTH, cur_arg[1], 1);
       cur_arg += 2;
     }
+    else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
+      setenv(ENV_MAX_THREAD_DEPTH, cur_arg[0] + 2, 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--debug-at-trace") == 0 ||
              strcmp(cur_arg[0], "-d") == 0) {
+      // FIXME: "env_debug_at_trace": Just use "MCMINI_DEBUG_AT_TRACE" below.
       setenv(ENV_DEBUG_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;
+    }
+    else if (cur_arg[0][1] == 'd' && isdigit(cur_arg[0][2])) {
+      setenv(ENV_DEBUG_AT_TRACE, cur_arg[0] + 2, 1);
+      cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--verbose") == 0 ||
              strcmp(cur_arg[0], "-v") == 0) {
