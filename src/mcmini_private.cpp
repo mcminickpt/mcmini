@@ -505,7 +505,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   const bool programHasNoErrors = !hasDeadlock;
 
   if (hasDeadlock) {
-    mcprintf("*** DEADLOCK DETECTED AT TRACE %lu***\n", traceId);
+    mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
 
@@ -517,7 +517,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   }
 
   if (programHasNoErrors && getenv(ENV_VERBOSE)) {
-    mcprintf("*** NO FAILURE DETECTED ***\n");
+    mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
   }
