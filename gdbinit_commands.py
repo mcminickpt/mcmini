@@ -161,7 +161,7 @@ mcminiHelpString=(
 *   A 'transition' is a thread operation.                                      *
 *   The usual GDB commands (next, step, finish, etc.) and TAB-completion work. *
 *   But a command like 'mcmini forward' will skip forward to just before       *
-*   the next transition (the next thread operation).                           *
+*   the next transition (the next thread operation)  'mcmini back' also exists.*
 *                                                                              *
 * OTHER HINTS:                                                                 *
 * Consider using ctrl-Xa ('ctrl-X' and 'x') to toggle source display on or off.*
@@ -177,6 +177,8 @@ mcminiHelpString=(
 *                                                                              *
 * Note that 'mcmini print' can sometimes print future transitions, even before *
 * they have been reached.                                                      '
+*                                                                              *
+* For details of 'mcmini' commands, type 'help user-defined'.                  *
 ********************************************************************************
 """
 )
@@ -214,7 +216,11 @@ class forwardCmd(gdb.Command):
     )
   def invoke(self, args, from_tty):
     global transitionId
-    iterations = int(args) if args.isdigit() else 1
+    args = args.split()
+    iterations = int(args[0]) if args and args[0].isdigit() else 1
+    if iterations > 1:
+      gdb.execute("mcmini forward " + str(iterations-1) + " quiet")
+    # else iterations == 1
     if gdb.selected_inferior().num == 1:
       print("GDB is in scheduler, not target process:" +
             "  Can't go to next transition\n")
@@ -228,12 +234,36 @@ class forwardCmd(gdb.Command):
       pass
     continue_until("mc_shared_cv_wait_for_scheduler")
     transitionId += 1
-    print_user_frames_in_stack()
-    print_mcmini_stats()
+    if "quiet" not in args:
+      print_user_frames_in_stack()
+      print_mcmini_stats()
 forwardCmd()
 
+class backCmd(gdb.Command):
+  """Go back one transition of current trace, by re-executing"""
+  def __init__(self):
+    super(backCmd, self).__init__(
+        "mcmini back", gdb.COMMAND_USER
+    )
+  def invoke(self, args, from_tty):
+    global transitionId
+    if gdb.selected_inferior().num == 1:
+      print("GDB is in scheduler, not target process:" +
+            "  Can't go to previous transition\n")
+      return
+    iterationsForward = transitionId - 1
+    gdb.execute("mcmini finishTrace quiet")
+    gdb.execute("set rerunCurrentTraceForDebugger = 1")
+    gdb.execute("mcmini nextTrace quiet")
+    gdb.execute("mcmini forward " + str(iterationsForward) + " quiet")
+    gdb.execute("set rerunCurrentTraceForDebugger = 0")
+    print("DEBUGGING: " + "mcmini forward " + str(iterationsForward) + " quiet")
+    print_user_frames_in_stack()
+    print_mcmini_stats()
+backCmd()
+
 class finishTraceCmd(gdb.Command):
-  """Execute until next trace; Accepts optional <count> arg"""
+  """Execute until next trace"""
   breakpoint_for_next_transition = None
   def __init__(self):
     super(finishTraceCmd, self).__init__(
@@ -242,7 +272,6 @@ class finishTraceCmd(gdb.Command):
   def invoke(self, args, from_tty):
     global transitionId
     args = args.split()
-    iterations = int(args[0]) if args and args[0].isdigit() else 1
     if gdb.selected_inferior().num == 1:
       print("GDB is in scheduler process, not target:\n" +
             "  Try 'mcmini nextTrace' to go to next trace\n")
