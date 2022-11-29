@@ -89,7 +89,7 @@ mcmini_main()
   mcprintf("***** Model checking completed! *****\n");
   mcprintf("Number of transitions: %lu\n", transitionId);
   mcprintf("Number of traces: %lu\n", traceId);
-  mc_exit(EXIT_SUCCESS);
+  mc_stop_model_checking(EXIT_SUCCESS);
 }
 
 void
@@ -239,18 +239,21 @@ mc_do_model_checking()
   return MC_SCHEDULER;
 }
 
+void
+mc_get_shm_handle_name(char *dst, size_t sz)
+{
+  snprintf(dst, sz, "/mcmini-%s-%lu", getenv("USER"), (long)getpid());
+  dst[sz - 1] = '\0';
+}
+
 void *
 mc_allocate_shared_memory_region()
 {
   //  If the region exists, then this returns a fd for the existing
   //  region. Otherwise, it creates a new shared memory region.
   char dpor[100];
+  mc_get_shm_handle_name(dpor, sizeof(dpor));
 
-  // FIXME: It's technically possible that the process ID could wrap
-  // around and be reused so a race could ensue again if another
-  // mcmini took that (repeated) pid. But that's unlikely
-  snprintf(dpor, sizeof(dpor), "/DPOR-%s-%lu", getenv("USER"),
-           (long)getpid());
   // This creates a file in /dev/shm/
   int fd = shm_open(dpor, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) {
@@ -285,6 +288,30 @@ mc_allocate_shared_memory_region()
   fsync(fd);
   close(fd);
   return shmStart;
+}
+
+void
+mc_deallocate_shared_memory_region()
+{
+  char shm_file_name[100];
+  mc_get_shm_handle_name(shm_file_name, sizeof(shm_file_name));
+  int rc = munmap(shmStart, shmAllocationSize);
+  if (rc == -1) {
+    perror("munmap");
+    mc_exit(EXIT_FAILURE);
+  }
+
+  rc = shm_unlink(shm_file_name);
+  if (rc == -1) {
+    if (errno == EACCES) {
+      fprintf(stderr,
+              "Shared memory region '%s' not owned by this process\n",
+              shm_file_name);
+    } else {
+      perror("shm_unlink");
+    }
+    mc_exit(EXIT_FAILURE);
+  }
 }
 
 void
@@ -602,8 +629,7 @@ mc_exit_with_trace_if_necessary(trid_t trid)
   if (programState->isTargetTraceIdForStackContents(trid)) {
     programState->printTransitionStack();
     programState->printNextTransitions();
-    mc_terminate_trace();
-    mc_exit(EXIT_SUCCESS);
+    mc_stop_model_checking(EXIT_SUCCESS);
   }
 }
 
@@ -686,4 +712,12 @@ mc_exit(int status)
     // process exit() during model checking)
     _Exit(status);
   }
+}
+
+void
+mc_stop_model_checking(int status)
+{
+  mc_deallocate_shared_memory_region();
+  mc_terminate_trace();
+  mc_exit(status);
 }
