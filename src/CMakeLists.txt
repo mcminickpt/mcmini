@@ -44,6 +44,7 @@ set(MC_CPP_FILES
   transitions/cond/MCCondWait.cpp
   transitions/MCTransitionsShared.cpp
   transitions/misc/MCExitTransition.cpp
+  transitions/misc/MCAbortTransition.cpp
   transitions/misc/MCGlobalVariableRead.cpp
   transitions/misc/MCGlobalVariableWrite.cpp
   transitions/mutex/MCMutexInit.cpp

@@ -2,6 +2,7 @@
 #include "mcmini/mcmini_private.h"
 #include "mcmini/objects/MCThread.h"
 #include "mcmini/transitions/MCTransitionsShared.h"
+#include "mcmini/transitions/misc/MCAbortTransition.h"
 #include "mcmini/transitions/misc/MCExitTransition.h"
 #include "mcmini/transitions/threads/MCThreadCreate.h"
 #include "mcmini/transitions/threads/MCThreadFinish.h"
@@ -107,6 +108,14 @@ mc_transparent_exit(int status)
                                     &status);
   thread_await_scheduler();
   __real_exit(status);
+}
+
+MC_NO_RETURN void
+mc_transparent_abort()
+{
+  thread_post_visible_operation_hit(typeid(MCAbortTransition));
+  thread_await_scheduler();
+  __real_abort();
 }
 
 template<typename T>
