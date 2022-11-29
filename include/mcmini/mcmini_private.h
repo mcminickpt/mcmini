@@ -164,6 +164,13 @@ extern void *shmTransitionData;
 void *mc_allocate_shared_memory_region();
 
 /**
+ * @brief Deallocates the space for the shared memory mailbox used for
+ * cross-process communication between forked trace processed and the
+ * scheduler process
+ */
+void mc_deallocate_shared_memory_region();
+
+/**
  * @brief Initializes the global variables related to shared memory as
  * defined above
  */
@@ -394,6 +401,18 @@ void mc_trace_panic();
  * invoking exit(2) or __real_exit().
  */
 void mc_exit(int);
+
+/**
+ * @brief Aborts model checking mid-exection
+ *
+ * McMini will abort execution and exit with the provided exit code.
+ * Any shared memory allocated for cross-process communication will be
+ * deallocated. If a trace process exists at the time the method is
+ * executed, the trace process will first be killed
+ *
+ * @param status the exit code passed to the exit(2) system call
+ */
+void mc_stop_model_checking(int status);
 
 /* Erroneous Behavior */
 
