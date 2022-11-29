@@ -479,7 +479,7 @@ mc_trace_panic()
 void
 mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 {
-  uint64_t debug_depth = programState->getTransitionStackSize();
+  uint64_t depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(leadingThread);
   const MCTransition *t_next = &initialTransition;
@@ -488,7 +488,18 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   // TODO: Assert whether a trace process exists at this point
 
   do {
-    debug_depth++;
+    if (depth >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+      mcprintf(
+        "*** Execution Limit Reached! ***\n\n"
+        "McMini ran a trace with %lu transitions which is\n"
+        "the most McMini can currently handle in any one trace. Try\n"
+        "running mcmini with the \"--max-trace-depth\" flag\n"
+        "to limit how far into a trace McMini can go\n",
+        depth);
+      mc_stop_model_checking(EXIT_FAILURE);
+    }
+
+    depth++;
     transitionId++;
 
     const tid_t tid = t_next->getThreadId();
