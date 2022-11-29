@@ -121,6 +121,8 @@ mc_create_global_state_object()
                                              &MCReadSemEnqueue);
   programState->registerVisibleOperationType(typeid(MCExitTransition),
                                              &MCReadExitTransition);
+  programState->registerVisibleOperationType(
+    typeid(MCAbortTransition), &MCReadAbortTransition);
   programState->registerVisibleOperationType(typeid(MCBarrierEnqueue),
                                              &MCReadBarrierEnqueue);
   programState->registerVisibleOperationType(typeid(MCBarrierInit),
