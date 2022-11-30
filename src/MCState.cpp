@@ -560,6 +560,26 @@ MCState::simulateRunningTransition(
                                    shmTransitionData);
 }
 
+//Aayushi
+void
+MCState::simulateRunningTransitionWithLog(
+  const MCTransition &transition,
+  MCSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
+{
+  // NOTE: You must grow the transition stack before
+  // the state stack for clock vector updates
+  // to occur properly
+  this->growTransitionLogStackRunning(transition);
+  this->growStateStackRunningTransition(transition);
+  this->virtuallyRunTransition(transition);
+
+  tid_t tid = transition.getThreadId();
+  this->setNextTransitionForThread(tid, shmTransitionTypeInfo,
+                                   shmTransitionData);
+}
+
+
+
 void
 MCState::incrementThreadDepthIfNecessary(
   const MCTransition &transition)
@@ -618,6 +638,17 @@ MCState::growTransitionStackRunning(const MCTransition &transition)
   auto transitionCopy = transition.staticCopy();
   this->transitionStackTop++;
   this->transitionStack[this->transitionStackTop] = transitionCopy;
+}
+
+//Aayushi: This function is recording the transition stack.
+void
+MCState::growTransitionLogStackRunning(const MCTransition &transition)
+{
+  auto transitionCopy = transition.staticCopy();
+  this->transitionStackTop++;
+  this->logStackTop++;
+  this->transitionStack[this->transitionStackTop] = transitionCopy;
+  this->logStack[this->logStackTop] = transitionCopy;
 }
 
 void

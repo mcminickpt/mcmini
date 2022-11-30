@@ -83,8 +83,17 @@ mcmini_main()
   MC_FATAL_ON_FAIL(
     __real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
-  MC_PROGRAM_TYPE program = mc_do_model_checking();
+  //Aayushi
+  char* flag = getenv("MODE");
+  if(flag != nullptr){
+    MC_PROGRAM_TYPE program = mc_do_model_checking_when_asked();
   if (MC_IS_TARGET_PROGRAM(program)) return;
+  }
+//endAayushi
+  else{
+    MC_PROGRAM_TYPE program = mc_do_model_checking();
+    if (MC_IS_TARGET_PROGRAM(program)) return;
+  }
 
   mcprintf("***** Model checking completed! *****\n");
   mcprintf("Number of transitions: %lu\n", transitionId);
@@ -197,6 +206,20 @@ mc_run_initial_trace()
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
   return MC_SCHEDULER;
 }
+//Aayushi
+MC_PROGRAM_TYPE
+mc_run_initial_trace_with_log()
+{
+  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+
+  mc_search_dpor_branch_with_initial_thread_with_record_log(TID_MAIN_THREAD);
+  mc_exit_with_trace_if_necessary(traceId);
+  program = mc_rerun_current_trace_as_needed();
+  traceId++;
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+  return MC_SCHEDULER;
+}
 
 MC_PROGRAM_TYPE
 mc_do_model_checking()
@@ -238,6 +261,54 @@ mc_do_model_checking()
   }
   return MC_SCHEDULER;
 }
+//Aayushi
+MC_PROGRAM_TYPE
+mc_do_model_checking_when_asked()
+{
+  mc_prepare_to_model_check_new_program();
+
+  // TODO: This idiom is fairly common... This simply allows
+  // the forked process to exit the constructor all of the stack
+  // frames find themselves in. Perhaps we could jump to the
+  // appropriate point with a getcontext()/setcontext() that will
+  // bring the trace process to the correct process as an alternative?
+  // It hurts readability to have the forked traces needing to escape
+  // in this wasy
+  MC_PROGRAM_TYPE program = mc_run_initial_trace_with_log();
+  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+
+  //Aayushi
+  for(int i = 0;i<10;i++){
+    programState->reflectStateAtTransitionIndex(i);
+  }
+
+//end Aayushi
+  MCOptional<int> nextBranchPoint =
+    programState->getDeepestDPORBranchPoint();
+
+  while (nextBranchPoint.hasValue()) {
+    const int bp = nextBranchPoint.unwrapped();
+    auto &sNext  = programState->getStateItemAtIndex(bp);
+    const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
+
+    // Prepare the scheduler's model of the next trace
+    programState->reflectStateAtTransitionIndex(bp - 1);
+
+    // Search the next branch that DPOR dictated needed to be searched
+    program =
+      mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
+    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+
+    mc_exit_with_trace_if_necessary(traceId);
+    program = mc_rerun_current_trace_as_needed();
+    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+
+    traceId++;
+    nextBranchPoint = programState->getDeepestDPORBranchPoint();
+  }
+  return MC_SCHEDULER;
+}
+
 
 void *
 mc_allocate_shared_memory_region()
@@ -551,6 +622,69 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   mc_terminate_trace();
 }
 
+// Aayushi: Function to record the log.
+void
+mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadingThread)
+{
+  uint64_t debug_depth = programState->getTransitionStackSize();
+  const MCTransition &initialTransition =
+    programState->getNextTransitionForThread(leadingThread);
+  const MCTransition *t_next = &initialTransition;
+
+  // TODO: Assert whether or not t_next is enabled
+  // TODO: Assert whether a trace process exists at this point
+
+  do {
+    debug_depth++;
+    transitionId++;
+
+    const tid_t tid = t_next->getThreadId();
+    mc_run_thread_to_next_visible_operation(tid);
+
+    programState->simulateRunningTransitionWithLog(
+      *t_next, shmTransitionTypeInfo, shmTransitionData);
+    // programState->dynamicallyUpdateBacktrackSets();
+
+    /* Check for data races */
+    {
+      const MCTransition &nextTransitionForTid =
+        programState->getNextTransitionForThread(tid);
+      if (programState->hasADataRaceWithNewTransition(
+            nextTransitionForTid)) {
+        mcprintf("*** DATA RACE DETECTED ***\n");
+        programState->printTransitionStack();
+        programState->printNextTransitions();
+      }
+    }
+
+    t_next = programState->getFirstEnabledTransition();
+  } while (t_next != nullptr);
+
+  const bool hasDeadlock        = programState->isInDeadlock();
+  const bool programHasNoErrors = !hasDeadlock;
+
+  if (hasDeadlock) {
+    mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
+    programState->printTransitionStack();
+    programState->printNextTransitions();
+
+    if (programState->getConfiguration().stopAtFirstDeadlock) {
+      mcprintf("*** Model checking completed! ***\n");
+      mcprintf("Number of transitions: %lu\n", transitionId);
+      mc_exit(EXIT_SUCCESS);
+    }
+  }
+
+  if (programHasNoErrors && getenv(ENV_VERBOSE)) {
+    mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
+    programState->printTransitionStack();
+    programState->printNextTransitions();
+  }
+
+  mc_terminate_trace();
+
+}
+//endAayushi
 MC_PROGRAM_TYPE
 mc_search_next_dpor_branch_with_initial_thread(
   const tid_t leadingThread)

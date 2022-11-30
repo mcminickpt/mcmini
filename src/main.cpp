@@ -1,6 +1,7 @@
 #include "mcmini/export/rwwlock.h"
 #include "mcmini/mcmini.h"
 #include <pthread.h>
+#include<stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -44,7 +45,7 @@ writer(void *notused)
 
 int
 main()
-{
+{ setenv("MODE","1",1);
   mcmini_main();
   pthread_t read_thread[NUM_READERS];
   pthread_t write_thread[NUM_WRITERS];

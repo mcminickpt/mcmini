@@ -70,6 +70,12 @@ private:
   std::shared_ptr<MCTransition>
     transitionStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
 
+  //Aayushi
+  int logStackTop = -1;
+  std::shared_ptr<MCTransition>
+    logStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
+
+
   /**
    * A pointer to the top-most element in the state stack
    */
@@ -243,6 +249,10 @@ private:
    * objects, see the documentation of MCTransition::staticCopy().
    */
   void growTransitionStackRunning(const MCTransition &t);
+
+//Aayushi
+  void growTransitionLogStackRunning(const MCTransition &t);
+
 
   /**
    * @brief Performs the actual execution of the given transition on
@@ -514,6 +524,10 @@ public:
   // transition is run. Essentially, this function does too many
   // things
   void simulateRunningTransition(const MCTransition &,
+                                 MCSharedTransition *, void *);
+                        
+  //Aayushi
+  void simulateRunningTransitionWithLog(const MCTransition &,
                                  MCSharedTransition *, void *);
   void dynamicallyUpdateBacktrackSets();
 

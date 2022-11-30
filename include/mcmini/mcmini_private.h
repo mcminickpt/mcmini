@@ -212,6 +212,10 @@ void mc_prepare_to_model_check_new_program();
  */
 MC_PROGRAM_TYPE mc_do_model_checking();
 
+//Aayushi
+MC_PROGRAM_TYPE mc_do_model_checking_when_asked();
+
+
 /**
  * @brief Perform the first (depth-first) search of the state space
  * and fill the state with backtrack points for later searching
@@ -233,6 +237,10 @@ MC_PROGRAM_TYPE mc_do_model_checking();
  * for testing
  */
 MC_PROGRAM_TYPE mc_run_initial_trace();
+
+//Aayushi
+MC_PROGRAM_TYPE mc_run_initial_trace_with_log();
+
 
 /**
  * @brief Begins searching a new branch in the state space starting
@@ -272,6 +280,10 @@ mc_search_next_dpor_branch_with_initial_thread(
  */
 void
 mc_search_dpor_branch_with_initial_thread(const tid_t leadThread);
+
+//Aayushi
+void
+mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadThread);
 
 /* Source program management */
 /*
