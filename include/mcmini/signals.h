@@ -1,6 +1,8 @@
 #ifndef INCLUDE_MCMINI_SIGNALS_HPP
 #define INCLUDE_MCMINI_SIGNALS_HPP
 
+#include <signal.h>
+
 /**
  * @brief Registers signal handlers for a trace process
  *
@@ -26,5 +28,6 @@ void sigusr2_handler_trace(int sig);
 int install_sighandles_for_scheduler();
 void sigint_handler_scheduler(int sig);
 void sigusr1_handler_scheduler(int sig);
+void sigchld_handler_scheduler(int sig, siginfo_t *, void *);
 
 #endif // INCLUDE_MCMINI_SIGNALS_HPP

@@ -51,6 +51,19 @@ MC_CTOR void mcmini_main();
  */
 extern MC_THREAD_LOCAL tid_t tid_self;
 
+/*
+ * Identifies the current trace being examined by McMini
+ *
+ * TODO: It would be better to have trace ids in the context
+ * of a single execution of a program. McMini should theoretically be
+ * able to model-check multiple programs in sequence
+ *
+ * NOTE: If we ever parallelized the program this would be highly
+ * unsafe and would need to be atomic
+ */
+extern trid_t traceId;
+extern pid_t trace_pid;
+
 /**
  * @brief A fixed-size array assigning to each possible
  * thread of a McMini trace-process a location that at any given time
