@@ -9,12 +9,13 @@ set(MC_CPP_FILES
   MCObjectStore.cpp
   MCSharedTransition.cpp
   MCTransition.cpp
-  mcmini_private.cpp
   MCState.cpp
   MCTransitionFactory.cpp
   MCStateStackItem.cpp
   MCThreadData.cpp
   MCClockVector.cpp
+  mcmini_private.cpp
+  signals.cpp
 
   misc/cond/MCCondVarWakeupPolicyImpl.cpp
   misc/cond/MCCondVarArbitraryWakeupPolicy.cpp
