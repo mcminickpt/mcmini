@@ -1,6 +1,7 @@
 #include "mcmini/mcmini_private.h"
 #include "mcmini/MCSharedTransition.h"
 #include "mcmini/MCTransitionFactory.h"
+#include "mcmini/signals.h"
 #include "mcmini/transitions/MCTransitionsShared.h"
 #include <vector>
 
@@ -9,6 +10,7 @@ extern "C" {
 #include <cassert>
 #include <cstdio>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -77,6 +79,7 @@ mcmini_main()
   mc_create_global_state_object();
   mc_initialize_shared_memory_globals();
   mc_initialize_trace_sleep_list();
+  install_sighandles_for_scheduler();
 
   // Mark this process as the scheduler
   scheduler_pid = getpid();
@@ -348,46 +351,11 @@ mc_reset_cv_locks()
   }
 }
 
-void
-sigusr1_handler_child(int sig)
-{
-  _Exit(0);
-}
-
-void
-sigusr2_handler_child(int sig)
-{
-  kill(scheduler_pid, SIGUSR2);
-}
-
-void
-sigusr1_handler_scheduler(int sig)
-{
-  mc_terminate_trace();
-  puts("******* Something went wrong in the source program... "
-       "*******************");
-  _exit(1);
-}
-
-void
-sigusr2_handler_scheduler(int sig)
-{
-  // FIXME: To trigger a print-out of an
-  // assertion failure, the child
-  // intercepts
-  mc_terminate_trace();
-  mcprintf("*** ASSERTION FAILURE DETECTED AT TRACE %lu***\n",
-           traceId);
-  programState->printTransitionStack();
-  programState->printNextTransitions();
-  _exit(1);
-}
-
 MC_PROGRAM_TYPE
 mc_fork_new_trace()
 {
-  // Ensure that a child does not already exist to prevent fork
-  // bombing
+  // Ensure that a child does not already
+  // exist to prevent fork bombing
   MC_ASSERT(trace_pid == -1);
 
   pid_t childpid;
@@ -398,16 +366,10 @@ mc_fork_new_trace()
   trace_pid = childpid;
 
   if (FORK_IS_CHILD_PID(childpid)) {
-    signal(SIGUSR1, &sigusr1_handler_child);
-    signal(SIGUSR2, &sigusr2_handler_child);
+    install_sighandles_for_trace();
     return MC_TARGET_PROGRAM;
-  } else {
-    MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) !=
-                     SIG_ERR);
-    MC_FATAL_ON_FAIL(signal(SIGUSR2, &sigusr2_handler_scheduler) !=
-                     SIG_ERR);
-    return MC_SCHEDULER;
   }
+  return MC_SCHEDULER;
 }
 
 MC_PROGRAM_TYPE
@@ -702,16 +664,12 @@ mc_is_scheduler()
 void
 mc_exit(int status)
 {
-  if (mc_is_scheduler()) {
-    __real_exit(status);
-  } else {
-    // The exit() function is intercepted.
-    // Calling exit() directly results in
-    // a deadlock since the thread calling it
-    // will block forever (McMini does not let a
-    // process exit() during model checking)
-    _Exit(status);
-  }
+  // The exit() function is intercepted. Calling exit() directly
+  // results in a deadlock since the thread calling it will block
+  // forever (McMini does not let a process exit() during model
+  // checking). Keep this in mind before switching this call to
+  // a different exit function
+  _Exit(status);
 }
 
 void
