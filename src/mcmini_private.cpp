@@ -31,11 +31,6 @@ mc_shared_cv (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
   nullptr;
 sem_t mc_pthread_create_binary_sem;
 
-/*
- * Identifies the trace number of the model checker
- * Note that is we ever parallelized the program
- * this would be highly unsafe and would need to be atomic
- */
 trid_t traceId      = 0;
 trid_t transitionId = 0;
 
@@ -467,7 +462,7 @@ void
 mc_wait_for_trace()
 {
   MC_ASSERT(trace_pid != -1);
-  waitpid(trace_pid, nullptr, 0);
+  waitpid(trace_pid, NULL, 0);
 }
 
 void
