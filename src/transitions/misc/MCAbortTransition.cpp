@@ -38,7 +38,10 @@ MCAbortTransition::dependentWith(const MCTransition *) const
 bool
 MCAbortTransition::enabledInState(const MCState *) const
 {
-  return false; // Never enabled
+  // We allow abort() calls to run to completion.
+  // This way, when the true abort() function is invoked,
+  // the transition turns up in a backtrace
+  return true;
 }
 
 void
