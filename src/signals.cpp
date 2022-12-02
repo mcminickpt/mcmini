@@ -83,6 +83,12 @@ sigchld_handler_scheduler(int sig, siginfo_t *info, void *unused)
   // intercept calls to exit(2)) so this is not an error
   if (info->si_code == CLD_EXITED) { return; }
 
+  // Another normal case: SIGINT should not be a cause for alarm
+  // from the child
+  if (info->si_code == CLD_KILLED && info->si_status == SIGINT) {
+    return;
+  }
+
   // FIXME: Most of the function calls made below are not async-signal
   // safe. We need to fix this in the future to improve McMini's
   // robustness/correctness
