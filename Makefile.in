@@ -60,7 +60,7 @@ mcmini-demo: ${LIBOBJS} libmcrwlock_lib.a
 	${CXX} ${CXXFLAGS} -c -o $@ $<
 
 clean:
-	rm -f ${LIBOBJS} mcmini mcmini-demo
+	rm -f ${LIBOBJS} mcmini libmcmini.so mcmini-demo libmcrwlock_lib.a
 
 dist: clean
 	dir=`basename $$PWD` && cd .. && tar zcvf $$dir.tar.gz ./$$dir
