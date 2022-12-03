@@ -262,6 +262,16 @@ class backCmd(gdb.Command):
     print_mcmini_stats()
 backCmd()
 
+class whereCmd(gdb.Command):
+  """Execute where, while hiding McMini internal call framces"""
+  def __init__(self):
+    super(whereCmd, self).__init__(
+        "mcmini where", gdb.COMMAND_USER
+    )
+  def invoke(self, args, from_tty):
+    print_user_frames_in_stack()
+whereCmd()
+
 class finishTraceCmd(gdb.Command):
   """Execute until next trace"""
   breakpoint_for_next_transition = None
