@@ -83,7 +83,7 @@ def print_user_frames_in_stack():
   level = 0
   mcmini_num_frame_levels = 0
   frame = gdb.newest_frame()
-  while (True):
+  while True:
     frame = frame.older()
     if not frame:
       break
@@ -102,8 +102,8 @@ def print_user_frames_in_stack():
   gdb.execute("bt " + str(- (level - mcmini_num_frame_levels)))
 def find_call_frame(name):
   frame = gdb.newest_frame()
-  while (frame):
-    if (frame.name() == name):
+  while frame:
+    if frame.name() == name:
       return frame
     frame = frame.older()
   return None
@@ -336,6 +336,10 @@ class gotoTraceCmd(gdb.Command):
     else:
       print("Missing integer <traceId> argument\n")
       return
+    if iterations <= int(gdb.parse_and_eval("traceId")):
+      print("*** Current traceId: " + str(gdb.parse_and_eval("traceId")) +
+            "; Can't go to earlier trace; skipping command\n")
+      return
     if gdb.selected_frame().name() == "main":
       gdb.execute("continue")
     if gdb.selected_inferior().num != 1:
@@ -348,7 +352,7 @@ class gotoTraceCmd(gdb.Command):
                             "(unsigned long)",
                           gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
     bkpt.silent = True
-    while (int(gdb.parse_and_eval("traceId")) < iterations):
+    while int(gdb.parse_and_eval("traceId")) < iterations:
       gdb.execute("continue")
     bkpt.delete()
     gdb.execute("set detach-on-fork off")
