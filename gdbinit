@@ -25,7 +25,13 @@ set schedule-multiple on
 ## Newer GDBs can use "tui disable" to undo "layout src"
 ## We should test if "tui disable" works, and then use it.
 
-source gdbinit_commands.py
+# source [$MCMINI_ROOT/]gdbinit_commands.py"
+python import os
+python DIR = ""
+python if os.environ.get("MCMINI_ROOT"): DIR = os.environ["MCMINI_ROOT"]+"/"
+python if DIR: gdb.execute("dir " + DIR)
+python print("source " + DIR + "gdbinit_commands.py")
+python gdb.execute("source " + DIR + "gdbinit_commands.py")
 
 # Stop at main in scheduler.
 # Later, whenever we fork into target process, stop at main.
