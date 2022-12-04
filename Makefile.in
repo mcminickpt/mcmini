@@ -61,7 +61,9 @@ mcmini-demo: ${LIBOBJS} libmcrwlock_lib.a
 
 clean:
 	rm -f ${LIBOBJS} mcmini libmcmini.so mcmini-demo libmcrwlock_lib.a
+distclean: clean
+	rm -f Makefile mcmini-gdb
 
-dist: clean
+dist: distclean
 	dir=`basename $$PWD` && cd .. && tar zcvf $$dir.tar.gz ./$$dir
 	dir=`basename $$PWD` && ls -l ../$$dir.tar.gz

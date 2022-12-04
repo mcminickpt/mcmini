@@ -29,5 +29,8 @@ AC_FUNC_MALLOC
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([atexit ftruncate setenv strtoul])
 
+AC_SUBST(PWD)
+
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([mcmini-gdb], [chmod a+x mcmini-gdb])
 AC_OUTPUT

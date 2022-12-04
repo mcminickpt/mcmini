@@ -1,0 +1,10 @@
+#!/bin/sh
+
+export MCMINI_ROOT=@PWD@
+if test "$1" == ""; then
+  echo "USAGE:  $0 [OPTIONS] TARGET_FILE"
+  $MCMINI_ROOT/mcmini
+  exit 1
+fi
+
+gdb -x $MCMINI_ROOT/gdbinit --args $MCMINI_ROOT/mcmini $*

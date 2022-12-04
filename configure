@@ -651,6 +651,7 @@ ac_includes_default="\
 ac_header_c_list=
 ac_func_c_list=
 ac_subst_vars='LTLIBOBJS
+PWD
 LIBOBJS
 host_os
 host_vendor
@@ -5063,7 +5064,11 @@ then :
 fi
 
 
+
+
 ac_config_files="$ac_config_files Makefile"
+
+ac_config_files="$ac_config_files mcmini-gdb"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -5766,6 +5771,7 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "mcmini-gdb") CONFIG_FILES="$CONFIG_FILES mcmini-gdb" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -6179,6 +6185,11 @@ which seems to be undefined.  Please make sure it is defined" >&2;}
 
   esac
 
+
+  case $ac_file$ac_mode in
+    "mcmini-gdb":F) chmod a+x mcmini-gdb ;;
+
+  esac
 done # for ac_tag
 
 
