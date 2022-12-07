@@ -277,12 +277,10 @@ mc_do_model_checking_when_asked()
   MC_PROGRAM_TYPE program = mc_run_initial_trace_with_log();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
-  //Aayushi
+  //replaying the log stack
   for(int i = 0;i<10;i++){
-    programState->reflectStateAtTransitionIndex(i);
+    programState->reflectStateAtLogIndex(i);
   }
-
-//end Aayushi
   MCOptional<int> nextBranchPoint =
     programState->getDeepestDPORBranchPoint();
 

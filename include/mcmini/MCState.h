@@ -285,6 +285,12 @@ private:
    */
   void virtuallyRerunTransitionAtIndex(int);
 
+/**
+   * @brief Fully re-execute a transition from log stack, updating any per-thread
+   * data structures as if the transition were executed anew
+   */
+  void virtuallyReplayLogStack(int);
+  
   /**
    * @brief Performs the actual un-execution of the given transition
    * on the "live" objects of the current state
@@ -415,6 +421,11 @@ public:
    * executed according to the transition stack
    */
   std::vector<tid_t> getThreadIdBacktrace() const;
+
+  //MARK: Log Stack
+  MCTransition &getLogAtIndex(int) const;
+  MCTransition &getLogStackTop() const;
+  uint64_t getLogStackSize() const;
 
   // MARK: State stack
 
@@ -568,6 +579,8 @@ public:
    * last(transition_stack[0...tIndex])
    */
   void reflectStateAtTransitionIndex(uint32_t tIndex);
+
+  void reflectStateAtLogIndex(uint32_t lIndex);
 
   // TODO: De-couple priting from the state stack + transitions
   void printTransitionStack() const;

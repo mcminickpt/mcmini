@@ -139,6 +139,13 @@ MCState::getTransitionStackSize() const
 }
 
 uint64_t
+MCState::getLogStackSize() const
+{
+  if (this->logStackTop < 0) return 0;
+  return this->logStackTop + 1;
+}
+
+uint64_t
 MCState::getStateStackSize() const
 {
   if (this->stateStackTop < 0) return 0;
@@ -181,6 +188,18 @@ MCState::getTransitionStackTop() const
 {
   return this->getTransitionAtIndex(this->transitionStackTop);
 }
+
+MCTransition &
+MCState::getLogAtIndex(int i)const{
+  return *this->logStack[i];
+}
+
+MCTransition &
+MCState::getLogStackTop() const
+{
+  return this->getLogAtIndex(this->logStackTop);
+}
+
 
 tid_t
 MCState::getThreadRunningTransitionAtIndex(int i) const
@@ -524,6 +543,19 @@ MCState::virtuallyRerunTransitionAtIndex(int i)
 }
 
 void
+MCState::virtuallyReplayLogStack(int i)
+{
+  MC_ASSERT(i >= 0);
+  const MCTransition &transition = this->getLogAtIndex(i);
+  const tid_t tid                = transition.getThreadId();
+  this->virtuallyApplyTransition(transition);
+  this->incrementThreadDepthIfNecessary(transition);
+  this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(i);
+  MCClockVector cv = clockVectorForTransitionAtIndex(i);
+  this->getThreadDataForThread(tid).setClockVector(cv);
+}
+
+void
 MCState::virtuallyRevertTransitionAtIndex(int i)
 {
   MC_ASSERT(i >= 0);
@@ -767,6 +799,12 @@ MCState::reset()
   this->stateStackTop      = -1;
   this->transitionStackTop = -1;
   this->nextThreadId       = 0;
+}
+
+void 
+MCState::reflectStateAtLogIndex(uint32_t index){
+  this->virtuallyReplayLogStack(index);
+  this->stateStackTop      = index + 1;
 }
 
 void
