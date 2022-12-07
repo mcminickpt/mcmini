@@ -804,7 +804,7 @@ MCState::reset()
 void 
 MCState::reflectStateAtLogIndex(uint32_t index){
   this->virtuallyReplayLogStack(index);
-  this->stateStackTop      = index + 1;
+  this->stateStackTop++;
 }
 
 void
