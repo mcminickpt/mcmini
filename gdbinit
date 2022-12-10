@@ -8,9 +8,6 @@ set pagination off
 set detach-on-fork off
 set print pretty
 set print address off
-# Stop if about to exit:
-break _exit
-set variable $bpnum_exit = $bpnum
 # In McMini, parent sends SIGUSR1 to child on exit.
 handle SIGUSR1 nostop noprint pass
 handle SIGUSR2 nostop noprint pass
@@ -40,6 +37,12 @@ run
 
 tbreak execvp
 continue
+
+python if (not gdb.selected_inferior().threads()): sys.exit(1)
+
+# Stop if about to exit:
+break _exit
+set variable $bpnum_exit = $bpnum
 
 tbreak 'mcmini_main()'
 continue
