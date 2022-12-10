@@ -19,9 +19,11 @@ main(int argc, char *argv[])
 
   // TODO: Use argp.h instead (more options, better descriptions, etc)
   while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
-    if (strcmp(cur_arg[0], "--max-trace-depth") == 0 ||
+    if (strcmp(cur_arg[0], "--max-depth-per-thread") == 0 ||
         strcmp(cur_arg[0], "-m") == 0) {
-      // FIXME: "env_max_thread_depth":Just use "MCMINI_MAX_THREAD_DEPTH" below.
+      // FIXME: "env_max_thread_depth":
+      //           Just use "MCMINI_MAX_DEPTH_PER_THREAD" below, everywhere.
+      //           There's no need to add a '#define' to hide the env var name.
       setenv(ENV_MAX_THREAD_DEPTH, cur_arg[1], 1);
       cur_arg += 2;
     }
@@ -32,6 +34,7 @@ main(int argc, char *argv[])
     else if (strcmp(cur_arg[0], "--debug-at-trace") == 0 ||
              strcmp(cur_arg[0], "-d") == 0) {
       // FIXME: "env_debug_at_trace": Just use "MCMINI_DEBUG_AT_TRACE" below.
+      //        There's no need to add a '#define' to hide the env var name.
       setenv(ENV_DEBUG_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;
     }
@@ -41,11 +44,17 @@ main(int argc, char *argv[])
     }
     else if (strcmp(cur_arg[0], "--verbose") == 0 ||
              strcmp(cur_arg[0], "-v") == 0) {
+      // FIXME: ENV_VERBOSE: Just use "MCMINI_VERBOSE" below and everywhere.
+      //        There's no need to add a '#define' to hide the env var name.
       setenv(ENV_VERBOSE, "1", 1);
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--first-deadlock") == 0 ||
-             strcmp(cur_arg[0], "-first") == 0) {
+             strcmp(cur_arg[0], "--first") == 0 ||
+             strcmp(cur_arg[0], "-f") == 0) {
+      // FIXME: ENV_STOP_AT_FIRST_DEADLOCK: Just use "MCMINI_FIRST_DEADLOCK"
+      //           below and everywhere.
+      //        There's no need to add a '#define' to hide the env var name.
       setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
       cur_arg++;
     }
@@ -54,16 +63,16 @@ main(int argc, char *argv[])
       setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--print") == 0) {
+    else if (strcmp(cur_arg[0], "--print-at-trace") == 0) {
       setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;
     }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
       fprintf(stderr,
-              "Usage: mcmini [--max-trace-depth|-m <num>] "
+              "Usage: mcmini [--max-depth-per-thread|-m <num>] "
               "[--debug-at-trace|-d <num>]\n"
-              "[--first-deadlock|-first] [--print]\n"
+              "[--first-deadlock|-first] [--print-at-trace]\n"
               "[--verbose|-v] [--help|-h] target_executable\n");
       exit(1);
     }

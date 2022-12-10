@@ -250,13 +250,19 @@ bool
 MCState::isInDeadlock() const
 {
   /*
-   * We artificially restrict deadlock reports to those in which the
-   * total thread depth is at most the total allowed by the program
+   * FIXME:  This 'if' statement is being commented out.
+   *         In the future, we could consider a new flag, --max-total-depth
+   *         So, the code here is kept, to be re-purposed.
    */
-  if (this->totalThreadExecutionDepth() >
-      this->configuration.maxThreadExecutionDepth) {
-    return false;
-  }
+  /*
+   * We artificially restrict deadlock reports to those in which the
+   * total thread depth is at most the total allowed by the program.
+   *
+   * if (this->totalThreadExecutionDepth() >
+   *     this->configuration.maxThreadExecutionDepth) {
+   *   return false;
+   * }
+   */
 
   const auto numThreads = this->getNumProgramThreads();
   for (tid_t tid = 0; tid < numThreads; tid++) {
