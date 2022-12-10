@@ -209,7 +209,7 @@ mc_do_model_checking()
   // appropriate point with a getcontext()/setcontext() that will
   // bring the trace process to the correct process as an alternative?
   // It hurts readability to have the forked traces needing to escape
-  // in this wasy
+  // in this way.
   MC_PROGRAM_TYPE program = mc_run_initial_trace();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
@@ -593,6 +593,19 @@ mc_report_undefined_behavior(const char *msg)
 
 /* GDB Interface */
 
+// FIXME:
+//   This uses:  mc_exit_with_trace_if_necessary(), stackContentDumpTraceNumber,
+//     isTargetTraceIdForStackContents, stackContentDumpTraceNumberChar,
+//     MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP; (UINT64_MAX),
+//     getenv(ENV_PRINT_AT_TRACE), "env_print_at_trace"
+//   And it uses 'trid_t' to hide the meaningful name 'traceId_t'.
+//   All you really need is:
+//     if (getenv("MCMINI_PRINT") && strtoul(getenv("MCMINI_PRINT", NULL, 10)) {
+//       ...
+//     }
+//   Also '--print' should probably be '--print-at-trace'.  But the name
+//     is still not meaningful.  Why does '--print' mean to stop at
+//     some trace?
 void
 mc_exit_with_trace_if_necessary(trid_t trid)
 {
@@ -627,6 +640,36 @@ get_config_for_execution_environment()
   // environment. This suggests that mcmini would be better as a
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
+  // FIXME: I disagree.  launch.cpp gets the flags, and passes them
+  //        across an exec.
+  //        The standard way is exactly to use environment variables.
+  //        My biggest complaint is that we have three or four names
+  //        for each flag, thus hiding from the developer that they
+  //        are all the same thing.  For example:
+  //        ENV_MAX_THREAD_DEPTH, "env_max_thread_depth",
+  //          maxThreadDepthChar, maxThreadDepth
+  //        Just use:  getenv("env_max_thread_depth") and maxThreadDepth
+  //        But that also defies the convention that environment var's
+  //          are all capitals, and that an env var begins with the
+  //          name of the executable using it.  So, even better is just:
+  //          setenv("MCMINI_MAX_DEPTH_PER_THREAD", ...), and
+  //          getenv("MCMINI_MAX_DEPTH_PER_THREAD") and maxDepthPerThread
+  //          and then remove dead code for '#define ENV_XXX' and
+  //          remove dead code for maxThreadDepthChar
+  // FIXME: The extra complication above then causes weird code like:
+  //          if (programState->getConfiguration().stopAtFirstDeadlock) {  ... }
+  //        It's so much simpler to write:
+  //          if (getenv("MCMINI_FIRST_DEADLOCK" != NULL)) { ... }
+  //        And if you really think that's slow (It's not; don't do premature
+  //          optimization.), then:
+  //          static bool firstDeadlock = (getenv("MCMINI_FIRST_DEADLOCK") == NULL);
+  //          if (firstDeadlock) {...}
+  //          [ And keep the above two lines adjacent for clarity. ]
+  //       [ By the way, 'nullptr' is overkill here.  It is needed in C++
+  //         for cases of overloaded functions.  But 'getenv()' is not
+  //         overloaded.  Debugging with nullptr in GDB makes things
+  //         unnecessarily harder, and here, it's for no reason.
+  //         So, we should do 'nullptr->NULL' everywhere here. ]
   uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
   trid_t gdbTraceNumber   = MC_STATE_CONFIG_NO_GDB_TRACE;
   trid_t stackContentDumpTraceNumber =
