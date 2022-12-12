@@ -86,7 +86,7 @@ continue
 
 ## Python nextTransition will set this:
 ## break mc_new_trace_at_current_state()
-## break mc_shared_cv_wait_for_scheduler
+## break mc_shared_sem_wait_for_scheduler
 # break thread_await_scheduler_for_thread_start_transition
 # NOT NEEDED:  set follow-fork-mode child
 #   We 'set detach-on-fork off'

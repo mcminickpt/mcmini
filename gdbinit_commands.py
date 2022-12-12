@@ -92,7 +92,7 @@ def print_user_frames_in_stack():
          (frame.name().startswith("mc_") or
           frame.name().startswith("__real_") or
           frame.name() == "thread_await_scheduler_for_thread_start_transition")
-        and 
+        and
          (frame.name() != "mc_thread_routine_wrapper" or
           frame.newer().name() ==
                          "thread_await_scheduler_for_thread_start_transition")
@@ -232,7 +232,7 @@ class forwardCmd(gdb.Command):
       gdb.execute("set build-id-verbose 0")
     except:
       pass
-    continue_until("mc_shared_cv_wait_for_scheduler")
+    continue_until("mc_shared_sem_wait_for_scheduler")
     transitionId += 1
     if "quiet" not in args:
       print_user_frames_in_stack()
@@ -325,10 +325,10 @@ class nextTraceCmd(gdb.Command):
     bkptMain.silent = True
     if targetTraceId > 1:
       for i in range(targetTraceId - 1):
-        continue_until("mc_shared_cv_wait_for_scheduler")
+        continue_until("mc_shared_sem_wait_for_scheduler")
         gdb.execute("mcmini finishTrace")
     # Now continue until in child process.
-    continue_until("mc_shared_cv_wait_for_scheduler")
+    continue_until("mc_shared_sem_wait_for_scheduler")
     # We should now be in the next child process.
     if "quiet" not in args:
       print_mcmini_stats()
@@ -391,7 +391,7 @@ class developerModeCmd(gdb.Command):
     gdb.execute("break mc_run_thread_to_next_visible_operation(unsigned long)")
     # current_inferior = gdb.selected_inferior().num
     # gdb.execute("inferior 1") # Set inferior to scheduler
-    # scheduler_call_frame_fnc = "mc_shared_cv_wait_for_thread"
+    # scheduler_call_frame_fnc = "mc_shared_sem_wait_for_thread"
     # gdb.execute("break " + scheduler_call_frame_fnc)
     # This next command forces a GDB-internal bug in gdb-12.0
     # gdb.FinishBreakpoint().__init__(find_call_frame_fnc(scheduler_call_frame_fnc))

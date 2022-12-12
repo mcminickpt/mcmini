@@ -7,9 +7,9 @@ void
 thread_await_scheduler()
 {
   MC_ASSERT(tid_self != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
-  mc_shared_cv_wake_scheduler(cv);
-  mc_shared_cv_wait_for_scheduler(cv);
+  mc_shared_sem_ref cv = &(*trace_sleep_list)[tid_self];
+  mc_shared_sem_wake_scheduler(cv);
+  mc_shared_sem_wait_for_scheduler(cv);
 }
 
 // NOTE: This should only be called in one location:
@@ -23,16 +23,16 @@ void
 thread_await_scheduler_for_thread_start_transition()
 {
   MC_ASSERT(tid_self != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
-  mc_shared_cv_wait_for_scheduler(cv);
+  mc_shared_sem_ref cv = &(*trace_sleep_list)[tid_self];
+  mc_shared_sem_wait_for_scheduler(cv);
 }
 
 void
 thread_awake_scheduler_for_thread_finish_transition()
 {
   MC_ASSERT(tid_self != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid_self];
-  mc_shared_cv_wake_scheduler(cv);
+  mc_shared_sem_ref cv = &(*trace_sleep_list)[tid_self];
+  mc_shared_sem_wake_scheduler(cv);
 }
 
 void

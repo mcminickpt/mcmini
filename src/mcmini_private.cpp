@@ -6,7 +6,7 @@
 #include <vector>
 
 extern "C" {
-#include "mcmini/mc_shared_cv.h"
+#include "mcmini/mc_shared_sem.h"
 #include <cassert>
 #include <cstdio>
 #include <fcntl.h>
@@ -27,7 +27,7 @@ pid_t trace_pid                = -1;
  * The process id of the scheduler
  */
 pid_t scheduler_pid = -1;
-mc_shared_cv (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
+mc_shared_sem (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
   nullptr;
 sem_t mc_pthread_create_binary_sem;
 
@@ -336,15 +336,15 @@ void
 mc_initialize_trace_sleep_list()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
-    mc_shared_cv_init(&(*trace_sleep_list)[i]);
+    mc_shared_sem_init(&(*trace_sleep_list)[i]);
 }
 
 void
 mc_reset_cv_locks()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
-    mc_shared_cv_destroy(&(*trace_sleep_list)[i]);
-    mc_shared_cv_init(&(*trace_sleep_list)[i]);
+    mc_shared_sem_destroy(&(*trace_sleep_list)[i]);
+    mc_shared_sem_init(&(*trace_sleep_list)[i]);
   }
 }
 
@@ -444,9 +444,9 @@ void
 mc_run_thread_to_next_visible_operation(tid_t tid)
 {
   MC_ASSERT(tid != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid];
-  mc_shared_cv_wake_thread(cv);
-  mc_shared_cv_wait_for_thread(cv);
+  mc_shared_sem_ref cv = &(*trace_sleep_list)[tid];
+  mc_shared_sem_wake_thread(cv);
+  mc_shared_sem_wait_for_thread(cv);
 }
 
 void
