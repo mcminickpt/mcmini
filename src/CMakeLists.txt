@@ -1,6 +1,6 @@
 set(MAIN_FUNCTION main.cpp)
 set(MC_C_FILES
-  mc_shared_cv.c
+  mc_shared_sem.c
   MCCommon.c
   transitions/wrappers/MCSharedLibraryWrappers.c
 )

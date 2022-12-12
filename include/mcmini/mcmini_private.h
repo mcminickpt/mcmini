@@ -10,7 +10,7 @@
 extern "C" {
 #include "mcmini/MCCommon.h"
 #include "mcmini/MCEnv.h"
-#include "mcmini/mc_shared_cv.h"
+#include "mcmini/mc_shared_sem.h"
 }
 
 /**
@@ -92,7 +92,8 @@ extern pid_t trace_pid;
  * indexing the list with the thread ID and instead think of the
  * thread ID as a key in a map
  */
-extern mc_shared_cv (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM];
+extern mc_shared_sem (
+  *trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM];
 
 /**
  * @brief Initializes the variables in the global `trace_sleep_list`
