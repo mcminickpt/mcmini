@@ -70,6 +70,12 @@ private:
   std::shared_ptr<MCTransition>
     transitionStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
 
+  //Aayushi
+  int logStackTop = -1;
+  std::shared_ptr<MCTransition>
+    logStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
+
+
   /**
    * A pointer to the top-most element in the state stack
    */
@@ -244,6 +250,10 @@ private:
    */
   void growTransitionStackRunning(const MCTransition &t);
 
+//Aayushi
+  void growTransitionLogStackRunning(const MCTransition &t);
+
+
   /**
    * @brief Performs the actual execution of the given transition on
    * the "live" objects of the current state
@@ -275,6 +285,12 @@ private:
    */
   void virtuallyRerunTransitionAtIndex(int);
 
+/**
+   * @brief Fully re-execute a transition from log stack, updating any per-thread
+   * data structures as if the transition were executed anew
+   */
+  void virtuallyReplayLogStack(int);
+  
   /**
    * @brief Performs the actual un-execution of the given transition
    * on the "live" objects of the current state
@@ -406,6 +422,11 @@ public:
    */
   std::vector<tid_t> getThreadIdBacktrace() const;
 
+  //MARK: Log Stack
+  MCTransition &getLogAtIndex(int) const;
+  MCTransition &getLogStackTop() const;
+  uint64_t getLogStackSize() const;
+
   // MARK: State stack
 
   MCStateStackItem &getStateItemAtIndex(int) const;
@@ -515,6 +536,10 @@ public:
   // things
   void simulateRunningTransition(const MCTransition &,
                                  MCSharedTransition *, void *);
+                        
+  //Aayushi
+  void simulateRunningTransitionWithLog(const MCTransition &,
+                                 MCSharedTransition *, void *);
   void dynamicallyUpdateBacktrackSets();
 
   bool isInDeadlock() const;
@@ -554,6 +579,8 @@ public:
    * last(transition_stack[0...tIndex])
    */
   void reflectStateAtTransitionIndex(uint32_t tIndex);
+
+  void reflectStateAtLogIndex(uint32_t lIndex);
 
   // TODO: De-couple priting from the state stack + transitions
   void printTransitionStack() const;
