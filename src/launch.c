@@ -41,8 +41,6 @@ main(int argc, char *argv[])
     }
     else if (strcmp(cur_arg[0], "--verbose") == 0 ||
              strcmp(cur_arg[0], "-v") == 0) {
-      // FIXME: ENV_VERBOSE: Just use "MCMINI_VERBOSE" below and everywhere.
-      //        There's no need to add a '#define' to hide the env var name.
       setenv(ENV_VERBOSE, "1", 1);
       cur_arg++;
     }
