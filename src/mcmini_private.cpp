@@ -642,15 +642,13 @@ get_config_for_execution_environment()
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
   trid_t gdbTraceNumber   = MC_STATE_CONFIG_NO_GDB_TRACE;
-  trid_t stackContentDumpTraceNumber =
-    MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
+  trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
 
   /* Parse the max thread depth from the command line (if available)
    */
   char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
-  char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
   char *expectForwardProgressOfThreadsChar =
     getenv(ENV_CHECK_FORWARD_PROGRESS);
 
@@ -662,9 +660,10 @@ get_config_for_execution_environment()
   if (gdbTraceNumberChar != nullptr)
     gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
 
-  if (stackContentDumpTraceNumberChar != nullptr)
+  if (getenv(ENV_PRINT_AT_TRACE) != NULL) {
     stackContentDumpTraceNumber =
-      strtoul(stackContentDumpTraceNumberChar, nullptr, 10);
+      strtoul(getenv(ENV_PRINT_AT_TRACE), nullptr, 10);
+  }
 
   if (expectForwardProgressOfThreadsChar != nullptr)
     expectForwardProgressOfThreads = true;
