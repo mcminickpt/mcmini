@@ -30,8 +30,6 @@ main(int argc, char *argv[])
     }
     else if (strcmp(cur_arg[0], "--debug-at-trace") == 0 ||
              strcmp(cur_arg[0], "-d") == 0) {
-      // FIXME: "env_debug_at_trace": Just use "MCMINI_DEBUG_AT_TRACE" below.
-      //        There's no need to add a '#define' to hide the env var name.
       setenv(ENV_DEBUG_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;
     }
