@@ -545,7 +545,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
     programState->printTransitionStack();
     programState->printNextTransitions();
 
-    if (programState->getConfiguration().stopAtFirstDeadlock) {
+    if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
       mcprintf("*** Model checking completed! ***\n");
       mcprintf("Number of transitions: %lu\n", transitionId);
       mc_exit(EXIT_SUCCESS);
@@ -652,7 +652,6 @@ get_config_for_execution_environment()
   char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
   char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
   char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
-  char *firstDeadlockChar = getenv(ENV_STOP_AT_FIRST_DEADLOCK);
   char *expectForwardProgressOfThreadsChar =
     getenv(ENV_CHECK_FORWARD_PROGRESS);
 
@@ -670,7 +669,9 @@ get_config_for_execution_environment()
   if (expectForwardProgressOfThreadsChar != nullptr)
     expectForwardProgressOfThreads = true;
 
-  if (firstDeadlockChar != nullptr) firstDeadlock = true;
+  if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
+    firstDeadlock = true;
+  }
 
   return {maxThreadDepth, gdbTraceNumber, stackContentDumpTraceNumber,
           firstDeadlock, expectForwardProgressOfThreads};
