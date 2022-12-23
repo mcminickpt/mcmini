@@ -52,10 +52,7 @@ main(int argc, char *argv[])
     else if (strcmp(cur_arg[0], "--first-deadlock") == 0 ||
              strcmp(cur_arg[0], "--first") == 0 ||
              strcmp(cur_arg[0], "-f") == 0) {
-      // FIXME: ENV_STOP_AT_FIRST_DEADLOCK: Just use "MCMINI_FIRST_DEADLOCK"
-      //           below and everywhere.
-      //        There's no need to add a '#define' to hide the env var name.
-      setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
+      setenv(ENV_FIRST_DEADLOCK, "1", 1);
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 ||
