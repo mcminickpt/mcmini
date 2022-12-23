@@ -646,11 +646,6 @@ get_config_for_execution_environment()
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
 
-  /* Parse the max thread depth from the command line (if available)
-   */
-  char *expectForwardProgressOfThreadsChar =
-    getenv(ENV_CHECK_FORWARD_PROGRESS);
-
   // TODO: Sanitize arguments (check errors of strtoul)
   if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
     maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
@@ -664,9 +659,9 @@ get_config_for_execution_environment()
     stackContentDumpTraceNumber =
       strtoul(getenv(ENV_PRINT_AT_TRACE), nullptr, 10);
   }
-
-  if (expectForwardProgressOfThreadsChar != nullptr)
+  if (getenv(ENV_CHECK_FORWARD_PROGRESS) != NULL) {
     expectForwardProgressOfThreads = true;
+  }
 
   if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
     firstDeadlock = true;
