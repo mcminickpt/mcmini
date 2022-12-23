@@ -649,15 +649,15 @@ get_config_for_execution_environment()
 
   /* Parse the max thread depth from the command line (if available)
    */
-  char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
   char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
   char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
   char *expectForwardProgressOfThreadsChar =
     getenv(ENV_CHECK_FORWARD_PROGRESS);
 
   // TODO: Sanitize arguments (check errors of strtoul)
-  if (maxThreadDepthChar != nullptr)
-    maxThreadDepth = strtoul(maxThreadDepthChar, nullptr, 10);
+  if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
+    maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
+  }
 
   if (gdbTraceNumberChar != nullptr)
     gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
