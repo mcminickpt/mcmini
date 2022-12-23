@@ -887,12 +887,14 @@ MCState::printNextTransitions() const
   mcflush();
 }
 
+// FIXME:  This is not used.
 bool
 MCState::isTargetTraceIdForGDB(trid_t trid) const
 {
   return this->configuration.gdbDebugTraceNumber == trid;
 }
 
+// FIXME:  This is not used.
 bool
 MCState::isTargetTraceIdForStackContents(trid_t trid) const
 {

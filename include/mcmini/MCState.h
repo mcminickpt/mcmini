@@ -520,6 +520,7 @@ public:
   bool isInDeadlock() const;
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
+  // FIXME:  These two methods are not used.
   bool isTargetTraceIdForGDB(trid_t) const;
   bool isTargetTraceIdForStackContents(trid_t) const;
 
