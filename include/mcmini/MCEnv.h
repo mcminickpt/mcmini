@@ -7,6 +7,6 @@
 #define ENV_FIRST_DEADLOCK         "MCMINI_FIRST_DEADLOCK"
 #define ENV_CHECK_FORWARD_PROGRESS "env_check_forward_progress"
 #define ENV_LONG_TEST              "MCMINI_LONG_TEST"
-#define ENV_VERBOSE                "VERBOSE"
+#define ENV_VERBOSE                "MCMINI_VERBOSE"
 
 #endif // MC_MCENV_H
