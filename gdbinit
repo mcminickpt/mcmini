@@ -23,10 +23,14 @@ set schedule-multiple on
 ## We should test if "tui disable" works, and then use it.
 
 # source [$MCMINI_ROOT/]gdbinit_commands.py"
-python import os
+python import os, sys
 python DIR = ""
 python if os.environ.get("MCMINI_ROOT"): DIR = os.environ["MCMINI_ROOT"]+"/"
 python if DIR: gdb.execute("dir " + DIR)
+python if os.path.isfile("NO-GDB-G3"): \
+  print("\n*** Not compiled with -g3.  Please call:\n" + \
+        "***                             make clean && make -j9 debug"); \
+  sys.exit(1)
 python print("source " + DIR + "gdbinit_commands.py")
 python gdb.execute("source " + DIR + "gdbinit_commands.py")
 
