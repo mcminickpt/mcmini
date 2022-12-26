@@ -63,6 +63,10 @@ main(int argc, char *argv[])
       setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--long-test") == 0) {
+      setenv(ENV_LONG_TEST, "1", 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--print-at-trace") == 0) {
       setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;

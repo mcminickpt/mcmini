@@ -67,9 +67,22 @@ const size_t shmAllocationSize =
 /* Program state */
 MCDeferred<MCState> programState;
 
+void alarm_handler(int sig) {
+  if (sig == SIGALRM) {
+    fprintf(stderr, "\n *** mcmini exiting after one hour.  To avoid, this,\n"
+             " *** Use flag '--long-test' or  MCMINI_LONG_TEXT env. var.\n\n");
+    _exit(1);  // Note:  McMini wraps 'exit()'.  So, we use '_exit()'.
+  }
+}
+
+// FIXME:  Replace MC_CTOR by ...constructor..., to find it when using 'grep'
 MC_CTOR void
 mcmini_main()
 {
+  if (getenv(ENV_LONG_TEST) == NULL) {
+    alarm(3600); // one hour
+    signal(SIGALRM , alarm_handler);
+  }
   mc_load_intercepted_symbol_addresses();
   mc_create_global_state_object();
   mc_initialize_shared_memory_globals();
