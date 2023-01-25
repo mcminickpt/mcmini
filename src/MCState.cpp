@@ -544,13 +544,14 @@ MCState::virtuallyRerunTransitionAtIndex(int i)
 
 void
 MCState::virtuallyReplayLogStack(int i)
-{
+{ printf("\n in virtual replay function \n");
+  printf("i = %d", i);
   MC_ASSERT(i >= 0);
   const MCTransition &transition = this->getLogAtIndex(i);
   const tid_t tid                = transition.getThreadId();
   this->virtuallyApplyTransition(transition);
   this->incrementThreadDepthIfNecessary(transition);
-  this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(i);
+  // this->getThreadDataForThread(tid).pushNewLatestExecutionPoint(i);
   MCClockVector cv = clockVectorForTransitionAtIndex(i);
   this->getThreadDataForThread(tid).setClockVector(cv);
 }
@@ -803,6 +804,7 @@ MCState::reset()
 
 void 
 MCState::reflectStateAtLogIndex(uint32_t index){
+  printf("Replaying \n");
   this->virtuallyReplayLogStack(index);
   this->stateStackTop++;
 }
@@ -932,6 +934,21 @@ MCState::printTransitionStack() const
   }
   for (int i = 0; i <= this->transitionStackTop; i++) {
     const tid_t tid = this->getTransitionAtIndex(i).getThreadId();
+    printf("%lu, ", tid);
+  }
+  printf("\nEND\n");
+  mcflush();
+}
+
+void
+MCState::printLogStack() const
+{
+  printf("LOG STACK\n");
+  for (int i = 0; i <= this->logStackTop; i++) {
+    this->getLogAtIndex(i).print();
+  }
+  for (int i = 0; i <= this->logStackTop; i++) {
+    const tid_t tid = this->getLogAtIndex(i).getThreadId();
     printf("%lu, ", tid);
   }
   printf("\nEND\n");

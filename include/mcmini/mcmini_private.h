@@ -237,9 +237,11 @@ MC_PROGRAM_TYPE mc_do_model_checking_when_asked();
  * for testing
  */
 MC_PROGRAM_TYPE mc_run_initial_trace();
+MC_PROGRAM_TYPE mc_run_new_initial_trace(const tid_t tid_new);
+
 
 //Aayushi
-MC_PROGRAM_TYPE mc_run_initial_trace_with_log();
+MC_PROGRAM_TYPE mc_record_log();
 
 
 /**

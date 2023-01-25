@@ -206,9 +206,23 @@ mc_run_initial_trace()
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
   return MC_SCHEDULER;
 }
+
+MC_PROGRAM_TYPE
+mc_run_new_initial_trace(const tid_t new_init)
+{
+  // MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
+  // if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+
+  mc_search_dpor_branch_with_initial_thread(new_init);
+  mc_exit_with_trace_if_necessary(traceId);
+  // program = mc_rerun_current_trace_as_needed();
+  traceId++;
+  // if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+  return MC_SCHEDULER;
+}
 //Aayushi
 MC_PROGRAM_TYPE
-mc_run_initial_trace_with_log()
+mc_record_log()
 {
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
@@ -274,13 +288,26 @@ mc_do_model_checking_when_asked()
   // bring the trace process to the correct process as an alternative?
   // It hurts readability to have the forked traces needing to escape
   // in this wasy
-  MC_PROGRAM_TYPE program = mc_run_initial_trace_with_log();
+  MC_PROGRAM_TYPE program = mc_record_log();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
   //replaying the log stack
-  for(int i = 0;i<10;i++){
+  int count=1;
+  for(int i = 0;i<4;i++){
     programState->reflectStateAtLogIndex(i);
+    count++;
   }
+  const MCTransition &newinitialTransition =
+    programState->getLogAtIndex(count);
+
+  const MCTransition *t_new_next = &newinitialTransition;
+  const tid_t tid_new = t_new_next->getThreadId();
+  
+
+  MC_PROGRAM_TYPE program = mc_run_new_initial_trace(tid_new);
+  // if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+
+    
   MCOptional<int> nextBranchPoint =
     programState->getDeepestDPORBranchPoint();
 
@@ -679,6 +706,8 @@ mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadingThr
     programState->printNextTransitions();
   }
 
+  programState->printTransitionStack();
+  programState->printLogStack();
   mc_terminate_trace();
 
 }

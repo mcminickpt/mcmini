@@ -584,6 +584,7 @@ public:
 
   // TODO: De-couple priting from the state stack + transitions
   void printTransitionStack() const;
+  void printLogStack() const;
   void printNextTransitions() const;
 };
 
