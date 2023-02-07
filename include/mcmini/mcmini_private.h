@@ -23,7 +23,7 @@ extern "C" {
  * global variables managing the program state, shared memory, and
  * symbols in the underlying thread libraries.
  */
-MC_CTOR void mcmini_main();
+MC_CONSTRUCTOR void mcmini_main();
 
 /**
  * @brief The ID McMini uses to identify THIS thread, viz.
