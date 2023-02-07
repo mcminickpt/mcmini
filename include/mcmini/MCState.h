@@ -520,9 +520,11 @@ public:
   bool isInDeadlock() const;
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
-  // FIXME:  These two methods are not used.
-  bool isTargetTraceIdForGDB(trid_t) const;
-  bool isTargetTraceIdForStackContents(trid_t) const;
+  inline bool
+  isTargetTraceIdForStackContents(trid_t trid) const
+  {
+    return this->configuration.stackContentDumpTraceNumber == trid;
+  }
 
   // Restarting
   // TODO: This is extremely unclear. I'm going to work on this...
