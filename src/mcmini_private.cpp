@@ -18,6 +18,27 @@ extern "C" {
 
 using namespace std;
 
+
+void signal_handler(int signal){
+  printf("is in signal handler \n");
+   
+   setenv("MODE","1",1);
+ 
+  // myconstructor();
+  exit(0);
+
+}
+/**
+ * Structure function to set env variable and
+ * calling the signal handler.
+*/
+
+void __attribute__ ((constructor))
+myconstructor(){  
+  setenv("MODE","0",1);
+  signal(SIGINT, &signal_handler);
+}
+
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t trace_pid                = -1;
 
@@ -85,18 +106,19 @@ mcmini_main()
 
   //Aayushi
   char* flag = getenv("MODE");
-  if(flag != nullptr){
+  if(flag[0] == '0'){
+    printf("mcmini in ghost mode \n");
     MC_PROGRAM_TYPE program = mc_do_model_checking_when_asked();
   if (MC_IS_TARGET_PROGRAM(program)) return;
   }
 //endAayushi
-  else{
+  if(flag[0] == '1'){
+    printf("mcmini in active mode \n");
     MC_PROGRAM_TYPE program = mc_do_model_checking();
     if (MC_IS_TARGET_PROGRAM(program)) return;
   }
-
-  mcprintf("***** Model checking completed! *****\n");
-  mcprintf("Number of transitions: %lu\n", transitionId);
+    mcprintf("***** Model checking completed! *****\n");
+    mcprintf("Number of transitions: %lu\n", transitionId);
   mcprintf("Number of traces: %lu\n", traceId);
   mc_exit(EXIT_SUCCESS);
 }
@@ -291,46 +313,50 @@ mc_do_model_checking_when_asked()
   MC_PROGRAM_TYPE program = mc_record_log();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
-  //replaying the log stack
+  // replaying the log stack
   int count=1;
-  for(int i = 0;i<4;i++){
+  for(int i = 0;i<10;i++){
+    printf("Starting to replay\n");
+    sleep(10);
     programState->reflectStateAtLogIndex(i);
     count++;
   }
   const MCTransition &newinitialTransition =
     programState->getLogAtIndex(count);
 
-  const MCTransition *t_new_next = &newinitialTransition;
-  const tid_t tid_new = t_new_next->getThreadId();
   
 
-  MC_PROGRAM_TYPE program = mc_run_new_initial_trace(tid_new);
-  // if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+// const MCTransition *t_new_next = &newinitialTransition;
+// const tid_t tid_new = t_new_next->getThreadId();
+  
+
+//      MC_PROGRAM_TYPE program = mc_run_new_initial_trace(tid_new);
+//      if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
     
-  MCOptional<int> nextBranchPoint =
-    programState->getDeepestDPORBranchPoint();
+//   MCOptional<int> nextBranchPoint =
+//     programState->getDeepestDPORBranchPoint();
 
-  while (nextBranchPoint.hasValue()) {
-    const int bp = nextBranchPoint.unwrapped();
-    auto &sNext  = programState->getStateItemAtIndex(bp);
-    const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
+//   while (nextBranchPoint.hasValue()) {
+//     const int bp = nextBranchPoint.unwrapped();
+//     auto &sNext  = programState->getStateItemAtIndex(bp);
+//     const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
 
-    // Prepare the scheduler's model of the next trace
-    programState->reflectStateAtTransitionIndex(bp - 1);
+//     // Prepare the scheduler's model of the next trace
+//     programState->reflectStateAtTransitionIndex(bp - 1);
 
-    // Search the next branch that DPOR dictated needed to be searched
-    program =
-      mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
-    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+//     // Search the next branch that DPOR dictated needed to be searched
+//     program =
+//       mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
+//     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
-    mc_exit_with_trace_if_necessary(traceId);
-    program = mc_rerun_current_trace_as_needed();
-    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+//     mc_exit_with_trace_if_necessary(traceId);
+//     program = mc_rerun_current_trace_as_needed();
+//     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
-    traceId++;
-    nextBranchPoint = programState->getDeepestDPORBranchPoint();
-  }
+//     traceId++;
+//     nextBranchPoint = programState->getDeepestDPORBranchPoint();
+//   }
   return MC_SCHEDULER;
 }
 

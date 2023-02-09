@@ -45,7 +45,7 @@ writer(void *notused)
 
 int
 main()
-{ setenv("MODE","1",1);
+{ 
   mcmini_main();
   pthread_t read_thread[NUM_READERS];
   pthread_t write_thread[NUM_WRITERS];
@@ -65,5 +65,6 @@ main()
   for (i = 0; i < NUM_WRITERS; i++) {
     mc_pthread_join(write_thread[i], NULL);
   }
+  printf("\n $$$$$$$$$$$$$$$ DONE $$$$$$$$$$\n");
   return 0;
 }
