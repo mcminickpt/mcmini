@@ -99,6 +99,8 @@ public:
 
 public:
 
+  virtual ~ConditionVariableWakeupPolicy() = default;
+
   struct invalid_thread_addition : public std::exception {
     const char *
     what() const noexcept override

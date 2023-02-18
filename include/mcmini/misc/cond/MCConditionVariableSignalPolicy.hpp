@@ -51,6 +51,8 @@ struct ConditionVariableSignalPolicy {
    * variable first receiving a broadcast
    */
   virtual WakeGroup receiveBroadcastMessage() = 0;
+
+  virtual ~ConditionVariableSignalPolicy() = default;
 };
 
 } // namespace mcmini

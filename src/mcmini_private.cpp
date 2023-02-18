@@ -595,16 +595,17 @@ mc_report_undefined_behavior(const char *msg)
 {
   mc_terminate_trace();
   fprintf(stderr,
-          "\t Undefined Behavior Detected! \t\n"
-          "\t ............................ \t\n"
-          "\t mcmini aborted the execution of trace %lu because\t\n"
-          "\t it detected undefined behavior\t\n"
-          "\t ............................ \t\n"
-          "\t %s \t\n",
+          "\n"
+          "Undefined Behavior Detected! \t\n"
+          "............................ \t\n"
+          "mcmini aborted the execution of trace %lu because\t\n"
+          "it detected undefined behavior\t\n"
+          "............................ \n"
+          "Reason: %s \t\n\n",
           traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();
-  exit(EXIT_FAILURE);
+  mc_exit(EXIT_FAILURE);
 }
 
 /* GDB Interface */

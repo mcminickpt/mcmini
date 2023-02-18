@@ -28,6 +28,10 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
     "Attempting to wait on a condition variable with an "
     "uninitialized mutex");
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
+    mutexThatExists->isLocked(),
+    "Attempting to wait on a condition variable with a "
+    "mutex that is already unlocked");
+  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
     !condThatExists->isDestroyed(),
     "Attempting to wait on a destroyed condition variable");
 
