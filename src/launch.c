@@ -66,7 +66,7 @@ main(int argc, char *argv[])
       fprintf(stderr,
               "Usage: mcmini [--max-depth-per-thread|-m <num>] "
               "[--debug-at-trace|-d <num>]\n"
-              "[--first-deadlock|-first] [--print-at-trace]\n"
+              "[--first-deadlock|--first] [--print-at-trace]\n"
               "[--verbose|-v] [--help|-h] target_executable\n");
       exit(1);
     }
