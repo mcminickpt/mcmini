@@ -225,7 +225,7 @@ mc_do_model_checking()
   // appropriate point with a getcontext()/setcontext() that will
   // bring the trace process to the correct process as an alternative?
   // It hurts readability to have the forked traces needing to escape
-  // in this wasy
+  // in this way.
   MC_PROGRAM_TYPE program = mc_run_initial_trace();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
@@ -509,7 +509,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
         "*** Execution Limit Reached! ***\n\n"
         "McMini ran a trace with %lu transitions which is\n"
         "the most McMini can currently handle in any one trace. Try\n"
-        "running mcmini with the \"--max-trace-depth\" flag\n"
+        "running mcmini with the \"--max-depth-per-thread\" flag\n"
         "to limit how far into a trace McMini can go\n",
         depth);
       mc_stop_model_checking(EXIT_FAILURE);
