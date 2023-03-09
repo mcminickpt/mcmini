@@ -559,6 +559,12 @@ MCState::simulateRunningTransition(
   // to occur properly
   this->growTransitionStackRunning(transition);
   this->growStateStackRunningTransition(transition);
+
+  // NOTE: After applying the transition, this `MCState`
+  // object has moved into the NEXT state, meaning that
+  // e.g. asking the question "which threads are enabled
+  // now" would ultimate be being asked about the state
+  // that follows AFTER `transition` is executed
   this->virtuallyRunTransition(transition);
 
   tid_t tid = transition.getThreadId();
