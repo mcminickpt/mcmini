@@ -36,7 +36,7 @@ void signal_handler(int signal){
 void __attribute__ ((constructor))
 myconstructor(){  
   setenv("MODE","0",1);
-  signal(SIGINT, &signal_handler);
+  
 }
 
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
@@ -109,7 +109,7 @@ mcmini_main()
   if(flag[0] == '0'){
     printf("mcmini in ghost mode \n");
     MC_PROGRAM_TYPE program = mc_do_model_checking_when_asked();
-  if (MC_IS_TARGET_PROGRAM(program)) return;
+     if (MC_IS_TARGET_PROGRAM(program)) return;
   }
 //endAayushi
   if(flag[0] == '1'){
@@ -246,10 +246,13 @@ mc_run_new_initial_trace(const tid_t new_init)
 MC_PROGRAM_TYPE
 mc_record_log()
 {
+    printf("\n $$$ recording log $$$ \n");
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
   mc_search_dpor_branch_with_initial_thread_with_record_log(TID_MAIN_THREAD);
+  char *mode  = getenv("MODE");
+  if (mode[0] == '1') return MC_SCHEDULER;
   mc_exit_with_trace_if_necessary(traceId);
   program = mc_rerun_current_trace_as_needed();
   traceId++;
@@ -260,6 +263,7 @@ mc_record_log()
 MC_PROGRAM_TYPE
 mc_do_model_checking()
 {
+  printf("\n ***** in do_model_checking *****\n");
   mc_prepare_to_model_check_new_program();
 
   // TODO: This idiom is fairly common... This simply allows
@@ -301,8 +305,8 @@ mc_do_model_checking()
 MC_PROGRAM_TYPE
 mc_do_model_checking_when_asked()
 {
+  printf("\n ***** in do_model_checking_when asked *****\n");
   mc_prepare_to_model_check_new_program();
-
   // TODO: This idiom is fairly common... This simply allows
   // the forked process to exit the constructor all of the stack
   // frames find themselves in. Perhaps we could jump to the
@@ -313,14 +317,19 @@ mc_do_model_checking_when_asked()
   MC_PROGRAM_TYPE program = mc_record_log();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
+  
+
   // replaying the log stack
   int count=1;
   for(int i = 0;i<10;i++){
     printf("Starting to replay\n");
     sleep(10);
-    programState->reflectStateAtLogIndex(i);
-    count++;
+    // programState->reflectStateAtLogIndex(i);
+    // count++;
   }
+
+  char *mode = getenv("MODE");
+  if(mode[0] == '1') return MC_SCHEDULER;
   const MCTransition &newinitialTransition =
     programState->getLogAtIndex(count);
 
@@ -510,6 +519,7 @@ mc_fork_new_trace_at_current_state()
 {
   mc_reset_cv_locks();
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
+  //in place of mc_fork_new_trace_at_main(),ask DMTCP to fork a new process
 
   if (MC_IS_SCHEDULER(program)) {
     const int tStackHeight = programState->getTransitionStackSize();
@@ -615,6 +625,8 @@ mc_trace_panic()
 void
 mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 {
+  
+  int count = 0;
   uint64_t debug_depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(leadingThread);
@@ -626,6 +638,8 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   do {
     debug_depth++;
     transitionId++;
+
+    
 
     const tid_t tid = t_next->getThreadId();
     mc_run_thread_to_next_visible_operation(tid);
@@ -677,6 +691,9 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 void
 mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadingThread)
 {
+  int count = 0;
+  signal(SIGABRT, &signal_handler);
+  char* mode = getenv("MODE");
   uint64_t debug_depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(leadingThread);
@@ -686,14 +703,17 @@ mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadingThr
   // TODO: Assert whether a trace process exists at this point
 
   do {
+        count++;
+
     debug_depth++;
     transitionId++;
-
+    assert(count < 4);
     const tid_t tid = t_next->getThreadId();
     mc_run_thread_to_next_visible_operation(tid);
 
     programState->simulateRunningTransitionWithLog(
       *t_next, shmTransitionTypeInfo, shmTransitionData);
+    if(mode[0]=='1') return;
     // programState->dynamicallyUpdateBacktrackSets();
 
     /* Check for data races */
@@ -709,6 +729,8 @@ mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadingThr
     }
 
     t_next = programState->getFirstEnabledTransition();
+    char *mode = getenv("MODE");
+    if(mode[0] == '1') return;
   } while (t_next != nullptr);
 
   const bool hasDeadlock        = programState->isInDeadlock();

@@ -4,10 +4,15 @@
 #include <memory>
 #include <unordered_set>
 #include <vector>
+#include <unistd.h>
+#include <cstdlib>
+
 
 extern "C" {
 #include "mcmini/MCCommon.h"
 }
+
+int count = 0;
 
 using namespace std;
 
@@ -602,6 +607,10 @@ MCState::simulateRunningTransitionWithLog(
   // NOTE: You must grow the transition stack before
   // the state stack for clock vector updates
   // to occur properly
+  char* mode = getenv("MODE");
+  printf("\n $$$ checkpointing $$$");
+  system("bin/dmtcp_command --coord-host localhost --coord-port 7779 -c");
+  // if(mode[0]=='1') return;
   this->growTransitionLogStackRunning(transition);
   this->growStateStackRunningTransition(transition);
   this->virtuallyRunTransition(transition);
