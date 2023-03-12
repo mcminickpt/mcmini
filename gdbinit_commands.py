@@ -3,7 +3,7 @@
 
 ## NOTE:  Inside gdb, you can test Python commands.  For example:
 ##   (gdb) python gdb.execute("bt")
-##   (gdb) python print(gdb.parse_and_eval("main"))
+##   (gdb) python print(gdb.parse_and_eval("foo(x)")) # for foo(), x in target
 ## INTERACTIVE DEBUGGING:
 ##   (gdb) python-interactive
 ##   Insert:  'import pdb; pdb.set_trace()' or 'breakpoint()'
@@ -74,6 +74,8 @@ def print_mcmini_stats():
         "transition: " + str(transitionId) + "; "
         "thread: " + str(gdb.selected_inferior().num) + "." +
                      str(gdb.selected_thread().num) +
+                 " (thread " + str(gdb.selected_thread().num) +
+                 " of inferior " + str(gdb.selected_inferior().num) + ")"
         "\n")
 
 def print_user_frames_in_stack():
@@ -91,11 +93,12 @@ def print_user_frames_in_stack():
     if (frame.name() and
          (frame.name().startswith("mc_") or
           frame.name().startswith("__real_") or
+          frame.name() == "thread_await_scheduler" or
           frame.name() == "thread_await_scheduler_for_thread_start_transition")
         and
          (frame.name() != "mc_thread_routine_wrapper" or
           frame.newer().name() ==
-                         "thread_await_scheduler_for_thread_start_transition")
+                          "thread_await_scheduler_for_thread_start_transition")
        ):
       mcmini_num_frame_levels = level
       frame.older().select() # Keep setting older frame as the user frame
@@ -202,7 +205,7 @@ class printTransitionsCmd(gdb.Command):
   def invoke(self, args, from_tty):
    current_inferior = gdb.selected_inferior().num
    gdb.execute("inferior 1")  # inferior 1 is scheduler process
-   transition_stack = gdb.parse_and_eval("programState->printTransitionStack()")
+   transition_stack = gdb.execute("call programState->printTransitionStack()")
    print(transition_stack)
    gdb.execute("inferior " + str(current_inferior))
 printTransitionsCmd()
@@ -268,7 +271,9 @@ class whereCmd(gdb.Command):
         "mcmini where", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
+    print("STACK FOR THREAD: " + str(gdb.selected_thread().num))
     print_user_frames_in_stack()
+    print_mcmini_stats()
 whereCmd()
 
 class finishTraceCmd(gdb.Command):
@@ -377,9 +382,10 @@ Executes:
 Useful GDB commands:
   info inferiors
   inferior 1
+    [ Inferior 1 is the scheduler process. ]
   info threads
-  thread 1.1
-    [ Thread 1.1 is thread 1 of inferior 1 (of the scheduler process). ]
+  thread 2.1
+    [ Thread 2.1 is thread 1 of inferior 2 ]
   info breakpoints
   where
 """)
