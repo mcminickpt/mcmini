@@ -368,24 +368,32 @@ class gotoTraceCmd(gdb.Command):
 gotoTraceCmd()
 
 developerHelp = ("""\
+Executes:
+  inferior 1
+  detach inferior [DETACHES ALL OTHER INFERIORS]
+  set detach-on-fork on
+  set follow-fork-mode parent
+  [ Reverse these if you want to again debug the target process. ]
 Useful GDB commands:
   info inferiors
   inferior 1
   info threads
-    [ Thread 1.1 is the thread of the scheduler process. ]
   thread 1.1
+    [ Thread 1.1 is thread 1 of inferior 1 (of the scheduler process). ]
   info breakpoints
   where
 """)
 
 class developerModeCmd(gdb.Command):
-  """For developers only.  Use at your own risk."""
+  """Permanently switch GDB to developer environment.  For developers only."""
   def __init__(self):
     super(developerModeCmd, self).__init__(
         "mcmini developerMode", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
+    print("Breakpoint added at next visible operation in scheduler process.")
     gdb.execute("break mc_run_thread_to_next_visible_operation(unsigned long)")
+    ### These commented commands will go away, when it's clear it's not needed.
     # current_inferior = gdb.selected_inferior().num
     # gdb.execute("inferior 1") # Set inferior to scheduler
     # scheduler_call_frame_fnc = "mc_shared_sem_wait_for_thread"
@@ -393,7 +401,12 @@ class developerModeCmd(gdb.Command):
     # This next command forces a GDB-internal bug in gdb-12.0
     # gdb.FinishBreakpoint().__init__(find_call_frame_fnc(scheduler_call_frame_fnc))
     # gdb.execute("inferior " + str(current_inferior))
-    print("Breakpoint added to scheduler process.")
+    gdb.execute("inferior 1")
     gdb.execute("set print address on")
+    gdb.execute("set detach-on-fork on")
+    gdb.execute("set follow-fork-mode parent")
+    for inferior in gdb.inferiors():
+      if inferior.num > 1:
+        gdb.execute("detach inferior " + str(int(inferior.num)))
     print(developerHelp)
 developerModeCmd()
