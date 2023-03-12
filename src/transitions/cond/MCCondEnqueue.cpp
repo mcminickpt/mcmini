@@ -22,18 +22,29 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
 
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
     condThatExists != nullptr, "Attempting to wait on a condition "
-                               "variable that is uninitialized");
+                               "variable that is uninitialized.");
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
     mutexThatExists != nullptr,
     "Attempting to wait on a condition variable with an "
-    "uninitialized mutex");
+    "uninitialized mutex.");
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
     mutexThatExists->isLocked(),
     "Attempting to wait on a condition variable with a "
-    "mutex that is already unlocked");
+    "mutex that is already unlocked.");
   MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
     !condThatExists->isDestroyed(),
-    "Attempting to wait on a destroyed condition variable");
+    "Attempting to wait on a destroyed condition variable.");
+
+  if (condThatExists->mutex != nullptr) {
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
+      *condThatExists->mutex == *mutexThatExists,
+      "Attempting to associate more than one mutex with a condition\n"
+      "variable is undefined behavior. Ensure that you're calling\n"
+      "pthread_cond_wait() with the same mutex.");
+  }
+  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
+    !condThatExists->isDestroyed(),
+    "Attempting to wait on a destroyed condition variable.");
 
   const auto threadThatRanId = shmTransition->executor;
   const auto mutexAssociatedWithConditionVariable =
@@ -114,8 +125,8 @@ MCCondEnqueue::coenabledWith(const MCTransition *other) const
   const MCMutexTransition *maybeMutexOperation =
     dynamic_cast<const MCMutexTransition *>(other);
   if (maybeMutexOperation) {
-    auto unlockMutex = std::make_shared<MCMutexUnlock>(
-      this->thread, this->conditionVariable->mutex);
+    auto unlockMutex =
+      std::make_shared<MCMutexUnlock>(this->thread, this->mutex);
     return MCTransition::coenabledTransitions(unlockMutex.get(),
                                               maybeMutexOperation);
   }
@@ -136,9 +147,9 @@ MCCondEnqueue::dependentWith(const MCTransition *other) const
   const MCMutexTransition *maybeMutexOperation =
     dynamic_cast<const MCMutexTransition *>(other);
   if (maybeMutexOperation) {
-    auto unlockMutex = std::make_shared<MCMutexUnlock>(
-      this->thread, this->conditionVariable->mutex);
-    return MCTransition::coenabledTransitions(unlockMutex.get(),
+    auto unlockMutex =
+      std::make_shared<MCMutexUnlock>(this->thread, this->mutex);
+    return MCTransition::dependentTransitions(unlockMutex.get(),
                                               maybeMutexOperation);
   }
   return false;
