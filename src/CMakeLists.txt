@@ -19,7 +19,7 @@ set(MC_CPP_FILES
 
   misc/cond/MCConditionVariableDefaultPolicy.cpp
   misc/cond/MCConditionVariableArbitraryPolicy.cpp
-  # misc/cond/MCCondVarOrderedWakeupPolicy.cpp
+  misc/cond/MCConditionVariableOrderedPolicy.cpp
   # misc/cond/MCCondVarGLibcSignalPolicy.cpp
 
   # misc/cond/MCCondVarSingleGroupSignalPolicy.cpp
