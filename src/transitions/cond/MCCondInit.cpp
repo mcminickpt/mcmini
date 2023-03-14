@@ -1,8 +1,5 @@
 #include "mcmini/transitions/cond/MCCondInit.h"
-#include "mcmini/misc/cond/MCCondVarArbitraryWakeupPolicy.hpp"
-#include "mcmini/misc/cond/MCCondVarGLibcWakeupPolicy.hpp"
-#include "mcmini/misc/cond/MCCondVarOrderedWakeupPolicy.hpp"
-#include "mcmini/misc/cond/MCCondVarSingleGroupSignalPolicy.hpp"
+#include "mcmini/misc/cond/MCConditionVariableArbitraryPolicy.hpp"
 
 using namespace std;
 using namespace mcmini;
@@ -24,14 +21,11 @@ MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData,
     // For now, we hard-code it here. Not great, but at least
     // we can change it relatively easily still
 
-    auto wakeupPolicy = unique_ptr<ConditionVariableWakeupPolicy>(
-      new CondVarArbitraryWakeupPolicy());
+    auto policy = std::unique_ptr<ConditionVariablePolicy>(
+      new ConditionVariableArbitraryPolicy());
 
-    auto signalPolicy = unique_ptr<ConditionVariableSignalPolicy>(
-      new CondVarSingleGroupSignalPolicy());
-
-    auto newCond = std::make_shared<ConditionVariable>(
-      shadow, signalPolicy, wakeupPolicy);
+    auto newCond =
+      std::make_shared<ConditionVariable>(shadow, std::move(policy));
     state->registerVisibleObjectWithSystemIdentity(systemId, newCond);
     condThatExists =
       std::static_pointer_cast<MCConditionVariable, MCVisibleObject>(

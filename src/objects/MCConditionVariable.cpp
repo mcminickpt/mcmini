@@ -11,54 +11,51 @@ MCConditionVariable::copy()
 MCSystemID
 MCConditionVariable::getSystemId()
 {
-  return this->condShadow.cond;
+  return this->shadow.cond;
 }
 
 bool
 MCConditionVariable::operator==(
   const MCConditionVariable &other) const
 {
-  return this->condShadow.cond == other.condShadow.cond;
+  return this->shadow.cond == other.shadow.cond;
 }
 
 bool
 MCConditionVariable::operator!=(
   const MCConditionVariable &other) const
 {
-  return this->condShadow.cond != other.condShadow.cond;
+  return this->shadow.cond != other.shadow.cond;
 }
 
 bool
 MCConditionVariable::isInitialized() const
 {
-  return this->condShadow.state ==
-         MCConditionVariableShadow::initialized;
+  return this->shadow.state == MCConditionVariableShadow::initialized;
 }
 
 bool
 MCConditionVariable::isDestroyed() const
 {
-  return this->condShadow.state ==
-         MCConditionVariableShadow::destroyed;
+  return this->shadow.state == MCConditionVariableShadow::destroyed;
 }
 
 void
 MCConditionVariable::initialize()
 {
-  this->condShadow.state = MCConditionVariableShadow::initialized;
+  this->shadow.state = MCConditionVariableShadow::initialized;
 }
 
 void
 MCConditionVariable::addWaiter(tid_t tid)
 {
-  this->signalPolicy->addWaiter(tid);
+  this->policy->add_waiter(tid);
 }
 
 void
 MCConditionVariable::removeWaiter(tid_t tid)
 {
-  this->signalPolicy->removeWaiter(tid);
-  this->wakeupPolicy->wakeThread(tid);
+  this->policy->wake_thread(tid);
 
   // If there are any spurious wake ups allowed,
   // we always allow the thread to wake up
@@ -73,27 +70,23 @@ bool
 MCConditionVariable::waiterCanExit(tid_t tid)
 {
   return this->numRemainingSpuriousWakeups > 0 ||
-         this->wakeupPolicy->threadCanExit(tid);
+         this->policy->thread_can_exit(tid);
 }
 
 void
 MCConditionVariable::sendSignalMessage()
 {
-  const WakeGroup newGroup =
-    this->signalPolicy->receiveSignalMessage();
-  this->wakeupPolicy->pushWakeupGroup(newGroup);
+  this->policy->receive_signal_message();
 }
 
 void
 MCConditionVariable::sendBroadcastMessage()
 {
-  const WakeGroup newGroup =
-    this->signalPolicy->receiveBroadcastMessage();
-  this->wakeupPolicy->pushWakeupGroup(newGroup);
+  this->policy->receive_broadcast_message();
 }
 
 void
 MCConditionVariable::destroy()
 {
-  this->condShadow.state = MCConditionVariableShadow::destroyed;
+  this->shadow.state = MCConditionVariableShadow::destroyed;
 }
