@@ -7,7 +7,6 @@ namespace mcmini {
 
 struct ConditionVariableArbitraryPolicy :
   public ConditionVariableDefaultPolicy {
-
   virtual void receive_signal_message() override;
   std::unique_ptr<ConditionVariablePolicy> clone() const override;
 };

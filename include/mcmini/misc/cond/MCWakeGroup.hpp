@@ -3,7 +3,8 @@
 
 #include "mcmini/MCShared.h"
 #include "mcmini/misc/MCOptional.h"
-#include <cstdlib>
+
+#include <initializer_list>
 #include <set>
 #include <vector>
 
@@ -31,17 +32,33 @@ namespace mcmini {
 struct WakeGroup final : public std::vector<tid_t> {
 public:
 
+  WakeGroup(WakeGroup &&)                 = default;
+  WakeGroup(const WakeGroup &)            = default;
+  WakeGroup &operator=(const WakeGroup &) = default;
+  WakeGroup &operator=(WakeGroup &&)      = default;
+
   explicit WakeGroup(const std::vector<tid_t> &vec)
     : std::vector<tid_t>(vec)
+  {}
+
+  explicit WakeGroup(std::initializer_list<tid_t> list)
+    : std::vector<tid_t>(std::move(list))
+  {}
+
+  template<class InputIt>
+  WakeGroup(InputIt first, InputIt last)
+    : std::vector<tid_t>(first, last)
   {}
 
   /**
    * @brief Whether or not the given thread is contained in the
    * group
    *
-   * @param tid the thread to test for membership in the wake group
+   * @param tid the thread to test for membership in the wake
+   * group
    * @return true if the thread is contained in the wake group
-   * @return false if the thread is not contained in the wake group
+   * @return false if the thread is not contained in the wake
+   * group
    */
   bool contains(tid_t tid) const;
 

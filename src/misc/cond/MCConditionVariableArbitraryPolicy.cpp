@@ -15,7 +15,8 @@ void
 ConditionVariableArbitraryPolicy::receive_signal_message()
 {
   if (!this->sleep_queue.empty()) {
-    this->wake_groups.push_back(WakeGroup(this->sleep_queue));
+    this->wake_groups.push_back(
+      WakeGroup(this->sleep_queue.begin(), this->sleep_queue.end()));
   }
 }
 
