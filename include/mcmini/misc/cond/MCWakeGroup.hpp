@@ -31,8 +31,13 @@ namespace mcmini {
 struct WakeGroup final : public std::vector<tid_t> {
 public:
 
+  explicit WakeGroup(const std::vector<tid_t> &vec)
+    : std::vector<tid_t>(vec)
+  {}
+
   /**
-   * @brief Whether or not the given thread is contained in the group
+   * @brief Whether or not the given thread is contained in the
+   * group
    *
    * @param tid the thread to test for membership in the wake group
    * @return true if the thread is contained in the wake group

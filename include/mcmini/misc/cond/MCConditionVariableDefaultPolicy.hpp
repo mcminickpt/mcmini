@@ -4,7 +4,6 @@
 #include "mcmini/misc/cond/MCConditionVariablePolicy.hpp"
 #include "mcmini/misc/cond/MCWakeGroup.hpp"
 
-#include <deque>
 #include <unordered_set>
 #include <vector>
 
@@ -26,9 +25,9 @@ struct ConditionVariableDefaultPolicy :
 
 protected:
 
-  std::deque<tid_t> sleep_queue;
-  std::unordered_set<tid_t> broadcast_group;
+  std::unordered_set<tid_t> broadcast_eligible_threads;
   std::vector<WakeGroup> wake_groups;
+  std::vector<tid_t> sleep_queue;
 };
 
 }; // namespace mcmini
