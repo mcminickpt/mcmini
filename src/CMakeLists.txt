@@ -17,12 +17,12 @@ set(MC_CPP_FILES
   mcmini_private.cpp
   signals.cpp
 
-  misc/cond/MCCondVarWakeupPolicyImpl.cpp
-  misc/cond/MCCondVarArbitraryWakeupPolicy.cpp
-  misc/cond/MCCondVarOrderedWakeupPolicy.cpp
-  misc/cond/MCCondVarGLibcSignalPolicy.cpp
+  misc/cond/MCConditionVariableDefaultPolicy.cpp
+  misc/cond/MCConditionVariableArbitraryPolicy.cpp
+  # misc/cond/MCCondVarOrderedWakeupPolicy.cpp
+  # misc/cond/MCCondVarGLibcSignalPolicy.cpp
 
-  misc/cond/MCCondVarSingleGroupSignalPolicy.cpp
+  # misc/cond/MCCondVarSingleGroupSignalPolicy.cpp
   misc/cond/MCWakeGroup.cpp
 
   objects/MCThread.cpp

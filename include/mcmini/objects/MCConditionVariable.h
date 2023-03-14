@@ -2,8 +2,7 @@
 #define INCLUDE_MCMINI_OBJECTS_MCCONDITIONVARIABLE_HPP
 
 #include "mcmini/misc/MCOptional.h"
-#include "mcmini/misc/cond/MCConditionVariableSignalPolicy.hpp"
-#include "mcmini/misc/cond/MCConditionVariableWakeupPolicy.hpp"
+#include "mcmini/misc/cond/MCConditionVariablePolicy.hpp"
 #include "mcmini/objects/MCMutex.h"
 #include "mcmini/objects/MCVisibleObject.h"
 #include <deque>
@@ -24,10 +23,6 @@ namespace mcmini {
 struct ConditionVariable : public MCVisibleObject {
 public:
 
-  /**
-   * @brief
-   *
-   */
   struct Shadow {
     pthread_cond_t *cond;
 
@@ -42,25 +37,15 @@ public:
 
 private:
 
+  Shadow shadow;
   unsigned int numRemainingSpuriousWakeups = 0;
-
-  /**
-   * @brief The C-like shadow struct describing the basic state of
-   * the condition variable
-   */
-  Shadow condShadow;
-
-  std::unique_ptr<ConditionVariableSignalPolicy> signalPolicy;
-  std::unique_ptr<ConditionVariableWakeupPolicy> wakeupPolicy;
+  std::unique_ptr<ConditionVariablePolicy> policy;
 
   inline explicit ConditionVariable(
-    Shadow condShadow, std::shared_ptr<MCMutex> mutex,
-    std::unique_ptr<ConditionVariableSignalPolicy> &signalPolicy,
-    std::unique_ptr<ConditionVariableWakeupPolicy> &wakeupPolicy,
-    objid_t id)
-    : MCVisibleObject(id), condShadow(condShadow), mutex(mutex),
-      signalPolicy(std::move(signalPolicy)),
-      wakeupPolicy(std::move(wakeupPolicy))
+    Shadow shadow, std::shared_ptr<MCMutex> mutex,
+    std::unique_ptr<ConditionVariablePolicy> policy, objid_t id)
+    : MCVisibleObject(id), shadow(shadow), policy(std::move(policy)),
+      mutex(std::move(mutex))
   {}
 
 public:
@@ -73,32 +58,18 @@ public:
   // two different locks
   std::shared_ptr<MCMutex> mutex;
 
-  inline explicit ConditionVariable(
-    Shadow condShadow,
-    std::unique_ptr<ConditionVariableSignalPolicy> &signalPolicy,
-    std::unique_ptr<ConditionVariableWakeupPolicy> &wakeupPolicy)
-    : ConditionVariable(condShadow, signalPolicy, wakeupPolicy,
-                        nullptr)
+  ConditionVariable(Shadow shadow,
+                    std::unique_ptr<ConditionVariablePolicy> policy,
+                    std::shared_ptr<MCMutex> mutex = nullptr)
+    : ConditionVariable(shadow, std::move(mutex), std::move(policy),
+                        static_cast<objid_t>(0))
   {}
 
-  inline explicit ConditionVariable(
-    Shadow condShadow,
-    std::unique_ptr<ConditionVariableSignalPolicy> &signalPolicy,
-    std::unique_ptr<ConditionVariableWakeupPolicy> &wakeupPolicy,
-    std::shared_ptr<MCMutex> mutex)
-    : MCVisibleObject(), condShadow(condShadow), mutex(mutex),
-      signalPolicy(std::move(signalPolicy)),
-      wakeupPolicy(std::move(wakeupPolicy))
-  {}
-
-  inline ConditionVariable(const ConditionVariable &cond)
-    : MCVisibleObject(cond.getObjectId()),
-      condShadow(cond.condShadow), mutex(nullptr),
-      wakeupPolicy(cond.wakeupPolicy->clone()),
-      signalPolicy(cond.signalPolicy->clone()),
+  ConditionVariable(const ConditionVariable &cond)
+    : MCVisibleObject(cond.getObjectId()), shadow(cond.shadow),
+      mutex(nullptr), policy(std::move(cond.policy->clone())),
       numRemainingSpuriousWakeups(cond.numRemainingSpuriousWakeups)
   {
-
     if (cond.mutex != nullptr) {
       mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(
         cond.mutex->copy());
