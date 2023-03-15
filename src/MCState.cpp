@@ -707,8 +707,8 @@ MCState::transitionStackMaxClockVector(const MCTransition &transition)
 
   // The pseudocode stores clock vectors in the transition
   // stack, but this data can be stored equivalently in the
-  // stack stack by noting that the state stack is always
-  // one larger than the transition stack (hence tStackIndex)
+  // stack by noting that the state stack is always one
+  // larger than the transition stack (hence tStackIndex).
   for (int i = 1; i <= this->stateStackTop; i++) {
     const int tStackIndex = i - 1;
     const MCTransition &t = getTransitionAtIndex(tStackIndex);
