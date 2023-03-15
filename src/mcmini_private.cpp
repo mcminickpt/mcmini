@@ -460,9 +460,9 @@ void
 mc_run_thread_to_next_visible_operation(tid_t tid)
 {
   MC_ASSERT(tid != TID_INVALID);
-  mc_shared_sem_ref cv = &(*trace_sleep_list)[tid];
-  mc_shared_sem_wake_thread(cv);
-  mc_shared_sem_wait_for_thread(cv);
+  mc_shared_sem_ref sem = &(*trace_sleep_list)[tid];
+  mc_shared_sem_wake_thread(sem);
+  mc_shared_sem_wait_for_thread(sem);
 }
 
 void
