@@ -6,12 +6,11 @@
 ##   (gdb) python print(gdb.parse_and_eval("main"))
 ## INTERACTIVE DEBUGGING:
 ##   (gdb) python-interactive
-##   (gdb) nextTransitionCmd().invoke("3",True)  # Invoke it with count of 3
+##   Insert:  'import pdb; pdb.set_trace()' or 'breakpoint()'
+##   # Invoke with count of 3 and 'True' (default: fromTtty; for all commands)
+##   (gdb) python nextTransitionCmd().invoke("3",True)
 
-## FIXME:
-## Use 'gdb.Breakpoint' instead of 'gdb.execute("break ..."),
-##   so that we can easily temporarily disable all breakpoints.
-## EXAMPE USAGE:
+## EXAMPE USAGE of Python API breakpoints:
 ##   bkptMain = gdb.Breakpoint("main")
 ##   bkptMain.silent = True
 ##   bkptMain.enabled = False
@@ -41,7 +40,8 @@
 ##    GDB API will correctly show the new transitionId
 ## 3. 'assert()' and '_exit()' should be handled gracefully. (Especially assert)
 ##    As a stopgap, in case McMini crashes, just print every traceId before that
-## 4. Whan McMini stops at "bad" trace (e.g., deadlock), print traceId.
+## 4. Whan McMini stops at "bad" trace (e.g., deadlock), print traceId,
+##    and print something besides "Model checking completed!" at the end.
 ## 5. In WSL, the arguments of the target program are getting lost. WHY?
 ##    As a result, producer_consumer doesn't recognize its '--quiet' flag.
 ## 6. I'm not a fan of using 'operator' widely for the same reason that
@@ -112,17 +112,16 @@ def find_call_frame(name):
 # Set up breakpoint utilities
 
 def continue_until(function, thread_id=None):
+  ## We would have preferrd a temporary breakpoint.
   ## gdb 7.6 doesn't seem to implement "temporary" optional argument.
   ## Optional arguments:  internal=False, temporary=True
   ## bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE.
   ##                       False, True)
-  ## while bkpt.is_valid():
-  ##   gdb.execute("continue")
   # Optional argument:  internal=True
   bkpt = gdb.Breakpoint(function, gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
   bkpt.silent = True
   if thread_id:
-    ckpt.thread = thread_id
+    bkpt.thread = thread_id
   while bkpt.hit_count == 0:
     gdb.execute("continue")
   bkpt.delete()
@@ -184,7 +183,7 @@ mcminiHelpString=(
 )
 
 class helpCmd(gdb.Command):
-  """Prints the transitions currently on the stack"""
+  """Prints help for getting started in McMini"""
   def __init__(self):
     super(helpCmd, self).__init__(
         "mcmini help", gdb.COMMAND_USER
