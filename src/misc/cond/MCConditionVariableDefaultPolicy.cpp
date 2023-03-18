@@ -8,19 +8,12 @@ void
 ConditionVariableDefaultPolicy::receive_broadcast_message()
 {
   // Move everyone into the get-out-of-jail free place
-  // from both the sleep queue and the wake group list
-  for (const tid_t sleeping_thread : this->sleep_queue) {
-    this->broadcast_eligible_threads.insert(sleeping_thread);
-  }
+  // from both the wake group list
   for (const WakeGroup &wg : this->wake_groups) {
     for (const tid_t signaled_thread : wg) {
       this->broadcast_eligible_threads.insert(signaled_thread);
     }
   }
-
-  // Empty BOTH the sleep queue and the wake group list:
-  // at this point everyone is allowed to wake up
-  this->sleep_queue.clear();
   this->wake_groups.clear();
 }
 
@@ -70,12 +63,6 @@ ConditionVariableDefaultPolicy::wake_thread(tid_t tid)
       wg.remove_candidate_thread(tid);
     }
   }
-}
-
-void
-ConditionVariableDefaultPolicy::add_waiter(tid_t tid)
-{
-  this->sleep_queue.push_back(tid);
 }
 
 } // namespace mcmini

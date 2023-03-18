@@ -22,13 +22,11 @@ struct ConditionVariableDefaultPolicy :
   virtual void receive_broadcast_message() override;
   virtual bool thread_can_exit(tid_t tid) const override;
   virtual void wake_thread(tid_t tid) override;
-  virtual void add_waiter(tid_t tid) override;
 
 protected:
 
   std::unordered_set<tid_t> broadcast_eligible_threads;
   std::vector<WakeGroup> wake_groups;
-  std::deque<tid_t> sleep_queue;
 };
 
 }; // namespace mcmini

@@ -109,9 +109,10 @@ public:
   virtual void wake_thread(tid_t tid) = 0;
 
   /**
-   * @brief
+   * @brief Mark a new thread as sleeping on the condition variable
    *
-   * @param tid
+   * @param tid the thread to mark as sleeping on the condition
+   * variable
    */
   virtual void add_waiter(tid_t tid) = 0;
 

@@ -8,7 +8,7 @@ override CXXFLAGS=${CFLAGS} -std=gnu++11
 
 LIBOBJS1=src/MCObjectStore.o src/MCSharedTransition.o src/MCTransition.o src/mcmini_private.o src/MCState.o src/MCTransitionFactory.o src/MCStateStackItem.o src/MCThreadData.o src/MCClockVector.o src/signals.o
 
-LIBOBJS2=src/misc/cond/MCConditionVariableDefaultPolicy.o src/misc/cond/MCConditionVariableArbitraryPolicy.o src/misc/cond/MCConditionVariableOrderedPolicy.o src/misc/cond/MCWakeGroup.o
+LIBOBJS2=src/misc/cond/MCConditionVariableDefaultPolicy.o src/misc/cond/MCConditionVariableArbitraryPolicy.o src/misc/cond/MCConditionVariableOrderedPolicy.o src/misc/cond/MCWakeGroup.o src/misc/cond/MCConditionVariableSingleGroupPolicy.o src/misc/cond/MCConditionVariableGLibcPolicy.o
 
 LIBOBJS3=src/objects/MCThread.o src/objects/MCVisibleObject.o src/objects/MCMutex.o src/objects/MCRWLock.o src/objects/MCRWWLock.o src/objects/MCSemaphore.o src/objects/MCGlobalVariable.o src/objects/MCBarrier.o src/objects/MCConditionVariable.o
 

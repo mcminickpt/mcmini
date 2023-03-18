@@ -1,12 +1,12 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEORDEREDPOLICY_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEORDEREDPOLICY_HPP
 
-#include "mcmini/misc/cond/MCConditionVariableDefaultPolicy.hpp"
+#include "mcmini/misc/cond/MCConditionVariableSingleGroupPolicy.hpp"
 
 namespace mcmini {
 
 struct ConditionVariableOrderedPolicy :
-  public ConditionVariableDefaultPolicy {
+  public ConditionVariableSingleGroupPolicy {
 
   /// @brief Whether the wake up ordering is fifo or lifo
   enum class WakeOrder { fifo, lifo } order = WakeOrder::fifo;
