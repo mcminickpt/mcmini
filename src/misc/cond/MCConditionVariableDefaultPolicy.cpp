@@ -56,12 +56,13 @@ ConditionVariableDefaultPolicy::wake_thread(tid_t tid)
     // been awoken from a prior broadcast.
     MC_ASSERT(signal_to_consume != wake_groups.end());
     wake_groups.erase(signal_to_consume);
+  }
 
-    // Additionally, remove this thread from any other
-    // candidates, since it has already consumed a signal.
-    for (WakeGroup &wg : this->wake_groups) {
-      wg.remove_candidate_thread(tid);
-    }
+  // Additionally, remove this thread from any other
+  // groups so it doesn't attempt to consume a signal
+  // in the future
+  for (WakeGroup &wg : this->wake_groups) {
+    wg.remove_candidate_thread(tid);
   }
 }
 
