@@ -83,6 +83,17 @@ main(int argc, char *argv[])
     exit(1);
   }
 
+  assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
+  char idx = strlen(cur_arg[0]) - strlen("mcmini") - 1 >= 0 ?
+             strlen(cur_arg[0]) - strlen("mcmini") - 1 :
+             strlen(cur_arg[0]);
+  // idx points to 'X' when cur_arg[0] == "...Xmcmini"
+  if (strcmp(cur_arg[0], "mcmini") == 0 || cur_arg[0][idx] == '/') {
+    fprintf(stderr,
+            "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
+    exit(1);
+  }
+
   char buf[1000];
   buf[sizeof(buf) - 1] = '\0';
   // We add ours to the end of any PRELOAD of the target application.
