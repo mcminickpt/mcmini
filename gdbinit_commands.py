@@ -350,8 +350,6 @@ class gotoTraceCmd(gdb.Command):
       print("*** Current traceId: " + str(gdb.parse_and_eval("traceId")) +
             "; Can't go to earlier trace; skipping command\n")
       return
-    if gdb.selected_frame().name() == "main":
-      gdb.execute("continue")
     if gdb.selected_inferior().num != 1:
       gdb.execute("mcmini finishTrace quiet")
     # We should now have only the parent (inferior 1).
