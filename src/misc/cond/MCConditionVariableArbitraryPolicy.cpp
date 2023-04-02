@@ -14,9 +14,9 @@ ConditionVariableArbitraryPolicy::clone() const
 void
 ConditionVariableArbitraryPolicy::receive_signal_message()
 {
-  if (!this->sleep_queue.empty()) {
+  if (!this->wait_queue.empty()) {
     this->wake_groups.push_back(
-      WakeGroup(this->sleep_queue.begin(), this->sleep_queue.end()));
+      WakeGroup(this->wait_queue.begin(), this->wait_queue.end()));
   }
 }
 

@@ -14,17 +14,17 @@ ConditionVariableOrderedPolicy::clone() const
 void
 ConditionVariableOrderedPolicy::receive_signal_message()
 {
-  if (!this->sleep_queue.empty()) {
+  if (!this->wait_queue.empty()) {
     switch (this->order) {
     case WakeOrder::fifo: {
-      const WakeGroup wake_group{this->sleep_queue.front()};
-      this->sleep_queue.pop_front();
+      const WakeGroup wake_group{this->wait_queue.front()};
+      this->wait_queue.pop_front();
       this->wake_groups.push_back(std::move(wake_group));
       break;
     }
     case WakeOrder::lifo: {
-      const WakeGroup wake_group{this->sleep_queue.back()};
-      this->sleep_queue.pop_back();
+      const WakeGroup wake_group{this->wait_queue.back()};
+      this->wait_queue.pop_back();
       this->wake_groups.push_back(std::move(wake_group));
       break;
     }

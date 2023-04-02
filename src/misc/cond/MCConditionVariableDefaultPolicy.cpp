@@ -8,7 +8,7 @@ void
 ConditionVariableDefaultPolicy::receive_broadcast_message()
 {
   // Move everyone into the get-out-of-jail free place
-  // from both the wake group list
+  // from the wake group list
   for (const WakeGroup &wg : this->wake_groups) {
     for (const tid_t signaled_thread : wg) {
       this->broadcast_eligible_threads.insert(signaled_thread);
@@ -39,7 +39,7 @@ ConditionVariableDefaultPolicy::wake_thread(tid_t tid)
   // To correctly match the semantics of condition variables,
   // if a thread was present in the condition variable during a
   // broadcast, we DO NOT want it to consume signals which arrive
-  // later, since we want to treat the thread as no longer sleeping
+  // later, since we want to treat the thread as no longer waiting
   // on the condition variable
   if (this->broadcast_eligible_threads.count(tid) > 0) {
     this->broadcast_eligible_threads.erase(tid);
@@ -53,7 +53,7 @@ ConditionVariableDefaultPolicy::wake_thread(tid_t tid)
 
     // If `signal_to_consume == wake_groups.end()`, we are attempting
     // to wake a thread which can neither consume a signal nor has
-    // been awoken from a prior broadcast.
+    // been woken from a prior broadcast.
     MC_ASSERT(signal_to_consume != wake_groups.end());
     wake_groups.erase(signal_to_consume);
   }
