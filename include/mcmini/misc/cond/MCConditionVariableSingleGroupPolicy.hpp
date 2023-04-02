@@ -16,7 +16,7 @@ struct ConditionVariableSingleGroupPolicy :
 
 protected:
 
-  std::deque<tid_t> sleep_queue;
+  std::deque<tid_t> wait_queue;
 };
 
 } // namespace mcmini

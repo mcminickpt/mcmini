@@ -1,5 +1,5 @@
-#ifndef INCLUDE_MCMINI_MISC_MCCONDITIONVARIABLEWAKEUPPOLICY_HPP
-#define INCLUDE_MCMINI_MISC_MCCONDITIONVARIABLEWAKEUPPOLICY_HPP
+#ifndef INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEPOLICY_HPP
+#define INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEPOLICY_HPP
 
 #include "mcmini/MCShared.h"
 #include "mcmini/misc/cond/MCWakeGroup.hpp"
@@ -11,7 +11,7 @@ namespace mcmini {
 
 /**
  * @brief A state machine determining how threads waiting on a
- * condition variable are selected for being awoken
+ * condition variable are selected for being woken
  *
  * A `ConditionVariablePolicy` encapsulates a particular behavior a
  * condition variable could exhibit. Abstractly, condition variables
@@ -96,7 +96,7 @@ public:
    * the thread has now "woken" and has "escaped" the condition
    * variable
    *
-   * @note after the given thread has awoken, the criterion for
+   * @note after the given thread has woken, the criterion for
    * whether a thread is allowed to exit may have changed. Thus the
    * return type
    *
@@ -143,4 +143,4 @@ public:
 
 using MCConditionVariablePolicy = mcmini::ConditionVariablePolicy;
 
-#endif // INCLUDE_MCMINI_MISC_MCCONDITIONVARIABLEWAKEUPPOLICY_HPP
+#endif // INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEPOLICY_HPP
