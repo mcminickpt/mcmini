@@ -17,11 +17,11 @@ namespace mcmini {
  * condition variable could exhibit. Abstractly, condition variables
  * manage sleeping threads and change each thread's eligibility for
  * waking up and "escaping" the condition variable as the condition
- * variable receives signals and broadcast messages A policy
+ * variable receives signals and broadcast messages. A policy
  * determines, for each sleeping thread and for each sequence of
  * thread additions and signals/broadcasts to a condition variable,
  * whether a given thread is allowed to consume a signal. A policy
- * emulate the true runtime behavior of threads interacting with
+ * emulates the true runtime behavior of threads interacting with
  * condition variables, viz. the atomic consumption of a
  * signal/broadcast message
  */
@@ -32,17 +32,17 @@ public:
    * @brief Simulate sending a signal to the condition variable
    * implementing this policy
    *
-   * When a condition variable is signaled, it allows a single thread
-   * to awaken from the condition variable. Which thread is awoken
-   * depends on the underlying behavior of the condition variable as
-   * described by the condition variable's wakeup policy. When signal
-   * the policy is made aware of a signal sent to a condition
-   * variable, you should update any internal state to properly
-   * reflect the fact that the condition variable has been signaled
+   * When signaling, it allows a single thread to awaken from the
+   * condition variable. Which thread is woken depends on the
+   * underlying behavior of the condition variable as described by the
+   * condition variable's wakeup policy. When signal the policy is
+   * made aware of a signal sent to a condition variable, any internal
+   * state should be updated to properly reflect the fact that the
+   * condition variable has been signaled.
    *
    * @note for condition variables that support spurious wake-ups, it
    * is possible for a thread to wake up without the condition
-   * variable first receiving a signal/broadcast
+   * variable first receiving a signal/broadcast.
    */
   virtual void receive_signal_message() = 0;
 
@@ -55,13 +55,13 @@ public:
    * the condition variable depends on the underlying behavior of the
    * condition variable as described by the condition variable's
    * wakeup policy. When the signal policy is made aware of a
-   * broadcast sent to a condition variable, you should update any
-   * internal state to properly reflect the fact that the condition
-   * variable has been sent a broadcast
+   * broadcast sent to a condition variable, any internal state should
+   * be updated to properly reflect the fact that the condition
+   * variable has been signaled.
    *
    * @note for condition variables that support spurious wake-ups, it
    * is possible for a thread to wake up without the condition
-   * variable first receiving a broadcast
+   * variable first receiving a broadcast.
    */
   virtual void receive_broadcast_message() = 0;
 
@@ -93,12 +93,12 @@ public:
    * After calling `wakeThread()` on the policy, the supplied thread
    * is no longer managed by the policy and all references to the
    * thread are removed from the condition variable. Conceptually,
-   * the thread has now "awoken" and has "escaped" the condition
+   * the thread has now "woken" and has "escaped" the condition
    * variable
    *
    * @note after the given thread has awoken, the criterion for
    * whether a thread is allowed to exit may have changed. Thus the
-   * return typ
+   * return type
    *
    * @param tid the thread to wake up and allow to escape from the
    * condition variable
