@@ -225,13 +225,8 @@ void mc_prepare_to_model_check_new_program();
  *
  * After the initialization phase, this function is invoked to perform
  * the actual model-checking using DPOR of the test program
- *
- * @return MC_PROGRAM_TYPE An identifier for which program exited the
- * call to the function. This gives the information callers need to
- * allow fork()-ed trace process to escape into the target program for
- * testing
  */
-MC_PROGRAM_TYPE mc_do_model_checking();
+void mc_do_model_checking();
 
 /**
  * @brief Perform the first (depth-first) search of the state space
@@ -247,13 +242,8 @@ MC_PROGRAM_TYPE mc_do_model_checking();
  * any other trace. The primary difference resides in the fact that
  * the state is set up to have only a single thread -- the main thread
  * in particular -- waiting to execute the "thread start" transition.
- *
- * @return MC_PROGRAM_TYPE An identifier for which program exited the
- * call to the function. This gives the information callers need to
- * allow a fork()-ed trace process to escape into the target program
- * for testing
  */
-MC_PROGRAM_TYPE mc_run_initial_trace();
+void mc_run_initial_trace();
 
 /**
  * @brief Begins searching a new branch in the state space starting
@@ -262,13 +252,8 @@ MC_PROGRAM_TYPE mc_run_initial_trace();
  * @param leadThread the thread whose execution should be followed
  * from the current program state to continue the DPOR, depth-first
  * search.
- *
- * @return The process identifier. The caller should allow
- * the process to escape into the target program as quickly
- * as possible to allow the scheduler to begin controlling its
- * execution
  */
-MC_PROGRAM_TYPE
+void
 mc_search_next_dpor_branch_with_initial_thread(
   const tid_t leadThread);
 
@@ -294,13 +279,6 @@ mc_search_next_dpor_branch_with_initial_thread(
 void
 mc_search_dpor_branch_with_initial_thread(const tid_t leadThread);
 
-/* Source program management */
-/*
- * FIXME: We should have a mcmini::ProcessVendor() here which manages
- * the lifetimes of processes. This may help simplify the logic and
- * will remove MC_PROGRAM_TYPE in favor of an enum of the same name
- */
-
 /**
  * @brief Forks a new trace process whose execution begins immediately
  * after this function
@@ -314,13 +292,8 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadThread);
  * modifications to all variables (not explicitly mapped into shared
  * memory) are isolated to the scheduler and each newly-spawned
  * trace
- *
- * @return The process identifier. The caller should allow
- * the process to escape into the target program as quickly
- * as possible to allow the scheduler to begin controlling its
- * execution
  */
-MC_PROGRAM_TYPE mc_fork_new_trace();
+void mc_fork_new_trace();
 
 /**
  * @brief Forks a new trace process whose execution is blocked until
@@ -330,12 +303,8 @@ MC_PROGRAM_TYPE mc_fork_new_trace();
  * main routine of the target program. The newly created trace will be
  * blocked waiting to enter the main function until the scheduler
  * later allows the thread to exit
- *
- * @return The process identifier. The caller should allow
- * the process to escape into the target program as quickly
- * as possible
  */
-MC_PROGRAM_TYPE mc_fork_new_trace_at_main();
+void mc_fork_new_trace_at_main();
 
 /**
  * @brief Forks a new trace process whose run-time state reflects that
@@ -347,12 +316,8 @@ MC_PROGRAM_TYPE mc_fork_new_trace_at_main();
  * (i.e. memory and threads) matches that originally recorded by the
  * scheduler at the particular point in the past (i.e. backtracking
  * point)
- *
- * @return The process identifier. The caller should allow
- * the process to escape into the target program as quickly
- * as possible
  */
-MC_PROGRAM_TYPE mc_fork_new_trace_at_current_state();
+void mc_fork_new_trace_at_current_state();
 
 /**
  * @brief Unblocks the thread corresponding to _tid_ in the current
@@ -456,12 +421,8 @@ void mc_report_undefined_behavior(const char *);
  * When this method is invoked, the current trace can be re-executed
  * an arbitrary number of times. By default, the function will not
  * cause any re-executions.
- *
- * @return The process identifier. The caller should allow
- * the process to escape into the target program as quickly
- * as possible
  */
-MC_PROGRAM_TYPE mc_rerun_current_trace_as_needed();
+void mc_rerun_current_trace_as_needed();
 
 MCStateConfiguration get_config_for_execution_environment();
 
