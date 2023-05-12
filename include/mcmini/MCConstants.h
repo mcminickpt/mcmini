@@ -25,14 +25,6 @@ typedef uint64_t trid_t;
 #define FORK_IS_CHILD_PID(pid)    ((pid) == 0)
 #define FORK_IS_PARENT_PID(pid)   (!(FORK_IS_CHILD_PID(pid)))
 
-#define MC_PROGRAM_TYPE           bool
-#define MC_SCHEDULER              (false)
-#define MC_TARGET_PROGRAM         (true)
-#define MC_IS_SCHEDULER(expr) \
-  (static_cast<bool>(expr) == MC_SCHEDULER)
-#define MC_IS_TARGET_PROGRAM(expr) \
-  (static_cast<bool>(expr) == MC_TARGET_PROGRAM)
-
 #ifdef MC_SHARED_LIBRARY
 #define MC_CONSTRUCTOR __attribute__((constructor))
 #else

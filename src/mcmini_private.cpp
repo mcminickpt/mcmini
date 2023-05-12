@@ -16,6 +16,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <ucontext.h>
 }
 
 using namespace std;
@@ -99,9 +100,21 @@ alarm_handler(int sig)
   }
 }
 
+ucontext_t mcmini_scheduler_main_context;
+
 MC_CONSTRUCTOR void
 mcmini_main()
 {
+  getcontext(&mcmini_scheduler_main_context);
+
+  if (getenv("MCMINI_PROCESS") == NULL) {
+    setenv("MCMINI_PROCESS", "SCHEDULER", 1); // This is McMini scheduler proc
+  } else { // Else this is McMini target process
+    unsetenv("MCMINI_PROCESS");
+    // Avoid polluting environment of target.  Or can set to "TARGET".
+    return;
+  }
+
   if (getenv(ENV_LONG_TEST) == NULL) {
     alarm(3600); // one hour
     signal(SIGALRM, alarm_handler);
@@ -117,8 +130,7 @@ mcmini_main()
   MC_FATAL_ON_FAIL(
     __real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
-  MC_PROGRAM_TYPE program = mc_do_model_checking();
-  if (MC_IS_TARGET_PROGRAM(program)) return;
+  mc_do_model_checking();
 
   printResults();
   mc_stop_model_checking(EXIT_SUCCESS);
@@ -218,34 +230,23 @@ mc_prepare_to_model_check_new_program()
                                            initialTransition);
 }
 
-MC_PROGRAM_TYPE
+void
 mc_run_initial_trace()
 {
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+  mc_fork_new_trace_at_main();
 
   mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
   mc_exit_with_trace_if_necessary(traceId);
-  program = mc_rerun_current_trace_as_needed();
+  mc_rerun_current_trace_as_needed();
   traceId++;
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-  return MC_SCHEDULER;
 }
 
-MC_PROGRAM_TYPE
+void
 mc_do_model_checking()
 {
   mc_prepare_to_model_check_new_program();
 
-  // TODO: This idiom is fairly common... This simply allows
-  // the forked process to exit the constructor all of the stack
-  // frames find themselves in. Perhaps we could jump to the
-  // appropriate point with a getcontext()/setcontext() that will
-  // bring the trace process to the correct process as an alternative?
-  // It hurts readability to have the forked traces needing to escape
-  // in this way.
-  MC_PROGRAM_TYPE program = mc_run_initial_trace();
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+  mc_run_initial_trace();
 
   MCOptional<int> nextBranchPoint =
     programState->getDeepestDPORBranchPoint();
@@ -259,18 +260,14 @@ mc_do_model_checking()
     programState->reflectStateAtTransitionIndex(bp - 1);
 
     // Search the next branch that DPOR dictated needed to be searched
-    program =
-      mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
-    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+    mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
 
     mc_exit_with_trace_if_necessary(traceId);
-    program = mc_rerun_current_trace_as_needed();
-    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+    mc_rerun_current_trace_as_needed();
 
     traceId++;
     nextBranchPoint = programState->getDeepestDPORBranchPoint();
   }
-  return MC_SCHEDULER;
 }
 
 void
@@ -382,7 +379,7 @@ mc_reset_cv_locks()
   }
 }
 
-MC_PROGRAM_TYPE
+void
 mc_fork_new_trace()
 {
   // Ensure that a child does not already
@@ -398,36 +395,7 @@ mc_fork_new_trace()
 
   if (FORK_IS_CHILD_PID(childpid)) {
     install_sighandles_for_trace();
-    return MC_TARGET_PROGRAM;
-  }
-  return MC_SCHEDULER;
-}
 
-MC_PROGRAM_TYPE
-mc_fork_new_trace_at_current_state()
-{
-  mc_reset_cv_locks();
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
-
-  if (MC_IS_SCHEDULER(program)) {
-    const int tStackHeight = programState->getTransitionStackSize();
-
-    for (int i = 0; i < tStackHeight; i++) {
-      // If we're currently working with a debugger and we want to
-      // move to a different point in the trace, we can simply break
-      // out of the loop moving the execution forward of the current
-      // trace in order to start a new one.
-      if (rerunCurrentTraceForDebugger) { break; }
-
-      // NOTE: This is reliant on the fact
-      // that threads are created in the same order
-      // when we create them. This will always be consistent,
-      // but we might need to look out for when a thread dies
-      tid_t nextTid =
-        programState->getThreadRunningTransitionAtIndex(i);
-      mc_run_thread_to_next_visible_operation(nextTid);
-    }
-  } else {
     // We need to reset the concurrent system
     // for the child since, at the time this method
     // is invoked, it will have a complete copy of
@@ -438,16 +406,7 @@ mc_fork_new_trace_at_current_state()
     programState->reset();
     programState->start();
     mc_register_main_thread();
-  }
 
-  return program;
-}
-
-MC_PROGRAM_TYPE
-mc_fork_new_trace_at_main()
-{
-  MC_PROGRAM_TYPE program = mc_fork_new_trace();
-  if (MC_IS_TARGET_PROGRAM(program)) {
     // NOTE: Technically, the child will be frozen
     // inside of dpor_init until it is scheduled. But
     // this is only a technicality: it doesn't actually
@@ -470,8 +429,40 @@ mc_fork_new_trace_at_main()
     MC_FATAL_ON_FAIL(atexit(&mc_exit_main_thread) == 0);
 
     thread_await_scheduler_for_thread_start_transition();
+
+    setcontext(&mcmini_scheduler_main_context);
   }
-  return program;
+}
+
+void
+mc_fork_new_trace_at_current_state()
+{
+  mc_reset_cv_locks();
+  mc_fork_new_trace_at_main();
+
+  const int tStackHeight = programState->getTransitionStackSize();
+
+  for (int i = 0; i < tStackHeight; i++) {
+    // If we're currently working with a debugger and we want to
+    // move to a different point in the trace, we can simply break
+    // out of the loop moving the execution forward of the current
+    // trace in order to start a new one.
+    if (rerunCurrentTraceForDebugger) { break; }
+
+    // NOTE: This is reliant on the fact
+    // that threads are created in the same order
+    // when we create them. This will always be consistent,
+    // but we might need to look out for when a thread dies
+    tid_t nextTid =
+      programState->getThreadRunningTransitionAtIndex(i);
+    mc_run_thread_to_next_visible_operation(nextTid);
+  }
+}
+
+void
+mc_fork_new_trace_at_main()
+{
+  mc_fork_new_trace();
 }
 
 void
@@ -591,14 +582,12 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   mc_terminate_trace();
 }
 
-MC_PROGRAM_TYPE
+void
 mc_search_next_dpor_branch_with_initial_thread(
   const tid_t leadingThread)
 {
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+  mc_fork_new_trace_at_current_state();
   mc_search_dpor_branch_with_initial_thread(leadingThread);
-  return MC_SCHEDULER;
 }
 
 tid_t
@@ -647,7 +636,7 @@ mc_exit_with_trace_if_necessary(trid_t trid)
   }
 }
 
-MC_PROGRAM_TYPE
+void
 mc_rerun_current_trace_as_needed()
 {
   while (rerunCurrentTraceForDebugger) {
@@ -656,11 +645,9 @@ mc_rerun_current_trace_as_needed()
     // McMini to execute more than once, it
     // could reset this value to `true`.
     rerunCurrentTraceForDebugger = false;
-    MC_PROGRAM_TYPE program = mc_fork_new_trace_at_current_state();
-    if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
+    mc_fork_new_trace_at_current_state();
     mc_terminate_trace();
   }
-  return MC_SCHEDULER;
 }
 
 MCStateConfiguration
