@@ -212,15 +212,38 @@ mc_prepare_to_model_check_new_program()
                                            initialTransition);
 }
 
+// nextBranchPoint is an out parameter.
 void
-mc_run_initial_trace()
+mc_explore_branch(MCOptional<int> *nextBranchPoint)
 {
-  mc_fork_new_trace_at_main();
+  tid_t backtrackThread;
 
-  mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
+  if (nextBranchPoint == nullptr /* initial branch */) {
+    mc_fork_new_trace_at_main();
+    backtrackThread = TID_MAIN_THREAD;
+  } else { // else next branch
+    const int bp = nextBranchPoint->unwrapped();
+    auto *sNext = &(programState->getStateItemAtIndex(bp));
+    backtrackThread = sNext->popThreadToBacktrackOn();
+
+    // Prepare the scheduler's model of the next trace
+    programState->reflectStateAtTransitionIndex(bp - 1);
+  }
+
+  if (nextBranchPoint == nullptr /* initial branch */) {
+    mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
+  } else {
+    // Search the branch that DPOR dictated needed to be searched
+    mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
+  }
+
   mc_exit_with_trace_if_necessary(traceId);
   mc_rerun_current_trace_as_needed();
+
   traceId++;
+  if (nextBranchPoint != nullptr) { // if this is not the initial branch
+    *nextBranchPoint = programState->getDeepestDPORBranchPoint();
+  }
 }
 
 void
@@ -228,12 +251,17 @@ mc_do_model_checking()
 {
   mc_prepare_to_model_check_new_program();
 
-  mc_run_initial_trace();
+  mc_explore_branch(nullptr); // nullptr means this is the initial branch
 
   MCOptional<int> nextBranchPoint =
     programState->getDeepestDPORBranchPoint();
 
   while (nextBranchPoint.hasValue()) {
+    MCOptional<int> *nextBranchPointPtr = &nextBranchPoint;
+    mc_explore_branch(nextBranchPointPtr);
+
+#if 0
+    // FIXME:  Delete this '#if 0' when the code works.
     const int bp = nextBranchPoint.unwrapped();
     auto &sNext  = programState->getStateItemAtIndex(bp);
     const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
@@ -249,6 +277,7 @@ mc_do_model_checking()
 
     traceId++;
     nextBranchPoint = programState->getDeepestDPORBranchPoint();
+#endif
   }
 }
 
