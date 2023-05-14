@@ -252,14 +252,6 @@ void mc_run_initial_trace();
  * @param leadThread the thread whose execution should be followed
  * from the current program state to continue the DPOR, depth-first
  * search.
- */
-void
-mc_search_next_dpor_branch_with_initial_thread(
-  const tid_t leadThread);
-
-/**
- * @brief Begins searching a new branch in the state space starting
- * with "leadThread" executing from the current program state
  *
  * This method makes two assumptions:
  *   1. There is a trace process forked and waiting for the scheduler
@@ -271,17 +263,21 @@ mc_search_next_dpor_branch_with_initial_thread(
  *
  * If either assumption is invalid, McMini will abort the backtracking
  * session; for otherwise McMini would be stuck in a deadlock.
- *
- * @param leadThread the thread whose execution should be followed
- * from the current program state to continue the DPOR, depth-first
- * search.
  */
 void
-mc_search_dpor_branch_with_initial_thread(const tid_t leadThread);
+mc_search_dpor_branch_with_thread(const tid_t leadThread);
 
 /**
- * @brief Forks a new trace process whose execution begins immediately
- * after this function
+ * This method makes two assumptions:
+ *   1. There is a trace process forked and waiting for the scheduler
+ *      to send requests for threads to execute through the mailbox
+ *      (see the global variables residing in shared memory declared
+ *      at the start of the header file).
+ *   2. The thread that is about to execute is enabled in the given
+ *      state.
+ *
+ * If either assumption is invalid, McMini will abort the backtracking
+ * session; for otherwise McMini would be stuck in a deadlock.
  *
  * When a new trace process is created, its execution begins inside
  * the control flow of the scheduler that spawned it. As the trace is
@@ -317,7 +313,7 @@ void mc_fork_new_trace_at_main();
  * scheduler at the particular point in the past (i.e. backtracking
  * point)
  */
-void mc_fork_new_trace_at_current_state();
+void mc_fork_next_trace_at_current_state();
 
 /**
  * @brief Unblocks the thread corresponding to _tid_ in the current
@@ -422,7 +418,7 @@ void mc_report_undefined_behavior(const char *);
  * an arbitrary number of times. By default, the function will not
  * cause any re-executions.
  */
-void mc_rerun_current_trace_as_needed();
+void mc_run_next_trace_for_debugger();
 
 MCStateConfiguration get_config_for_execution_environment();
 

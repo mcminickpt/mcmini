@@ -360,7 +360,7 @@ class gotoTraceCmd(gdb.Command):
     gdb.execute("set detach-on-fork on")
     # Optional argument:  internal=False ## FIXME: Change to True when ready.
     # FIXME:  If fifth arg here, it says only 4 args.  But 5 args work above.
-    bkpt = gdb.Breakpoint("mc_search_next_dpor_branch_with_initial_thread" +
+    bkpt = gdb.Breakpoint("mc_search_dpor_branch_with_thread" +
                             "(unsigned long)",
                           gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
     bkpt.silent = True
