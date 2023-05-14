@@ -39,7 +39,11 @@ main(int argc, char *argv[])
     }
     else if (strcmp(cur_arg[0], "--verbose") == 0 ||
              strcmp(cur_arg[0], "-v") == 0) {
-      setenv(ENV_VERBOSE, "1", 1);
+      if (getenv(ENV_VERBOSE)) {
+        setenv(ENV_VERBOSE, "2", 1);
+      } else {
+        setenv(ENV_VERBOSE, "1", 1);
+      }
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--first-deadlock") == 0 ||
@@ -67,7 +71,7 @@ main(int argc, char *argv[])
               "Usage: mcmini [--max-depth-per-thread|-m <num>] "
               "[--debug-at-trace|-d <num>]\n"
               "[--first-deadlock|-first] [--print-at-trace]\n"
-              "[--verbose|-v] [--help|-h] target_executable\n");
+              "[--verbose|-v] [-v -v] [--help|-h] target_executable\n");
       exit(1);
     }
     else {
