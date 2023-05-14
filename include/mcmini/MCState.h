@@ -559,6 +559,7 @@ public:
   void reflectStateAtTransitionIndex(uint32_t tIndex);
 
   // TODO: De-couple priting from the state stack + transitions
+  void printThreadSchedule() const;
   void printTransitionStack() const;
   void printNextTransitions() const;
 };

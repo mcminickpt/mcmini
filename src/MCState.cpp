@@ -867,17 +867,24 @@ MCState::registerVisibleObjectWithSystemIdentity(
 }
 
 void
+MCState::printThreadSchedule() const
+{
+  for (int i = 0; i <= this->transitionStackTop; i++) {
+    const tid_t tid = this->getTransitionAtIndex(i).getThreadId();
+    printf("%lu, ", tid);
+  }
+  printf("\n");
+}
+
+void
 MCState::printTransitionStack() const
 {
   printf("THREAD BACKTRACE\n");
   for (int i = 0; i <= this->transitionStackTop; i++) {
     this->getTransitionAtIndex(i).print();
   }
-  for (int i = 0; i <= this->transitionStackTop; i++) {
-    const tid_t tid = this->getTransitionAtIndex(i).getThreadId();
-    printf("%lu, ", tid);
-  }
-  printf("\nEND\n");
+  MCState::printThreadSchedule();
+  printf("END\n");
   mcflush();
 }
 
