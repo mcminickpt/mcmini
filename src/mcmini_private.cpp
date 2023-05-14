@@ -73,7 +73,7 @@ static void printResults() {
  * into the debugger, or perhaps make it a local variable.
  * Effectively, we should make it more difficult to set this value
  * since it affects the behavior of a rather important function for
- * state regeneration (viz. mc_fork_new_trace_at_current_state())
+ * state regeneration (viz. mc_fork_next_trace_at_current_state())
  */
 bool rerunCurrentTraceForDebugger = false;
 
@@ -237,7 +237,7 @@ mc_explore_branch(MCOptional<int> *nextBranchPointPtr)
   tid_t backtrackThread;
 
   if (nextBranchPointPtr == nullptr /* initial branch */) {
-    mc_fork_new_trace_at_main();
+    mc_fork_new_trace();
     backtrackThread = TID_MAIN_THREAD;
   } else { // else next branch
     const int bp = nextBranchPointPtr->unwrapped();
@@ -246,17 +246,13 @@ mc_explore_branch(MCOptional<int> *nextBranchPointPtr)
 
     // Prepare the scheduler's model of the next trace
     programState->reflectStateAtTransitionIndex(bp - 1);
+
+    mc_fork_next_trace_at_current_state();
   }
 
-  if (nextBranchPointPtr == nullptr /* initial branch */) {
-    mc_search_dpor_branch_with_initial_thread(TID_MAIN_THREAD);
-  } else {
-    // Search the branch that DPOR dictated needed to be searched
-    mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
-  }
-
+  mc_search_dpor_branch_with_thread(backtrackThread);
   mc_exit_with_trace_if_necessary(traceId);
-  mc_rerun_current_trace_as_needed();
+  mc_run_next_trace_for_debugger();
 
   traceId++;
   if (nextBranchPointPtr != nullptr) { // if this is not the initial branch
@@ -271,31 +267,11 @@ mc_do_model_checking()
 
   mc_explore_branch(nullptr); // nullptr means this is the initial branch
 
-  MCOptional<int> nextBranchPoint =
-    programState->getDeepestDPORBranchPoint();
+  MCOptional<int> nextBranchPoint = programState->getDeepestDPORBranchPoint();
 
   while (nextBranchPoint.hasValue()) {
     MCOptional<int> *nextBranchPointPtr = &nextBranchPoint;
     mc_explore_branch(nextBranchPointPtr);
-
-#if 0
-    // FIXME:  Delete this '#if 0' when the code works.
-    const int bp = nextBranchPoint.unwrapped();
-    auto &sNext  = programState->getStateItemAtIndex(bp);
-    const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
-
-    // Prepare the scheduler's model of the next trace
-    programState->reflectStateAtTransitionIndex(bp - 1);
-
-    // Search the next branch that DPOR dictated needed to be searched
-    mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
-
-    mc_exit_with_trace_if_necessary(traceId);
-    mc_rerun_current_trace_as_needed();
-
-    traceId++;
-    nextBranchPoint = programState->getDeepestDPORBranchPoint();
-#endif
   }
 }
 
@@ -464,10 +440,10 @@ mc_fork_new_trace()
 }
 
 void
-mc_fork_new_trace_at_current_state()
+mc_fork_next_trace_at_current_state()
 {
   mc_reset_cv_locks();
-  mc_fork_new_trace_at_main();
+  mc_fork_new_trace();
 
   const int tStackHeight = programState->getTransitionStackSize();
 
@@ -486,12 +462,6 @@ mc_fork_new_trace_at_current_state()
       programState->getThreadRunningTransitionAtIndex(i);
     mc_run_thread_to_next_visible_operation(nextTid);
   }
-}
-
-void
-mc_fork_new_trace_at_main()
-{
-  mc_fork_new_trace();
 }
 
 void
@@ -531,14 +501,14 @@ mc_trace_panic()
 }
 
 void
-mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
+mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 {
   uint64_t depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
-    programState->getNextTransitionForThread(leadingThread);
-  const MCTransition *t_next = &initialTransition;
+    programState->getNextTransitionForThread(backtrackThread);
+  const MCTransition *nextTransition = &initialTransition;
 
-  // TODO: Assert whether or not t_next is enabled
+  // TODO: Assert whether or not nextTransition is enabled
   // TODO: Assert whether a trace process exists at this point
 
   do {
@@ -557,11 +527,11 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
     depth++;
     transitionId++;
 
-    const tid_t tid = t_next->getThreadId();
+    const tid_t tid = nextTransition->getThreadId();
     mc_run_thread_to_next_visible_operation(tid);
 
     programState->simulateRunningTransition(
-      *t_next, shmTransitionTypeInfo, shmTransitionData);
+      *nextTransition, shmTransitionTypeInfo, shmTransitionData);
     programState->dynamicallyUpdateBacktrackSets();
 
     /* Check for data races */
@@ -577,8 +547,8 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
       }
     }
 
-    t_next = programState->getFirstEnabledTransition();
-  } while (t_next != nullptr);
+    nextTransition = programState->getFirstEnabledTransition();
+  } while (nextTransition != nullptr);
 
   const bool hasDeadlock        = programState->isInDeadlock();
   const bool programHasNoErrors = !hasDeadlock;
@@ -609,14 +579,6 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   }
 
   mc_terminate_trace();
-}
-
-void
-mc_search_next_dpor_branch_with_initial_thread(
-  const tid_t leadingThread)
-{
-  mc_fork_new_trace_at_current_state();
-  mc_search_dpor_branch_with_initial_thread(leadingThread);
 }
 
 tid_t
@@ -666,7 +628,7 @@ mc_exit_with_trace_if_necessary(trid_t trid)
 }
 
 void
-mc_rerun_current_trace_as_needed()
+mc_run_next_trace_for_debugger()
 {
   while (rerunCurrentTraceForDebugger) {
     // McMini will only re-execute a trace
@@ -674,7 +636,7 @@ mc_rerun_current_trace_as_needed()
     // McMini to execute more than once, it
     // could reset this value to `true`.
     rerunCurrentTraceForDebugger = false;
-    mc_fork_new_trace_at_current_state();
+    mc_fork_next_trace_at_current_state();
     mc_terminate_trace();
   }
 }
