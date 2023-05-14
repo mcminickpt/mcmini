@@ -4,7 +4,7 @@
 
 MCTransition *
 MCReadSemWait(const MCSharedTransition *shmTransition, void *shmData,
-              MCState *state)
+              MCStack *state)
 {
   auto semInShm = *static_cast<sem_t **>(shmData);
   auto semThatExists =
@@ -39,7 +39,7 @@ MCSemWait::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCSemWait::dynamicCopyInState(const MCState *state) const
+MCSemWait::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -50,7 +50,7 @@ MCSemWait::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCSemWait::applyToState(MCState *state)
+MCSemWait::applyToState(MCStack *state)
 {
   this->sem->wait();
   this->sem->leaveWaitingQueue(this->getThreadId());
@@ -81,7 +81,7 @@ MCSemWait::dependentWith(const MCTransition *other) const
 }
 
 bool
-MCSemWait::enabledInState(const MCState *) const
+MCSemWait::enabledInState(const MCStack *) const
 {
   return this->sem->threadCanExit(this->getThreadId());
 }

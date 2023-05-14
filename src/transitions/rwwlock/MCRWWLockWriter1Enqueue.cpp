@@ -5,7 +5,7 @@ using namespace std;
 
 MCTransition *
 MCReadRWWLockWriter1Enqueue(const MCSharedTransition *shmTransition,
-                            void *shmData, MCState *state)
+                            void *shmData, MCStack *state)
 {
   auto rwlockInShm = static_cast<MCRWWLockShadow *>(shmData);
   auto systemId    = (MCSystemID)rwlockInShm->systemIdentity;
@@ -40,7 +40,7 @@ MCRWWLockWriter1Enqueue::staticCopy() const
 
 std::shared_ptr<MCTransition>
 MCRWWLockWriter1Enqueue::dynamicCopyInState(
-  const MCState *state) const
+  const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -51,7 +51,7 @@ MCRWWLockWriter1Enqueue::dynamicCopyInState(
 }
 
 void
-MCRWWLockWriter1Enqueue::applyToState(MCState *state)
+MCRWWLockWriter1Enqueue::applyToState(MCStack *state)
 {
   // Enqueue this thread as a writer 1 type
   this->rwwlock->enqueue_as_writer1(this->getThreadId());

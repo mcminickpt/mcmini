@@ -51,14 +51,11 @@ public:
   {}
 
   /**
-   * @brief Whether or not the given thread is contained in the
-   * group
+   * @brief Whether or not the given thread is contained in the group
    *
-   * @param tid the thread to test for membership in the wake
-   * group
+   * @param tid the thread to test for membership in the wake group
    * @return true if the thread is contained in the wake group
-   * @return false if the thread is not contained in the wake
-   * group
+   * @return false if the thread is not contained in the wake group
    */
   bool contains(tid_t tid) const;
 

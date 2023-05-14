@@ -12,7 +12,7 @@
  * @brief Associates information relevant to
  * DPOR about a state it has searched
  *
- * The `MCStateStackItem` is a light-weight
+ * The `MCStackItem` is a light-weight
  * representation of a state explored by McMini.
  * McMini is a stateless model checker, meaning
  * that is does not "remember" or cache the previous
@@ -21,15 +21,15 @@
  * during the state-space search in order to function
  * correctly.
  *
- * Each `MCStateStackItem` persists the state's
+ * Each `MCStackItem` persists the state's
  * backtracking set, done set, and sleep set.
  * Each state explored by McMini has exactly one
- * representative `MCStateStackItem`. McMini will
+ * representative `MCStackItem`. McMini will
  * adjust the state's trio of sets as it continues
  * to explore the state space and execute
  * more transitions
  */
-struct MCStateStackItem final {
+struct MCStackItem final {
 private:
 
   /**
@@ -114,11 +114,11 @@ private:
 
 public:
 
-  MCStateStackItem()
-    : MCStateStackItem(MCClockVector::newEmptyClockVector(), false)
+  MCStackItem()
+    : MCStackItem(MCClockVector::newEmptyClockVector(), false)
   {}
 
-  MCStateStackItem(const MCClockVector &cv,
+  MCStackItem(const MCClockVector &cv,
                    const bool reversibleInState)
     : clockVector(cv),
       spawningTransitionCanRevertState(reversibleInState)

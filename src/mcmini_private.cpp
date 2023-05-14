@@ -86,7 +86,7 @@ const size_t shmAllocationSize =
   (sizeof(*shmTransitionTypeInfo) + MAX_SHARED_MEMORY_ALLOCATION);
 
 /* Program state */
-MCDeferred<MCState> programState;
+MCDeferred<MCStack> programState;
 
 void
 alarm_handler(int sig)
@@ -634,7 +634,7 @@ mc_run_next_trace_for_debugger()
   }
 }
 
-MCStateConfiguration
+MCStackConfiguration
 get_config_for_execution_environment()
 {
   // FIXME: This is also in a bad spot. This needs to removed/changed

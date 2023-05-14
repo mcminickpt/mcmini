@@ -2,12 +2,12 @@
 #define MC_MCTRANSITION_H
 
 #include "mcmini/MCShared.h"
-#include "mcmini/MCState.h"
+#include "mcmini/MCStack.h"
 #include "mcmini/objects/MCThread.h"
 #include <memory>
 #include <utility>
 
-struct MCState;
+struct MCStack;
 
 /**
  * A base class representing a fundamental unit in DPOR: the
@@ -81,9 +81,9 @@ public:
   static bool transitionsInDataRace(const MCTransition *,
                                     const MCTransition *);
 
-  static bool transitionEnabledInState(const MCState *,
+  static bool transitionEnabledInState(const MCStack *,
                                        const MCTransition &);
-  static bool transitionEnabledInState(const MCState *,
+  static bool transitionEnabledInState(const MCStack *,
                                        const MCTransition *);
 
   /**
@@ -119,7 +119,7 @@ public:
    * McMini creates dynamic copies when it needs to apply a
    * transition to the objects it keeps track of. You must ensure
    * that you access the correct references by querying the state
-   * instance with `MCState::getObjectWithId()`, using the ids
+   * instance with `MCStack::getObjectWithId()`, using the ids
    * associated with each object reference owned by this transition.
    * For example, the `MyTransition` looks up the "live" object
    * corresponding to the id of the reference that the transition
@@ -133,7 +133,7 @@ public:
    * public: ...
    *
    *   std::shared_ptr<MCTransition>
-   *   dynamicCopyInState(const MCState* state)
+   *   dynamicCopyInState(const MCStack* state)
    *   {
    *      MyObjectRef dynamicMyObj =
    *          state->getObjectWithId<MyObjectRef>(myObj->getObjectId());
@@ -148,7 +148,7 @@ public:
    * each object reference pointing at "live" objects
    */
   virtual std::shared_ptr<MCTransition>
-  dynamicCopyInState(const MCState *state) const = 0;
+  dynamicCopyInState(const MCStack *state) const = 0;
 
   /**
    * Determines whether the thread running this transition would
@@ -170,7 +170,7 @@ public:
    * when determining whether a transition is enabled: McMini
    * transparently prevents scheduling threads from executing
    * which have run past their execution depth limits (see
-   * `MCState.cpp` and
+   * `MCStack.cpp` and
    * `MCTransition::countsAgainstThreadExecutionDepth()` for more
    * details). Furthermore, McMini also checks whether the thread
    * executing this transition is enabled in the first place. Thus
@@ -196,7 +196,7 @@ public:
    * argument to this method
    */
   virtual bool
-  enabledInState(const MCState *state) const
+  enabledInState(const MCStack *state) const
   {
     return true;
   }
@@ -229,7 +229,7 @@ public:
    * references held onto by this instance refer to live objects
    * in this state
    */
-  virtual void applyToState(MCState *state) = 0;
+  virtual void applyToState(MCStack *state) = 0;
 
   /**
    * @brief Whether or not the transition can be reverted
@@ -238,7 +238,7 @@ public:
    * It's possible that a transition's effects can be
    * reverted. In such cases, override this method
    * and return `true` and implement the
-   * `MCTransition::unapplyToState(MCState*)` method.
+   * `MCTransition::unapplyToState(MCStack*)` method.
    *
    * McMini will use this information
    * to dynamically determine if it can simply undo
@@ -253,7 +253,7 @@ public:
    * state, and false otherwise
    */
   virtual bool
-  isReversibleInState(const MCState *state) const
+  isReversibleInState(const MCStack *state) const
   {
     return false;
   }
@@ -266,7 +266,7 @@ public:
    * state reflecting the fact that this transition has been
    * _reverted_.
    *
-   * As with `MCState::applyToState(MCState*)`,
+   * As with `MCStack::applyToState(MCStack*)`,
    * you can assume that any object references have
    * been resolved to point to live objects and not to copies of
    * those objects. See `MCTransition::dynamicCopyInState()` and
@@ -292,7 +292,7 @@ public:
    * transition when it's unsupported
    */
   virtual void
-  unapplyToState(MCState *state)
+  unapplyToState(MCStack *state)
   {
     if (!isReversibleInState(state))
       throw std::runtime_error(

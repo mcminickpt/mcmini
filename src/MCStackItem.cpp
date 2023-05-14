@@ -1,35 +1,35 @@
-#include "mcmini/MCStateStackItem.h"
+#include "mcmini/MCStackItem.h"
 #include <algorithm>
 using namespace std;
 
 void
-MCStateStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
+MCStackItem::addBacktrackingThreadIfUnsearched(tid_t tid)
 {
   bool containedInDoneSet = this->doneSet.count(tid) > 0;
   if (!containedInDoneSet) { this->backtrackSet.insert(tid); }
 }
 
 void
-MCStateStackItem::markBacktrackThreadSearched(tid_t tid)
+MCStackItem::markBacktrackThreadSearched(tid_t tid)
 {
   this->doneSet.insert(tid);
   this->backtrackSet.erase(tid);
 }
 
 bool
-MCStateStackItem::hasThreadsToBacktrackOn() const
+MCStackItem::hasThreadsToBacktrackOn() const
 {
   return !backtrackSet.empty();
 }
 
 bool
-MCStateStackItem::isBacktrackingOnThread(tid_t tid) const
+MCStackItem::isBacktrackingOnThread(tid_t tid) const
 {
   return this->backtrackSet.count(tid) > 0;
 }
 
 bool
-MCStateStackItem::threadIsInSleepSet(tid_t tid) const
+MCStackItem::threadIsInSleepSet(tid_t tid) const
 {
   // If the thread runs a transition contained in the
   // sleep set, we know that it is the only such transition
@@ -40,7 +40,7 @@ MCStateStackItem::threadIsInSleepSet(tid_t tid) const
 }
 
 tid_t
-MCStateStackItem::popThreadToBacktrackOn()
+MCStackItem::popThreadToBacktrackOn()
 {
   MC_ASSERT(this->hasThreadsToBacktrackOn());
 
@@ -57,7 +57,7 @@ MCStateStackItem::popThreadToBacktrackOn()
 }
 
 void
-MCStateStackItem::markThreadsEnabledInState(
+MCStackItem::markThreadsEnabledInState(
   const unordered_set<tid_t> &enabledThrds)
 {
   for (const tid_t tid : enabledThrds)
@@ -65,31 +65,31 @@ MCStateStackItem::markThreadsEnabledInState(
 }
 
 unordered_set<tid_t>
-MCStateStackItem::getEnabledThreadsInState() const
+MCStackItem::getEnabledThreadsInState() const
 {
   return this->enabledThreads;
 }
 
 unordered_set<tid_t>
-MCStateStackItem::getSleepSet() const
+MCStackItem::getSleepSet() const
 {
   return this->sleepSet;
 }
 
 MCClockVector
-MCStateStackItem::getClockVector() const
+MCStackItem::getClockVector() const
 {
   return this->clockVector;
 }
 
 bool
-MCStateStackItem::isRevertible() const
+MCStackItem::isRevertible() const
 {
   return this->spawningTransitionCanRevertState;
 }
 
 void
-MCStateStackItem::addThreadToSleepSet(tid_t tid)
+MCStackItem::addThreadToSleepSet(tid_t tid)
 {
   this->sleepSet.insert(tid);
 }

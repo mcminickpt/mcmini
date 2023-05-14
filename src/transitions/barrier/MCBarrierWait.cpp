@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadBarrierWait(const MCSharedTransition *shmTransition,
-                  void *shmData, MCState *state)
+                  void *shmData, MCStack *state)
 {
   auto barrierInShm = static_cast<MCBarrierShadow *>(shmData);
   auto barrierThatExists =
@@ -39,7 +39,7 @@ MCBarrierWait::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCBarrierWait::dynamicCopyInState(const MCState *state) const
+MCBarrierWait::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -50,7 +50,7 @@ MCBarrierWait::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCBarrierWait::applyToState(MCState *state)
+MCBarrierWait::applyToState(MCStack *state)
 {
   // We don't actually need to do anything here
 }
@@ -74,7 +74,7 @@ MCBarrierWait::dependentWith(const MCTransition *other) const
 }
 
 bool
-MCBarrierWait::enabledInState(const MCState *state) const
+MCBarrierWait::enabledInState(const MCStack *state) const
 {
   return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
 }

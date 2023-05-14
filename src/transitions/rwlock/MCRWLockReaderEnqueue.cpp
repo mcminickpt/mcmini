@@ -5,7 +5,7 @@ using namespace std;
 
 MCTransition *
 MCReadRWLockReaderEnqueue(const MCSharedTransition *shmTransition,
-                          void *shmData, MCState *state)
+                          void *shmData, MCStack *state)
 {
   auto rwlockInShm = static_cast<MCRWLockShadow *>(shmData);
   auto systemId    = (MCSystemID)rwlockInShm->systemIdentity;
@@ -39,7 +39,7 @@ MCRWLockReaderEnqueue::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCRWLockReaderEnqueue::dynamicCopyInState(const MCState *state) const
+MCRWLockReaderEnqueue::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -50,7 +50,7 @@ MCRWLockReaderEnqueue::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCRWLockReaderEnqueue::applyToState(MCState *state)
+MCRWLockReaderEnqueue::applyToState(MCStack *state)
 {
   // Enqueue this thread as a reader
   this->rwlock->enqueue_as_reader(this->getThreadId());

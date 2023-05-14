@@ -6,7 +6,7 @@
 
 MCTransition *
 MCReadCondWait(const MCSharedTransition *shmTransition, void *shmData,
-               MCState *state)
+               MCStack *state)
 {
   const auto shmCond =
     static_cast<MCSharedMemoryConditionVariable *>(shmData);
@@ -62,7 +62,7 @@ MCCondWait::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCCondWait::dynamicCopyInState(const MCState *state) const
+MCCondWait::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -74,7 +74,7 @@ MCCondWait::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCCondWait::applyToState(MCState *state)
+MCCondWait::applyToState(MCStack *state)
 {
   const tid_t threadId = this->getThreadId();
   this->conditionVariable->mutex->lock(threadId);
@@ -82,7 +82,7 @@ MCCondWait::applyToState(MCState *state)
 }
 
 bool
-MCCondWait::enabledInState(const MCState *) const
+MCCondWait::enabledInState(const MCStack *) const
 {
   const tid_t threadId = this->getThreadId();
   return this->conditionVariable->waiterCanExit(threadId) &&

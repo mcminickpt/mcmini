@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadBarrierInit(const MCSharedTransition *shmTransition,
-                  void *shmData, MCState *state)
+                  void *shmData, MCStack *state)
 {
   auto barrierInShm = static_cast<MCBarrierShadow *>(shmData);
   auto systemId     = (MCSystemID)barrierInShm->systemIdentity;
@@ -39,7 +39,7 @@ MCBarrierInit::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCBarrierInit::dynamicCopyInState(const MCState *state) const
+MCBarrierInit::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -50,7 +50,7 @@ MCBarrierInit::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCBarrierInit::applyToState(MCState *state)
+MCBarrierInit::applyToState(MCStack *state)
 {
   this->barrier->init();
 }

@@ -8,7 +8,7 @@ CXXFLAGS=@CXXFLAGS@
 override CFLAGS+=-I${ROOT}/include -fPIC -DMC_SHARED_LIBRARY=1 -Dmcmini_checker_EXPORTS
 override CXXFLAGS=${CFLAGS} -std=gnu++11
 
-LIBOBJS1=src/MCObjectStore.o src/MCSharedTransition.o src/MCTransition.o src/mcmini_private.o src/MCState.o src/MCTransitionFactory.o src/MCStateStackItem.o src/MCThreadData.o src/MCClockVector.o src/signals.o
+LIBOBJS1=src/MCObjectStore.o src/MCSharedTransition.o src/MCTransition.o src/mcmini_private.o src/MCStack.o src/MCTransitionFactory.o src/MCStackItem.o src/MCThreadData.o src/MCClockVector.o src/signals.o
 
 LIBOBJS2=src/misc/cond/MCConditionVariableDefaultPolicy.o src/misc/cond/MCConditionVariableArbitraryPolicy.o src/misc/cond/MCConditionVariableOrderedPolicy.o src/misc/cond/MCWakeGroup.o src/misc/cond/MCConditionVariableSingleGroupPolicy.o src/misc/cond/MCConditionVariableGLibcPolicy.o
 

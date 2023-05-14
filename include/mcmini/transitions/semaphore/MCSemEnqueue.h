@@ -4,7 +4,7 @@
 #include "mcmini/transitions/semaphore/MCSemaphoreTransition.h"
 
 MCTransition *MCReadSemEnqueue(const MCSharedTransition *, void *,
-                               MCState *);
+                               MCStack *);
 
 struct MCSemEnqueue : public MCSemaphoreTransition {
 public:
@@ -16,8 +16,8 @@ public:
 
   std::shared_ptr<MCTransition> staticCopy() const override;
   std::shared_ptr<MCTransition>
-  dynamicCopyInState(const MCState *) const override;
-  void applyToState(MCState *) override;
+  dynamicCopyInState(const MCStack *) const override;
+  void applyToState(MCStack *) override;
   bool coenabledWith(const MCTransition *) const override;
   bool dependentWith(const MCTransition *) const override;
   bool

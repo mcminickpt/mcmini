@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadSemInit(const MCSharedTransition *shmTransition, void *shmData,
-              MCState *state)
+              MCStack *state)
 {
   auto semInShm = static_cast<MCSemaphoreShadow *>(shmData);
   auto systemId = (MCSystemID)semInShm->sem;
@@ -38,7 +38,7 @@ MCSemInit::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCSemInit::dynamicCopyInState(const MCState *state) const
+MCSemInit::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -49,7 +49,7 @@ MCSemInit::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCSemInit::applyToState(MCState *state)
+MCSemInit::applyToState(MCStack *state)
 {
   this->sem->init();
 }

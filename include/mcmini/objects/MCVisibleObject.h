@@ -1,7 +1,7 @@
 #ifndef MC_MCVISIBLEOBJECT_H
 #define MC_MCVISIBLEOBJECT_H
 
-class MCState;
+class MCStack;
 class MCObjectStore;
 
 #include "mcmini/MCShared.h"

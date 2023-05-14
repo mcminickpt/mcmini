@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadMutexInit(const MCSharedTransition *shmTransition,
-                void *shmData, MCState *state)
+                void *shmData, MCStack *state)
 {
   auto mutexInShm = static_cast<MCMutexShadow *>(shmData);
   auto systemId   = (MCSystemID)mutexInShm->systemIdentity;
@@ -38,7 +38,7 @@ MCMutexInit::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCMutexInit::dynamicCopyInState(const MCState *state) const
+MCMutexInit::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -49,19 +49,19 @@ MCMutexInit::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCMutexInit::applyToState(MCState *state)
+MCMutexInit::applyToState(MCStack *state)
 {
   this->mutex->init();
 }
 
 void
-MCMutexInit::unapplyToState(MCState *state)
+MCMutexInit::unapplyToState(MCStack *state)
 {
   this->mutex->deinit();
 }
 
 bool
-MCMutexInit::isReversibleInState(const MCState *state) const
+MCMutexInit::isReversibleInState(const MCStack *state) const
 {
   return true;
 }

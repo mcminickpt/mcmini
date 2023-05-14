@@ -3,7 +3,7 @@
 
 MCTransition *
 MCReadGlobalRead(const MCSharedTransition *shmTransition,
-                 void *shmStart, MCState *state)
+                 void *shmStart, MCStack *state)
 {
   auto addr = *(void **)shmStart;
   auto threadThatRan =
@@ -34,7 +34,7 @@ MCGlobalVariableRead::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCGlobalVariableRead::dynamicCopyInState(const MCState *state) const
+MCGlobalVariableRead::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);

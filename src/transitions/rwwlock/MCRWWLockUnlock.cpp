@@ -3,7 +3,7 @@
 
 MCTransition *
 MCReadRWWLockUnlock(const MCSharedTransition *shmTransition,
-                    void *shmData, MCState *state)
+                    void *shmData, MCStack *state)
 {
   auto rwlockInShm = static_cast<MCRWWLockShadow *>(shmData);
   auto systemId    = (MCSystemID)rwlockInShm->systemIdentity;
@@ -40,7 +40,7 @@ MCRWWLockUnlock::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCRWWLockUnlock::dynamicCopyInState(const MCState *state) const
+MCRWWLockUnlock::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -50,7 +50,7 @@ MCRWWLockUnlock::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCRWWLockUnlock::applyToState(MCState *state)
+MCRWWLockUnlock::applyToState(MCStack *state)
 {
   this->rwwlock->unlock(this->getThreadId());
 }

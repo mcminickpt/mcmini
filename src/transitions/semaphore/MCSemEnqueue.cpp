@@ -5,7 +5,7 @@
 
 MCTransition *
 MCReadSemEnqueue(const MCSharedTransition *shmTransition,
-                 void *shmData, MCState *state)
+                 void *shmData, MCStack *state)
 {
   auto semInShm = *static_cast<sem_t **>(shmData);
   auto semThatExists =
@@ -40,7 +40,7 @@ MCSemEnqueue::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCSemEnqueue::dynamicCopyInState(const MCState *state) const
+MCSemEnqueue::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -51,7 +51,7 @@ MCSemEnqueue::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCSemEnqueue::applyToState(MCState *state)
+MCSemEnqueue::applyToState(MCStack *state)
 {
   this->sem->enterWaitingQueue(this->getThreadId());
 }

@@ -3,7 +3,7 @@
 
 MCTransition *
 MCReadBarrierEnqueue(const MCSharedTransition *shmTransition,
-                     void *shmData, MCState *state)
+                     void *shmData, MCStack *state)
 {
   auto barrierInShm = static_cast<MCBarrierShadow *>(shmData);
   auto barrierThatExists =
@@ -33,7 +33,7 @@ MCBarrierEnqueue::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCBarrierEnqueue::dynamicCopyInState(const MCState *state) const
+MCBarrierEnqueue::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -44,7 +44,7 @@ MCBarrierEnqueue::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCBarrierEnqueue::applyToState(MCState *state)
+MCBarrierEnqueue::applyToState(MCStack *state)
 {
   auto executor = this->getThreadId();
   barrier->wait(

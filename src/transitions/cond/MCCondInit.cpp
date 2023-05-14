@@ -6,7 +6,7 @@ using namespace mcmini;
 
 MCTransition *
 MCReadCondInit(const MCSharedTransition *shmTransition, void *shmData,
-               MCState *state)
+               MCStack *state)
 {
   auto condInShm = static_cast<pthread_cond_t **>(shmData);
   auto systemId  = (MCSystemID)*condInShm;
@@ -51,7 +51,7 @@ MCCondInit::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCCondInit::dynamicCopyInState(const MCState *state) const
+MCCondInit::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -63,7 +63,7 @@ MCCondInit::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCCondInit::applyToState(MCState *state)
+MCCondInit::applyToState(MCStack *state)
 {
   this->conditionVariable->initialize();
 }

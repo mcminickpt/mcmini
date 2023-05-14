@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadExitTransition(const MCSharedTransition *shmTransition,
-                     void *shmStart, MCState *programState)
+                     void *shmStart, MCStack *programState)
 {
   auto executor =
     programState->getThreadWithId(shmTransition->executor);
@@ -21,7 +21,7 @@ MCExitTransition::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCExitTransition::dynamicCopyInState(const MCState *state) const
+MCExitTransition::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -36,7 +36,7 @@ MCExitTransition::dependentWith(const MCTransition *) const
 }
 
 bool
-MCExitTransition::enabledInState(const MCState *) const
+MCExitTransition::enabledInState(const MCStack *) const
 {
   return false; // Never enabled
 }

@@ -8,7 +8,7 @@ void
 ConditionVariableDefaultPolicy::receive_broadcast_message()
 {
   // Move everyone into the get-out-of-jail free place
-  // from the wake group list
+  // from the wake group list.
   for (const WakeGroup &wg : this->wake_groups) {
     for (const tid_t signaled_thread : wg) {
       this->broadcast_eligible_threads.insert(signaled_thread);

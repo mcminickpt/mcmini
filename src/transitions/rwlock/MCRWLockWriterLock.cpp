@@ -4,7 +4,7 @@
 
 MCTransition *
 MCReadRWLockWriterLock(const MCSharedTransition *shmTransition,
-                       void *shmData, MCState *state)
+                       void *shmData, MCStack *state)
 {
   auto rwlockInShm = static_cast<MCRWLockShadow *>(shmData);
   auto systemId    = (MCSystemID)rwlockInShm->systemIdentity;
@@ -35,7 +35,7 @@ MCRWLockWriterLock::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCRWLockWriterLock::dynamicCopyInState(const MCState *state) const
+MCRWLockWriterLock::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -46,13 +46,13 @@ MCRWLockWriterLock::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCRWLockWriterLock::applyToState(MCState *state)
+MCRWLockWriterLock::applyToState(MCStack *state)
 {
   this->rwlock->writer_lock(this->getThreadId());
 }
 
 bool
-MCRWLockWriterLock::enabledInState(const MCState *state) const
+MCRWLockWriterLock::enabledInState(const MCStack *state) const
 {
   return this->rwlock->canAcquireAsWriter(this->getThreadId());
 }
