@@ -34,6 +34,26 @@ sem_t mc_pthread_create_binary_sem;
 trid_t traceId      = 0;
 trid_t transitionId = 0;
 
+static char resultString[1000] = "***** Model checking completed! *****\n";
+static void addResult(const char *result) {
+  char stats[1000];
+  if (strstr(resultString, result) != NULL) {
+    result = "  (Other trace numbers exist: ...)\n";
+    if (strstr(resultString, result) == NULL) {
+      strncat(resultString, result, sizeof(resultString) - strlen(resultString));
+    }
+    return;
+  }
+  strncat(resultString, result, sizeof(resultString) - strlen(resultString));
+  snprintf(stats, 80, "  (Trace number: %lu)\n", traceId);
+  strncat(resultString, stats, sizeof(resultString) - strlen(resultString));
+}
+static void printResults() {
+  mcprintf(resultString);
+  mcprintf("Number of transitions: %lu\n", transitionId);
+  mcprintf("Number of traces: %lu\n", traceId);
+}
+
 /*
  * Dynamically updated to control how McMini proceeds with its
  * execution.
@@ -100,9 +120,7 @@ mcmini_main()
   MC_PROGRAM_TYPE program = mc_do_model_checking();
   if (MC_IS_TARGET_PROGRAM(program)) return;
 
-  mcprintf("***** Model checking completed! *****\n");
-  mcprintf("Number of transitions: %lu\n", transitionId);
-  mcprintf("Number of traces: %lu\n", traceId);
+  printResults();
   mc_stop_model_checking(EXIT_SUCCESS);
 }
 
@@ -505,6 +523,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 
   do {
     if (depth >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+      printResults();
       mcprintf(
         "*** Execution Limit Reached! ***\n\n"
         "McMini ran a trace with %lu transitions which is\n"
@@ -534,6 +553,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
         mcprintf("*** DATA RACE DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
+        addResult("*** DATA RACE DETECTED ***\n");
       }
     }
 
@@ -547,18 +567,25 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
     mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
+    addResult("*** DEADLOCK DETECTED ***\n");
 
     if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
-      mcprintf("*** Model checking completed! ***\n");
+      printResults();
       mcprintf("Number of transitions: %lu\n", transitionId);
       mc_exit(EXIT_SUCCESS);
     }
   }
 
-  if (programHasNoErrors && getenv(ENV_VERBOSE)) {
-    mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
-    programState->printTransitionStack();
-    programState->printNextTransitions();
+  static char *verbose = getenv(ENV_VERBOSE);
+  if (programHasNoErrors && verbose) {
+    if (verbose[0] == '1') {
+      mcprintf("Trace %3d:  ", traceId);
+      programState->printThreadSchedule();
+    } else {
+      mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
+      programState->printTransitionStack();
+      programState->printNextTransitions();
+    }
   }
 
   mc_terminate_trace();
