@@ -4,7 +4,7 @@
 
 MCTransition *
 MCReadMutexUnlock(const MCSharedTransition *shmTransition,
-                  void *shmData, MCState *state)
+                  void *shmData, MCStack *state)
 {
   auto mutexInShm = static_cast<MCMutexShadow *>(shmData);
   auto mutexThatExists =
@@ -40,7 +40,7 @@ MCMutexUnlock::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCMutexUnlock::dynamicCopyInState(const MCState *state) const
+MCMutexUnlock::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -51,13 +51,13 @@ MCMutexUnlock::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCMutexUnlock::applyToState(MCState *state)
+MCMutexUnlock::applyToState(MCStack *state)
 {
   this->mutex->unlock();
 }
 
 void
-MCMutexUnlock::unapplyToState(MCState *state)
+MCMutexUnlock::unapplyToState(MCStack *state)
 {
   // Assumes that we were holding onto the lock
   // before executing the unlock operation!
@@ -70,7 +70,7 @@ MCMutexUnlock::unapplyToState(MCState *state)
 }
 
 bool
-MCMutexUnlock::isReversibleInState(const MCState *state) const
+MCMutexUnlock::isReversibleInState(const MCStack *state) const
 {
   return true;
 }

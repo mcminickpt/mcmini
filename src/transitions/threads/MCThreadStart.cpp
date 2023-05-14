@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadThreadStart(const MCSharedTransition *shmTransition,
-                  void *shmData, MCState *programState)
+                  void *shmData, MCStack *programState)
 {
   // Should never be called
   MC_FATAL();
@@ -19,7 +19,7 @@ MCThreadStart::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCThreadStart::dynamicCopyInState(const MCState *state) const
+MCThreadStart::dynamicCopyInState(const MCStack *state) const
 {
   // INVARIANT: Target and the thread itself are the same
   std::shared_ptr<MCThread> threadInState =
@@ -28,19 +28,19 @@ MCThreadStart::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCThreadStart::applyToState(MCState *)
+MCThreadStart::applyToState(MCStack *)
 {
   this->thread->spawn();
 }
 
 void
-MCThreadStart::unapplyToState(MCState *state)
+MCThreadStart::unapplyToState(MCStack *state)
 {
   this->thread->despawn();
 }
 
 bool
-MCThreadStart::isReversibleInState(const MCState *state) const
+MCThreadStart::isReversibleInState(const MCStack *state) const
 {
   return false;
 }

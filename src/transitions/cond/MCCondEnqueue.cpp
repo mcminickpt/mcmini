@@ -6,7 +6,7 @@
 
 MCTransition *
 MCReadCondEnqueue(const MCSharedTransition *shmTransition,
-                  void *shmData, MCState *state)
+                  void *shmData, MCStack *state)
 {
   const auto shmCond =
     static_cast<MCSharedMemoryConditionVariable *>(shmData);
@@ -91,7 +91,7 @@ MCCondEnqueue::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCCondEnqueue::dynamicCopyInState(const MCState *state) const
+MCCondEnqueue::dynamicCopyInState(const MCStack *state) const
 {
   auto threadInState = state->getThreadWithId(thread->tid);
   auto condInState   = state->getObjectWithId<MCConditionVariable>(
@@ -103,7 +103,7 @@ MCCondEnqueue::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCCondEnqueue::applyToState(MCState *state)
+MCCondEnqueue::applyToState(MCStack *state)
 {
   /* Insert this thread into the waiting queue */
   this->conditionVariable->addWaiter(this->getThreadId());

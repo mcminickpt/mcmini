@@ -16,7 +16,7 @@
  * A struct which describes the configurable parameters
  * of the model checking execution
  */
-struct MCStateConfiguration final {
+struct MCStackConfiguration final {
 
   /**
    * The maximum number of transitions that can be run
@@ -49,7 +49,7 @@ struct MCStateConfiguration final {
    */
   const bool expectForwardProgressOfThreads;
 
-  MCStateConfiguration(uint64_t maxThreadExecutionDepth,
+  MCStackConfiguration(uint64_t maxThreadExecutionDepth,
                        trid_t gdbDebugTraceNumber,
                        trid_t stackContentDumpTraceNumber,
                        bool firstDeadlock,

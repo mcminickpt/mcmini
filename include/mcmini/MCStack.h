@@ -3,17 +3,17 @@
 
 struct MCTransition;
 struct MCSharedTransition;
-struct MCState;
-struct MCStateStackItem;
+struct MCStack;
+struct MCStackItem;
 typedef MCTransition *(*MCSharedMemoryHandler)(
-  const MCSharedTransition *, void *, MCState *);
+  const MCSharedTransition *, void *, MCStack *);
 
 #include "mcmini/MCClockVector.hpp"
 #include "mcmini/MCObjectStore.h"
 #include "mcmini/MCShared.h"
 #include "mcmini/MCSharedTransition.h"
-#include "mcmini/MCStateConfiguration.h"
-#include "mcmini/MCStateStackItem.h"
+#include "mcmini/MCStackConfiguration.h"
+#include "mcmini/MCStackItem.h"
 #include "mcmini/MCThreadData.hpp"
 #include "mcmini/misc/MCSortedStack.hpp"
 #include "mcmini/misc/MCTypes.hpp"
@@ -36,12 +36,12 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
  * @brief A reflection of the state of the program under which McMini
  * is model checking
  *
- * The MCState class represents
+ * The MCStack class represents
  *
  * FIXME: This class has grown too large. We need to split it
  * up into more manageable chunks
  */
-class MCState {
+class MCStack {
 private:
 
   /**
@@ -53,7 +53,7 @@ private:
    */
   MCObjectStore objectStorage;
 
-  const MCStateConfiguration configuration;
+  const MCStackConfiguration configuration;
 
   /**
    * @brief Tracks, for each thread known to
@@ -82,7 +82,7 @@ private:
    * A pointer to the top-most element in the state stack
    */
   int stateStackTop = -1;
-  std::shared_ptr<MCStateStackItem>
+  std::shared_ptr<MCStackItem>
     stateStack[MAX_TOTAL_STATES_IN_STATE_STACK];
 
   /**
@@ -91,7 +91,7 @@ private:
    * functions for each transition type supported by McMini
    *
    * You register handlers with each transition subclass
-   * using the method `MCState::registerVisibleOperationType()`
+   * using the method `MCStack::registerVisibleOperationType()`
    * to tell McMini how data written by each wrapper function
    * should be processed to create the corresponding objects
    * mcMini knows how to handle
@@ -219,7 +219,7 @@ private:
    * @brief Pushes a new item onto the state stack by executing the
    * given transition
    *
-   * A new state object (MCStateStackItem) is also pushed onto
+   * A new state object (MCStackItem) is also pushed onto
    * the stack. More importantly, this method performs updates to the
    * *current* state at the top of the state stack (representing
    * what the current trace looks like _right now_). In particular,
@@ -272,7 +272,7 @@ private:
    *
    * When a transition is executed in the target program, McMini first
    * applies the effect of the transition on the state
-   * (MCState::virtuallyApplyTransition()) and then updates the
+   * (MCStack::virtuallyApplyTransition()) and then updates the
    * per-thread data of the thread which executed the transition
    */
   void virtuallyRunTransition(const MCTransition &);
@@ -303,7 +303,7 @@ private:
    *
    * When a transition is reversed to regenerate past object states
    * for backtracking, McMini first unapplies the effect of the
-   * transition on the state (MCState::virtuallyUnapplyTransition())
+   * transition on the state (MCStack::virtuallyUnapplyTransition())
    * and then updates the per-thread data of the thread which executed
    * the transition
    */
@@ -349,7 +349,7 @@ private:
    * performing the logic checks in DPOR
    */
   bool dynamicallyUpdateBacktrackSetsHelper(
-    const MCTransition &S_i, MCStateStackItem &preSi,
+    const MCTransition &S_i, MCStackItem &preSi,
     const MCTransition &nextSP, int i, int p);
 
   void incrementThreadDepthIfNecessary(const MCTransition &);
@@ -390,7 +390,7 @@ private:
 
 public:
 
-  MCState(MCStateConfiguration config) : configuration(config) {}
+  MCStack(MCStackConfiguration config) : configuration(config) {}
 
   // MARK: Transition stack
 
@@ -416,8 +416,8 @@ public:
 
   // MARK: State stack
 
-  MCStateStackItem &getStateItemAtIndex(int) const;
-  MCStateStackItem &getStateStackTop() const;
+  MCStackItem &getStateItemAtIndex(int) const;
+  MCStackItem &getStateStackTop() const;
   uint64_t getStateStackSize() const;
   bool stateStackIsEmpty() const;
 
@@ -425,7 +425,7 @@ public:
    * @brief Retrieves the index of the state closest to the top of the
    * state stack that contains at least one backtrack point
    *
-   * @return the index into the state stack containing an MCStateStackItem
+   * @return the index into the state stack containing an MCStackItem
    * with at least one thread to backtrack on, or FIRST_BRANCH if no such
    * state exists
    */
@@ -443,7 +443,7 @@ public:
    * the state (and any metadata McMini is keeping track of for that
    * state) that the transition executed from
    */
-  MCStateStackItem &getDepartingStateForTransitionAtIndex(int) const;
+  MCStackItem &getDepartingStateForTransitionAtIndex(int) const;
 
   /**
    * @brief Retrieves the state (represented by the item in the state
@@ -460,7 +460,7 @@ public:
    * the state (and any metadata McMini is keeping track of for that
    * state) to which the transition brought the concurrent system
    */
-  MCStateStackItem &getResultantStateForTransitionAtIndex(int) const;
+  MCStackItem &getResultantStateForTransitionAtIndex(int) const;
 
   // MARK: Next "List" (what each thread runs next)
 
@@ -476,7 +476,7 @@ public:
 
   // FIXME: The logic testing a configuration probably should be
   // adjusted
-  MCStateConfiguration getConfiguration() const;
+  MCStackConfiguration getConfiguration() const;
 
   uint64_t getNumProgramThreads() const;
   std::unordered_set<tid_t> getCurrentlyEnabledThreads();

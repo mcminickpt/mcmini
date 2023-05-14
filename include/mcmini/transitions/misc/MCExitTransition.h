@@ -4,7 +4,7 @@
 #include "mcmini/MCTransition.h"
 
 MCTransition *MCReadExitTransition(const MCSharedTransition *, void *,
-                                   MCState *);
+                                   MCStack *);
 
 struct MCExitTransition : public MCTransition {
 private:
@@ -19,13 +19,13 @@ public:
 
   std::shared_ptr<MCTransition> staticCopy() const override;
   std::shared_ptr<MCTransition>
-  dynamicCopyInState(const MCState *) const override;
+  dynamicCopyInState(const MCStack *) const override;
 
   void
-  applyToState(MCState *) override
+  applyToState(MCStack *) override
   {}
   bool dependentWith(const MCTransition *) const override;
-  bool enabledInState(const MCState *) const override;
+  bool enabledInState(const MCStack *) const override;
   bool ensuresDeadlockIsImpossible() const override;
   bool countsAgainstThreadExecutionDepth() const override;
   void print() const override;

@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadAbortTransition(const MCSharedTransition *shmTransition,
-                      void *shmStart, MCState *programState)
+                      void *shmStart, MCStack *programState)
 {
   auto executor =
     programState->getThreadWithId(shmTransition->executor);
@@ -21,7 +21,7 @@ MCAbortTransition::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCAbortTransition::dynamicCopyInState(const MCState *state) const
+MCAbortTransition::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -36,7 +36,7 @@ MCAbortTransition::dependentWith(const MCTransition *) const
 }
 
 bool
-MCAbortTransition::enabledInState(const MCState *) const
+MCAbortTransition::enabledInState(const MCStack *) const
 {
   // We allow abort() calls to run to completion.
   // This way, when the true abort() function is invoked,

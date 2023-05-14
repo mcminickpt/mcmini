@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadThreadJoin(const MCSharedTransition *shmTransition,
-                 void *shmData, MCState *state)
+                 void *shmData, MCStack *state)
 {
   // TODO: Potentially add asserts that the thread that just ran
   // exists!
@@ -35,7 +35,7 @@ MCThreadJoin::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCThreadJoin::dynamicCopyInState(const MCState *state) const
+MCThreadJoin::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -46,13 +46,13 @@ MCThreadJoin::dynamicCopyInState(const MCState *state) const
 }
 
 bool
-MCThreadJoin::enabledInState(const MCState *) const
+MCThreadJoin::enabledInState(const MCStack *) const
 {
   return target->isDead();
 }
 
 void
-MCThreadJoin::applyToState(MCState *state)
+MCThreadJoin::applyToState(MCStack *state)
 {
   // A thread join will only be executed by
   // a thread that's awake whose target thread
@@ -63,7 +63,7 @@ MCThreadJoin::applyToState(MCState *state)
 }
 
 void
-MCThreadJoin::unapplyToState(MCState *state)
+MCThreadJoin::unapplyToState(MCStack *state)
 {
   // See above comment. The same
   // applies for state reversal: the thread
@@ -72,7 +72,7 @@ MCThreadJoin::unapplyToState(MCState *state)
 }
 
 bool
-MCThreadJoin::isReversibleInState(const MCState *state) const
+MCThreadJoin::isReversibleInState(const MCStack *state) const
 {
   return true;
 }

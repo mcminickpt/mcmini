@@ -4,7 +4,7 @@
 #include "mcmini/MCDeferred.h"
 #include "mcmini/MCShared.h"
 #include "mcmini/MCSharedTransition.h"
-#include "mcmini/MCState.h"
+#include "mcmini/MCStack.h"
 #include "mcmini/mcmini_wrappers.h"
 
 extern "C" {
@@ -199,7 +199,7 @@ void mc_initialize_shared_memory_globals();
  * point in time. As a trace process evolves and executes more
  * transitions, the state is updated to reflect this fact.
  */
-extern MCDeferred<MCState> programState;
+extern MCDeferred<MCStack> programState;
 
 /**
  * @brief Initialize the global program state object `programState`
@@ -420,7 +420,7 @@ void mc_report_undefined_behavior(const char *);
  */
 void mc_run_next_trace_for_debugger();
 
-MCStateConfiguration get_config_for_execution_environment();
+MCStackConfiguration get_config_for_execution_environment();
 
 /* Trace prints */
 void mc_exit_with_trace_if_necessary(trid_t);

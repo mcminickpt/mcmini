@@ -1,5 +1,5 @@
 #include "mcmini/MCTransition.h"
-#include "mcmini/MCState.h"
+#include "mcmini/MCStack.h"
 #include "mcmini/transitions/threads/MCThreadDefs.h"
 
 bool
@@ -24,7 +24,7 @@ MCTransition::transitionsInDataRace(const MCTransition &t1,
 }
 
 bool
-MCTransition::transitionEnabledInState(const MCState *state,
+MCTransition::transitionEnabledInState(const MCStack *state,
                                        const MCTransition &t1)
 {
   return MCTransition::transitionEnabledInState(state, &t1);
@@ -54,7 +54,7 @@ MCTransition::transitionsInDataRace(const MCTransition *t1,
 }
 
 bool
-MCTransition::transitionEnabledInState(const MCState *state,
+MCTransition::transitionEnabledInState(const MCStack *state,
                                        const MCTransition *t1)
 {
   // Is the thread enabled?

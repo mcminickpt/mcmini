@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadThreadCreate(const MCSharedTransition *shmTransition,
-                   void *shmData, MCState *state)
+                   void *shmData, MCStack *state)
 {
   // TODO: Potentially add asserts that the thread that just ran
   // exists!
@@ -36,7 +36,7 @@ MCThreadCreate::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCThreadCreate::dynamicCopyInState(const MCState *state) const
+MCThreadCreate::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -47,19 +47,19 @@ MCThreadCreate::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCThreadCreate::applyToState(MCState *state)
+MCThreadCreate::applyToState(MCStack *state)
 {
   this->target->spawn();
 }
 
 void
-MCThreadCreate::unapplyToState(MCState *state)
+MCThreadCreate::unapplyToState(MCStack *state)
 {
   this->target->despawn();
 }
 
 bool
-MCThreadCreate::isReversibleInState(const MCState *state) const
+MCThreadCreate::isReversibleInState(const MCStack *state) const
 {
   return false;
 }

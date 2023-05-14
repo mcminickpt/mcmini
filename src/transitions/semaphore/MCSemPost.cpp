@@ -4,7 +4,7 @@
 
 MCTransition *
 MCReadSemPost(const MCSharedTransition *shmTransition, void *shmData,
-              MCState *state)
+              MCStack *state)
 {
   auto semInShm = static_cast<MCSemaphoreShadow *>(shmData);
   auto semThatExists =
@@ -39,7 +39,7 @@ MCSemPost::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCSemPost::dynamicCopyInState(const MCState *state) const
+MCSemPost::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -50,7 +50,7 @@ MCSemPost::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCSemPost::applyToState(MCState *state)
+MCSemPost::applyToState(MCStack *state)
 {
   this->sem->post();
 }

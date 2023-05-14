@@ -4,7 +4,7 @@
 
 MCTransition *
 MCReadCondBroadcast(const MCSharedTransition *shmTransition,
-                    void *shmData, MCState *state)
+                    void *shmData, MCStack *state)
 {
   const auto condInShm    = static_cast<pthread_cond_t **>(shmData);
   const auto condSystemId = (MCSystemID)*condInShm;
@@ -37,7 +37,7 @@ MCCondBroadcast::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCCondBroadcast::dynamicCopyInState(const MCState *state) const
+MCCondBroadcast::dynamicCopyInState(const MCStack *state) const
 {
   std::shared_ptr<MCThread> threadInState =
     state->getThreadWithId(thread->tid);
@@ -49,7 +49,7 @@ MCCondBroadcast::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCCondBroadcast::applyToState(MCState *state)
+MCCondBroadcast::applyToState(MCStack *state)
 {
   this->conditionVariable->sendBroadcastMessage();
 }

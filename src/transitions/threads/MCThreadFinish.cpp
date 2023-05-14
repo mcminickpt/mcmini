@@ -2,7 +2,7 @@
 
 MCTransition *
 MCReadThreadFinish(const MCSharedTransition *shmTransition,
-                   void *shmData, MCState *state)
+                   void *shmData, MCStack *state)
 {
   // TODO: Potentially add asserts that the thread that just ran
   // exists!
@@ -23,7 +23,7 @@ MCThreadFinish::staticCopy() const
 }
 
 std::shared_ptr<MCTransition>
-MCThreadFinish::dynamicCopyInState(const MCState *state) const
+MCThreadFinish::dynamicCopyInState(const MCStack *state) const
 {
   // INVARIANT: Target and the thread itself are the same
   std::shared_ptr<MCThread> threadInState =
@@ -33,25 +33,25 @@ MCThreadFinish::dynamicCopyInState(const MCState *state) const
 }
 
 void
-MCThreadFinish::applyToState(MCState *state)
+MCThreadFinish::applyToState(MCStack *state)
 {
   this->target->die();
 }
 
 void
-MCThreadFinish::unapplyToState(MCState *state)
+MCThreadFinish::unapplyToState(MCStack *state)
 {
   this->target->spawn();
 }
 
 bool
-MCThreadFinish::isReversibleInState(const MCState *state) const
+MCThreadFinish::isReversibleInState(const MCStack *state) const
 {
   return true;
 }
 
 bool
-MCThreadFinish::enabledInState(const MCState *) const
+MCThreadFinish::enabledInState(const MCStack *) const
 {
   return thread->tid != TID_MAIN_THREAD;
 }
