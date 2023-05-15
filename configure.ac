@@ -31,6 +31,22 @@ AC_CHECK_FUNCS([atexit ftruncate setenv strtoul])
 
 AC_SUBST(PWD)
 
+AC_ARG_ENABLE([debug],
+            [AS_HELP_STRING([--enable-debug],
+                            [Use debugging flags "-Wall -g3 -O0"
+                             (default is -g -O0)])],
+            [use_debug=$enableval],
+            [use_debug=no])
+
+if test "$use_debug" = "yes"; then
+  AC_SUBST([DEBUG], [yes])
+  AC_DEFINE([DEBUG],[1],[Use debugging flags "-Wall -g3 -O0"])
+  CFLAGS="$CFLAGS -Wall -g3 -O0 -DDEBUG"
+  CXXFLAGS="$CXXFLAGS -Wall -g3 -O0 -DDEBUG"
+else
+  AC_SUBST([DEBUG], [no])
+fi
+
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([mcmini-gdb], [chmod a+x mcmini-gdb])
 AC_OUTPUT

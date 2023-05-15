@@ -651,6 +651,7 @@ ac_includes_default="\
 ac_header_c_list=
 ac_func_c_list=
 ac_subst_vars='LTLIBOBJS
+DEBUG
 PWD
 LIBOBJS
 host_os
@@ -713,6 +714,7 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+enable_debug
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1342,6 +1344,13 @@ if test -n "$ac_init_help"; then
      short | recursive ) echo "Configuration of McMini 1.0:";;
    esac
   cat <<\_ACEOF
+
+Optional Features:
+  --disable-option-checking  ignore unrecognized --enable/--with options
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-debug          Use debugging flags "-Wall -g3 -O0" (default is -g
+                          -O0)
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -5065,6 +5074,28 @@ fi
 
 
 
+
+# Check whether --enable-debug was given.
+if test ${enable_debug+y}
+then :
+  enableval=$enable_debug; use_debug=$enableval
+else $as_nop
+  use_debug=no
+fi
+
+
+if test "$use_debug" = "yes"; then
+  DEBUG=yes
+
+
+printf "%s\n" "#define DEBUG 1" >>confdefs.h
+
+  CFLAGS="$CFLAGS -Wall -g3 -O0 -DDEBUG"
+  CXXFLAGS="$CXXFLAGS -Wall -g3 -O0 -DDEBUG"
+else
+  DEBUG=no
+
+fi
 
 ac_config_files="$ac_config_files Makefile"
 

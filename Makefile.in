@@ -1,7 +1,9 @@
 ROOT=$$PWD/
 
-CC=gcc
-CXX=g++
+CC=@CC@
+CXX=@CXX@
+CFLAGS=@CFLAGS@
+CXXFLAGS=@CXXFLAGS@
 # The defines needed for MCSharedLibraryWrappers.c (and maybe other things???).
 override CFLAGS+=-I${ROOT}/include -fPIC -DMC_SHARED_LIBRARY=1 -Dmcmini_checker_EXPORTS
 override CXXFLAGS=${CFLAGS} -std=gnu++11
