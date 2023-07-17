@@ -1,23 +1,21 @@
 CFLAGS=-g3 -O0 -pthread
 
 %: %.cpp
-	g++ ${CFLAGS} $< -o $@
+	g++ $(CFLAGS) $< -o $@
 
 %: %.c
-	gcc ${CFLAGS} $< -o $@
+	gcc $(CFLAGS) $< -o $@
 
-# -----------------------------------
-# You probably don't need these rules.  But here are more examples.
-%.o: %.cpp
-	g++ -o ${CFLAGS} $< -o $@
+rwwlock.o: rwwlock.c rwwlock.h
+	gcc -c -fPIC $(CFLAGS) rwwlock.c -o rwwlock.o
 
-%.exe: %.cpp
-	g++ ${CFLAGS} $< -o $@
+librwwlock.so: rwwlock.o
+	gcc -shared $(CFLAGS) -o librwwlock.so rwwlock.o
 
-rwwlock-lib:
-	gcc -c -Wall -fpic rwwlock.c
-	gcc -shared -Wall -o librwwlock.so rwwlock.o
-	rm rwwlock.o
+reader_writer_rwwlock: reader_writer_rwwlock.c librwwlock.so
+	gcc $(CFLAGS) -Wl,-rpath=$(PWD) reader_writer_rwwlock.c -L$(PWD) -lrwwlock -o reader_writer_rwwlock
 
-rwwlock: rwwlock-lib
-	gcc -g3 -O0 -Wl,-rpath,'$$ORIGIN' reader_writer_rwwlock.c -L. -lrwwlock -pthread -o reader_writer_rwwlock
+.PHONY: clean
+
+clean:
+	rm -f *.o *.so reader_writer_rwwlock

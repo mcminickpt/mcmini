@@ -1,54 +1,58 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <pthread.h>
 
-#define NUM_READERS 3
-#define NUM_WRITERS 3
 #define NUM_LOOP 2
 
-pthread_mutex_t rw, read;
+pthread_mutex_t rw, read_mutex;
 
 int num_readers = 0;
+int DEBUG = 0;
+
 void *reader(void *notused) {
     for(int i=0; i< NUM_LOOP; i++) {
-        // acquire resource
-        pthread_mutex_lock(&read);
+        pthread_mutex_lock(&read_mutex);
         num_readers++;
         if(num_readers==1)
             pthread_mutex_lock(&rw);
-        pthread_mutex_unlock(&read);
+        pthread_mutex_unlock(&read_mutex);
 
-        // use resource (we fake this by sleeping)
-        printf("reader is reading\n");
-        sleep(1);
-        // release resource
-        pthread_mutex_lock(&read);
+        if (DEBUG) printf("reader is reading\n");
+
+        pthread_mutex_lock(&read_mutex);
         num_readers--;
         if(num_readers==0)
             pthread_mutex_unlock(&rw);
-        pthread_mutex_unlock(&read);
+        pthread_mutex_unlock(&read_mutex);
     }
     return NULL;
 }
 
 void *writer(void *notused) {
     for(int i=0; i< NUM_LOOP; i++) {
-        // acquire resource
         pthread_mutex_lock(&rw);
         
-        // use resource (we fake this by sleeping)
-        printf("writer is writing\n");
-        sleep(5);
-        // release resource
+        if (DEBUG) printf("writer is writing\n");
+
         pthread_mutex_unlock(&rw);
     }
     return NULL;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if(argc != 4){
+        printf("Usage: %s NUM_READERS NUM_WRITERS DEBUG\n", argv[0]);
+        return 1;
+    }
+
+    int NUM_READERS = atoi(argv[1]);
+    int NUM_WRITERS = atoi(argv[2]);
+    DEBUG = atoi(argv[3]);
+
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
-    pthread_mutex_init(&read, NULL);
+    pthread_mutex_init(&read_mutex, NULL);
     pthread_mutex_init(&rw, NULL);
     
     int i;

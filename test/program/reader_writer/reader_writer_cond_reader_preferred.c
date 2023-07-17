@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <pthread.h>
 
-#define NUM_READERS 3
-#define NUM_WRITERS 3
 #define NUM_LOOP 2
 
 pthread_mutex_t mutex;
@@ -14,8 +13,9 @@ int num_writers = 0;
 int num_readers_waiting = 0;
 int num_writers_waiting = 0;
 
+int DEBUG = 0;
+
 int read_condition() {
-    // (num_writers - num_writers_waiting) is the number of _active_ writers.
     return (num_writers - num_writers_waiting) == 0;
 }
 
@@ -25,25 +25,18 @@ int write_condition() {
 
 void *reader(void *notused) {
     for(int i=0; i< NUM_LOOP; i++) {
-        // acquire resource
         pthread_mutex_lock(&mutex);
         num_readers++;
         while (! read_condition()) {
             num_readers_waiting++;
-            pthread_cond_wait(&cond, &mutex); // wait on cond
+            pthread_cond_wait(&cond, &mutex);
             num_readers_waiting--;
         }
         pthread_mutex_unlock(&mutex);
-        // use resource (we fake this by sleeping)
-        printf("reader is reading\n");
-        sleep(1);
-        // release resource
+        if (DEBUG) printf("reader is reading\n");
         pthread_mutex_lock(&mutex);
         num_readers--;
-        pthread_cond_broadcast(&cond); // wake up everyone and let them try again
-        // NOTE: For efficiency, once could consider multiple calls to
-        //   pthread_cond_signal above, and wake up only as many threads as needed.
-        //   However, carefully check your code for correctness if you try that.
+        pthread_cond_broadcast(&cond);
         pthread_mutex_unlock(&mutex);
     }
     return NULL;
@@ -51,28 +44,33 @@ void *reader(void *notused) {
 
 void *writer(void *notused) {
     for(int i=0; i< NUM_LOOP; i++) {
-        // acquire resource
         pthread_mutex_lock(&mutex);
         num_writers++;
         while (! write_condition()) {
             num_writers_waiting++;
-            pthread_cond_wait(&cond, &mutex); // wait on cond
+            pthread_cond_wait(&cond, &mutex);
             num_writers_waiting--;
         }
         pthread_mutex_unlock(&mutex);
-        // use resource (we fake this by sleeping)
-        printf("writer is writing\n");
-        sleep(5);
-        // release resource
+        if (DEBUG) printf("writer is writing\n");
         pthread_mutex_lock(&mutex);
         num_writers--;
-        pthread_cond_broadcast(&cond); // wake up everyone and let them try again
+        pthread_cond_broadcast(&cond);
         pthread_mutex_unlock(&mutex);
     }
     return NULL;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    if(argc != 4){
+        printf("Usage: %s NUM_READERS NUM_WRITERS DEBUG\n", argv[0]);
+        return 1;
+    }
+
+    int NUM_READERS = atoi(argv[1]);
+    int NUM_WRITERS = atoi(argv[2]);
+    DEBUG = atoi(argv[3]);
+
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
     pthread_mutex_init(&mutex, NULL);
