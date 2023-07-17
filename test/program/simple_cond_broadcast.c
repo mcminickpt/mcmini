@@ -2,22 +2,22 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "../CustomConditionVariable.h"
+#include <semaphore.h>
 
-pthread_mutex_t mutex, mutex_start;
-custom_cond cond;
+pthread_mutex_t mutex;
+sem_t sem_start, sem_end;
 
 void * thread_doit(void *unused)
 {
+    sem_post(&sem_start); // Increment sem_start, signaling this thread is ready
     pthread_mutex_lock(&mutex);
-    pthread_mutex_unlock(&mutex_start);
-    custom_cond_wait(&cond, &mutex);
+    sem_wait(&sem_end); // Wait until main thread signals to proceed
     pthread_mutex_unlock(&mutex);
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
-
+int main(int argc, char* argv[])
+{
     if(argc < 2) {
         printf("Expected usage: %s THREAD_NUM\n", argv[0]);
         return -1;
@@ -28,32 +28,32 @@ int main(int argc, char* argv[]) {
     pthread_t *threads = malloc(sizeof(pthread_t) * THREAD_NUM);
 
     pthread_mutex_init(&mutex, NULL);
-    pthread_mutex_init(&mutex_start, NULL);
-    custom_cond_init(&cond);
+    sem_init(&sem_start, 0, 0); // Initialize semaphore sem_start to 0
+    sem_init(&sem_end, 0, 0); // Initialize semaphore sem_end to 0
 
-    pthread_mutex_lock(&mutex);
     for(int i = 0; i < THREAD_NUM; i++) {
         pthread_create(&threads[i], NULL, &thread_doit, NULL);
     }
-    pthread_mutex_unlock(&mutex);
 
+    // Wait for all threads to be ready
     for(int i = 0; i < THREAD_NUM; i++) {
-        pthread_mutex_lock(&mutex_start);
-        pthread_mutex_unlock(&mutex_start);
+        sem_wait(&sem_start);
     }
 
-    pthread_mutex_lock(&mutex);
-    custom_cond_broadcast(&cond);
-    pthread_mutex_unlock(&mutex);
+    // Signal all threads to proceed
+    for(int i = 0; i < THREAD_NUM; i++) {
+        sem_post(&sem_end);
+    }
 
+    // Wait for all threads to complete
     for(int i = 0; i < THREAD_NUM; i++) {
         pthread_join(threads[i], NULL);
     }
 
     free(threads);
     pthread_mutex_destroy(&mutex);
-    pthread_mutex_destroy(&mutex_start);
-    custom_cond_destroy(&cond);
+    sem_destroy(&sem_start);
+    sem_destroy(&sem_end);
 
     return 0;
 }

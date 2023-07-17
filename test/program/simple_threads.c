@@ -1,26 +1,35 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
 
-pthread_mutex_t mutex1;
-pthread_mutex_t mutex2;
-
-pthread_t thread1, thread2;
-
-void * thread_doit(void *forks_arg) {
+void * thread_doit(void *unused) {
     int len = (int) ((drand48() * 5) + 1);
     sleep(len);
     return NULL;
 }
 
-int main(int argc, char* argv[])
-{
-    pthread_create(&thread1, NULL, &thread_doit, NULL);
-    pthread_create(&thread2, NULL, &thread_doit, NULL);
+int main(int argc, char* argv[]) {
+    if(argc < 2) {
+        printf("Expected usage: %s THREAD_NUM\n", argv[0]);
+        return -1;
+    }
 
-    pthread_join(thread1, NULL);
-    pthread_join(thread2, NULL);
+    int thread_num = atoi(argv[1]);
+
+    pthread_t *threads = malloc(sizeof(pthread_t) * thread_num);
+
+    for(int i = 0; i < thread_num; i++) {
+        pthread_create(&threads[i], NULL, &thread_doit, NULL);
+    }
+
+    for(int i = 0; i < thread_num; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    free(threads);
 
     return 0;
 }
-

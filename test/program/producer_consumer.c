@@ -4,18 +4,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-/*
-This program provides a possible solution for producer-consumer problem using
-mutex and semaphore.  I have used 2 producers and 1 consumer to demonstrate
-the solution. You can always play with these values.
-*/
-
-#define MaxItems 5 // Maximum items produced/consumed by producer/consumer
-#define BufferSize 5 // Size of the buffer
-#define NUM_PRODUCERS 2
-#define NUM_CONSUMERS 1
-
-int do_print = 1;
+#define MaxItems 5
+#define BufferSize 5
 
 sem_t empty;
 sem_t full;
@@ -23,6 +13,7 @@ int in = 0;
 int out = 0;
 int buffer[BufferSize];
 pthread_mutex_t mutex;
+int DEBUG;
 
 void *producer(void *pno)
 {
@@ -32,7 +23,7 @@ void *producer(void *pno)
         sem_wait(&empty);
         pthread_mutex_lock(&mutex);
         buffer[in] = item;
-        if (do_print) {
+        if (DEBUG) {
           printf("Producer %d: Insert Item %d at %d\n",
                  *((int *)pno),buffer[in],in);
         }
@@ -42,13 +33,14 @@ void *producer(void *pno)
     }
     return NULL;
 }
+
 void *consumer(void *cno)
 {
     for(int i = 0; i < MaxItems; i++) {
         sem_wait(&full);
         pthread_mutex_lock(&mutex);
         int item = buffer[out];
-        if (do_print) {
+        if (DEBUG) {
           printf("Consumer %d: Remove Item %d from %d\n",
                  *((int *)cno),item, out);
         }
@@ -59,22 +51,31 @@ void *consumer(void *cno)
     return NULL;
 }
 
-int main(int argc, char* argv[]) {
-    if (argc >= 2 && strcmp(argv[1], "--quiet") == 0) {
-      do_print = 0;
+int main(int argc, char* argv[]) 
+{
+    if (argc < 4) {
+      printf("Usage: %s <NUM_PRODUCERS> <NUM_CONSUMERS> <DEBUG>\n", argv[0]);
+      return 1;
     }
-    pthread_t pro[5],con[5];
+  
+    int NUM_PRODUCERS = atoi(argv[1]);
+    int NUM_CONSUMERS = atoi(argv[2]);
+    DEBUG = atoi(argv[3]);
+
+    pthread_t pro[NUM_PRODUCERS],con[NUM_CONSUMERS];
 
     pthread_mutex_init(&mutex, NULL);
     sem_init(&empty,0,BufferSize);
     sem_init(&full,0,0);
 
-    int a[5] = {1,2,3,4,5}; //Just used for numbering the producer and consumer
+    int a[NUM_PRODUCERS > NUM_CONSUMERS ? NUM_PRODUCERS : NUM_CONSUMERS];
 
     for(int i = 0; i < NUM_PRODUCERS; i++) {
+        a[i] = i+1;
         pthread_create(&pro[i], NULL, producer, (void *)&a[i]);
     }
     for(int i = 0; i < NUM_CONSUMERS; i++) {
+        a[i] = i+1;
         pthread_create(&con[i], NULL, consumer, (void *)&a[i]);
     }
 
@@ -84,5 +85,6 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < NUM_CONSUMERS; i++) {
         pthread_join(con[i], NULL);
     }
+
     return 0;
 }

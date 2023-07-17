@@ -1,15 +1,11 @@
-// Simple cond example
-
-#include <unistd.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <semaphore.h>
-
-#define THREAD_NUM 5
 
 pthread_mutex_t mutex;
 sem_t sem;
 pthread_cond_t cond;
-pthread_t thread[THREAD_NUM];
 
 void * thread_doit(void *unused)
 {
@@ -22,16 +18,24 @@ void * thread_doit(void *unused)
 
 int main(int argc, char* argv[])
 {
+    if(argc < 2) {
+        printf("Expected usage: %s THREAD_NUM\n", argv[0]);
+        return -1;
+    }
+
+    int THREAD_NUM = atoi(argv[1]);
+
+    pthread_t *threads = malloc(sizeof(pthread_t) * THREAD_NUM);
+
     pthread_mutex_init(&mutex, NULL);
     sem_init(&sem, 0, 0);
-
     pthread_cond_init(&cond, NULL);
 
     for(int i = 0; i < THREAD_NUM; i++) {
-        pthread_create(&thread[i], NULL, &thread_doit, NULL);
+        pthread_create(&threads[i], NULL, &thread_doit, NULL);
     }
 
-    for( int i = 0; i < THREAD_NUM; i++) {
+    for(int i = 0; i < THREAD_NUM; i++) {
         sem_wait(&sem);
     }
 
@@ -40,8 +44,13 @@ int main(int argc, char* argv[])
     pthread_mutex_unlock(&mutex);
 
     for(int i = 0; i < THREAD_NUM; i++) {
-        pthread_join(thread[i], NULL);
+        pthread_join(threads[i], NULL);
     }
 
+    free(threads);
+    pthread_mutex_destroy(&mutex);
+    sem_destroy(&sem);
+    pthread_cond_destroy(&cond);
+    
     return 0;
 }

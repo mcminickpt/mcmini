@@ -1,4 +1,6 @@
 #include <pthread.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 pthread_mutex_t mutex, mutex_start;
 pthread_cond_t cond;
@@ -15,14 +17,31 @@ void * thread_doit(void *unused)
 
 int main(int argc, char* argv[])
 {
-    pthread_mutex_init(&mutex, NULL);
-    pthread_mutex_init(&mutex_start, NULL);
+    if (argc > 1) {
+        fprintf(stderr, "Usage: %s\n", argv[0]);
+        return EXIT_FAILURE;
+    }
 
-    pthread_cond_init(&cond, NULL);
-
-    pthread_create(&thread, NULL, &thread_doit, NULL);
+    if(pthread_mutex_init(&mutex, NULL) != 0) {
+        printf("Failed to initialize mutex\n");
+        return EXIT_FAILURE;
+    }
+    if(pthread_mutex_init(&mutex_start, NULL) != 0) {
+        printf("Failed to initialize mutex_start\n");
+        return EXIT_FAILURE;
+    }
+    if(pthread_cond_init(&cond, NULL) != 0) {
+        printf("Failed to initialize cond\n");
+        return EXIT_FAILURE;
+    }
 
     pthread_mutex_lock(&mutex_start);
+    if(pthread_create(&thread, NULL, &thread_doit, NULL) != 0) {
+        printf("Failed to create thread\n");
+        return EXIT_FAILURE;
+    }
+
+    // Wait for the thread to get to the condition variable
     pthread_mutex_lock(&mutex_start);
     pthread_mutex_unlock(&mutex_start);
 
@@ -30,7 +49,14 @@ int main(int argc, char* argv[])
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mutex);
 
-    pthread_join(thread, NULL);
+    if(pthread_join(thread, NULL) != 0) {
+        printf("Failed to join thread\n");
+        return EXIT_FAILURE;
+    }
 
-    return 0;
+    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutex_start);
+    pthread_cond_destroy(&cond);
+
+    return EXIT_SUCCESS;
 }
