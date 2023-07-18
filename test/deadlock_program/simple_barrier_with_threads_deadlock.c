@@ -1,16 +1,32 @@
 #include <pthread.h>
+#include <stdlib.h>
+#include <stdio.h>
 
-#define THREAD_NUM 5
+int THREAD_NUM; 
+int DEBUG = 0;
 
 pthread_barrier_t barrier;
-pthread_t thread[THREAD_NUM];
+pthread_t *thread;
 
 void * thread_doit(void *unused)
 {
+    if(DEBUG) printf("Thread %ld: Waiting at barrier\n", pthread_self());
     pthread_barrier_wait(&barrier);
+    if(DEBUG) printf("Thread %ld: Passed the barrier\n", pthread_self());
     return NULL;
 }
+
 int main(int argc, char* argv[]) {
+    if(argc != 3){
+        printf("Usage: %s THREAD_NUM DEBUG_FLAG\n", argv[0]);
+        return 1;
+    }
+
+    THREAD_NUM = atoi(argv[1]);
+    DEBUG = atoi(argv[2]);
+
+    thread = (pthread_t*) malloc(THREAD_NUM * sizeof(pthread_t));
+
     pthread_barrier_init(&barrier, NULL, THREAD_NUM);
     for(int i = 0; i < THREAD_NUM; i++) {
         pthread_create(&thread[i], NULL, &thread_doit, NULL);
@@ -21,5 +37,7 @@ int main(int argc, char* argv[]) {
     for(int i = 0; i < THREAD_NUM; i++) {
         pthread_join(thread[i], NULL);
     }
+
+    free(thread);
     return 0;
 }

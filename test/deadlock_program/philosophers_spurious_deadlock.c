@@ -4,9 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
 
-#define NUM_THREADS (3)
-#define N           (NUM_THREADS)
+int NUM_THREADS;  // number of philosophers
+int DEBUG;  // debug flag
 
 struct forks {
   int philosopher;
@@ -14,59 +15,74 @@ struct forks {
   pthread_mutex_t *right_fork;
   pthread_mutex_t *dining_mut;
   pthread_cond_t *dining_fork;
-} forkss[NUM_THREADS];
+} *forkss;
 
-int data               = 0;
-int forks[NUM_THREADS] = {0};
+int data;
+int* forks;
 
 pthread_mutex_t mutex;
 pthread_cond_t condvar;
 
-void
-eat(int i)
+void* eat(void* i_arg)
 {
+  int i = *((int*)i_arg);
   pthread_mutex_lock(&mutex);
-  if (forks[i] != 0 || forks[(i + 1) % N] != 0) {
+  if (forks[i] != 0 || forks[(i + 1) % NUM_THREADS] != 0) {
+    if(DEBUG) printf("Philosopher %d is waiting\n", i);
     pthread_cond_wait(&condvar, &mutex);
   }
-  forks[i] = forks[(i + 1) % N] = 1;
+  forks[i] = forks[(i + 1) % NUM_THREADS] = 1;
   pthread_mutex_unlock(&mutex);
 
-  // Do eating
+  if (DEBUG) {
+    printf("Philosopher %d just ate.\n", i);
+  }
+
   pthread_mutex_lock(&mutex);
   int cond1 = forks[i] != 0;
-  int cond2 = forks[(i + 1) % N] != 0;
+  int cond2 = forks[(i + 1) % NUM_THREADS] != 0;
   int cond  = cond1 && cond2;
-  printf("%d %d\n", cond1, cond2);
+  if(DEBUG) printf("%d %d\n", cond1, cond2);
   if (!cond) { printf("ASSERTION FAILED\n"); }
 
-  // assert(forks[i] != 0 && forks[(i + 1) % N] != 0);
-
-  // McMini cannot handle assertions
-  // -> if false -> print trace? what should happen?
-  forks[i] = forks[(i + 1) % N] = 0;
+  forks[i] = forks[(i + 1) % NUM_THREADS] = 0;
   pthread_cond_signal(&condvar);
   pthread_mutex_unlock(&mutex);
+
+  return NULL;
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
-  printf("Phils eating!\n");
+  if(argc != 3){
+    printf("Usage: %s NUM_PHILOSOPHERS DEBUG\n", argv[0]);
+    return 1;
+  }
+
+  NUM_THREADS = atoi(argv[1]);
+  DEBUG = atoi(argv[2]);
+
+  if(DEBUG) printf("Phils eating!\n");
   pthread_t thread[NUM_THREADS];
 
-  memset(forks, 0, sizeof(forks));
+  forks = malloc(NUM_THREADS * sizeof(int));
+  memset(forks, 0, NUM_THREADS * sizeof(int));
 
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&condvar, NULL);
 
+  forkss = malloc(NUM_THREADS * sizeof(struct forks));
+
   for (int i = 0; i < NUM_THREADS; i++) {
-    pthread_create(&thread[i], NULL, &eat, (void *)i);
+    pthread_create(&thread[i], NULL, &eat, (void *)&i);
   }
 
   for (int i = 0; i < NUM_THREADS; i++) {
     pthread_join(thread[i], NULL);
   }
+
+  free(forkss);
+  free(forks);
 
   return 0;
 }

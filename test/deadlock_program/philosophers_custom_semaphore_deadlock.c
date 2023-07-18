@@ -6,21 +6,23 @@
 #include <semaphore.h>
 #include "../CustomSemaphore.h"
 
-#define NUM_THREADS 2
-
-custom_sem sem_dining;
+int DEBUG = 0;
 
 struct forks {
     int philosopher;
     pthread_mutex_t *left_fork;
     pthread_mutex_t *right_fork;
-} forks[NUM_THREADS];
+} *forks;
+
+custom_sem sem_dining;
 
 void * philosopher_doit(void *forks_arg) {
     struct forks *forks = forks_arg;
     custom_sem_wait(&sem_dining);
     pthread_mutex_lock(forks->left_fork);
     pthread_mutex_lock(forks->right_fork);
+
+    if(DEBUG) printf("Philosopher %d is eating\n", forks->philosopher);
 
     pthread_mutex_unlock(forks->left_fork);
     pthread_mutex_unlock(forks->right_fork);
@@ -29,16 +31,22 @@ void * philosopher_doit(void *forks_arg) {
 }
 
 int main(int argc, char* argv[]) {
+    if(argc != 3){
+        printf("Usage: %s NUM_PHILOSOPHERS DEBUG\n", argv[0]);
+        return 1;
+    }
+
+    int NUM_THREADS = atoi(argv[1]);
+    DEBUG = atoi(argv[2]);
+    
     pthread_t thread[NUM_THREADS];
     pthread_mutex_t mutex_resource[NUM_THREADS];
+    forks = malloc(NUM_THREADS * sizeof(struct forks));
 
     custom_sem_init(&sem_dining, 0, NUM_THREADS);
 
     int i;
     for (i = 0; i < NUM_THREADS; i++) {
-        // ANSI C/C++ require the cast to pthread_mutex_t, 'struct forks',
-        //  respectively, because these are runtime statements, and not declarations
-        //    mutex_resource[i] = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
         pthread_mutex_init(&mutex_resource[i], NULL);
         forks[i] = (struct forks){i,
                                   &mutex_resource[i],
@@ -53,5 +61,6 @@ int main(int argc, char* argv[]) {
         pthread_join(thread[i], NULL);
     }
 
+    free(forks);
     return 0;
 }
