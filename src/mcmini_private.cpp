@@ -20,27 +20,6 @@ extern "C" {
 
 using namespace std;
 
-
-void signal_handler(int signal){
-  printf("is in signal handler \n");
-   
-   setenv("MODE","1",1);
- 
-  // myconstructor();
-  exit(0);
-
-}
-/**
- * Structure function to set env variable and
- * calling the signal handler.
-*/
-
-void __attribute__ ((constructor))
-myconstructor(){  
-  setenv("MODE","0",1);
-  
-}
-
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t trace_pid                = -1;
 
@@ -123,10 +102,22 @@ alarm_handler(int sig)
 MC_CONSTRUCTOR void
 mcmini_main()
 {
-  if (getenv(ENV_LONG_TEST) == NULL) {
-    alarm(3600); // one hour
-    signal(SIGALRM, alarm_handler);
-  }
+  // Set the MCMINI_ENABLED environment variable to 0
+    setenv("MCMINI_ENABLED", "0", 1);
+
+    if (getenv(ENV_LONG_TEST) == NULL) {
+        alarm(3600); // one hour
+        signal(SIGALRM, alarm_handler);
+    }
+
+    // Check if the global flag is set to disable McMini
+    char* mcmini_env = getenv("MCMINI_ENABLED");
+    if (mcmini_env && strcmp(mcmini_env, "0") == 0)
+    {
+        // If the flag is set, run the target application without McMini
+        printf("\n***** Running with McMini in ghost mode! *****\n");
+        return;
+    }
   mc_load_intercepted_symbol_addresses();
   mc_create_global_state_object();
   mc_initialize_shared_memory_globals();
@@ -141,10 +132,8 @@ mcmini_main()
   MC_PROGRAM_TYPE program = mc_do_model_checking();
   if (MC_IS_TARGET_PROGRAM(program)) return;
 
-  mcprintf("***** Model checking completed! *****\n");
-  mcprintf("Number of transitions: %lu\n", transitionId);
-  mcprintf("Number of traces: %lu\n", traceId);
-  mc_exit(EXIT_SUCCESS);
+  printResults();
+  mc_stop_model_checking(EXIT_SUCCESS);
 }
 
 void
@@ -256,40 +245,8 @@ mc_run_initial_trace()
 }
 
 MC_PROGRAM_TYPE
-mc_run_new_initial_trace(const tid_t new_init)
-{
-  // MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
-  // if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-
-  mc_search_dpor_branch_with_initial_thread(new_init);
-  mc_exit_with_trace_if_necessary(traceId);
-  // program = mc_rerun_current_trace_as_needed();
-  traceId++;
-  // if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-  return MC_SCHEDULER;
-}
-//Aayushi
-MC_PROGRAM_TYPE
-mc_record_log()
-{
-    printf("\n $$$ recording log $$$ \n");
-  MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-
-  mc_search_dpor_branch_with_initial_thread_with_record_log(TID_MAIN_THREAD);
-  char *mode  = getenv("MODE");
-  if (mode[0] == '1') return MC_SCHEDULER;
-  mc_exit_with_trace_if_necessary(traceId);
-  program = mc_rerun_current_trace_as_needed();
-  traceId++;
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-  return MC_SCHEDULER;
-}
-
-MC_PROGRAM_TYPE
 mc_do_model_checking()
 {
-  printf("\n ***** in do_model_checking *****\n");
   mc_prepare_to_model_check_new_program();
 
   // TODO: This idiom is fairly common... This simply allows
@@ -326,6 +283,13 @@ mc_do_model_checking()
     nextBranchPoint = programState->getDeepestDPORBranchPoint();
   }
   return MC_SCHEDULER;
+}
+
+void
+mc_get_shm_handle_name(char *dst, size_t sz)
+{
+  snprintf(dst, sz, "/mcmini-%s-%lu", getenv("USER"), (long)getpid());
+  dst[sz - 1] = '\0';
 }
 
 void *
@@ -456,7 +420,6 @@ mc_fork_new_trace_at_current_state()
 {
   mc_reset_cv_locks();
   MC_PROGRAM_TYPE program = mc_fork_new_trace_at_main();
-  //in place of mc_fork_new_trace_at_main(),ask DMTCP to fork a new process
 
   if (MC_IS_SCHEDULER(program)) {
     const int tStackHeight = programState->getTransitionStackSize();
@@ -562,7 +525,7 @@ mc_trace_panic()
 void
 mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 {
-  uint64_t debug_depth = programState->getTransitionStackSize();
+  uint64_t depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(leadingThread);
   const MCTransition *t_next = &initialTransition;
@@ -585,8 +548,6 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 
     depth++;
     transitionId++;
-
-    
 
     const tid_t tid = t_next->getThreadId();
     mc_run_thread_to_next_visible_operation(tid);
@@ -642,79 +603,6 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   mc_terminate_trace();
 }
 
-// Aayushi: Function to record the log.
-void
-mc_search_dpor_branch_with_initial_thread_with_record_log(const tid_t leadingThread)
-{
-  int count = 0;
-  signal(SIGABRT, &signal_handler);
-  char* mode = getenv("MODE");
-  uint64_t debug_depth = programState->getTransitionStackSize();
-  const MCTransition &initialTransition =
-    programState->getNextTransitionForThread(leadingThread);
-  const MCTransition *t_next = &initialTransition;
-
-  // TODO: Assert whether or not t_next is enabled
-  // TODO: Assert whether a trace process exists at this point
-
-  do {
-        count++;
-
-    debug_depth++;
-    transitionId++;
-    assert(count < 4);
-    const tid_t tid = t_next->getThreadId();
-    mc_run_thread_to_next_visible_operation(tid);
-
-    programState->simulateRunningTransitionWithLog(
-      *t_next, shmTransitionTypeInfo, shmTransitionData);
-    if(mode[0]=='1') return;
-    // programState->dynamicallyUpdateBacktrackSets();
-
-    /* Check for data races */
-    {
-      const MCTransition &nextTransitionForTid =
-        programState->getNextTransitionForThread(tid);
-      if (programState->hasADataRaceWithNewTransition(
-            nextTransitionForTid)) {
-        mcprintf("*** DATA RACE DETECTED ***\n");
-        programState->printTransitionStack();
-        programState->printNextTransitions();
-      }
-    }
-
-    t_next = programState->getFirstEnabledTransition();
-    char *mode = getenv("MODE");
-    if(mode[0] == '1') return;
-  } while (t_next != nullptr);
-
-  const bool hasDeadlock        = programState->isInDeadlock();
-  const bool programHasNoErrors = !hasDeadlock;
-
-  if (hasDeadlock) {
-    mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
-    programState->printTransitionStack();
-    programState->printNextTransitions();
-
-    if (programState->getConfiguration().stopAtFirstDeadlock) {
-      mcprintf("*** Model checking completed! ***\n");
-      mcprintf("Number of transitions: %lu\n", transitionId);
-      mc_exit(EXIT_SUCCESS);
-    }
-  }
-
-  if (programHasNoErrors && getenv(ENV_VERBOSE)) {
-    mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
-    programState->printTransitionStack();
-    programState->printNextTransitions();
-  }
-
-  programState->printTransitionStack();
-  programState->printLogStack();
-  mc_terminate_trace();
-
-}
-//endAayushi
 MC_PROGRAM_TYPE
 mc_search_next_dpor_branch_with_initial_thread(
   const tid_t leadingThread)
