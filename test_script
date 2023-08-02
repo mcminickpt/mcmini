@@ -1,139 +1,83 @@
 #!/usr/bin/env python3
 
-# Script for the execution of test program
-
 import os
+import subprocess
 import argparse
+import glob
 
-program_msg = "Specify which program do you wish to run without saying whether its a deadlock version or not? If not specified the script will run all program deadlock or non-deadlock based on the deadlock flag"
-deadlock_msg = "An optional flag for running a deadlock version of the program(s)."
-directory_msg = "Path for the directory in which you want to store the output of the program(s)."
+PROGRAM_DIR = "test"
+DEADLOCK_DIR = os.path.join(PROGRAM_DIR, "deadlock_program")
+NON_DEADLOCK_DIR = os.path.join(PROGRAM_DIR, "program")
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-p', '--program', type = str, help = program_msg) #args.program
-parser.add_argument('-d', '--deadlock', action = 'store_true', help = deadlock_msg) #args.deadlock
-parser.add_argument('-dir', '--directory', type = str, help = directory_msg) #args.directory
-args = parser.parse_args()
+def get_all_programs(directory):
+    return [os.path.basename(p) for p in glob.glob(os.path.join(directory, "*"))]
 
-print(args)
+def run_program(directory, program, program_args, output_dir, quiet):
+    program_path = os.path.join(directory, program)
+    standalone_command = program_path + " " + " ".join(program_args)
+    try:
+        subprocess.run(standalone_command, shell=True, check=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        print(f"Error in program {program}. Look at usage message above...")
+        return
+    command = "/usr/bin/time -v ./mcmini " + program_path + " " + " ".join(program_args) + " 2>&1"
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    exclude_metrics = ["Percent of CPU this job got", "Elapsed (wall clock) time", "Average shared text size",
+                       "Average unshared data size", "Average stack size", "Average total size",
+                       "Maximum resident set size", "Average resident set size", "Major (requiring I/O) page faults",
+                       "Minor (reclaiming a frame) page faults", "Voluntary context switches",
+                       "Involuntary context switches", "Swaps", "File system inputs", "File system outputs",
+                       "Socket messages sent", "Socket messages received", "Signals delivered", "Page size", "Exit status"]
 
-'''
-DEADLOCK program
-'''
+    with open(os.path.join(output_dir, program), 'w') as f:
+        f.write(f"Command being timed: {command}\n")
+        while True:
+            output = proc.stdout.readline()
+            if output == b'' and proc.poll() is not None:
+                break
+            if output:
+                line = output.strip().decode('utf-8')
+                if any(metric in line for metric in exclude_metrics):
+                    continue
+                if 'User time' in line or 'System time' in line:
+                    parts = line.split(maxsplit=3)  # split the line into parts
+                    metric = parts[0] + " " + parts[1]
+                    value, unit = parts[3], ''  # get the value and unit
+                    value = round(float(value), 3)  # convert the value into float
+                    line = f"{metric} {value} {unit}"
+                f.write(f"{line}\n")  # write each line into the file
+                if not quiet:
+                    print(line)  # print the line to the terminal
+        rc = proc.poll()
+        f.write(f"Exit status: {rc}\n")
 
-# Running a specified deadlock program with a defualt output path
-if (args.deadlock and args.program != "" and args.directory == ""):
-    os.system("(time ./mcmini ../test/deadlock_program/" + args.program + ") 2>&1 | tee ../test/output_deadlock/" + args.program)
 
-# Running a specified deadlock program with a custom output path
-if (args.deadlock and args.program != "" and args.directory != ""):
-    os.system("(time ./mcmini ../test/deadlock_program" + args.program + ") 2>&1 | tee " + args.directory)
 
-# Running all deadlock program with a default output path
-if (args.deadlock and args.program == "" and args.directory == ""):
-    os.system("(time ./mcmini ../test/deadlock_program/barber_shop_deadlock) 2>&1 | tee ../test/output_deadlock/barber_shop_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/producer_consumer_deadlock) 2>&1 | tee ../test/output_deadlock/producer_consumer_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/philosophers_semaphores_deadlock) 2>&1 | tee ../test/output_deadlock/philosophers_semaphores_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/philosophers_mutex_deadlock) 2>&1 | tee ../test/output_deadlock/philosophers_mutex_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_braodcast_with_semaphore_deadlock1) 2>&1 | tee ../test/output_deadlock/simple_cond_braodcast_with_semaphore_deadlock1")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_barrier_with_threads_deadlock) 2>&1 | tee ../test/output_deadlock/simple_barrier_with_threads_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_barrier_deadlock) 2>&1 | tee ../test/output_deadlock/simple_barrier_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_writer_preferred_deadlock) 2>&1 | tee ../test/output_deadlock/reader_writer_writer_preferred_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer__reader_preferred_deadlock) 2>&1 | tee ../test/output_deadlock/reader_writer__reader_preferred_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_mostly_writer_preferred_deadlock) 2>&1 | tee ../test/output_deadlock/reader_writer_mostly_writer_preferred_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_fifo_deadlock) 2>&1 | tee ../test/output_deadlock/reader_writer_fifo_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_cond_deadlock) 2>&1 | tee ../test/output_deadlock/reader_writer_cond_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_mutex_deadlock) 2>&1 | tee ../test/output_deadlock/simple_mutex_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_deadlock) 2>&1 | tee ../test/output_deadlock/simple_cond_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_broadcast_deadlock) 2>&1 | tee ../test/output_deadlock/simple_cond_broadcast_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_braodcast_with_semaphore_deadlock2) 2>&1 | tee ../test/output_deadlock/simple_cond_braodcast_with_semaphore_deadlock2")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_semaphores_with_threads_deadlock) 2>&1 | tee ../test/output_deadlock/simple_semaphores_with_threads_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_semaphores_deadlock) 2>&1 | tee ../test/output_deadlock/simple_semaphores_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_semaphore_deadlock) 2>&1 | tee ../test/output_deadlock/simple_semaphore_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_mutex_with_threads_deadlock) 2>&1 | tee ../test/output_deadlock/simple_mutex_with_threads_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/custom/philosophers_custom_semaphore_deadlock) 2>&1 | tee ../test/output_deadlock/philosophers_custom_semaphore_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/custom/simple_custom_cond_broadcast_deadlock) 2>&1 | tee ../test/output_deadlock/simple_custom_cond_broadcast_deadlock")
+def main(args):
+    directory = DEADLOCK_DIR if args.deadlock else NON_DEADLOCK_DIR
+    output_dir = "test/output_deadlock" if args.deadlock else "test/output_non_deadlock"
+    
+    if args.directory != "":
+        output_dir = args.directory
 
-# Running all deadlock program and putting their output in a specified directory by providing its path
-if (args.deadlock and args.program == "" and args.directory == ""):
-    os.system("(time ./mcmini ../test/deadlock_program/barber_shop_deadlock) 2>&1 | tee " + args.directory + "/barber_shop_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/producer_consumer_deadlock) 2>&1 | tee " + args.directory + "/producer_consumer_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/philosophers_semaphores_deadlock) 2>&1 | tee " + args.directory + "/philosophers_semaphores_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/philosophers_mutex_deadlock) 2>&1 | tee " + args.directory + "/philosophers_mutex_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_braodcast_with_semaphore_deadlock1) 2>&1 | tee " + args.directory + "/simple_cond_braodcast_with_semaphore_deadlock1")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_barrier_with_threads_deadlock) 2>&1 | tee " + args.directory + "/simple_barrier_with_threads_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_barrier_deadlock) 2>&1 | tee " + args.directory + "/simple_barrier_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_writer_preferred_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_writer_preferred_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer__reader_preferred_deadlock) 2>&1 | tee " + args.directory + "/reader_writer__reader_preferred_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_mostly_writer_preferred_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_mostly_writer_preferred_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_fifo_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_fifo_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/reader_writer/reader_writer_cond_deadlock) 2>&1 | tee " + args.directory + "/reader_writer_cond_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_mutex_deadlock) 2>&1 | tee " + args.directory + "/simple_mutex_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_deadlock) 2>&1 | tee " + args.directory + "/simple_cond_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_broadcast_deadlock) 2>&1 | tee " + args.directory + "/simple_cond_broadcast_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_cond_braodcast_with_semaphore_deadlock2) 2>&1 | tee " + args.directory + "/simple_cond_braodcast_with_semaphore_deadlock2")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_semaphores_with_threads_deadlock) 2>&1 | tee " + args.directory + "/simple_semaphores_with_threads_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_semaphores_deadlock) 2>&1 | tee " + args.directory + "/simple_semaphores_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_semaphore_deadlock) 2>&1 | tee " + args.directory + "/simple_semaphore_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/simple_mutex_with_threads_deadlock) 2>&1 | tee " + args.directory + "/simple_mutex_with_threads_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/custom/philosophers_custom_semaphore_deadlock) 2>&1 | tee " + args.directory + "/philosophers_custom_semaphore_deadlock")
-    os.system("(time ./mcmini ../test/deadlock_program/custom/simple_custom_cond_broadcast_deadlock) 2>&1 | tee " + args.directory + "/simple_custom_cond_broadcast_deadlock")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-'''
-NON-DEADLOCK program
-'''
-# Running a specified non-deadlock program with a defualt output path
-if ((not (args.deadlock)) and args.program != "" and args.directory == ""):
-    os.system("(time ./mcmini ../test/program/" + args.program + ") 2>&1 | tee ../test/output_non_deadlock/" + args.program)
+    if args.program:
+        program = args.program[0]
+        if args.deadlock:
+            program = program + "_deadlock"
+        program_args = args.program[1:]
+        run_program(directory, program, program_args, output_dir, args.quiet)
+    else:
+        for program in get_all_programs(directory):
+            run_program(directory, program, [], output_dir, args.quiet)
 
-# Running a specified non-deadlock program with a custom output path
-if ((not (args.deadlock)) and args.program != "" and args.directory != ""):
-    os.system("(time ./mcmini ../test/program/" + args.program + ") 2>&1 | tee " + args.directory)
-
-# Running all non-deadlock program with a default output path
-if ((not (args.deadlock)) and args.program == "" and args.directory == ""):
-    os.system("(time ./mcmini ../test/program/barber_shop) 2>&1 | tee ../test/output_non_deadlock/barber_shop")
-    os.system("(time ./mcmini ../test/program/philosophers_semaphores) 2>&1 | tee ../test/output_non_deadlock/philosophers_semaphores")
-    os.system("(time ./mcmini ../test/program/philosophers_mutex) 2>&1 | tee ../test/output_non_deadlock/philosophers_mutex")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer_writer_preferred) 2>&1 | tee ../test/output_non_deadlock/reader_writer_writer_preferred")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer__reader_preferred) 2>&1 | tee ../test/output_non_deadlock/reader_writer__reader_preferred")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer_fifo) 2>&1 | tee ../test/output_non_deadlock/reader_writer_fifo")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer_cond) 2>&1 | tee ../test/output_non_deadlock/reader_writer_cond")
-    os.system("(time ./mcmini ../test/program/producer_consumer) 2>&1 | tee ../test/output_non_deadlock/producer_consumer")
-    os.system("(time ./mcmini ../test/program/simple_cond_braodcast) 2>&1 | tee ../test/output_non_deadlock/simple_cond_braodcast")
-    os.system("(time ./mcmini ../test/program/simple_barrier_with_threads) 2>&1 | tee ../test/output_non_deadlock/simple_barrier_with_threads")
-    os.system("(time ./mcmini ../test/program/simple_barrier) 2>&1 | tee ../test/output_non_deadlock/simple_barrier")
-    os.system("(time ./mcmini ../test/program/simple_mutex) 2>&1 | tee ../test/output_non_deadlock/simple_mutex") 
-    os.system("(time ./mcmini ../test/program/simple_cond) 2>&1 | tee ../test/output_non_deadlock/simple_cond")
-    os.system("(time ./mcmini ../test/program/simple_cond_broadcast_with_semaphore) 2>&1 | tee ../test/output_non_deadlock/simple_cond_broadcast_with_semaphore")
-    os.system("(time ./mcmini ../test/program/simple_semaphores_with_threads) 2>&1 | tee ../test/output_non_deadlock/simple_semaphores_with_threads")
-    os.system("(time ./mcmini ../test/program/simple_semaphores) 2>&1 | tee ../test/output_non_deadlock/simple_semaphores")
-    os.system("(time ./mcmini ../test/program/simple_mutex_with_threads) 2>&1 | tee ../test/output_non_deadlock/simple_mutex_with_threads")
-    os.system("(time ./mcmini ../test/program/simple_threads) 2>&1 | tee ../test/output_non_deadlock/simple_threads")
-    os.system("(time ./mcmini ../test/program/custom/philosophers_custom_semaphores) 2>&1 | tee ../test/output_non_deadlock/philosophers_custom_semaphores")
-    os.system("(time ./mcmini ../test/program/custom/simple_custom_barrier_with_threads) 2>&1 | tee ../test/output_non_deadlock/simple_custom_barrier_with_threads")
-    os.system("(time ./mcmini ../test/program/custom/simple_custom_cond_broadcast) 2>&1 | tee ../test/output_non_deadlock/simple_custom_cond_broadcast")
-
-# Running all non-deadlock program and putting them in a specified directory by providing its path
-if ((not (args.deadlock)) and args.program == "" and args.directory != ""):
-    os.system("(time ./mcmini ../test/program/barber_shop) 2>&1 | tee " + args.directory + "/barber_shop")
-    os.system("(time ./mcmini ../test/program/philosophers_semaphores) 2>&1 | tee " + args.directory + "/philosophers_semaphores")
-    os.system("(time ./mcmini ../test/program/philosophers_mutex) 2>&1 | tee " + args.directory + "/philosophers_mutex")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer_writer_preferred) 2>&1 | tee " + args.directory + "/reader_writer_writer_preferred")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer__reader_preferred) 2>&1 | tee " + args.directory + "/reader_writer__reader_preferred")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer_fifo) 2>&1 | tee " + args.directory + "/reader_writer_fifo")
-    os.system("(time ./mcmini ../test/program/reader_writer/reader_writer_cond) 2>&1 | tee " + args.directory + "/reader_writer_cond")
-    os.system("(time ./mcmini ../test/program/producer_consumer) 2>&1 | tee " + args.directory + "/producer_consumer")
-    os.system("(time ./mcmini ../test/program/simple_cond_braodcast) 2>&1 | tee " + args.directory + "/simple_cond_braodcast")
-    os.system("(time ./mcmini ../test/program/simple_barrier_with_threads) 2>&1 | tee " + args.directory + "/simple_barrier_with_threads")
-    os.system("(time ./mcmini ../test/program/simple_barrier) 2>&1 | tee " + args.directory + "/simple_barrier")
-    os.system("(time ./mcmini ../test/program/simple_mutex) 2>&1 | tee " + args.directory + "/simple_mutex") 
-    os.system("(time ./mcmini ../test/program/simple_cond) 2>&1 | tee " + args.directory + "/simple_cond")
-    os.system("(time ./mcmini ../test/program/simple_cond_broadcast_with_semaphore) 2>&1 | tee " + args.directory + "/simple_cond_broadcast_with_semaphore")
-    os.system("(time ./mcmini ../test/program/simple_semaphores_with_threads) 2>&1 | tee " + args.directory + "/simple_semaphores_with_threads")
-    os.system("(time ./mcmini ../test/program/simple_semaphores) 2>&1 | tee " + args.directory + "/simple_semaphores")
-    os.system("(time ./mcmini ../test/program/simple_mutex_with_threads) 2>&1 | tee " + args.directory + "/simple_mutex_with_threads")
-    os.system("(time ./mcmini ../test/program/simple_threads) 2>&1 | tee " + args.directory + "/simple_threads")
-    os.system("(time ./mcmini ../test/program/custom/philosophers_custom_semaphores) 2>&1 | tee " + args.directory + "/philosophers_custom_semaphores")
-    os.system("(time ./mcmini ../test/program/custom/simple_custom_barrier_with_threads) 2>&1 | tee " + args.directory + "/simple_custom_barrier_with_threads")
-    os.system("(time ./mcmini ../test/program/custom/simple_custom_cond_broadcast) 2>&1 | tee " + args.directory + "/simple_custom_cond_broadcast")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--program', nargs='*', help="Specify the program to run and its arguments. If not specified, all programs are run.")
+    parser.add_argument('-d', '--deadlock', action='store_true', help="Run deadlock versions of the programs.")
+    parser.add_argument('--directory', type=str, default="", help="Directory to store the output. If not specified, defaults to '../test/output_deadlock' or '../test/output_non_deadlock' depending on the deadlock flag.")
+    parser.add_argument('-q', '--quiet', action='store_true', help="If specified, the script will not print the output to the terminal.")
+    args = parser.parse_args()
+    main(args)
