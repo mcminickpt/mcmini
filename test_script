@@ -9,9 +9,6 @@ PROGRAM_DIR = "test"
 DEADLOCK_DIR = os.path.join(PROGRAM_DIR, "deadlock_program")
 NON_DEADLOCK_DIR = os.path.join(PROGRAM_DIR, "program")
 
-def get_all_programs(directory):
-    return [os.path.basename(p) for p in glob.glob(os.path.join(directory, "*"))]
-
 def run_program(directory, program, program_args, output_dir, quiet):
     program_path = os.path.join(directory, program)
     standalone_command = program_path + " " + " ".join(program_args)
@@ -51,8 +48,6 @@ def run_program(directory, program, program_args, output_dir, quiet):
         rc = proc.poll()
         f.write(f"Exit status: {rc}\n")
 
-
-
 def main(args):
     directory = DEADLOCK_DIR if args.deadlock else NON_DEADLOCK_DIR
     output_dir = "test/output_deadlock" if args.deadlock else "test/output_non_deadlock"
@@ -70,12 +65,12 @@ def main(args):
         program_args = args.program[1:]
         run_program(directory, program, program_args, output_dir, args.quiet)
     else:
-        for program in get_all_programs(directory):
-            run_program(directory, program, [], output_dir, args.quiet)
+        print("Program flag -p or --program is required.")
+        return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', '--program', nargs='*', help="Specify the program to run and its arguments. If not specified, all programs are run.")
+    parser.add_argument('-p', '--program', required=True, nargs='*', help="Specify the program to run and its arguments.")
     parser.add_argument('-d', '--deadlock', action='store_true', help="Run deadlock versions of the programs.")
     parser.add_argument('--directory', type=str, default="", help="Directory to store the output. If not specified, defaults to '../test/output_deadlock' or '../test/output_non_deadlock' depending on the deadlock flag.")
     parser.add_argument('-q', '--quiet', action='store_true', help="If specified, the script will not print the output to the terminal.")
