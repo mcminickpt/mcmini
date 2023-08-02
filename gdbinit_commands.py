@@ -3,15 +3,14 @@
 
 ## NOTE:  Inside gdb, you can test Python commands.  For example:
 ##   (gdb) python gdb.execute("bt")
-##   (gdb) python print(gdb.parse_and_eval("main"))
+##   (gdb) python print(gdb.parse_and_eval("foo(x)")) # for foo(), x in target
 ## INTERACTIVE DEBUGGING:
 ##   (gdb) python-interactive
-##   (gdb) nextTransitionCmd().invoke("3",True)  # Invoke it with count of 3
+##   Insert:  'import pdb; pdb.set_trace()' or 'breakpoint()'
+##   # Invoke with count of 3 and 'True' (default: fromTtty; for all commands)
+##   (gdb) python nextTransitionCmd().invoke("3",True)
 
-## FIXME:
-## Use 'gdb.Breakpoint' instead of 'gdb.execute("break ..."),
-##   so that we can easily temporarily disable all breakpoints.
-## EXAMPE USAGE:
+## EXAMPE USAGE of Python API breakpoints:
 ##   bkptMain = gdb.Breakpoint("main")
 ##   bkptMain.silent = True
 ##   bkptMain.enabled = False
@@ -41,7 +40,8 @@
 ##    GDB API will correctly show the new transitionId
 ## 3. 'assert()' and '_exit()' should be handled gracefully. (Especially assert)
 ##    As a stopgap, in case McMini crashes, just print every traceId before that
-## 4. Whan McMini stops at "bad" trace (e.g., deadlock), print traceId.
+## 4. Whan McMini stops at "bad" trace (e.g., deadlock), print traceId,
+##    and print something besides "Model checking completed!" at the end.
 ## 5. In WSL, the arguments of the target program are getting lost. WHY?
 ##    As a result, producer_consumer doesn't recognize its '--quiet' flag.
 ## 6. I'm not a fan of using 'operator' widely for the same reason that
@@ -74,6 +74,8 @@ def print_mcmini_stats():
         "transition: " + str(transitionId) + "; "
         "thread: " + str(gdb.selected_inferior().num) + "." +
                      str(gdb.selected_thread().num) +
+                 " (thread " + str(gdb.selected_thread().num) +
+                 " of inferior " + str(gdb.selected_inferior().num) + ")"
         "\n")
 
 def print_user_frames_in_stack():
@@ -83,7 +85,7 @@ def print_user_frames_in_stack():
   level = 0
   mcmini_num_frame_levels = 0
   frame = gdb.newest_frame()
-  while (True):
+  while True:
     frame = frame.older()
     if not frame:
       break
@@ -91,19 +93,20 @@ def print_user_frames_in_stack():
     if (frame.name() and
          (frame.name().startswith("mc_") or
           frame.name().startswith("__real_") or
+          frame.name() == "thread_await_scheduler" or
           frame.name() == "thread_await_scheduler_for_thread_start_transition")
-        and 
+        and
          (frame.name() != "mc_thread_routine_wrapper" or
           frame.newer().name() ==
-                         "thread_await_scheduler_for_thread_start_transition")
+                          "thread_await_scheduler_for_thread_start_transition")
        ):
       mcmini_num_frame_levels = level
       frame.older().select() # Keep setting older frame as the user frame
   gdb.execute("bt " + str(- (level - mcmini_num_frame_levels)))
 def find_call_frame(name):
   frame = gdb.newest_frame()
-  while (frame):
-    if (frame.name() == name):
+  while frame:
+    if frame.name() == name:
       return frame
     frame = frame.older()
   return None
@@ -112,17 +115,16 @@ def find_call_frame(name):
 # Set up breakpoint utilities
 
 def continue_until(function, thread_id=None):
+  ## We would have preferrd a temporary breakpoint.
   ## gdb 7.6 doesn't seem to implement "temporary" optional argument.
   ## Optional arguments:  internal=False, temporary=True
   ## bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE.
   ##                       False, True)
-  ## while bkpt.is_valid():
-  ##   gdb.execute("continue")
   # Optional argument:  internal=True
   bkpt = gdb.Breakpoint(function, gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
   bkpt.silent = True
   if thread_id:
-    ckpt.thread = thread_id
+    bkpt.thread = thread_id
   while bkpt.hit_count == 0:
     gdb.execute("continue")
   bkpt.delete()
@@ -161,7 +163,7 @@ mcminiHelpString=(
 *   A 'transition' is a thread operation.                                      *
 *   The usual GDB commands (next, step, finish, etc.) and TAB-completion work. *
 *   But a command like 'mcmini forward' will skip forward to just before       *
-*   the next transition (the next thread operation).                           *
+*   the next transition (the next thread operation)  'mcmini back' also exists.*
 *                                                                              *
 * OTHER HINTS:                                                                 *
 * Consider using ctrl-Xa ('ctrl-X' and 'x') to toggle source display on or off.*
@@ -177,12 +179,14 @@ mcminiHelpString=(
 *                                                                              *
 * Note that 'mcmini print' can sometimes print future transitions, even before *
 * they have been reached.                                                      '
+*                                                                              *
+* For details of 'mcmini' commands, type 'help user-defined'.                  *
 ********************************************************************************
 """
 )
 
 class helpCmd(gdb.Command):
-  """Prints the transitions currently on the stack"""
+  """Prints help for getting started in McMini"""
   def __init__(self):
     super(helpCmd, self).__init__(
         "mcmini help", gdb.COMMAND_USER
@@ -201,7 +205,7 @@ class printTransitionsCmd(gdb.Command):
   def invoke(self, args, from_tty):
    current_inferior = gdb.selected_inferior().num
    gdb.execute("inferior 1")  # inferior 1 is scheduler process
-   transition_stack = gdb.parse_and_eval("programState->printTransitionStack()")
+   transition_stack = gdb.execute("call programState->printTransitionStack()")
    print(transition_stack)
    gdb.execute("inferior " + str(current_inferior))
 printTransitionsCmd()
@@ -214,7 +218,11 @@ class forwardCmd(gdb.Command):
     )
   def invoke(self, args, from_tty):
     global transitionId
-    iterations = int(args) if args.isdigit() else 1
+    args = args.split()
+    iterations = int(args[0]) if args and args[0].isdigit() else 1
+    if iterations > 1:
+      gdb.execute("mcmini forward " + str(iterations-1) + " quiet")
+    # else iterations == 1
     if gdb.selected_inferior().num == 1:
       print("GDB is in scheduler, not target process:" +
             "  Can't go to next transition\n")
@@ -226,14 +234,50 @@ class forwardCmd(gdb.Command):
       gdb.execute("set build-id-verbose 0")
     except:
       pass
-    continue_until("mc_shared_cv_wait_for_scheduler")
+    continue_until("mc_shared_sem_wait_for_scheduler")
     transitionId += 1
-    print_user_frames_in_stack()
-    print_mcmini_stats()
+    if "quiet" not in args:
+      print_user_frames_in_stack()
+      print_mcmini_stats()
 forwardCmd()
 
+class backCmd(gdb.Command):
+  """Go back one transition of current trace, by re-executing"""
+  def __init__(self):
+    super(backCmd, self).__init__(
+        "mcmini back", gdb.COMMAND_USER
+    )
+  def invoke(self, args, from_tty):
+    global transitionId
+    if gdb.selected_inferior().num == 1:
+      print("GDB is in scheduler, not target process:" +
+            "  Can't go to previous transition\n")
+      return
+    iterationsForward = transitionId - 1
+    gdb.execute("mcmini finishTrace quiet")
+    gdb.execute("set rerunCurrentTraceForDebugger = 1")
+    gdb.execute("mcmini nextTrace quiet")
+    gdb.execute("mcmini forward " + str(iterationsForward) + " quiet")
+    gdb.execute("set rerunCurrentTraceForDebugger = 0")
+    print("DEBUGGING: " + "mcmini forward " + str(iterationsForward) + " quiet")
+    print_user_frames_in_stack()
+    print_mcmini_stats()
+backCmd()
+
+class whereCmd(gdb.Command):
+  """Execute where, while hiding McMini internal call framces"""
+  def __init__(self):
+    super(whereCmd, self).__init__(
+        "mcmini where", gdb.COMMAND_USER
+    )
+  def invoke(self, args, from_tty):
+    print("STACK FOR THREAD: " + str(gdb.selected_thread().num))
+    print_user_frames_in_stack()
+    print_mcmini_stats()
+whereCmd()
+
 class finishTraceCmd(gdb.Command):
-  """Execute until next trace; Accepts optional <count> arg"""
+  """Execute until next trace"""
   breakpoint_for_next_transition = None
   def __init__(self):
     super(finishTraceCmd, self).__init__(
@@ -242,7 +286,6 @@ class finishTraceCmd(gdb.Command):
   def invoke(self, args, from_tty):
     global transitionId
     args = args.split()
-    iterations = int(args[0]) if args and args[0].isdigit() else 1
     if gdb.selected_inferior().num == 1:
       print("GDB is in scheduler process, not target:\n" +
             "  Try 'mcmini nextTrace' to go to next trace\n")
@@ -286,10 +329,10 @@ class nextTraceCmd(gdb.Command):
     bkptMain.silent = True
     if targetTraceId > 1:
       for i in range(targetTraceId - 1):
-        continue_until("mc_shared_cv_wait_for_scheduler")
+        continue_until("mc_shared_sem_wait_for_scheduler")
         gdb.execute("mcmini finishTrace")
     # Now continue until in child process.
-    continue_until("mc_shared_cv_wait_for_scheduler")
+    continue_until("mc_shared_sem_wait_for_scheduler")
     # We should now be in the next child process.
     if "quiet" not in args:
       print_mcmini_stats()
@@ -307,8 +350,10 @@ class gotoTraceCmd(gdb.Command):
     else:
       print("Missing integer <traceId> argument\n")
       return
-    if gdb.selected_frame().name() == "main":
-      gdb.execute("continue")
+    if iterations <= int(gdb.parse_and_eval("traceId")):
+      print("*** Current traceId: " + str(gdb.parse_and_eval("traceId")) +
+            "; Can't go to earlier trace; skipping command\n")
+      return
     if gdb.selected_inferior().num != 1:
       gdb.execute("mcmini finishTrace quiet")
     # We should now have only the parent (inferior 1).
@@ -319,7 +364,7 @@ class gotoTraceCmd(gdb.Command):
                             "(unsigned long)",
                           gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
     bkpt.silent = True
-    while (int(gdb.parse_and_eval("traceId")) < iterations):
+    while int(gdb.parse_and_eval("traceId")) < iterations:
       gdb.execute("continue")
     bkpt.delete()
     gdb.execute("set detach-on-fork off")
@@ -328,32 +373,46 @@ class gotoTraceCmd(gdb.Command):
 gotoTraceCmd()
 
 developerHelp = ("""\
+Executes:
+  inferior 1
+  detach inferior [DETACHES ALL OTHER INFERIORS]
+  set detach-on-fork on
+  set follow-fork-mode parent
+  [ Reverse these if you want to again debug the target process. ]
 Useful GDB commands:
   info inferiors
   inferior 1
+    [ Inferior 1 is the scheduler process. ]
   info threads
-    [ Thread 1.1 is the thread of the scheduler process. ]
-  thread 1.1
+  thread 2.1
+    [ Thread 2.1 is thread 1 of inferior 2 ]
   info breakpoints
   where
 """)
 
 class developerModeCmd(gdb.Command):
-  """For developers only.  Use at your own risk."""
+  """Permanently switch GDB to developer environment.  For developers only."""
   def __init__(self):
     super(developerModeCmd, self).__init__(
         "mcmini developerMode", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
+    print("Breakpoint added at next visible operation in scheduler process.")
     gdb.execute("break mc_run_thread_to_next_visible_operation(unsigned long)")
+    ### These commented commands will go away, when it's clear it's not needed.
     # current_inferior = gdb.selected_inferior().num
     # gdb.execute("inferior 1") # Set inferior to scheduler
-    # scheduler_call_frame_fnc = "mc_shared_cv_wait_for_thread"
+    # scheduler_call_frame_fnc = "mc_shared_sem_wait_for_thread"
     # gdb.execute("break " + scheduler_call_frame_fnc)
     # This next command forces a GDB-internal bug in gdb-12.0
     # gdb.FinishBreakpoint().__init__(find_call_frame_fnc(scheduler_call_frame_fnc))
     # gdb.execute("inferior " + str(current_inferior))
-    print("Breakpoint added to scheduler process.")
+    gdb.execute("inferior 1")
     gdb.execute("set print address on")
+    gdb.execute("set detach-on-fork on")
+    gdb.execute("set follow-fork-mode parent")
+    for inferior in gdb.inferiors():
+      if inferior.num > 1:
+        gdb.execute("detach inferior " + str(int(inferior.num)))
     print(developerHelp)
 developerModeCmd()

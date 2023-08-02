@@ -10,7 +10,7 @@
 extern "C" {
 #include "mcmini/MCCommon.h"
 #include "mcmini/MCEnv.h"
-#include "mcmini/mc_shared_cv.h"
+#include "mcmini/mc_shared_sem.h"
 }
 
 /**
@@ -23,7 +23,7 @@ extern "C" {
  * global variables managing the program state, shared memory, and
  * symbols in the underlying thread libraries.
  */
-MC_CTOR void mcmini_main();
+MC_CONSTRUCTOR void mcmini_main();
 
 /**
  * @brief The ID McMini uses to identify THIS thread, viz.
@@ -50,6 +50,19 @@ MC_CTOR void mcmini_main();
  * the thread IDs within a single branch of McMini
  */
 extern MC_THREAD_LOCAL tid_t tid_self;
+
+/*
+ * Identifies the current trace being examined by McMini
+ *
+ * TODO: It would be better to have trace ids in the context
+ * of a single execution of a program. McMini should theoretically be
+ * able to model-check multiple programs in sequence
+ *
+ * NOTE: If we ever parallelized the program this would be highly
+ * unsafe and would need to be atomic
+ */
+extern trid_t traceId;
+extern pid_t trace_pid;
 
 /**
  * @brief A fixed-size array assigning to each possible
@@ -79,7 +92,8 @@ extern MC_THREAD_LOCAL tid_t tid_self;
  * indexing the list with the thread ID and instead think of the
  * thread ID as a key in a map
  */
-extern mc_shared_cv (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM];
+extern mc_shared_sem (
+  *trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM];
 
 /**
  * @brief Initializes the variables in the global `trace_sleep_list`
@@ -162,6 +176,13 @@ extern void *shmTransitionData;
  * function, or NULL if the memory could not be allocated
  */
 void *mc_allocate_shared_memory_region();
+
+/**
+ * @brief Deallocates the space for the shared memory mailbox used for
+ * cross-process communication between forked trace processed and the
+ * scheduler process
+ */
+void mc_deallocate_shared_memory_region();
 
 /**
  * @brief Initializes the global variables related to shared memory as
@@ -408,6 +429,18 @@ void mc_trace_panic();
  * invoking exit(2) or __real_exit().
  */
 void mc_exit(int);
+
+/**
+ * @brief Aborts model checking mid-exection
+ *
+ * McMini will abort execution and exit with the provided exit code.
+ * Any shared memory allocated for cross-process communication will be
+ * deallocated. If a trace process exists at the time the method is
+ * executed, the trace process will first be killed
+ *
+ * @param status the exit code passed to the exit(2) system call
+ */
+void mc_stop_model_checking(int status);
 
 /* Erroneous Behavior */
 

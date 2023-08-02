@@ -274,13 +274,19 @@ bool
 MCState::isInDeadlock() const
 {
   /*
-   * We artificially restrict deadlock reports to those in which the
-   * total thread depth is at most the total allowed by the program
+   * FIXME:  This 'if' statement is being commented out.
+   *         In the future, we could consider a new flag, --max-total-depth
+   *         So, the code here is kept, to be re-purposed.
    */
-  if (this->totalThreadExecutionDepth() >
-      this->configuration.maxThreadExecutionDepth) {
-    return false;
-  }
+  /*
+   * We artificially restrict deadlock reports to those in which the
+   * total thread depth is at most the total allowed by the program.
+   *
+   * if (this->totalThreadExecutionDepth() >
+   *     this->configuration.maxThreadExecutionDepth) {
+   *   return false;
+   * }
+   */
 
   const auto numThreads = this->getNumProgramThreads();
   for (tid_t tid = 0; tid < numThreads; tid++) {
@@ -591,6 +597,12 @@ MCState::simulateRunningTransition(
   // to occur properly
   this->growTransitionStackRunning(transition);
   this->growStateStackRunningTransition(transition);
+
+  // NOTE: After applying the transition, this `MCState`
+  // object has moved into the NEXT state, meaning that
+  // e.g. asking the question "which threads are enabled
+  // now" would ultimate be being asked about the state
+  // that follows AFTER `transition` is executed
   this->virtuallyRunTransition(transition);
 
   tid_t tid = transition.getThreadId();
@@ -768,8 +780,8 @@ MCState::transitionStackMaxClockVector(const MCTransition &transition)
 
   // The pseudocode stores clock vectors in the transition
   // stack, but this data can be stored equivalently in the
-  // stack stack by noting that the state stack is always
-  // one larger than the transition stack (hence tStackIndex)
+  // stack by noting that the state stack is always one
+  // larger than the transition stack (hence tStackIndex).
   for (int i = 1; i <= this->stateStackTop; i++) {
     const int tStackIndex = i - 1;
     const MCTransition &t = getTransitionAtIndex(tStackIndex);
@@ -935,17 +947,24 @@ MCState::registerVisibleObjectWithSystemIdentity(
 }
 
 void
+MCState::printThreadSchedule() const
+{
+  for (int i = 0; i <= this->transitionStackTop; i++) {
+    const tid_t tid = this->getTransitionAtIndex(i).getThreadId();
+    printf("%lu, ", tid);
+  }
+  printf("\n");
+}
+
+void
 MCState::printTransitionStack() const
 {
   printf("THREAD BACKTRACE\n");
   for (int i = 0; i <= this->transitionStackTop; i++) {
     this->getTransitionAtIndex(i).print();
   }
-  for (int i = 0; i <= this->transitionStackTop; i++) {
-    const tid_t tid = this->getTransitionAtIndex(i).getThreadId();
-    printf("%lu, ", tid);
-  }
-  printf("\nEND\n");
+  MCState::printThreadSchedule();
+  printf("END\n");
   mcflush();
 }
 
@@ -974,18 +993,6 @@ MCState::printNextTransitions() const
   }
   printf("END\n");
   mcflush();
-}
-
-bool
-MCState::isTargetTraceIdForGDB(trid_t trid) const
-{
-  return this->configuration.gdbDebugTraceNumber == trid;
-}
-
-bool
-MCState::isTargetTraceIdForStackContents(trid_t trid) const
-{
-  return this->configuration.stackContentDumpTraceNumber == trid;
 }
 
 std::vector<tid_t>

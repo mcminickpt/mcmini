@@ -8,9 +8,6 @@ set pagination off
 set detach-on-fork off
 set print pretty
 set print address off
-# Stop if about to exit:
-break _exit
-set variable $bpnum_exit = $bpnum
 # In McMini, parent sends SIGUSR1 to child on exit.
 handle SIGUSR1 nostop noprint pass
 handle SIGUSR2 nostop noprint pass
@@ -25,7 +22,17 @@ set schedule-multiple on
 ## Newer GDBs can use "tui disable" to undo "layout src"
 ## We should test if "tui disable" works, and then use it.
 
-source gdbinit_commands.py
+# source [$MCMINI_ROOT/]gdbinit_commands.py"
+python import os, sys
+python DIR = ""
+python if os.environ.get("MCMINI_ROOT"): DIR = os.environ["MCMINI_ROOT"]+"/"
+python if DIR: gdb.execute("dir " + DIR)
+python if os.path.isfile("NO-GDB-G3"): \
+  print("\n*** Not compiled with -g3.  Please call:\n" + \
+        "***                             make clean && make -j9 debug"); \
+  sys.exit(1)
+python print("source " + DIR + "gdbinit_commands.py")
+python gdb.execute("source " + DIR + "gdbinit_commands.py")
 
 # Stop at main in scheduler.
 # Later, whenever we fork into target process, stop at main.
@@ -34,6 +41,12 @@ run
 
 tbreak execvp
 continue
+
+python if (not gdb.selected_inferior().threads()): sys.exit(1)
+
+# Stop if about to exit:
+break _exit
+set variable $bpnum_exit = $bpnum
 
 tbreak 'mcmini_main()'
 continue
@@ -77,7 +90,7 @@ continue
 
 ## Python nextTransition will set this:
 ## break mc_new_trace_at_current_state()
-## break mc_shared_cv_wait_for_scheduler
+## break mc_shared_sem_wait_for_scheduler
 # break thread_await_scheduler_for_thread_start_transition
 # NOT NEEDED:  set follow-fork-mode child
 #   We 'set detach-on-fork off'

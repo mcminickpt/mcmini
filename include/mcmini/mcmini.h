@@ -4,5 +4,5 @@
 #include "mcmini/MCShared.h"
 #include "mcmini/mcmini_wrappers.h"
 
-MC_CTOR void mcmini_main();
+MC_CONSTRUCTOR void mcmini_main();
 #endif // INCLUDE_MCMINI_MCMINI_HPP

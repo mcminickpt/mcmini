@@ -1,6 +1,23 @@
-# Git Workflow
+# Contributing to McMini
 
-## Contributing to McMini
+Welcome to McMini! We're glad you're interested in getting
+to know what McMini has to offer and to improve its functionality.
+Outlined in this document are some conventions we abide by
+when developing new features for McMini
+
+## WARNINGS
+
+McMini has NOT reached a point of stability at the design-level,
+nor at the ABI-level, and is experimental software. McMini will
+continue to exist as experimental software for some time before
+becoming more stable. API and ABI changes will be commonplace
+while new research is being conducted and as McMini continues
+to improve. Until McMini becomes more stable, use caution if you
+plan on depending on McMini at this point.
+
+YOU HAVE BEEN WARNED!
+
+## Getting Started
 
 Start by forking McMini on GitHub and clone down your new fork with
 
@@ -26,7 +43,7 @@ After cloning the repo and checking out the `main` branch, users
 should be able to build and run the application without any egregious
 bugs (e.g. immediate segfaults)
 
-Importantly, the `main` branch should *always* be free from
+Ideally, the `main` branch should *always* be free from
 compilation errors and should build without any issues. Any commit
 along the linear history of the `main` branch should compile and run
 without issues.
@@ -34,26 +51,11 @@ without issues.
 **If you introduce commits in your local branches which do not
 compile, be sure to prune those commits out or squash them into
 commits that do build with `git rebase -i`, `git merge --squash`, or
-`git commit --amend`!**
-
-### Local Branches
-
-The contents of your local branches may begin to diverge from `main`
-in the main repo. If your branches are not updated frequently enough,
-they may become *stale* and it may be difficult to integrate changes
-introduced in the branch with new code added from other clones via
-PRs.
-
-The shared McMini repository is intended to have a linear commit
-history.  This should result in a cleaner commit history and make
-tools such as `git bisect` easier to use.
-
-**Keep your local branches updated with `main` and update branches
-frequently, rebasing changes onto `main` in the main repo**
+`git commit --amend` whenever possible**
 
 ## Commits
 
-Commits should ideally have the following characteristics:
+Commits should have the following characteristics:
 
 1. They should each be relatively *small* in their effect on the
 codebase: one commit should never introduce thousands of changes
@@ -71,7 +73,7 @@ comments to the commit message where appropriate (see the next
 section). Better yet, you should split the commit, if possible, into
 multiple smaller commits
 
-### Moving Files
+### Renaming Files
 
 When you want to rename a file or move a file into another directory,
 prefer using `git mv` over `mv` if the file is already under version
@@ -83,8 +85,9 @@ larger diff than necessary
 
 ### Titling and commenting commits
 
-Write commits using the imperative mood; for example, if a commit
-changes the behavior of a certain class in the project, title it
+Commits in McMini are written using the imperative mood; for example,
+if a commit changes the behavior of a certain class in the project,
+title it
 
   "Change the behavior of ..."
 
@@ -94,7 +97,7 @@ instead of
 
 The idea is that commit titles tell you how the project should change
 when the commit is introduced: "do" something  rather than "did"
-something.
+something. This is just our convention.
 
 For future maintainers of the codebase (including yourself!), it is
 also critically important to add a brief description of the changes
@@ -106,10 +109,6 @@ those failed, and how the changes in the commit (or commit series
 following thereafter) fix the bug
 
 ## Issues
-
-Issues point out bugs and document features we want to merge into
-McMini in the future. Issues should be named using the same style as
-commit naming when appropriate (using the imperative etc.).
 
 When you think of a new feature that should be added to McMini, make
 sure to create an issue for it when appropriate. Use your judgement

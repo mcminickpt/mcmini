@@ -1,14 +1,16 @@
 #include "mcmini/mcmini_private.h"
 #include "mcmini/MCSharedTransition.h"
 #include "mcmini/MCTransitionFactory.h"
+#include "mcmini/signals.h"
 #include "mcmini/transitions/MCTransitionsShared.h"
 #include <vector>
 
 extern "C" {
-#include "mcmini/mc_shared_cv.h"
+#include "mcmini/mc_shared_sem.h"
 #include <cassert>
 #include <cstdio>
 #include <fcntl.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -46,17 +48,32 @@ pid_t trace_pid                = -1;
  * The process id of the scheduler
  */
 pid_t scheduler_pid = -1;
-mc_shared_cv (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
+mc_shared_sem (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
   nullptr;
 sem_t mc_pthread_create_binary_sem;
 
-/*
- * Identifies the trace number of the model checker
- * Note that is we ever parallelized the program
- * this would be highly unsafe and would need to be atomic
- */
 trid_t traceId      = 0;
 trid_t transitionId = 0;
+
+static char resultString[1000] = "***** Model checking completed! *****\n";
+static void addResult(const char *result) {
+  char stats[1000];
+  if (strstr(resultString, result) != NULL) {
+    result = "  (Other trace numbers exist: ...)\n";
+    if (strstr(resultString, result) == NULL) {
+      strncat(resultString, result, sizeof(resultString) - strlen(resultString));
+    }
+    return;
+  }
+  strncat(resultString, result, sizeof(resultString) - strlen(resultString));
+  snprintf(stats, 80, "  (Trace number: %lu)\n", traceId);
+  strncat(resultString, stats, sizeof(resultString) - strlen(resultString));
+}
+static void printResults() {
+  mcprintf(resultString);
+  mcprintf("Number of transitions: %lu\n", transitionId);
+  mcprintf("Number of traces: %lu\n", traceId);
+}
 
 /*
  * Dynamically updated to control how McMini proceeds with its
@@ -91,34 +108,41 @@ const size_t shmAllocationSize =
 /* Program state */
 MCDeferred<MCState> programState;
 
-MC_CTOR void
+void
+alarm_handler(int sig)
+{
+  if (sig == SIGALRM) {
+    fprintf(stderr,
+            "\n *** mcmini exiting after one hour.  To avoid, this,\n"
+            " *** Use flag '--long-test' or  MCMINI_LONG_TEXT env. "
+            "var.\n\n");
+    _exit(1); // Note:  McMini wraps 'exit()'.  So, we use '_exit()'.
+  }
+}
+
+MC_CONSTRUCTOR void
 mcmini_main()
 {
+  if (getenv(ENV_LONG_TEST) == NULL) {
+    alarm(3600); // one hour
+    signal(SIGALRM, alarm_handler);
+  }
   mc_load_intercepted_symbol_addresses();
   mc_create_global_state_object();
   mc_initialize_shared_memory_globals();
   mc_initialize_trace_sleep_list();
+  install_sighandles_for_scheduler();
 
   // Mark this process as the scheduler
   scheduler_pid = getpid();
   MC_FATAL_ON_FAIL(
     __real_sem_init(&mc_pthread_create_binary_sem, 0, 0) == 0);
 
-  //Aayushi
-  char* flag = getenv("MODE");
-  if(flag[0] == '0'){
-    printf("mcmini in ghost mode \n");
-    MC_PROGRAM_TYPE program = mc_do_model_checking_when_asked();
-     if (MC_IS_TARGET_PROGRAM(program)) return;
-  }
-//endAayushi
-  if(flag[0] == '1'){
-    printf("mcmini in active mode \n");
-    MC_PROGRAM_TYPE program = mc_do_model_checking();
-    if (MC_IS_TARGET_PROGRAM(program)) return;
-  }
-    mcprintf("***** Model checking completed! *****\n");
-    mcprintf("Number of transitions: %lu\n", transitionId);
+  MC_PROGRAM_TYPE program = mc_do_model_checking();
+  if (MC_IS_TARGET_PROGRAM(program)) return;
+
+  mcprintf("***** Model checking completed! *****\n");
+  mcprintf("Number of transitions: %lu\n", transitionId);
   mcprintf("Number of traces: %lu\n", traceId);
   mc_exit(EXIT_SUCCESS);
 }
@@ -152,6 +176,8 @@ mc_create_global_state_object()
                                              &MCReadSemEnqueue);
   programState->registerVisibleOperationType(typeid(MCExitTransition),
                                              &MCReadExitTransition);
+  programState->registerVisibleOperationType(
+    typeid(MCAbortTransition), &MCReadAbortTransition);
   programState->registerVisibleOperationType(typeid(MCBarrierEnqueue),
                                              &MCReadBarrierEnqueue);
   programState->registerVisibleOperationType(typeid(MCBarrierInit),
@@ -272,7 +298,7 @@ mc_do_model_checking()
   // appropriate point with a getcontext()/setcontext() that will
   // bring the trace process to the correct process as an alternative?
   // It hurts readability to have the forked traces needing to escape
-  // in this wasy
+  // in this way.
   MC_PROGRAM_TYPE program = mc_run_initial_trace();
   if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
 
@@ -301,74 +327,6 @@ mc_do_model_checking()
   }
   return MC_SCHEDULER;
 }
-//Aayushi
-MC_PROGRAM_TYPE
-mc_do_model_checking_when_asked()
-{
-  printf("\n ***** in do_model_checking_when asked *****\n");
-  mc_prepare_to_model_check_new_program();
-  // TODO: This idiom is fairly common... This simply allows
-  // the forked process to exit the constructor all of the stack
-  // frames find themselves in. Perhaps we could jump to the
-  // appropriate point with a getcontext()/setcontext() that will
-  // bring the trace process to the correct process as an alternative?
-  // It hurts readability to have the forked traces needing to escape
-  // in this wasy
-  MC_PROGRAM_TYPE program = mc_record_log();
-  if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-
-  
-
-  // replaying the log stack
-  int count=1;
-  for(int i = 0;i<10;i++){
-    printf("Starting to replay\n");
-    sleep(10);
-    // programState->reflectStateAtLogIndex(i);
-    // count++;
-  }
-
-  char *mode = getenv("MODE");
-  if(mode[0] == '1') return MC_SCHEDULER;
-  const MCTransition &newinitialTransition =
-    programState->getLogAtIndex(count);
-
-  
-
-// const MCTransition *t_new_next = &newinitialTransition;
-// const tid_t tid_new = t_new_next->getThreadId();
-  
-
-//      MC_PROGRAM_TYPE program = mc_run_new_initial_trace(tid_new);
-//      if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-
-    
-//   MCOptional<int> nextBranchPoint =
-//     programState->getDeepestDPORBranchPoint();
-
-//   while (nextBranchPoint.hasValue()) {
-//     const int bp = nextBranchPoint.unwrapped();
-//     auto &sNext  = programState->getStateItemAtIndex(bp);
-//     const tid_t backtrackThread = sNext.popThreadToBacktrackOn();
-
-//     // Prepare the scheduler's model of the next trace
-//     programState->reflectStateAtTransitionIndex(bp - 1);
-
-//     // Search the next branch that DPOR dictated needed to be searched
-//     program =
-//       mc_search_next_dpor_branch_with_initial_thread(backtrackThread);
-//     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-
-//     mc_exit_with_trace_if_necessary(traceId);
-//     program = mc_rerun_current_trace_as_needed();
-//     if (MC_IS_TARGET_PROGRAM(program)) return MC_TARGET_PROGRAM;
-
-//     traceId++;
-//     nextBranchPoint = programState->getDeepestDPORBranchPoint();
-//   }
-  return MC_SCHEDULER;
-}
-
 
 void *
 mc_allocate_shared_memory_region()
@@ -376,12 +334,8 @@ mc_allocate_shared_memory_region()
   //  If the region exists, then this returns a fd for the existing
   //  region. Otherwise, it creates a new shared memory region.
   char dpor[100];
+  mc_get_shm_handle_name(dpor, sizeof(dpor));
 
-  // FIXME: It's technically possible that the process ID could wrap
-  // around and be reused so a race could ensue again if another
-  // mcmini took that (repeated) pid. But that's unlikely
-  snprintf(dpor, sizeof(dpor), "/DPOR-%s-%lu", getenv("USER"),
-           (long)getpid());
   // This creates a file in /dev/shm/
   int fd = shm_open(dpor, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) {
@@ -419,6 +373,30 @@ mc_allocate_shared_memory_region()
 }
 
 void
+mc_deallocate_shared_memory_region()
+{
+  char shm_file_name[100];
+  mc_get_shm_handle_name(shm_file_name, sizeof(shm_file_name));
+  int rc = munmap(shmStart, shmAllocationSize);
+  if (rc == -1) {
+    perror("munmap");
+    mc_exit(EXIT_FAILURE);
+  }
+
+  rc = shm_unlink(shm_file_name);
+  if (rc == -1) {
+    if (errno == EACCES) {
+      fprintf(stderr,
+              "Shared memory region '%s' not owned by this process\n",
+              shm_file_name);
+    } else {
+      perror("shm_unlink");
+    }
+    mc_exit(EXIT_FAILURE);
+  }
+}
+
+void
 mc_initialize_shared_memory_globals()
 {
   void *shm              = mc_allocate_shared_memory_region();
@@ -440,58 +418,23 @@ void
 mc_initialize_trace_sleep_list()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
-    mc_shared_cv_init(&(*trace_sleep_list)[i]);
+    mc_shared_sem_init(&(*trace_sleep_list)[i]);
 }
 
 void
 mc_reset_cv_locks()
 {
   for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
-    mc_shared_cv_destroy(&(*trace_sleep_list)[i]);
-    mc_shared_cv_init(&(*trace_sleep_list)[i]);
+    mc_shared_sem_destroy(&(*trace_sleep_list)[i]);
+    mc_shared_sem_init(&(*trace_sleep_list)[i]);
   }
-}
-
-void
-sigusr1_handler_child(int sig)
-{
-  _Exit(0);
-}
-
-void
-sigusr2_handler_child(int sig)
-{
-  kill(scheduler_pid, SIGUSR2);
-}
-
-void
-sigusr1_handler_scheduler(int sig)
-{
-  mc_terminate_trace();
-  puts("******* Something went wrong in the source program... "
-       "*******************");
-  _exit(1);
-}
-
-void
-sigusr2_handler_scheduler(int sig)
-{
-  // FIXME: To trigger a print-out of an
-  // assertion failure, the child
-  // intercepts
-  mc_terminate_trace();
-  mcprintf("*** ASSERTION FAILURE DETECTED AT TRACE %lu***\n",
-           traceId);
-  programState->printTransitionStack();
-  programState->printNextTransitions();
-  _exit(1);
 }
 
 MC_PROGRAM_TYPE
 mc_fork_new_trace()
 {
-  // Ensure that a child does not already exist to prevent fork
-  // bombing
+  // Ensure that a child does not already
+  // exist to prevent fork bombing
   MC_ASSERT(trace_pid == -1);
 
   pid_t childpid;
@@ -502,16 +445,10 @@ mc_fork_new_trace()
   trace_pid = childpid;
 
   if (FORK_IS_CHILD_PID(childpid)) {
-    signal(SIGUSR1, &sigusr1_handler_child);
-    signal(SIGUSR2, &sigusr2_handler_child);
+    install_sighandles_for_trace();
     return MC_TARGET_PROGRAM;
-  } else {
-    MC_FATAL_ON_FAIL(signal(SIGUSR1, &sigusr1_handler_scheduler) !=
-                     SIG_ERR);
-    MC_FATAL_ON_FAIL(signal(SIGUSR2, &sigusr2_handler_scheduler) !=
-                     SIG_ERR);
-    return MC_SCHEDULER;
   }
+  return MC_SCHEDULER;
 }
 
 MC_PROGRAM_TYPE
@@ -590,9 +527,9 @@ void
 mc_run_thread_to_next_visible_operation(tid_t tid)
 {
   MC_ASSERT(tid != TID_INVALID);
-  mc_shared_cv_ref cv = &(*trace_sleep_list)[tid];
-  mc_shared_cv_wake_thread(cv);
-  mc_shared_cv_wait_for_thread(cv);
+  mc_shared_sem_ref sem = &(*trace_sleep_list)[tid];
+  mc_shared_sem_wake_thread(sem);
+  mc_shared_sem_wait_for_thread(sem);
 }
 
 void
@@ -608,7 +545,7 @@ void
 mc_wait_for_trace()
 {
   MC_ASSERT(trace_pid != -1);
-  waitpid(trace_pid, nullptr, 0);
+  waitpid(trace_pid, NULL, 0);
 }
 
 void
@@ -625,8 +562,6 @@ mc_trace_panic()
 void
 mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
 {
-  
-  int count = 0;
   uint64_t debug_depth = programState->getTransitionStackSize();
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(leadingThread);
@@ -636,7 +571,19 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
   // TODO: Assert whether a trace process exists at this point
 
   do {
-    debug_depth++;
+    if (depth >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+      printResults();
+      mcprintf(
+        "*** Execution Limit Reached! ***\n\n"
+        "McMini ran a trace with %lu transitions which is\n"
+        "the most McMini can currently handle in any one trace. Try\n"
+        "running mcmini with the \"--max-depth-per-thread\" flag\n"
+        "to limit how far into a trace McMini can go\n",
+        depth);
+      mc_stop_model_checking(EXIT_FAILURE);
+    }
+
+    depth++;
     transitionId++;
 
     
@@ -657,6 +604,7 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
         mcprintf("*** DATA RACE DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
+        addResult("*** DATA RACE DETECTED ***\n");
       }
     }
 
@@ -670,18 +618,25 @@ mc_search_dpor_branch_with_initial_thread(const tid_t leadingThread)
     mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
+    addResult("*** DEADLOCK DETECTED ***\n");
 
-    if (programState->getConfiguration().stopAtFirstDeadlock) {
-      mcprintf("*** Model checking completed! ***\n");
+    if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
+      printResults();
       mcprintf("Number of transitions: %lu\n", transitionId);
       mc_exit(EXIT_SUCCESS);
     }
   }
 
-  if (programHasNoErrors && getenv(ENV_VERBOSE)) {
-    mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
-    programState->printTransitionStack();
-    programState->printNextTransitions();
+  static char *verbose = getenv(ENV_VERBOSE);
+  if (programHasNoErrors && verbose) {
+    if (verbose[0] == '1') {
+      mcprintf("Trace %3d:  ", traceId);
+      programState->printThreadSchedule();
+    } else {
+      mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
+      programState->printTransitionStack();
+      programState->printNextTransitions();
+    }
   }
 
   mc_terminate_trace();
@@ -791,16 +746,17 @@ mc_report_undefined_behavior(const char *msg)
 {
   mc_terminate_trace();
   fprintf(stderr,
-          "\t Undefined Behavior Detected! \t\n"
-          "\t ............................ \t\n"
-          "\t mcmini aborted the execution of trace %lu because\t\n"
-          "\t it detected undefined behavior\t\n"
-          "\t ............................ \t\n"
-          "\t %s \t\n",
+          "\n"
+          "Undefined Behavior Detected! \t\n"
+          "............................ \t\n"
+          "mcmini aborted the execution of trace %lu because\t\n"
+          "it detected undefined behavior\t\n"
+          "............................ \n"
+          "Reason: %s \t\n\n",
           traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();
-  exit(EXIT_FAILURE);
+  mc_exit(EXIT_FAILURE);
 }
 
 /* GDB Interface */
@@ -811,8 +767,7 @@ mc_exit_with_trace_if_necessary(trid_t trid)
   if (programState->isTargetTraceIdForStackContents(trid)) {
     programState->printTransitionStack();
     programState->printNextTransitions();
-    mc_terminate_trace();
-    mc_exit(EXIT_SUCCESS);
+    mc_stop_model_checking(EXIT_SUCCESS);
   }
 }
 
@@ -842,35 +797,30 @@ get_config_for_execution_environment()
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
   trid_t gdbTraceNumber   = MC_STATE_CONFIG_NO_GDB_TRACE;
-  trid_t stackContentDumpTraceNumber =
-    MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
+  trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
 
-  /* Parse the max thread depth from the command line (if available)
-   */
-  char *maxThreadDepthChar = getenv(ENV_MAX_THREAD_DEPTH);
-  char *gdbTraceNumberChar = getenv(ENV_DEBUG_AT_TRACE);
-  char *stackContentDumpTraceNumberChar = getenv(ENV_PRINT_AT_TRACE);
-  char *firstDeadlockChar = getenv(ENV_STOP_AT_FIRST_DEADLOCK);
-  char *expectForwardProgressOfThreadsChar =
-    getenv(ENV_CHECK_FORWARD_PROGRESS);
-
   // TODO: Sanitize arguments (check errors of strtoul)
-  if (maxThreadDepthChar != nullptr)
-    maxThreadDepth = strtoul(maxThreadDepthChar, nullptr, 10);
+  if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
+    maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
+  }
 
-  if (gdbTraceNumberChar != nullptr)
-    gdbTraceNumber = strtoul(gdbTraceNumberChar, nullptr, 10);
+  if (getenv(ENV_DEBUG_AT_TRACE) != NULL) {
+    gdbTraceNumber = strtoul(getenv(ENV_DEBUG_AT_TRACE), NULL, 10);
+  }
 
-  if (stackContentDumpTraceNumberChar != nullptr)
+  if (getenv(ENV_PRINT_AT_TRACE) != NULL) {
     stackContentDumpTraceNumber =
-      strtoul(stackContentDumpTraceNumberChar, nullptr, 10);
-
-  if (expectForwardProgressOfThreadsChar != nullptr)
+      strtoul(getenv(ENV_PRINT_AT_TRACE), nullptr, 10);
+  }
+  if (getenv(ENV_CHECK_FORWARD_PROGRESS) != NULL) {
     expectForwardProgressOfThreads = true;
+  }
 
-  if (firstDeadlockChar != nullptr) firstDeadlock = true;
+  if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
+    firstDeadlock = true;
+  }
 
   return {maxThreadDepth, gdbTraceNumber, stackContentDumpTraceNumber,
           firstDeadlock, expectForwardProgressOfThreads};
@@ -885,14 +835,18 @@ mc_is_scheduler()
 void
 mc_exit(int status)
 {
-  if (mc_is_scheduler()) {
-    __real_exit(status);
-  } else {
-    // The exit() function is intercepted.
-    // Calling exit() directly results in
-    // a deadlock since the thread calling it
-    // will block forever (McMini does not let a
-    // process exit() during model checking)
-    _Exit(status);
-  }
+  // The exit() function is intercepted. Calling exit() directly
+  // results in a deadlock since the thread calling it will block
+  // forever (McMini does not let a process exit() during model
+  // checking). Keep this in mind before switching this call to
+  // a different exit function
+  _Exit(status);
+}
+
+void
+mc_stop_model_checking(int status)
+{
+  mc_deallocate_shared_memory_region();
+  mc_terminate_trace();
+  mc_exit(status);
 }

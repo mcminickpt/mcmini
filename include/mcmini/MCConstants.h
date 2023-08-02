@@ -34,9 +34,9 @@ typedef uint64_t trid_t;
   (static_cast<bool>(expr) == MC_TARGET_PROGRAM)
 
 #ifdef MC_SHARED_LIBRARY
-#define MC_CTOR __attribute__((constructor))
+#define MC_CONSTRUCTOR __attribute__((constructor))
 #else
-#define MC_CTOR
+#define MC_CONSTRUCTOR
 #endif
 
 #define PTHREAD_SUCCESS (0)

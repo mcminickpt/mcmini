@@ -43,9 +43,17 @@ tid_t
 MCStateStackItem::popThreadToBacktrackOn()
 {
   MC_ASSERT(this->hasThreadsToBacktrackOn());
-  tid_t randomThreadInBacktrackSet = *this->backtrackSet.begin();
-  this->markBacktrackThreadSearched(randomThreadInBacktrackSet);
-  return randomThreadInBacktrackSet;
+
+  // Arbitrarily always pick the smallest thread
+  // to provide a determinism (e.g.)
+  tid_t backtrack_thread = *this->backtrackSet.begin();
+
+  for (const tid_t tid : this->backtrackSet) {
+    if (tid < backtrack_thread) { backtrack_thread = tid; }
+  }
+
+  this->markBacktrackThreadSearched(backtrack_thread);
+  return backtrack_thread;
 }
 
 void

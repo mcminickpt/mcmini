@@ -1,6 +1,6 @@
 set(MAIN_FUNCTION main.cpp)
 set(MC_C_FILES
-  mc_shared_cv.c
+  mc_shared_sem.c
   MCCommon.c
   transitions/wrappers/MCSharedLibraryWrappers.c
 )
@@ -9,19 +9,19 @@ set(MC_CPP_FILES
   MCObjectStore.cpp
   MCSharedTransition.cpp
   MCTransition.cpp
-  mcmini_private.cpp
   MCState.cpp
   MCTransitionFactory.cpp
   MCStateStackItem.cpp
   MCThreadData.cpp
   MCClockVector.cpp
+  mcmini_private.cpp
+  signals.cpp
 
-  misc/cond/MCCondVarWakeupPolicyImpl.cpp
-  misc/cond/MCCondVarArbitraryWakeupPolicy.cpp
-  misc/cond/MCCondVarOrderedWakeupPolicy.cpp
-  misc/cond/MCCondVarGLibcSignalPolicy.cpp
-
-  misc/cond/MCCondVarSingleGroupSignalPolicy.cpp
+  misc/cond/MCConditionVariableDefaultPolicy.cpp
+  misc/cond/MCConditionVariableArbitraryPolicy.cpp
+  misc/cond/MCConditionVariableOrderedPolicy.cpp
+  misc/cond/MCConditionVariableGLibcPolicy.cpp
+  misc/cond/MCConditionVariableSingleGroupPolicy.cpp
   misc/cond/MCWakeGroup.cpp
 
   objects/MCThread.cpp
@@ -44,6 +44,7 @@ set(MC_CPP_FILES
   transitions/cond/MCCondWait.cpp
   transitions/MCTransitionsShared.cpp
   transitions/misc/MCExitTransition.cpp
+  transitions/misc/MCAbortTransition.cpp
   transitions/misc/MCGlobalVariableRead.cpp
   transitions/misc/MCGlobalVariableWrite.cpp
   transitions/mutex/MCMutexInit.cpp

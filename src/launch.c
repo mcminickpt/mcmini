@@ -1,5 +1,6 @@
 #include "mcmini/MCEnv.h"
 #include <assert.h>
+#include <ctype.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,24 +19,37 @@ main(int argc, char *argv[])
 
   // TODO: Use argp.h instead (more options, better descriptions, etc)
   while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
-    if (strcmp(cur_arg[0], "--max-trace-depth") == 0 ||
+    if (strcmp(cur_arg[0], "--max-depth-per-thread") == 0 ||
         strcmp(cur_arg[0], "-m") == 0) {
-      setenv(ENV_MAX_THREAD_DEPTH, cur_arg[1], 1);
+      setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[1], 1);
       cur_arg += 2;
+    }
+    else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
+      setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[0] + 2, 1);
+      cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--debug-at-trace") == 0 ||
              strcmp(cur_arg[0], "-d") == 0) {
       setenv(ENV_DEBUG_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;
     }
+    else if (cur_arg[0][1] == 'd' && isdigit(cur_arg[0][2])) {
+      setenv(ENV_DEBUG_AT_TRACE, cur_arg[0] + 2, 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--verbose") == 0 ||
              strcmp(cur_arg[0], "-v") == 0) {
-      setenv(ENV_VERBOSE, "1", 1);
+      if (getenv(ENV_VERBOSE)) {
+        setenv(ENV_VERBOSE, "2", 1);
+      } else {
+        setenv(ENV_VERBOSE, "1", 1);
+      }
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--first-deadlock") == 0 ||
-             strcmp(cur_arg[0], "-first") == 0) {
-      setenv(ENV_STOP_AT_FIRST_DEADLOCK, "1", 1);
+             strcmp(cur_arg[0], "--first") == 0 ||
+             strcmp(cur_arg[0], "-f") == 0) {
+      setenv(ENV_FIRST_DEADLOCK, "1", 1);
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 ||
@@ -43,17 +57,21 @@ main(int argc, char *argv[])
       setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--print") == 0) {
+    else if (strcmp(cur_arg[0], "--long-test") == 0) {
+      setenv(ENV_LONG_TEST, "1", 1);
+      cur_arg++;
+    }
+    else if (strcmp(cur_arg[0], "--print-at-trace") == 0) {
       setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
       cur_arg += 2;
     }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
       fprintf(stderr,
-              "Usage: mcmini [--max-trace-depth|-m <num>] "
+              "Usage: mcmini [--max-depth-per-thread|-m <num>] "
               "[--debug-at-trace|-d <num>]\n"
-              "[--first-deadlock|-first] [--print]\n"
-              "[--verbose|-v] [--help|-h] target_executable\n");
+              "[--first-deadlock|-first] [--print-at-trace]\n"
+              "[--verbose|-v] [-v -v] [--help|-h] target_executable\n");
       exit(1);
     }
     else {
@@ -66,6 +84,17 @@ main(int argc, char *argv[])
   if (cur_arg[0] == NULL || stat(cur_arg[0], &stat_buf) == -1) {
     fprintf(stderr,
             "*** Missing target_executable or no such file.\n\n");
+    exit(1);
+  }
+
+  assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
+  char idx = strlen(cur_arg[0]) - strlen("mcmini") - 1 >= 0 ?
+             strlen(cur_arg[0]) - strlen("mcmini") - 1 :
+             strlen(cur_arg[0]);
+  // idx points to 'X' when cur_arg[0] == "...Xmcmini"
+  if (strcmp(cur_arg[0], "mcmini") == 0 || cur_arg[0][idx] == '/') {
+    fprintf(stderr,
+            "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
     exit(1);
   }
 

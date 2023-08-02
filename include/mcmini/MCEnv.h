@@ -1,11 +1,12 @@
 #ifndef MC_MCENV_H
 #define MC_MCENV_H
 
-#define ENV_MAX_THREAD_DEPTH       "env_max_thread_depth"
-#define ENV_DEBUG_AT_TRACE         "env_debug_at_trace"
-#define ENV_PRINT_AT_TRACE         "env_print_at_trace"
-#define ENV_STOP_AT_FIRST_DEADLOCK "env_stop_at_first_deadlock"
-#define ENV_CHECK_FORWARD_PROGRESS "env_check_forward_progress"
-#define ENV_VERBOSE                "VERBOSE"
+#define ENV_MAX_DEPTH_PER_THREAD   "MCMINI_MAX_DEPTH_PER_THREAD"
+#define ENV_DEBUG_AT_TRACE         "MCMINI_DEBUG_AT_TRACE"
+#define ENV_PRINT_AT_TRACE         "MCMINI_PRINT_AT_TRACE"
+#define ENV_FIRST_DEADLOCK         "MCMINI_FIRST_DEADLOCK"
+#define ENV_CHECK_FORWARD_PROGRESS "MCMINI_CHECK_FORWARD_PROGRESS"
+#define ENV_LONG_TEST              "MCMINI_LONG_TEST"
+#define ENV_VERBOSE                "MCMINI_VERBOSE"
 
 #endif // MC_MCENV_H

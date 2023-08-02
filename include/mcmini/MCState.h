@@ -545,8 +545,11 @@ public:
   bool isInDeadlock() const;
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
-  bool isTargetTraceIdForGDB(trid_t) const;
-  bool isTargetTraceIdForStackContents(trid_t) const;
+  inline bool
+  isTargetTraceIdForStackContents(trid_t trid) const
+  {
+    return this->configuration.stackContentDumpTraceNumber == trid;
+  }
 
   // Restarting
   // TODO: This is extremely unclear. I'm going to work on this...
@@ -583,6 +586,7 @@ public:
   void reflectStateAtLogIndex(uint32_t lIndex);
 
   // TODO: De-couple priting from the state stack + transitions
+  void printThreadSchedule() const;
   void printTransitionStack() const;
   void printLogStack() const;
   void printNextTransitions() const;
