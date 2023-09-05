@@ -24,6 +24,14 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <unordered_set>
 #include <vector>
 
+
+/* This is returned by getDeepestDPORBranchPoint() if this is the
+ * first (origina) branch.  mc_do_model_checking() uses this to detect
+ * when we have backtracked to before the beginning of theoriginal branch
+ * (i.e., when mc_do_model_checking() is finished.
+ */
+#define FIRST_BRANCH (-1)
+
 /**
  * @brief A reflection of the state of the program under which McMini
  * is model checking
@@ -417,12 +425,11 @@ public:
    * @brief Retrieves the index of the state closest to the top of the
    * state stack that contains at least one backtrack point
    *
-   * @return MCOptional<int>::some() containing the index into the
-   * state stack containing an MCStateStackItem with at least one
-   * thread to backtrack on, or MCOptional<int>::nil() if no such
+   * @return the index into the state stack containing an MCStateStackItem
+   * with at least one thread to backtrack on, or FIRST_BRANCH if no such
    * state exists
    */
-  MCOptional<int> getDeepestDPORBranchPoint();
+  int getDeepestDPORBranchPoint();
 
   /**
    * @brief Retrieves the state (represented by the item in the state
