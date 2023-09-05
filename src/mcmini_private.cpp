@@ -230,22 +230,20 @@ mc_prepare_to_model_check_new_program()
                                            initialTransition);
 }
 
-// nextBranchPoint is an out parameter.
-void
-mc_explore_branch(MCOptional<int> *nextBranchPointPtr)
+int
+mc_explore_branch(int curBranchPoint)
 {
   tid_t backtrackThread;
 
-  if (nextBranchPointPtr == nullptr /* initial branch */) {
+  if (curBranchPoint == FIRST_BRANCH) {
     mc_fork_new_trace();
     backtrackThread = TID_MAIN_THREAD;
   } else { // else next branch
-    const int bp = nextBranchPointPtr->unwrapped();
-    auto *sNext = &(programState->getStateItemAtIndex(bp));
+    auto *sNext = &(programState->getStateItemAtIndex(curBranchPoint));
     backtrackThread = sNext->popThreadToBacktrackOn();
 
     // Prepare the scheduler's model of the next trace
-    programState->reflectStateAtTransitionIndex(bp - 1);
+    programState->reflectStateAtTransitionIndex(curBranchPoint - 1);
 
     mc_fork_next_trace_at_current_state();
   }
@@ -255,9 +253,7 @@ mc_explore_branch(MCOptional<int> *nextBranchPointPtr)
   mc_run_next_trace_for_debugger();
 
   traceId++;
-  if (nextBranchPointPtr != nullptr) { // if this is not the initial branch
-    *nextBranchPointPtr = programState->getDeepestDPORBranchPoint();
-  }
+  return programState->getDeepestDPORBranchPoint();
 }
 
 void
@@ -265,13 +261,10 @@ mc_do_model_checking()
 {
   mc_prepare_to_model_check_new_program();
 
-  mc_explore_branch(nullptr); // nullptr means this is the initial branch
-
-  MCOptional<int> nextBranchPoint = programState->getDeepestDPORBranchPoint();
-
-  while (nextBranchPoint.hasValue()) {
-    MCOptional<int> *nextBranchPointPtr = &nextBranchPoint;
-    mc_explore_branch(nextBranchPointPtr);
+  int nextBranchPoint = mc_explore_branch(FIRST_BRANCH);
+  while (nextBranchPoint != FIRST_BRANCH) { // while not backtracked to origin
+    nextBranchPoint = mc_explore_branch(nextBranchPoint);
+    nextBranchPoint = programState->getDeepestDPORBranchPoint();
   }
 }
 
