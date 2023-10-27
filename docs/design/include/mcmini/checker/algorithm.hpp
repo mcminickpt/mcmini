@@ -50,7 +50,6 @@ class algorithm {
    *                                    +---+    +---+    +---+
    *                                   |????|   |????|   |????| ...
    *                                   +---+    +----+   +----+
-
    *
    *
    * The initial state consists of a

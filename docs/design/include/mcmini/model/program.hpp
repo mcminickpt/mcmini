@@ -3,27 +3,33 @@
 namespace mcmini::model {
 
 /**
- * Our view of the program SO FAR (s_f)
- * A program comprises of the following three components:
+ * @brief A capture of the states visited in a particular branch of the state
+ * space of a program undergoing verification; a trace describing how the
+ * current state has come about as a sequence of transitions; and the
+ * immediately visible "next steps" that can be taken.
  *
- * - the trace
- * - the program_state_snapshot
- * - the thread_state_snapshot
+ * A _mcmini::model::program_ is a container that comprises of the following
+ * three components:
+ *
+ * - a sequence T of transitions that have occurred called a _trace_.
+ * - a model of the state of the program undergoing verification after each
+ * point `t` in trace `T`.
+ * - a mapping between the individual execution units of the program ("threads")
+ * and the next step that thread will take once executed.
+ *
+ *
+ *
+ *
+ *
  */
 class program {
+  // state_space_branch??
   // Snapshot
   // trace
   // thred state snapshot
 
   // give me a new program N steps back ->
 };
-//
-
-//  s_0
-//  s_1
-// s_2
-//...
-//
 //
 
 };  // namespace mcmini::model
