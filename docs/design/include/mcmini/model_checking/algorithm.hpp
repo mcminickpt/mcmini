@@ -1,8 +1,9 @@
 #pragma once
 
 #include "mcmini/model/program.hpp"
+#include "mcmini/real_world/process.hpp"
 
-namespace mcmini::verification::modelchecking {
+namespace mcmini::model_checking {
 
 /**
  * An abstraction representing a function which can formally verify
@@ -24,39 +25,29 @@ class algorithm {
   };
 
   /**
-   * Reference
-   */
-
-  /**
-   * @brief Run this verification algorithm starting from _initial_state_
+   * @brief Run this model-checking algorithm starting from _initial_state_
    * which models _initial_process_.
    *
    * To verify the correctness of a program using explicit-state model checking,
    * any verification algorithm must effectively investigate all possible states
-   * of that program. Each particular state of the program is modeled with
-   * Since how a program will ultimately evolve is unknown past
-   * the next immediate action that can be taken by any thread i
-   * investigating
+   * of that program. Each particular state of the program is modeled in McMini
+   * through a `mcmini::model::program`, while each process that is represented
+   * by that state is modeled through a `mcmini::verification::process`.
    *
-   *  +-------+                             +----------------------+
-   * | model |     kept synchronized       |     corresponding    |
-   * |  of   |  <------------------------> |      process         |
-   * |  the  |                             +----------------------+
-   * | world |                            |        |        |
-   * +-------+                           +---+    +---+    +---+
-   *                                    |t_0j|   |t_1j|   |t_2j| ...
-   *                                    +---+    +----+   +----+
-   *                                      /        /        /
-   *                                    +---+    +---+    +---+
-   *                                   |????|   |????|   |????| ...
-   *                                   +---+    +----+   +----+
+   * ...
    *
    *
-   * The initial state consists of a
    *
-   *
-   * @param initial_state a model of
-   * @param corresponding_process
+   * @param initial_state the state from which the algorithm should begin its
+   * search. This is often referred to as `s_0` or the "initial state" in the
+   * model-checking literature.
+   * @param corresponding_process a process whose execution is suspeded and
+   * whose memory is modeled by `initial_state`. The algorithm will repeatedly
+   * create new processes from this one as part of its exploration.
+   * @invariant: A _critical_ invariant is that _corresponding_process_ be
+   * modeled by _initial_state_. McMini model-checking algorithms rely _solely_
+   * on the model to make determinations about how to explore the state space of
+   * process _corresponding_process_.
    * @param callbacks a set of functions which are invoked as verification takes
    * place. The callbacks will be invoked when the algorithm encounters the
    * following violations:
@@ -70,7 +61,7 @@ class algorithm {
    */
   virtual void verify_from(
       const mcmini::model::program &initial_state,
-      const mcmini::verification::process &corresponding_process,
+      const mcmini::real_world::process &corresponding_process,
       const callbacks &callbacks) = 0;
 };
 
@@ -82,4 +73,4 @@ struct dpor_algorithm : public depth_first_algorithm {};
 
 struct brute_force_algorithm : public depth_first_algorithm {};
 
-};  // namespace mcmini::verification::modelchecking
+};  // namespace mcmini::model_checking

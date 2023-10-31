@@ -14,8 +14,8 @@ namespace mcmini::model {
  * transitions were executed one after another in a program undergoing
  * verification. However, a transition sequence is a sequence and _only_ a
  * sequence of transitions; it is not guaranteed to represent a possible
- * execution path of a (or any) program; that is, a transition sequence can be
- * constructed with transitions which are disabled.
+ * execution path of a (or any) program; that is, there are no constraints on
+ * the enabled-ness of transitions in the sequence.
  */
 class transition_sequence final {
  private:

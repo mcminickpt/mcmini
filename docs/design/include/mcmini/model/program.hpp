@@ -15,7 +15,7 @@ namespace mcmini::model {
  * - a model of the state of the program undergoing verification after each
  * point `t` in trace `T`.
  * - a mapping between the individual execution units of the program ("threads")
- * and the next step that thread will take once executed.
+ * and the next thread routin ("action") that thread will run once executed.
  *
  *
  *

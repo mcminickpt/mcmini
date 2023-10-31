@@ -8,6 +8,9 @@
 
 namespace mcmini::model {
 
+/**
+ *
+ */
 class state {
   std::unordered_map<objid_t, visible_object_state> visible_objects;
 

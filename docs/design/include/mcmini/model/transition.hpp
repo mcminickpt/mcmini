@@ -4,10 +4,9 @@ namespace mcmini::model {
 
 /**
  *
- *
  */
 class transition {
-public:
+ public:
 };
 
-} // namespace mcmini::model
+}  // namespace mcmini::model
