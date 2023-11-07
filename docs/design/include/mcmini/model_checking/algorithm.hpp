@@ -30,11 +30,12 @@ class algorithm {
    *
    * To verify the correctness of a program using explicit-state model checking,
    * any verification algorithm must effectively investigate all possible states
-   * of that program. Each particular state of the program is modeled in McMini
-   * through a `mcmini::model::program`, while each process that is represented
-   * by that state is modeled through a `mcmini::verification::process`.
+   * of that program. Each particular state of the program is represented in
+   * McMini by an instance `mcmini::model::program`.
    *
-   * ...
+   * The `mcmini::model::program` conceptually represents the "history" of
+   * changes that some process underwent. The process whose states are described
+   * by any program is represented `mcmini::real_world::process`. The proce
    *
    *
    *
@@ -64,13 +65,5 @@ class algorithm {
       const mcmini::real_world::process &corresponding_process,
       const callbacks &callbacks) = 0;
 };
-
-struct depth_first_algorithm : public algorithm {
- public:
-};
-
-struct dpor_algorithm : public depth_first_algorithm {};
-
-struct brute_force_algorithm : public depth_first_algorithm {};
 
 };  // namespace mcmini::model_checking

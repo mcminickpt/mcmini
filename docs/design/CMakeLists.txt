@@ -18,9 +18,11 @@ set(MCMINI_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 set(MCMINI_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake")
 
 # Project source files
-
+set(MCMINI_C_SRC )
+set(MCMINI_CPP_SRC
+  src/mcmini/mcmini.cpp
+)
 set(LIBMCMINI_C_SRC )
-
 set(LIBMCMINI_CPP_SRC
   src/lib/entry.cpp
 )
@@ -51,6 +53,5 @@ target_link_libraries(libmcmini
   PUBLIC
     "${MCMINI_EXTRA_LINK_FLAGS}")
 
-# Executable that loads the shared library
-add_executable(mcmini src/launch/mcmini-executable.c)
+add_executable(mcmini "${MCMINI_CPP_SRC}""${MCMINI_C_SRC}")
 target_include_directories(mcmini PUBLIC "${MCMINI_INCLUDE_DIR}")

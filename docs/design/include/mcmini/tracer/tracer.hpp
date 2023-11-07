@@ -1,5 +1,8 @@
 #pragma once
 
+#include "mcmini/model/program.hpp"
+#include "mcmini/real_world/process.hpp"
+
 namespace mcmini {
 
 /**
@@ -67,6 +70,27 @@ namespace mcmini {
  * The tracer is responsible for this dynamic discovery and the aforementioned
  * synchronization.
  */
-class tracer {};
+class tracer {
+ private:
+  model::program...;
+
+ public:
+  /**
+   * @brief Constructs a new _tracer_ which traces processes
+   *
+   * @param initial_state the
+   * @param corresponding_process
+   */
+  tracer(model::program &&initial_state,
+         real_world::process &&corresponding_process);
+  ~tracer() = default;
+
+  void go_to_nth_step();
+};
+//
+// a
+// b std::move(...) -> process(std::move(old_proc));
+// c
+// d
 
 };  // namespace mcmini

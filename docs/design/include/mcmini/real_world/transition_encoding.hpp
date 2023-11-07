@@ -11,7 +11,7 @@ namespace mcmini::real_world {
 extern "C" {
 
 /**
- *
+ * @brief A serialization of a _transition_ from
  *
  */
 struct transition_encoding {

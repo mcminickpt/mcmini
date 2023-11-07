@@ -1,5 +1,25 @@
 # McMini
-A bite-size C/C++ model checker using Dynamic Partial Order Reduction
+
+[![forthebadge](http://forthebadge.com/images/badges/made-with-c.svg)](http://forthebadge.com)
+
+## Table of Contents
+
+- [Usage](#usage)
+- [Installation](#installation)
+    - [Model Checking](#composer)
+    - [Composer](#composer)
+- [License](#license)
+- [Links](#links)
+
+## Usage
+
+
+
+## Installation
+
+## License
+
+McMini is free software. You may distribute and use it as you 
 
 ## High-Level Overview of Functionality
 McMini is an _extensible_ model checker which inspects

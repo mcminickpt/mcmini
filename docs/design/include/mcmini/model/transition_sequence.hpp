@@ -4,6 +4,8 @@
 
 #include <vector>
 
+#include "mcmini/model/transition.hpp"
+
 namespace mcmini::model {
 
 /**
@@ -27,7 +29,7 @@ class transition_sequence final {
   /**
    *
    */
-  trace subsequence(uint32_t subtrace_index) const;
+  transition_sequence subsequence(uint32_t subtrace_index) const;
 
   const transition* at(size_t i);
 
