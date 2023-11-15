@@ -28,6 +28,7 @@ class transition_sequence final {
 
   /**
    *
+   * 
    */
   transition_sequence subsequence(uint32_t subtrace_index) const;
 

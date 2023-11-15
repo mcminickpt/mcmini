@@ -1,19 +1,18 @@
-#include "mcmini/export/rwwlock.h"
-#include "mcmini/mcmini.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "mcmini/export/rwwlock.h"
+#include "mcmini/mcmini.h"
+
 #define NUM_READERS 2
 #define NUM_WRITERS 1
-#define NUM_LOOP    1
+#define NUM_LOOP 1
 
 pthread_rwwlock_t rw;
 
-void *
-reader(void *notused)
-{
+void *reader(void *notused) {
   for (int i = 0; i < NUM_LOOP; i++) {
     // acquire resource
     mc_pthread_rwwlock_rdlock(&rw);
@@ -27,9 +26,7 @@ reader(void *notused)
   return NULL;
 }
 
-void *
-writer(void *notused)
-{
+void *writer(void *notused) {
   for (int i = 0; i < NUM_LOOP; i++) {
     // acquire resource
     mc_pthread_rwwlock_wr1lock(&rw);
@@ -43,9 +40,7 @@ writer(void *notused)
   return NULL;
 }
 
-int
-main()
-{
+int main() {
   mcmini_main();
   pthread_t read_thread[NUM_READERS];
   pthread_t write_thread[NUM_WRITERS];

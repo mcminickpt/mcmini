@@ -1,3 +1,9 @@
+/**
+ * SYNOPSIS: A small program which performs an
+ * `exec()` call into the program specified but first
+ * ensuring that libmcmini.so is preloadaed
+*/
+
 #include "mcmini/MCEnv.h"
 #include <assert.h>
 #include <ctype.h>

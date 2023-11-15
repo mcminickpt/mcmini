@@ -18,7 +18,7 @@ namespace mcmini::model {
  *
  * A visible object is comprised of a collection of states describing how that
  * object appeared during the execution of a `mcmini::model::program`. All
- * objects
+ * objects.
  */
 class visible_object {
  private:
@@ -38,8 +38,5 @@ class visible_object {
   const visible_object_state *state_at(size_t i) const {
     return this->history.at(i).get();
   }
-
-  // auto begin() const { return this->history.begin(); }
-  // auto end() const { return this->history.end(); }
 };
 }  // namespace mcmini::model

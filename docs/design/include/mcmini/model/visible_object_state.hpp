@@ -7,7 +7,7 @@
 namespace mcmini::model {
 
 /**
-
+ * A capture of the state of a shared object as it
  */
 class visible_object_state {
  public:

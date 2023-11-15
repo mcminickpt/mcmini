@@ -14,7 +14,6 @@ namespace mcmini::model {
  * from the perspective of the verifier.
  *
  * A `state` is an element
- *
  */
 class state {
   /**
@@ -23,7 +22,10 @@ class state {
   std::unordered_map<visible_object::objid_t, const visible_object_state *>
       visible_objects;
 
-  const state_sequence *const seq;
+  /// @brief The sequence within which this state is a part
+  ///
+  /// A state is a member of state sequence
+  const state_sequence *const owning_sequence;
 
  public:
 };
@@ -31,10 +33,11 @@ class state {
 /**
  * @brief A sequence of a state.
  *
- * A _state sequence_ describes how a
+ * A _state sequence_ describes how a `mcnini::model:;program`'s state has
+ * changed over time as its execution units have executed and taken action.
  *
- * A _state_ is an unordered container of visible objects. Each visible object
- * is in turn composed of a sequence of
+ * A _state_ is an unordered container of visible objects.
+ * Each visible object is in turn composed of a sequence of
  *
  *
  * * The sequence "owns" the visible objects
