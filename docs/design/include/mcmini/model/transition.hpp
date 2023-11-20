@@ -1,14 +1,10 @@
 #pragma once
 
+#include <cstdint>
+
+#include "mcmini/forwards.hpp"
+
 namespace mcmini::model {
-
-/**
- * @brief A description of how to transform a state.
- */
-class read_only_transition {
- public:
-};
-
 /**
  * @brief A description of how to transform a state.
  *
@@ -36,8 +32,11 @@ class read_only_transition {
  *
  * Transitions ensure that we can
  */
-class transition : public read_only_transition {
+class transition {
  public:
+  using category = uint32_t;
+
+  category get_category();
 };
 
 }  // namespace mcmini::model

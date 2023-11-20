@@ -45,10 +45,13 @@ class visible_object {
 
   /* State Management */
   size_t get_num_states() const { return history.size(); }
-
   template <typename T>
   const T *state_at(size_t i) const {
     return static_cast<T *>(this->history.at(i).get());
+  }
+  template <typename T>
+  const T *get_curent_state() const {
+    return static_cast<T *>(this->history.back().get());
   }
   void push_state(std::unique_ptr<const visible_object_state> s) {
     history.push_back(std::move(s));

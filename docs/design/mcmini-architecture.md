@@ -69,3 +69,7 @@ In essence, the Coordinator/Tracer acts as a dynamic bridge, adjusting the Model
 - **Continuous Operation**: The Coordinator, through its tracing functionality, continuously operates to keep the model synchronized with the process. It is responsible for dynamically discovering the transitions and ensuring the model remains an accurate representation of the process as it progresses through its execution path.
 
 The role of the Coordinator/Tracer is thus not merely to monitor but to actively engage with both the Model and the process, facilitating a verification environment that is both reflective of the real world and capable of anticipating its future states.
+
+### Naming Conventions 
+
+We follow the naming conventions of the CoreFoundation regarding memory management where possible [see here](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/uid/20001148-CJBEJBHH)
