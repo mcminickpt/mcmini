@@ -24,25 +24,31 @@ namespace mcmini::model {
  * * Three operations we just talked about
  * * The
  */
-class state_sequence {
+class state_sequence : public state {
  private:
   std::unordered_map<visible_object::objid_t, visible_object>
       visible_objects_to_ids;
-
-  std::vector<state> states_in_sequence;
+  std::vector<state_view> states_in_sequence;
 
  public:
-  // Add a new _distinct_ visible object
-  visible_object::objid_t track_new_visible_object(
-      std::unique_ptr<visible_object>);
+  /* `state` overrrides */
+  virtual bool contains_object_with_id(
+      visible_object::objid_t id) const override;
+  virtual visible_object::objid_t track_new_visible_object(
+      std::unique_ptr<visible_object_state>) override;
+  virtual void record_new_state_for_visible_object(
+      visible_object::objid_t, std::unique_ptr<visible_object_state>) override;
+  virtual const visible_object_state *get_state_of_object(
+      visible_object::objid_t) const override;
+  virtual std::unique_ptr<state> clone() const override;
 
-  // Have we assigned a visible object to this id
-  bool contains_object_with_id(visible_object::objid_t);
-
-  // Add a new box to a slot
-  void record_new_state_for_visible_object(
-      visible_object::objid_t, std::unique_ptr<visible_object_state>);
-
+ public:
+  const state_view &state_at(size_t i) const {
+    return this->states_in_sequence.at(i);
+  }
+  /**
+   *
+   */
   state_sequence consume_into_subsequence(size_t index) &&;
 };
 

@@ -41,7 +41,7 @@ class state {
    * All visible objects in the underlying state are copied into the new state
    * and must be independently modifiable with respect to the first state.
    */
-  virtual std::unique_ptr<state> clone() = 0;
+  virtual std::unique_ptr<state> clone() const = 0;
 };
 
 class state_view : public state {
@@ -64,7 +64,7 @@ class state_view : public state {
       visible_object::objid_t, std::unique_ptr<visible_object_state>) override;
   virtual const visible_object_state *get_state_of_object(
       visible_object::objid_t) const override;
-  virtual std::unique_ptr<state> clone() override;
+  virtual std::unique_ptr<state> clone() const override;
 };
 
 // class detached_state : public state {
