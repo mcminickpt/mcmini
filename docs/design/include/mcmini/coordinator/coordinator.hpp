@@ -15,7 +15,7 @@ namespace mcmini {
  * a running process. McMini must work to continuously synchronize the _model_
  * it maintains of a program undergoing verification with the progression of the
  * _actual process_ whose state (i.e. memory) _is represented by_ that model.
- * Below is a schema of what the tracer performs.
+ * Below is a schema of the synchronization the tracecoordinator performs.
  *
  *  +-------+                             +----------------------+
  * | model |     kept synchronized       |     corresponding    |
@@ -67,30 +67,24 @@ namespace mcmini {
  *                                    +---+    +---+    +---+
  *                                   |????|   |????|   |????| ...
  *                                   +---+    +----+   +----+
- * The tracer is responsible for this dynamic discovery and the aforementioned
- * synchronization.
+ * The coordinator is responsible for this dynamic discovery and the
+ * aforementioned synchronization.
  */
-class tracer {
+class coordinator {
  private:
-  model::program...;
-
  public:
   /**
-   * @brief Constructs a new _tracer_ which traces processes
+   * @brief Constructs a new coordinator which traces processes
    *
-   * @param initial_state the
-   * @param corresponding_process
+   * @param initial_state the initial model from which this coordinator should
+   * keep synchronization.
+   * @param corresponding_process the process
    */
-  tracer(model::program &&initial_state,
-         real_world::process &&corresponding_process);
-  ~tracer() = default;
+  coordinator(model::program &&initial_state,
+              real_world::process &&corresponding_process);
+  ~coordinator() = default;
 
-  void go_to_nth_step();
+  void go_to_nth_step(uint32_t n);
 };
-//
-// a
-// b std::move(...) -> process(std::move(old_proc));
-// c
-// d
 
 };  // namespace mcmini

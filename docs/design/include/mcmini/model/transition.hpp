@@ -4,7 +4,6 @@ namespace mcmini::model {
 
 /**
  * @brief A description of how to transform a state.
- *
  */
 class read_only_transition {
  public:
@@ -13,7 +12,8 @@ class read_only_transition {
 /**
  * @brief A description of how to transform a state.
  *
- * We give the formal definition of a transition (Rodriguez et al. 2018 UDPOR)
+ * We give the formal definition of a transition from Rodriguez et al. 2018
+ * UDPOR
  *
  * """
  * A system is a tuple M <`Σ, T, S_0> formed by a set Σ of global states, a set
@@ -31,9 +31,10 @@ class read_only_transition {
  * - a transition in McMini _may be defined_ in a state `s` but may be
  * _disabled_ in that state; that is, McMini distinguishes between a transition
  * which _cannot exist_ in a given state (e.g. a pthread_mutex_lock() on some
- * mutex which isn't present).
+ * mutex which isn't present) and that which _should not exist_ formally but
+ * needs to exist to describe a transition. Such a transition is said to be
  *
- * This ensures that we can track what each thread.
+ * Transitions ensure that we can
  */
 class transition : public read_only_transition {
  public:

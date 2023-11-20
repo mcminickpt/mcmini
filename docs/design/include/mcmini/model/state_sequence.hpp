@@ -13,22 +13,27 @@ namespace mcmini::model {
  * @brief A particular snapshot in time of a program undergoing verification
  * from the perspective of the verifier.
  *
- * A `state` is an element
+ * A `state` is simply a collection of visible objects. Each
  */
 class state {
-  /**
-   * @brief
-   */
-  std::unordered_map<visible_object::objid_t, const visible_object_state *>
-      visible_objects;
+  //   /**
+  //    * @brief
+  //    */
+  //   std::unordered_map<visible_object::objid_t, const visible_object_state *>
+  //       visible_objects;
 
-  /// @brief The sequence within which this state is a part
-  ///
-  /// A state is a member of state sequence
-  const state_sequence *const owning_sequence;
+  //   //   /// @brief The sequence within which this state is a part
+  //   //   ///
+  //   //   /// A state is a member of state sequence
+  //   //   const state_sequence *const owning_sequence;
 
  public:
+  const visible_object &get_object(visible_object::objid_t);
 };
+
+class state_view : public state {};
+
+class A {};
 
 /**
  * @brief A sequence of a state.
