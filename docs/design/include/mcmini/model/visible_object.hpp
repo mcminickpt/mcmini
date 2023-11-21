@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
 namespace mcmini::model {
@@ -43,31 +44,49 @@ class visible_object {
     push_state(std::move(initial_state));
   }
 
-  /* State Management */
+  visible_object(const visible_object &);
+  visible_object(visible_object &&) = default;
+  visible_object &operator=(const visible_object &);
+  visible_object &operator=(visible_object &&) = default;
+
+ public:
   size_t get_num_states() const { return history.size(); }
   template <typename T>
   const T *state_at(size_t i) const {
     return static_cast<T *>(this->history.at(i).get());
   }
   template <typename T>
-  const T *get_curent_state() const {
+  const T *get_current_state() const {
     return static_cast<T *>(this->history.back().get());
+  }
+  const visible_object_state *get_current_state() const {
+    return this->history.back().get();
   }
   void push_state(std::unique_ptr<const visible_object_state> s) {
     history.push_back(std::move(s));
   }
-
-  /* Slices */
-  visible_object slice(size_t i) const {
+  /**
+   * @brief Produces a visible object with the first `num_states` states of this
+   * visible object.
+   *
+   * @param num_states the number of states that should be copied into the
+   * resulting visible object.
+   * @returns a visible object with identical states as this visible object for
+   * the first `num_states` states.
+   */
+  visible_object slice(size_t num_states) const {
     auto sliced_states =
         std::vector<std::unique_ptr<const visible_object_state>>();
-    for (int j = 0; j < i; j++) {
-      std::unique_ptr<const visible_object_state> const_copy(
-          static_cast<const visible_object_state *>(
-              history.at(i)->clone().release()));
-      sliced_states.push_back(std::move(const_copy));
+    sliced_states.reserve(num_states);
+    for (int j = 0; j < num_states; j++) {
+      // C++11 doensn't have a constructor for std::unique_ptr<const T>
+      // from a std::unique_ptr<T> (this was introduced in C++14). This performs
+      // the equivalent operation.
+      sliced_states.push_back(
+          mcmini::extensions::to_const_unique_ptr(history.at(j)->clone()));
     }
     return visible_object(std::move(sliced_states));
   }
+  visible_object clone() { return slice(get_num_states()); }
 };
 }  // namespace mcmini::model

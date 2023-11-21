@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mcmini/model/state_sequence.hpp"
+#include "mcmini/model/state/state_sequence.hpp"
 
 namespace mcmini::model {
 
