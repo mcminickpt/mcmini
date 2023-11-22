@@ -5,7 +5,6 @@
 
 #include "mcmini/forwards.hpp"
 #include "mcmini/model/state.hpp"
-#include "mcmini/model/state/state_view.hpp"
 
 namespace mcmini::model {
 
@@ -25,23 +24,37 @@ namespace mcmini::model {
  * * Three operations we just talked about
  * * The
  */
-class state_sequence : public state {
+class state_sequence : public mutable_state {
  private:
-  // INVARIANT: As new states are added to the visible objects in the
-  // mapping, new state views are also added with the appropriate object states
-  // replaced.
+  /**
+   * @brief An element of a `mcmini::model::state_sequence`
+   *
+   * The state_view and state_sequence are tightly
+   * intertwined. We allow them to work in tandem with one
+   * another as an implementation detail
+   */
+  class element : public state {
+   private:
+    /// @brief A collection of references to states in the sequence
+    /// _owning_sequence_ to which this element belongs.
+    ///
+    /// Each state in the view
+    std::vector<const visible_object_state *> visible_object_states;
 
-  // INVARIANT: Objects must only be added to the collection and are never
-  // removed.
-  //
-  // TODO: In the future, if there is a collection which is "append-only",
-  // that would be preferred as this would prevent at compile-time attempting to
-  // add elements into the vector.
-  std::vector<visible_object> visible_objects;
-  std::vector<state_view> states_in_sequence;
-  friend state_view; /* The state_view and state_sequence are tightly
-                        intertwined. We allow them to work in tandem with one
-                        another as an implementation detail */
+    /// @brief The sequence within which this state is a part
+    ///
+    /// A state is a member of state sequence
+    state_sequence &owning_sequence;
+
+    element(state_sequence &owner);
+    friend state_sequence;
+
+   public:
+    virtual bool contains_object_with_id(
+        visible_object::objid_t id) const override;
+    virtual const visible_object_state &get_state_of_object(
+        visible_object::objid_t) const override;
+  };
 
  public:
   state_sequence &operator=(const state_sequence &&) = delete;
@@ -58,10 +71,10 @@ class state_sequence : public state {
       visible_object::objid_t, std::unique_ptr<visible_object_state>) override;
   virtual const visible_object_state &get_state_of_object(
       visible_object::objid_t) const override;
-  virtual std::unique_ptr<state> clone() const override;
+  virtual std::unique_ptr<mutable_state> clone() const override;
 
  public:
-  const state_view &state_at(size_t i) const {
+  const state &state_at(size_t i) const {
     return this->states_in_sequence.at(i);
   }
 
@@ -79,6 +92,20 @@ class state_sequence : public state {
    * @return the resulting subsequence. The subsequence is identical
    */
   state_sequence consume_into_subsequence(size_t index) &&;
+
+ private:
+  // INVARIANT: As new states are added to the visible objects in the
+  // mapping, new state views are also added with the appropriate object states
+  // replaced.
+
+  // INVARIANT: Objects must only be added to the collection and are never
+  // removed.
+  //
+  // TODO: In the future, if there is a collection which is "append-only",
+  // that would be preferred as this would prevent at compile-time attempting to
+  // add elements into the vector.
+  std::vector<visible_object> visible_objects;
+  std::vector<element> states_in_sequence;
 };
 
 }  // namespace mcmini::model

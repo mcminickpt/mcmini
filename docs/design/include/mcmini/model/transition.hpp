@@ -38,25 +38,6 @@ class transition {
  public:
   using category = uint32_t;
   category get_category();
-
-  enum class status { enabled, disabled };
-
-  /**
-   * @brief Apply the given transition to the state _s_.
-   *
-   *
-   */
-  mcmini::optional<std::unique_ptr<state>> apply_to(const state &s) {
-    auto s_copy = s.clone();
-    return modify(*s_copy) == status::enabled
-               ? mcmini::optional<std::unique_ptr<state>>(std::move(s_copy))
-               : mcmini::optional<std::unique_ptr<state>>();
-  }
-
-  /**
-   *
-   */
-  virtual status modify(state &s) = 0;
 };
 
 }  // namespace mcmini::model

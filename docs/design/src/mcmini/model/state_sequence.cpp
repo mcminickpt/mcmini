@@ -29,9 +29,23 @@ const visible_object_state &state_sequence::get_state_of_object(
   return *this->visible_objects.at(id).get_current_state();
 }
 
-std::unique_ptr<state> state_sequence::clone() const {
-  // TODO: Perform a deep copy of the sequence here
-  return nullptr;
-}
+std::unique_ptr<mutable_state> state_sequence::clone() const {}
 
 state_sequence state_sequence::consume_into_subsequence(size_t index) && {}
+
+state_sequence::element::element(state_sequence &owner)
+    : owning_sequence(owner) {
+  for (const visible_object &obj : owner.visible_objects) {
+    this->visible_object_states.push_back(obj.get_current_state());
+  }
+}
+
+bool state_sequence::element::contains_object_with_id(
+    visible_object::objid_t id) const {
+  return id < this->visible_object_states.size();
+}
+
+const visible_object_state &state_sequence::element::get_state_of_object(
+    visible_object::objid_t id) const {
+  return *this->visible_object_states.at(id);
+}

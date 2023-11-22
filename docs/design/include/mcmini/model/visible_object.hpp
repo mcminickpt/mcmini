@@ -45,8 +45,8 @@ class visible_object {
   }
 
   visible_object(const visible_object &);
-  visible_object(visible_object &&) = default;
   visible_object &operator=(const visible_object &);
+  visible_object(visible_object &&) = default;
   visible_object &operator=(visible_object &&) = default;
 
  public:
@@ -87,6 +87,6 @@ class visible_object {
     }
     return visible_object(std::move(sliced_states));
   }
-  visible_object clone() { return slice(get_num_states()); }
+  visible_object clone() const { return slice(get_num_states()); }
 };
 }  // namespace mcmini::model
