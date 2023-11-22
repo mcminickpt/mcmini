@@ -28,6 +28,11 @@ class state {
    */
   virtual const visible_object_state &get_state_of_object(
       visible_object::objid_t id) const = 0;
+
+  /**
+   * @brief Creates a mutable copy of the given state.
+   */
+  virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
 };
 
 class mutable_state : public state {
@@ -54,7 +59,7 @@ class mutable_state : public state {
    * All visible objects in the underlying state are copied into the new state
    * and are independently modifiable with respect to the first state.
    */
-  virtual std::unique_ptr<mutable_state> clone() const = 0;
+  std::unique_ptr<mutable_state> clone() const { return this->mutable_clone(); }
 };
 
 }  // namespace mcmini::model

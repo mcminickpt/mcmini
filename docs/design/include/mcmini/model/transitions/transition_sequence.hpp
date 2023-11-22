@@ -21,16 +21,12 @@ namespace mcmini::model {
  */
 class transition_sequence final {
  private:
-  std::vector<const transition*> transitions_in_trace;
+  std::vector<std::unique_ptr<const transition>> contents;
 
  public:
   transition_sequence() = default;
 
-  /**
-   *
-   * 
-   */
-  transition_sequence subsequence(uint32_t subtrace_index) const;
+  transition_sequence consume_into_subsequence(uint32_t index) &&;
 
   const transition* at(size_t i);
 

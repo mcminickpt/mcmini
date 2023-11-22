@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mcmini/model/state/state_sequence.hpp"
+#include "mcmini/model/transitions/transition_sequence.hpp"
 
 namespace mcmini::model {
 
@@ -33,7 +34,7 @@ namespace mcmini::model {
  * in `S` describes how the program went from state `s_i` to `s_(i+1)`.
  * - the mapping of execution units to threads represents `next(s_N, p)`.
  *
- * Conceptually, the programs _current state_ is that state reached from
+ * Conceptually, the program's _current state_ is that state reached from
  * executing the sequence `S` of transitions in the order they appear from the
  * initial state `s_0` of the program. This is sometimes represented as
  * `state(S)` where `S` is some transition sequence and `s_0` is assumed to be
@@ -41,10 +42,14 @@ namespace mcmini::model {
  */
 class program {
  private:
-  state_sequence program_evolution;
+  transition_sequence trace;
+  state_sequence states;
+  // thread_mapping next_steps;
 
  public:
   // give me a new program N steps back ->
+
+  // program(std::unique_ptr<state> initi)
 };
 //
 
