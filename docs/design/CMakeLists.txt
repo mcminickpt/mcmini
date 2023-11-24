@@ -21,8 +21,9 @@ set(MCMINI_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake")
 set(MCMINI_C_SRC )
 set(MCMINI_CPP_SRC
   src/mcmini/mcmini.cpp
-  src/mcmini/model/state.cpp
+  src/mcmini/visible_object.cpp
   src/mcmini/model/state_sequence.cpp
+  src/mcmini/model/detached_state.cpp
 )
 set(LIBMCMINI_C_SRC )
 set(LIBMCMINI_CPP_SRC

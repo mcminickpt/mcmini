@@ -4,6 +4,7 @@
 #include <unordered_map>
 
 #include "mcmini/forwards.hpp"
+#include "mcmini/misc/append-only.hpp"
 #include "mcmini/model/state.hpp"
 
 namespace mcmini::model {
@@ -102,12 +103,8 @@ class state_sequence : public mutable_state {
 
   // INVARIANT: Objects must only be added to the collection and are never
   // removed.
-  //
-  // TODO: In the future, if there is a collection which is "append-only",
-  // that would be preferred as this would prevent at compile-time attempting to
-  // add elements into the vector.
-  std::vector<visible_object> visible_objects;
-  std::vector<element> states_in_sequence;
+  mcmini::append_only<visible_object> visible_objects;
+  mcmini::append_only<element> states_in_sequence;
 };
 
 }  // namespace mcmini::model

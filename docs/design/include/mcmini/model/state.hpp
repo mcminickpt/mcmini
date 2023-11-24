@@ -15,23 +15,9 @@ namespace mcmini::model {
  */
 class state {
  public:
-  /**
-   * @brief Determines whether this state contains the object with id _id_.
-   *
-   * @returns true if there is an object associated with id _id_ in this state,
-   * and false otherwise.
-   */
   virtual bool contains_object_with_id(visible_object::objid_t id) const = 0;
-
-  /**
-   * @brief Retrieve the object with id _id_ in this state.
-   */
   virtual const visible_object_state &get_state_of_object(
       visible_object::objid_t id) const = 0;
-
-  /**
-   * @brief Creates a mutable copy of the given state.
-   */
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
 };
 
