@@ -1,6 +1,8 @@
 #include "mcmini/model/state/state_sequence.hpp"
 
 #include "mcmini/misc/asserts.hpp"
+#include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/model/state/detached_state.hpp"
 
 using namespace mcmini::model;
 
@@ -35,7 +37,8 @@ const visible_object_state &state_sequence::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
-  return nullptr;
+  return mcmini::extensions::make_unique<detached_state>(
+      this->visible_objects.cbegin(), this->visible_objects.cend());
 }
 
 state_sequence state_sequence::consume_into_subsequence(size_t index) && {}

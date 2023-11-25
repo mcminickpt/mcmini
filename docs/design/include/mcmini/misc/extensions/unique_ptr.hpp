@@ -11,4 +11,9 @@ std::unique_ptr<const T> to_const_unique_ptr(std::unique_ptr<T> ptr) {
   // the equivalent operation. Casting from `T*` to `const T` is always safe.
   return std::unique_ptr<const T>(static_cast<const T*>(ptr.release()));
 }
+
+template <class T, class... Args>
+constexpr std::unique_ptr<T> make_unique(Args&&... args) {
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 }  // namespace mcmini::extensions
