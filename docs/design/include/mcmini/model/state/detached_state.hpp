@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mcmini/misc/append-only.hpp"
+#include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state.hpp"
 
 namespace mcmini::model {
@@ -23,10 +24,23 @@ class detached_state : public mutable_state {
   detached_state &operator=(detached_state &&) = default;
 
   template <typename ForwardIter>
-  detached_state(ForwardIter begin, ForwardIter end) {
+  static std::unique_ptr<detached_state> from_objects(ForwardIter begin,
+                                                      ForwardIter end) {
+    auto state = mcmini::extensions::make_unique<detached_state>();
     for (auto elem = begin; elem != end; elem++) {
-      track_new_visible_object((*elem).get_current_state()->clone());
+      state->track_new_visible_object((*elem).get_current_state()->clone());
     }
+    return state;
+  }
+
+  template <typename ForwardIter>
+  static std::unique_ptr<detached_state> from_states(ForwardIter begin,
+                                                     ForwardIter end) {
+    auto state = mcmini::extensions::make_unique<detached_state>();
+    for (auto elem = begin; elem != end; elem++) {
+      state->track_new_visible_object((*elem)->clone());
+    }
+    return state;
   }
 
   /* `state` overrrides */

@@ -37,8 +37,8 @@ const visible_object_state &state_sequence::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
-  return mcmini::extensions::make_unique<detached_state>(
-      this->visible_objects.cbegin(), this->visible_objects.cend());
+  return detached_state::from_objects(this->visible_objects.cbegin(),
+                                      this->visible_objects.cend());
 }
 
 state_sequence state_sequence::consume_into_subsequence(size_t index) && {}
@@ -61,9 +61,6 @@ const visible_object_state &state_sequence::element::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {
-  throw std::logic_error(
-      "Cloning an element in a sequence could involve creating a detached "
-      "state perhaps. For now, we simply ignore the possibility of cloning an "
-      "element altogether as this operation is not needed for the internal "
-      "implementation");
+  return detached_state::from_states(this->visible_object_states.cbegin(),
+                                     this->visible_object_states.cend());
 }

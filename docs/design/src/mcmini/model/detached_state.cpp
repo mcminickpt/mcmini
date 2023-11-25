@@ -31,5 +31,5 @@ const visible_object_state &detached_state::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> detached_state::mutable_clone() const {
-  return std::unique_ptr<mutable_state>(new detached_state(*this));
+  return mcmini::extensions::make_unique<detached_state>(*this);
 }
