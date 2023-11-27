@@ -30,6 +30,8 @@ struct append_only {
   const_reference at(size_t i) const { return contents.at(i); }
   iterator begin() { return this->contents.begin(); }
   iterator end() { return this->contents.end(); }
+  const_iterator begin() const { return this->contents.cbegin(); }
+  const_iterator end() const { return this->contents.cend(); }
   const_iterator cbegin() const { return this->contents.cbegin(); }
   const_iterator cend() const { return this->contents.cend(); }
 };

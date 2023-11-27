@@ -42,12 +42,7 @@ class state_sequence : public mutable_state {
     /// Each state in the view
     std::vector<const visible_object_state *> visible_object_states;
 
-    /// @brief The sequence within which this state is a part
-    ///
-    /// A state is a member of state sequence
-    state_sequence &owning_sequence;
-
-    element(state_sequence &owner);
+    element(const state_sequence &owner);
     friend state_sequence;
 
    public:

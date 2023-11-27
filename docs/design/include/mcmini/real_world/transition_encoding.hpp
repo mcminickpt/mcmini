@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "mcmini/model/thread.hpp"
-#include "mcmini/model/trace.hpp"
 #include "mcmini/model/transition.hpp"
 
 namespace mcmini::real_world {

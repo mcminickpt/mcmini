@@ -21,7 +21,8 @@ namespace mcmini::real_world {
  *
  * Processes are split into different threads of execution. Each separate thread
  * of execution in the proxied process is uniquely represented with an id. Each
- * new thread is assigned a unique id (one for every thread creation call)
+ * new thread created in the process is assigned a unique id (one for every
+ * thread creation call) and is tracked by the process.
  *
  * @note The `process` could be generalized to an "object which has independent
  * sequences of execution." The current implementation of McMini only supports
@@ -33,14 +34,12 @@ struct process {
   using tid_t = mcmini::model::thread::tid_t;
 
  public:
-  process();
-
   /**
    * @brief Schedule the thread with id `tid` for execution.
    *
    * This method signals the proxy process to resume execution of the thread of
-   * execution with id `tid` and waits for the thread to reach its next visible
-   * operation.
+   * execution with id `tid` and waits for the thread to reach the next point of
+   * execution visible to other threads.
    *
    * @note The process may not actually contain thread `tid`, or the
    * thread with the id `tid` may be blocked or asleep, or the process itself
@@ -48,7 +47,8 @@ struct process {
    * respond and the method will never return. It is up to the caller to ensure
    * that scheduling thread `tid` for execution will not block.
    */
-  void execute_thread(tid_t tid);
+  virtual void execute_thread(tid_t tid) = 0;
+  virtual ~process() = 0;
 };
 
 }  // namespace mcmini::real_world

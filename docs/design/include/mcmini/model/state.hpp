@@ -19,6 +19,29 @@ class state {
   virtual const visible_object_state &get_state_of_object(
       visible_object::objid_t id) const = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
+
+  template <typename StateType, typename ForwardIter, typename... Args>
+  static std::unique_ptr<StateType> from_visible_object_states(
+      ForwardIter begin, ForwardIter end, Args &&...args) {
+    auto state =
+        mcmini::extensions::make_unique<StateType>(std::forward<Args>(args)...);
+    for (auto elem = begin; elem != end; elem++) {
+      state->track_new_visible_object((*elem)->clone());
+    }
+    return state;
+  }
+
+  template <typename StateType, typename ForwardIter, typename... Args>
+  static std::unique_ptr<StateType> from_visible_objects(ForwardIter begin,
+                                                         ForwardIter end,
+                                                         Args &&...args) {
+    auto state =
+        mcmini::extensions::make_unique<StateType>(std::forward<Args>(args)...);
+    for (auto elem = begin; elem != end; elem++) {
+      state->track_new_visible_object((*elem).get_current_state()->clone());
+    }
+    return state;
+  }
 };
 
 class mutable_state : public state {

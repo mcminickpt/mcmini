@@ -1,19 +1,16 @@
 #pragma once
 
+#include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/program.hpp"
-#include "mcmini/real_world/process.hpp"
 
 namespace mcmini::model_checking {
 
 /**
- * An abstraction representing a function which can formally verify
- * the correctness of a program whose visible operations are modeled under the
- * mcmini model.
+ * @brief An abstraction representing a function which can formally verify
+ * the correctness of a program modeled under McMini.
  *
  * A _model checking algorithm_ is nothing more than a function. Give
  *
- *    *  A McMini model-checking algorithm
- * operates
  */
 class algorithm {
  public:
@@ -35,20 +32,10 @@ class algorithm {
    *
    * The `mcmini::model::program` conceptually represents the "history" of
    * changes that some process underwent. The process whose states are described
-   * by any program is represented `mcmini::real_world::process`. The proce
+   * by any program is represented `mcmini::real_world::process`. A
+   * model-checking algorithm.
    *
-   *
-   *
-   * @param initial_state the state from which the algorithm should begin its
-   * search. This is often referred to as `s_0` or the "initial state" in the
-   * model-checking literature.
-   * @param corresponding_process a process whose execution is suspeded and
-   * whose memory is modeled by `initial_state`. The algorithm will repeatedly
-   * create new processes from this one as part of its exploration.
-   * @invariant: A _critical_ invariant is that _corresponding_process_ be
-   * modeled by _initial_state_. McMini model-checking algorithms rely _solely_
-   * on the model to make determinations about how to explore the state space of
-   * process _corresponding_process_.
+   * @param coordinator the coordinator which manages
    * @param callbacks a set of functions which are invoked as verification takes
    * place. The callbacks will be invoked when the algorithm encounters the
    * following violations:
@@ -60,10 +47,8 @@ class algorithm {
    * - if, at any point during verification, one of the corresponding processes
    * crashes.
    */
-  virtual void verify_from(
-      const mcmini::model::program &initial_state,
-      const mcmini::real_world::process &corresponding_process,
-      const callbacks &callbacks) = 0;
+  virtual void verify_from(const mcmini::coordinator &coordinator,
+                           const callbacks &callbacks) = 0;
 };
 
 };  // namespace mcmini::model_checking

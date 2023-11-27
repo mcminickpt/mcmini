@@ -37,14 +37,13 @@ const visible_object_state &state_sequence::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
-  return detached_state::from_objects(this->visible_objects.cbegin(),
-                                      this->visible_objects.cend());
+  return state::from_visible_objects<detached_state>(
+      this->visible_objects.cbegin(), this->visible_objects.cend());
 }
 
 state_sequence state_sequence::consume_into_subsequence(size_t index) && {}
 
-state_sequence::element::element(state_sequence &owner)
-    : owning_sequence(owner) {
+state_sequence::element::element(const state_sequence &owner) {
   for (const visible_object &obj : owner.visible_objects) {
     this->visible_object_states.push_back(obj.get_current_state());
   }
@@ -61,6 +60,6 @@ const visible_object_state &state_sequence::element::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {
-  return detached_state::from_states(this->visible_object_states.cbegin(),
-                                     this->visible_object_states.cend());
+  return state::from_visible_object_states<detached_state>(
+      this->visible_object_states.cbegin(), this->visible_object_states.cend());
 }

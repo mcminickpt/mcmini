@@ -42,14 +42,14 @@ namespace mcmini::model {
  */
 class program {
  private:
-  transition_sequence trace;
   state_sequence states;
-  // thread_mapping next_steps;
+  transition_sequence trace;
+  // pending_transitions next_steps;
 
  public:
   // give me a new program N steps back ->
 
-  // program(std::unique_ptr<state> initi)
+  program(std::unique_ptr<state> initial_state);
 };
 //
 

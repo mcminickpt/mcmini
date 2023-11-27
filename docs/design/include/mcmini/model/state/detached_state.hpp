@@ -23,26 +23,6 @@ class detached_state : public mutable_state {
   detached_state &operator=(const detached_state &) = default;
   detached_state &operator=(detached_state &&) = default;
 
-  template <typename ForwardIter>
-  static std::unique_ptr<detached_state> from_objects(ForwardIter begin,
-                                                      ForwardIter end) {
-    auto state = mcmini::extensions::make_unique<detached_state>();
-    for (auto elem = begin; elem != end; elem++) {
-      state->track_new_visible_object((*elem).get_current_state()->clone());
-    }
-    return state;
-  }
-
-  template <typename ForwardIter>
-  static std::unique_ptr<detached_state> from_states(ForwardIter begin,
-                                                     ForwardIter end) {
-    auto state = mcmini::extensions::make_unique<detached_state>();
-    for (auto elem = begin; elem != end; elem++) {
-      state->track_new_visible_object((*elem)->clone());
-    }
-    return state;
-  }
-
   /* `state` overrrides */
   virtual bool contains_object_with_id(
       visible_object::objid_t id) const override;
