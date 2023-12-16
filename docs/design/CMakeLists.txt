@@ -58,3 +58,5 @@ target_link_libraries(libmcmini
 
 add_executable(mcmini "${MCMINI_CPP_SRC}""${MCMINI_C_SRC}")
 target_include_directories(mcmini PUBLIC "${MCMINI_INCLUDE_DIR}")
+
+add_executable(api-demo src/demos/transition-api-demo.cpp)

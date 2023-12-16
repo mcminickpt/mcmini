@@ -101,6 +101,9 @@ class coordinator {
               std::unique_ptr<real_world::process_source> &&process_source);
   ~coordinator() = default;
 
+  /**
+   *
+   */
   void go_to_nth_step(uint32_t n);
 };
 

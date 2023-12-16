@@ -6,6 +6,7 @@
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/append-only.hpp"
 #include "mcmini/model/state.hpp"
+#include "mcmini/model/transition.hpp"
 
 namespace mcmini::model {
 
@@ -25,7 +26,7 @@ namespace mcmini::model {
  * * Three operations we just talked about
  * * The
  */
-class state_sequence : public mutable_state {
+class state_sequence : public state {
  private:
   /**
    * @brief An element of a `mcmini::model::state_sequence`
@@ -53,6 +54,17 @@ class state_sequence : public mutable_state {
     virtual std::unique_ptr<mutable_state> mutable_clone() const override;
   };
 
+  /**
+   * @brief A state which has a basee
+   */
+  class diff_state;
+
+  /**
+   * @brief Consume the differences contained in the state given which produces
+   * the diff.
+   */
+  void consume_diff(diff_state &&);
+
  public:
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
@@ -63,13 +75,16 @@ class state_sequence : public mutable_state {
   /* `state` overrrides */
   virtual bool contains_object_with_id(
       visible_object::objid_t id) const override;
-  virtual visible_object::objid_t track_new_visible_object(
-      std::unique_ptr<visible_object_state>) override;
-  virtual void record_new_state_for_visible_object(
-      visible_object::objid_t, std::unique_ptr<visible_object_state>) override;
   virtual const visible_object_state &get_state_of_object(
       visible_object::objid_t) const override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
+
+  /* Applying transitions */
+
+  /**
+   *
+   */
+  transition::status follow(std::unique_ptr<transition>);
 
  public:
   const state &state_at(size_t i) const {

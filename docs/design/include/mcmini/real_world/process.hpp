@@ -19,15 +19,11 @@ namespace mcmini::real_world {
  * `mcmini::real_world::process`, which mirrors the forward iteration of the
  * instruction streams.
  *
- * Processes are split into different threads of execution. Each separate thread
- * of execution in the proxied process is uniquely represented with an id. Each
- * new thread created in the process is assigned a unique id (one for every
- * thread creation call) and is tracked by the process.
+ * Processes are split into different _threads_ of execution. Each separate
+ * thread of execution in the proxied process is uniquely represented with an
+ * id. Each new thread created in by process during execution is assigned a
+ * unique id (one for every thread creation call) and is tracked by the process.
  *
- * @note The `process` could be generalized to an "object which has independent
- * sequences of execution." The current implementation of McMini only supports
- * model-checking a single process, but this could easily be extended in the
- * future with the same type of abstraction.
  */
 struct process {
  public:
