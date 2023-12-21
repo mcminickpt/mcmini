@@ -50,6 +50,8 @@ class program {
   // give me a new program N steps back ->
 
   program(std::unique_ptr<state> initial_state);
+
+  //
 };
 //
 

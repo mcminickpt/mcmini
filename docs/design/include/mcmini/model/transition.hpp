@@ -7,6 +7,7 @@
 #include "mcmini/model/state.hpp"
 
 namespace mcmini::model {
+
 /**
  * @brief A function over states of a program.
  *
@@ -31,28 +32,32 @@ namespace mcmini::model {
  * which _cannot exist_ in a given state (e.g. a pthread_mutex_lock() on some
  * mutex which isn't present) and that which _should not exist_ formally but
  * needs to exist to describe a transition. Such a transition is said to
- * _exist_ at that state, even if it is not technically enabled. Only a subset
- * of all transitions defined at a state `s` are actually enabled there (with at
- * most one transition per thread).
+ * _exist_ at that state, even if it is not technically enabled there. Only a
+ * subset of all transitions that _exist_ at a state `s` are actually enabled
+ * there (with at most one transition per thread).
+ *
+ * Formally, if a transition is defined in a state `s`, it means it's enabled
+ * there according to the formal definition. However, the definition of
+ * `mcmini::model::transition` allows the transition to produce a state _even if
+ * the process which is set to execute the transition isn't truly in a position
+ * where the transition is being executed_. Transitions perform _look ups_ on
+ * the particular state they are given
+ *
+ * For example, consider a transition "post(sem)" which takes a visible object
+ * (a semaphore) with id `sem` as an argument. The sempahore `sem` may exist in
+ * several states, say `s_1, s_2, and s_3`. Suppose thread 1 executes
+ * "post(m)" and brings the concurrent system from state `s_1` to `s_2`, and
+ * suppose that in state `s_2` thread 1 executes "wait(sem)". In state `s_2`,
+ * the transition "thread 1 executes post(sem)" is _not_ enabled since thread 1
+ * is _not_ executing a `post(sem)`. However, the implementation of "thread 1
+ * executes post(sem)"  _would be defined_ in state `s_2`. In other words, a
+ * `mcmini::model::state` _excludes_ the state of the _processes_; that is the
+ * responsibility of `mcmini::model::program`.
  */
 class transition {
  public:
-  // TODO: Defining categories could be interesting here. Such a definition will
-  // be needed for example to register new transitions at launch-time. Assigning
-  // it to the class members will be a bit more difficult, but it should be
-  // possible nonetheless. This would speed up dependency checking.
   using category = uint32_t;
-  category get_category();
-
-  /**
-   * @brief A result of a modification to a state.
-   *
-   * There are two possible outcomes attempting to apply a transition function:
-   *
-   * 1. Either the transition _exists_ at this state and is thus defined
-   * 2. Or else the transition
-   */
-  enum class status { exists, disabled };
+  category get_mcmini_assigned_identifier();
 
   /**
    * @brief Attempts to produce a state _s'_ from state _s_ through the
@@ -68,15 +73,48 @@ class transition {
    * were applied to state _s_ if such a transition is defined at _s_, and
    * otherwise the empty optional.
    */
-  mcmini::optional<std::unique_ptr<state>> apply_to(const state &s) {
+  mcmini::optional<std::unique_ptr<state>> apply_to(const state& s) {
     std::unique_ptr<mutable_state> s_prime = s.mutable_clone();
     return modify(*s_prime) == status::exists
                ? mcmini::optional<std::unique_ptr<state>>(std::move(s_prime))
                : mcmini::optional<std::unique_ptr<state>>();
   }
 
-  virtual status modify(mutable_state &state) = 0;
+  /**
+   * @brief A result of a modification to a state.
+   *
+   * There are two possible outcomes attempting to apply a transition function:
+   *
+   * 1. Either the transition _exists_ at this state and is thus defined at the
+   * given state.
+   * 2. Or else the transition is _not_ defined as this state and the transition
+   * is disabled.
+   */
+  enum class status { exists, disabled };
+
+  virtual status modify(mutable_state& state) = 0;
+
   virtual std::string to_string() const = 0;
 };
+
+// Each subclass must specialize the following two templates. The templates
+// provide functionality for serializing and deserializing a __model-side__
+// transition; that is, one used _in the McMini model_. The transition needs to
+// be represented for model checking algorithms. The serialization is necessary
+// to translate from the programs generating the transitions and their
+// representation in the model checker.
+template <typename T>
+void serialize_wrapper_return_into_stream(const T&, std::ostream&);
+
+template <typename T>
+T* deserialize_wrapper_hit_from_stream(std::istream& is);
+
+template <typename T>
+using transition_serializer =
+    std::function<decltype(serialize_wrapper_return_into_stream<T>)>;
+
+template <typename T>
+using transition_deserializer =
+    std::function<decltype(deserialize_wrapper_hit_from_stream<T>)>;
 
 }  // namespace mcmini::model

@@ -1,5 +1,8 @@
+#include <dlfcn.h>
+
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 // -----------------------------------------------------------------------------
@@ -40,8 +43,8 @@ class transition_registry final {
   // to the specialized templates!!! This is awesome! Things will work out as
   // long as the plugin providers give us the correct type....
   //
-  // Here the RTTI needs to be preserved across the plugins and McMini. This could
-  // pose a little bit of a problem... we'd need to look into this
+  // Here the RTTI needs to be preserved across the plugins and McMini. This
+  // could pose a little bit of a problem... we'd need to look into this
 };
 
 // -----------------------------------------------------------------------------
@@ -97,6 +100,11 @@ void serializeInto<transitionSub2>(transitionSub2* subtype, std::ostream& os) {
   // Specific serialization logic for transitionSub2
 }
 
+#include "type-id.hpp"
+
+extern "C" bool my_shared_k(const std::type_info& ti);
+extern "C" bool my_func(type_id_t q);
+
 int main() {
   std::vector<void (*)(transition*, std::ostream&)> functions;
 
@@ -110,6 +118,17 @@ int main() {
   transitionSub1 sub1;
   transitionSub2 sub2;
 
+  std::unordered_map<type_id_t, int> uom;
+
+  uom[type_id<int>()] = 1;
+  uom[type_id<bool>()] = 2;
+
+  for (const auto& e : uom) {
+    std::cout << " " << e.second << std::endl;
+  }
+
+  // std::vector<type_id_t> a;
+
   int b = 0;
 
   mcmini_serialize_transition(&sub1, std::cout);
@@ -118,6 +137,28 @@ int main() {
                std::cout);  // Calls specialized function for transitionSub1
   functions[1](&sub2,
                std::cout);  // Calls specialized function for transitionSub2
+
+  auto handle = dlopen("./libmcmini.so", RTLD_NOW);
+
+  std::cerr << dlerror() << std::endl;
+
+  std::cout << handle << std::endl;
+
+  auto sym = dlsym(handle, "my_func");
+  auto shared_k_handle = dlsym(handle, "my_shared_k");
+
+  std::cerr << dlerror() << std::endl;
+
+  std::cout << "Sym: " << sym << std::endl;
+
+  auto actual = reinterpret_cast<bool (*)(type_id_t)>(sym);
+  auto actual_k =
+      reinterpret_cast<bool (*)(const std::type_info&)>(shared_k_handle);
+
+  std::cout << "Equal?:" << actual(type_id<int>()) << std::endl;
+  std::cout << "Equal?:" << actual_k(typeid(shared_k)) << std::endl;
+
+  dlclose(handle);
 
   return 0;
 }

@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-__attribute__((constructor)) void my_ctor() {
+__attribute__((constructor)) extern "C" void my_ctor() {
   // Do something here
   void *buf = malloc(10 * sizeof(char));
   memset(buf, 0x31, 10 * sizeof(char));

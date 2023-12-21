@@ -16,6 +16,7 @@ namespace mcmini::real_world {
  */
 class fork_process_source : public process_source {
  private:
+  // TODO: use std::filesystem::path if we ever upgrade to C++17
   std::string target_executable;
 
  public:

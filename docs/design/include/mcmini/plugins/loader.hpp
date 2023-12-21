@@ -1,18 +1,15 @@
 #pragma once
 
+#include "mcmini/plugins.hpp"
+
 namespace mcmini::plugins {
 
 /**
- * @brief A light-weight wrapper that provides an interface to
+ * @brief A light-weight wrapper that provides an interface to loading plugins.
  *
+ * TODO: This will be fleshed out in a future release. For now, it will
+ * essentially serve as a light-weight wrapping around `dlopen()` and friends...
  */
 class loader final {};
-
-// Two C functions have to be defined for
-// each
-
-// mcmini_register_transitions()
-
-// Define a function
 
 };  // namespace mcmini::plugins

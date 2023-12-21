@@ -1,6 +1,8 @@
 #pragma once
 
+#include "mcmini/forwards.hpp"
 #include "mcmini/model/program.hpp"
+#include "mcmini/model/visible_object.hpp"
 #include "mcmini/real_world/process_source.hpp"
 
 namespace mcmini {
@@ -105,6 +107,13 @@ class coordinator {
    *
    */
   void go_to_nth_step(uint32_t n);
+
+  /**
+   *
+   */
+  model::visible_object::objid_t record_new_object(void *system_handle);
+
+  // real_world::process::runner_id_t add_runner()
 };
 
 };  // namespace mcmini

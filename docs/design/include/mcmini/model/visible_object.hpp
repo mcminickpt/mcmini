@@ -79,9 +79,6 @@ class visible_object {
         std::vector<std::unique_ptr<const visible_object_state>>();
     sliced_states.reserve(num_states);
     for (int j = 0; j < num_states; j++) {
-      // C++11 doensn't have a constructor for std::unique_ptr<const T>
-      // from a std::unique_ptr<T> (this was introduced in C++14). This performs
-      // the equivalent operation.
       sliced_states.push_back(
           mcmini::extensions::to_const_unique_ptr(history.at(j)->clone()));
     }
