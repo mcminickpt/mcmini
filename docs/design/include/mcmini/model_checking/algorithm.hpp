@@ -14,28 +14,32 @@ namespace mcmini::model_checking {
  */
 class algorithm {
  public:
+  // TODO: Eventually we may want to pass more information to the callbacks
+  // (e.g. the algorithm itself or the coordinator) to provide detailed printing
+  // information.
   struct callbacks {
    public:
-    virtual void encountered_deadlock_in(const mcmini::model::program &);
-    virtual void encountered_crash_in(const mcmini::model::program &);
-    virtual void encountered_data_race_in(const mcmini::model::program &);
+    virtual void encountered_deadlock_in(const mcmini::model::program &) {}
+    virtual void encountered_crash_in(const mcmini::model::program &) {}
+    virtual void encountered_data_race_in(const mcmini::model::program &) {}
   };
 
   /**
-   * @brief Run this model-checking algorithm starting from _initial_state_
-   * which models _initial_process_.
+   * @brief Run this model-checking algorithm using coordinator _coordinator_.
    *
    * To verify the correctness of a program using explicit-state model checking,
-   * any verification algorithm must effectively investigate all possible states
-   * of that program. Each particular state of the program is represented in
-   * McMini by an instance `mcmini::model::program`.
+   * any verification algorithm must investigate all possible states of that
+   * program. Each particular state of the program is represented in McMini by
+   * an instance `mcmini::model::state`. A state plus the collection of
+   * transitions which are defined at that state is captured in a
+   * `mcmini::model::program`.
    *
    * The `mcmini::model::program` conceptually represents the "history" of
    * changes that some process underwent. The process whose states are described
-   * by any program is represented `mcmini::real_world::process`. A
-   * model-checking algorithm.
+   * by the program is represented `mcmini::real_world::process`.
    *
-   * @param coordinator the coordinator which manages
+   * @param coordinator the coordinator which manages the syncrhonization of the
+   * program and the processes which those programs represent.
    * @param callbacks a set of functions which are invoked as verification takes
    * place. The callbacks will be invoked when the algorithm encounters the
    * following violations:
@@ -47,8 +51,13 @@ class algorithm {
    * - if, at any point during verification, one of the corresponding processes
    * crashes.
    */
-  virtual void verify_from(const mcmini::coordinator &coordinator,
-                           const callbacks &callbacks) = 0;
+  virtual void verify_using(mcmini::coordinator &coordinator,
+                            const callbacks &callbacks) = 0;
+
+  void verify_using(mcmini::coordinator &coordinator) {
+    callbacks no_callbacks;
+    this->verify_using(coordinator, no_callbacks);
+  }
 };
 
 };  // namespace mcmini::model_checking

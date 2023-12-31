@@ -91,7 +91,10 @@ void mcmini_serialize_transition(T* subtype, std::ostream& os) {
 
 class transitionSub2 : public transition {};
 
-class transitionSub1 : public transition {};
+class transitionSub1 : public transition {
+ public:
+  void specific5() {}
+};
 
 template <>
 void serializeInto<transitionSub1>(transitionSub1* subtype, std::ostream& os) {
@@ -181,7 +184,74 @@ struct dd_table {
   }
 };
 
-class transitionSub3 : public transition {};
+struct dd_table_member_functions {
+ public:
+  using t_callback = void (transition::*)(transition*);
+  using stored_callback = void (*)(transition*, transition*, t_callback);
+
+ private:
+  std::unordered_map<std::type_index,
+                     std::unordered_map<std::type_index,
+                                        std::pair<stored_callback, t_callback>>>
+      _internal_table;
+
+ public:
+  template <typename T1, typename T2>
+  using member_function_callback = void (T1::*)(T2*);
+
+  template <typename T1, typename T2>
+  static void casting_function(transition* t1, transition* t2,
+                               t_callback callback) {
+    auto well_defined_handle =
+        reinterpret_cast<member_function_callback<T1, T2>>(callback);
+    (static_cast<T1&>(*t1).*well_defined_handle)(static_cast<T2*>(t2));
+  }
+
+  template <typename T1, typename T2>
+  static void casting_function_reverse(transition* t1, transition* t2,
+                                       t_callback callback) {
+    auto well_defined_handle =
+        reinterpret_cast<member_function_callback<T1, T2>>(callback);
+    (static_cast<T1&>(*t2).*well_defined_handle)(static_cast<T2*>(t1));
+  }
+
+  template <typename T1, typename T2>
+  void register_dd_entry(member_function_callback<T1, T2> callback) {
+    auto unspecified_function_handle_forward =
+        reinterpret_cast<stored_callback>(casting_function<T1, T2>);
+    auto unspecified_function_handle_reversed =
+        reinterpret_cast<stored_callback>(casting_function_reverse<T1, T2>);
+    auto unspecified_callback_handle = reinterpret_cast<t_callback>(callback);
+
+    _internal_table[std::type_index(typeid(T1))][std::type_index(typeid(T2))] =
+        std::make_pair(unspecified_function_handle_forward,
+                       unspecified_callback_handle);
+
+    _internal_table[std::type_index(typeid(T2))][std::type_index(typeid(T1))] =
+        std::make_pair(unspecified_function_handle_reversed,
+                       unspecified_callback_handle);
+  }
+
+  void call(transition* t1, transition* t2) {
+    auto t1_type = std::type_index(typeid(*t1));
+    auto t2_type = std::type_index(typeid(*t2));
+    if (_internal_table.count(t1_type) > 0) {
+      if (_internal_table[t1_type].count(t2_type) > 0) {
+        // Only works if we cast it back...
+        auto& pair = _internal_table[t1_type][t2_type];
+        pair.first(t1, t2, pair.second);
+      }
+    }
+  }
+};
+
+class transitionSub3 : public transition {
+ public:
+  void specific(transitionSub1* sub1) { std::cout << "specific\n"; }
+  void dependent2(transitionSub2* sub2) {
+    std::cout << "specific2 \n" << sub2 << std::endl;
+  }
+};
 
 static dd_table ddt;
 
@@ -204,6 +274,17 @@ int main() {
   ddt.call(sub1, sub3);
   ddt.call(sub3, sub1);
   ddt.call(sub2, sub3);
+
+  dd_table_member_functions members;
+
+  members.register_dd_entry(&transitionSub3::specific);
+  members.register_dd_entry(&transitionSub3::dependent2);
+
+  members.call(sub1, sub3);
+
+  std::cout << sub2 << std::endl;
+  members.call(sub2, sub3);
+
   // double_dispatch_table[std::type_index(typeid(transitionSub1))]
   //                      [std::type_index(typeid(transitionSub2))] =
   //                          reinterpret_cast<void (*)(transition*,

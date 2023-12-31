@@ -1,117 +1,124 @@
-#include "mcmini/mcmini.hpp"
+// #include "mcmini/mcmini.hpp"
 
-#define _XOPEN_SOURCE_EXTENDED 1
+// #include "mcmini/coordinator/coordinator.hpp"
+// #include "mcmini/misc/extensions/unique_ptr.hpp"
+// #include "mcmini/model/state/detached_state.hpp"
+// #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
+// #include "mcmini/real_world/process/fork_process_source.hpp"
 
-#include <libgen.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <unistd.h>
+// #define _XOPEN_SOURCE_EXTENDED 1
 
-#include <iostream>
+// #include <libgen.h>
+// #include <stdarg.h>
+// #include <stdio.h>
+// #include <unistd.h>
 
-class OurInterface {
- public:
-  virtual ~OurInterface();
-};
+// #include <cstdlib>
+// #include <iostream>
 
-class MyPluginImpl : public OurInterface {
- public:
-  int c = 0;
+// void display_usage() {
+//   std::cout << "mcmini [options] <program>" << std::endl;
+//   std::exit(EXIT_FAILURE);
+// }
 
-  MyPluginImpl(int c) : c(c) {}
-};
+// int do_model_checking(
+//     /* Pass arguments here or rearrange to configure the checker at
+//     runtime*/) {
+//   mcmini::model::detached_state state_of_program_at_main;
+//   mcmini::model::pending_transitions
+//       initial_first_steps;  // TODO: Create initializer or else add other
+//                             // methods
 
-// Inside McMini process.... the id table is known!
-OurInterface *transition_from_stream_contents(std::istream &istream) {
-  // Read transition id
-  int transition_id;
-  istream >> transition_id;
+//   // TODO: Complete the initialization of the initial state here, i.e. a
+//   single
+//   // thread "main" that is alive and then running the transition `t`
 
-  // Jump to the appropriate handler based on the id -->
-  // Look in id table at registration time --> they pointed us to it when we
-  // loaded them!!
-  return nullptr;
-}
+//   mcmini::model::program model_for_program_starting_at_main(
+//       std::move(state_of_program_at_main), std::move(initial_first_steps));
 
-void serialize_transition(MyPluginImpl &impl, std::ostream &o) {
-  o << "Ahhhhhhhhhhh + " << impl.c << std::endl;
-}
+//   mcmini::coordinator coordinator(
+//       std::move(model_for_program_starting_at_main),
+//       mcmini::extensions::make_unique<
+//           mcmini::real_world::fork_process_source>());
 
-// Inside libmcmini.so
+//   std::unique_ptr<mcmini::model_checking::algorithm> classic_dpor_checker =
+//       mcmini::extensions::make_unique<mcmini::model_checking::classic_dpor>();
 
-// std::istream for each
+//   classic_dpor_checker->verify_using(coordinator);
 
-// We somehow have to write the type... where do we get this though ?? -> at
-// registration time ??
+//   std::cout << "Model checking completed!" << std::endl;
+// }
 
-std::istream transition_return_inside_wrapper(
-    std::ostream &,
-    int id_of_transition_at_registration_time);  /// Constructor of dylib can
-                                                 /// load this...
+// int do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
+//   mcmini::model::detached_state state_of_program_at_main;
+//   mcmini::model::pending_transitions
+//       initial_first_steps;  // TODO: Create initializer or else add other
+//                             // methods
 
-class G {};
+//   // // TODO: Complete the initialization of the initial state here, i.e. a
+//   // // single thread "main" that is alive and then running the transition
+//   `t`
 
-class MyWrapperWriteStruct {};
+//   // {
+//   //   // Read that information from the linked list __inside the restarted
+//   //   image__
+//   //   // while (! not all information read yet) {}
+//   //   // read(...);
 
-class MyTransition {
- public:
-  MyTransition(std::istream &);
-};
+//   //   auto state_of_some_object_in_the_ckpt_image = new mutex_state();
 
-template <typename T>
-std::unique_ptr<T> when_wrapper_is_hit(std::ostream &);
+//   //   state_of_program_at_main.record_new_state_for_visible_object();
+//   // }
 
-template <typename T>
-void serialize_to(const T &, std::ostream &);
+//   // {
+//   //   // initial_first_steps
+//   //   // Figure out what thread 10 is doing or all this stuff
+//   //   // this probably involves coordination between libmcmini.so,
+//   libdmtcp.so,
+//   //   // etc.
+//   //   //
+//   // }
 
-extern "C" void test(std::ostream &stream, ...) {
-  va_list list;
+//   mcmini::model::program model_for_program_starting_at_main(
+//       std::move(state_of_program_at_main), std::move(initial_first_steps));
 
-  va_start(list, stream);
+//   mcmini::coordinator coordinator(
+//       std::move(model_for_program_starting_at_main),
+//       mcmini::extensions::make_unique<
+//           mcmini::real_world::fork_process_source>());
 
-  auto j = va_arg(list, MyWrapperWriteStruct *);
+//   std::unique_ptr<mcmini::model_checking::algorithm> classic_dpor_checker =
+//       mcmini::extensions::make_unique<mcmini::model_checking::classic_dpor>();
 
-  std::cout << (void *)j << std::endl;
+//   classic_dpor_checker->verify_using(coordinator);
 
-  va_end(list);
-}
+//   std::cout << "Model checking completed!" << std::endl;
+// }
 
-// Serialize information needed to build a transition
-void serialize_transition_hit_inside_wrapper(volatile void *cntx,
-                                             std::ostream &o) {
-  // libmcmini.so --> what is the id for the transition id for __FUNCTION__
-  //
-  //
-  //
-  o << 10 << std::endl;
-  o << __func__ << std::endl;
-}
+main() {}
 
-class ModelCheckingContext {
- public:
-  void register_transition_type();
-};
+// int main(int argc, char **argv) {
+//   do_model_checking();
+//   // if (argc > 1) {
+//   //   char **cur_arg = &argv[1];
+//   //   char buf[1000];
+//   //   buf[sizeof(buf) - 1] = '\0';
+//   //   snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
+//   //            (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
+//   //            dirname(argv[0]));
+//   //   setenv("LD_PRELOAD", buf, 1);
 
-extern "C" void mcmini_register_plugin(ModelCheckingContext &cntx) {}
+//   //   if (fork() == 0) {
+//   //     execvp(cur_arg[0], cur_arg);
+//   //   } else {
+//   //   }
+//   // } else {
+//   //   std::cout << "Droid is ready!" << std::endl;
+//   // }
+// }
 
-int main(int argc, char **argv) {
-  if (argc > 1) {
-    char **cur_arg = &argv[1];
+// ///////////////////////////////////////////////////////
 
-    char buf[1000];
-    buf[sizeof(buf) - 1] = '\0';
-    // We add ours to the end of any PRELOAD of the target application.
-    snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
-             (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
-             dirname(argv[0]));
-    setenv("LD_PRELOAD", buf, 1);
-
-    if (fork() == 0) {
-      execvp(cur_arg[0], cur_arg);
-    } else {
-      std::cout << "parent!!" << std::endl;
-    }
-  } else {
-    std::cout << "Droid is ready!" << std::endl;
-  }
-}
+// int dmtcp_restart(void *cntx) {
+//   // Check for different things
+// }

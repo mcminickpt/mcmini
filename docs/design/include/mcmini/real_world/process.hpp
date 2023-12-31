@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "mcmini/model/thread.hpp"
 #include "mcmini/model/transition.hpp"
+#include "mcmini/real_world/runner.hpp"
 
 namespace mcmini::real_world {
 
@@ -15,20 +15,23 @@ namespace mcmini::real_world {
  * McMini's.
  *
  * A process can be conceptualized as a "multi-dimensional" forward iterator;
- * that is, a process can undergo changes only following the arrow of time
- * forward. Backwards progress is not possible for a
- * `mcmini::real_world::process`, which mirrors the forward execution of the
+ * that is, a process can undergo changes by _executing_ operations which cannot
+ * be undone. Backwards progress is not possible for a
+ * `mcmini::real_world::process`, which matches the forward execution of the
  * instruction streams.
  *
- * A process is a collection of different  _runners_. of execution. Each
- * separate thread of execution in the proxied process is uniquely represented
- * with an id. Each new thread created in by process during execution is
- * assigned a unique id (one for every thread creation call) and is tracked by
- * the process.
+ * A process is a collection of different  _runners_ of execution. Each
+ * separate _runner_ in the proxied process is represented with a unique id.
+ * New runners may appear during the  during execution is assigned a unique
+ * id (one for every thread creation call) and is tracked by the process.
  */
 struct process {
  public:
   using runner_id_t = uint32_t;
+  std::unordered_map<runner_id_t, std::unique_ptr<runner>> runners;
+
+  // TODO: Just add the shared memory portion here for now and figure out the
+  // "runner" bit later...
 
  public:
   /**
@@ -44,8 +47,13 @@ struct process {
    * scenarios, the proxy process will not respond and the method will never
    * return. It is up to the caller to ensure that scheduling runner
    * `mcmini_runner_id` for execution will not block forever.
+   *
+   * @returns the next transition that runner _runner_
    */
-  void execute_runner(runner_id_t mcmini_runner_id);
+  std::unique_ptr<model::transition> execute_runner(
+      runner_id_t mcmini_runner_id);
+
+  runner_id_t add_runner(std::unique_ptr<runner> new_runner);
 };
 
 }  // namespace mcmini::real_world

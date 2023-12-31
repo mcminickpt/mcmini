@@ -4,6 +4,7 @@
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/visible_object.hpp"
 #include "mcmini/real_world/process_source.hpp"
+#include "mcmini/real_world/runner.hpp"
 
 namespace mcmini {
 
@@ -76,8 +77,8 @@ namespace mcmini {
  */
 class coordinator {
  private:
-  model::program current_state;
-  std::unique_ptr<real_world::process> current_process;
+  model::program current_modeled_state;
+  std::unique_ptr<real_world::process> current_process_handle;
   std::unique_ptr<real_world::process_source> process_source;
 
  public:
@@ -103,6 +104,15 @@ class coordinator {
               std::unique_ptr<real_world::process_source> &&process_source);
   ~coordinator() = default;
 
+  const model::program &get_current_modeled_state() const {
+    return this->current_modeled_state;
+  }
+
+  /**
+   *
+   */
+  uint32_t get_depth_into_program() const;
+
   /**
    *
    */
@@ -113,7 +123,7 @@ class coordinator {
    */
   model::visible_object::objid_t record_new_object(void *system_handle);
 
-  // real_world::process::runner_id_t add_runner()
+  real_world::process::runner_id_t add_runner(runner *);
 };
 
 };  // namespace mcmini

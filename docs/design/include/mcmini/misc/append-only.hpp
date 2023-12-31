@@ -23,6 +23,7 @@ struct append_only {
   append_only &operator=(const append_only &) = default;
 
   void push_back(const T &element) { contents.push_back(element); }
+  void push_back(T &&element) { contents.push_back(element); }
   size_t size() const { return contents.size(); }
   bool empty() const { return contents.empty(); }
   void clear() { contents.clear(); }

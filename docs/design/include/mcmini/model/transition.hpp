@@ -56,9 +56,6 @@ namespace mcmini::model {
  */
 class transition {
  public:
-  using category = uint32_t;
-  category get_mcmini_assigned_identifier();
-
   /**
    * @brief Attempts to produce a state _s'_ from state _s_ through the
    * application of this transition function on argument _s_
@@ -92,6 +89,18 @@ class transition {
    */
   enum class status { exists, disabled };
 
+  /**
+   * @brief Fire the transition as if it were run from state _state_.
+   *
+   * A transition is said to _fire_ at a state `s` of a concurrent system if
+   * that transition is enabled there and the system moves into the state `s'`
+   * the transition maps to `s`
+   *
+   * @returns whether the transition were enabled in this state. If the
+   * transition is _not_ enabled in this state, the contents of state is
+   * undefined; otherwise, the object `state` will represent the new state `s'`
+   * reached by the system after this transition fires.
+   */
   virtual status modify(mutable_state& state) = 0;
 
   virtual std::string to_string() const = 0;

@@ -11,13 +11,13 @@
 namespace mcmini::model {
 
 /**
- * @brief A sequence of a state.
+ * @brief A sequence of states.
  *
  * A _state sequence_ describes how a `mcnini::model:;program`'s state has
  * changed over time as its execution units have executed and taken action.
  *
- * A _state_ is an unordered container of visible objects.
- * Each visible object is in turn composed of a sequence of
+ * A _state_ is an unordered container of visible objects. Each visible object
+ * is in turn composed of a sequence of a finite number of states.
  *
  *
  * * The sequence "owns" the visible objects
@@ -55,7 +55,7 @@ class state_sequence : public state {
   };
 
   /**
-   * @brief A state which has a basee
+   * @brief A state which has a base
    */
   class diff_state;
 
@@ -66,11 +66,14 @@ class state_sequence : public state {
   void consume_diff(diff_state &&);
 
  public:
-  state_sequence &operator=(const state_sequence &&) = delete;
-  state_sequence &operator=(const state_sequence &) = delete;
+  state_sequence(state &);
+  state_sequence(state &&);
   state_sequence(state_sequence &) = delete;
   state_sequence(state_sequence &&) = default;
   state_sequence(std::vector<visible_object> &&);
+
+  state_sequence &operator=(const state_sequence &&) = delete;
+  state_sequence &operator=(const state_sequence &) = delete;
 
   /* `state` overrrides */
   virtual bool contains_object_with_id(
@@ -82,9 +85,15 @@ class state_sequence : public state {
   /* Applying transitions */
 
   /**
+   * @brief Applies the given transition to the final state of the sequence if
+   * it is enabled there and pushes the adds the transformed state to the
+   * sequence.
    *
+   * @return whether the transition was enabled at the final state in the
+   * sequence. If the transition was disabled there, a new state will _not_ be
+   * added to the sequence and a `disabled` status will be returned.
    */
-  transition::status follow(std::unique_ptr<transition>);
+  transition::status follow(const transition &t);
 
  public:
   const state &state_at(size_t i) const {

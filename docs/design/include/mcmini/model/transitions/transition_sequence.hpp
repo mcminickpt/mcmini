@@ -25,16 +25,12 @@ class transition_sequence final {
 
  public:
   transition_sequence() = default;
-
   transition_sequence consume_into_subsequence(uint32_t index) &&;
 
-  const transition* at(size_t i);
-
-  void push(const transition*);
-
   bool empty() const;
-
   size_t count() const;
+  const transition* at(size_t i);
+  void push(std::unique_ptr<const transition>);
 };
 
 }  // namespace mcmini::model

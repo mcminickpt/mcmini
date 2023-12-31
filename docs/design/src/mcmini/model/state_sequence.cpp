@@ -6,6 +6,22 @@
 
 using namespace mcmini::model;
 
+state_sequence::state_sequence(state &s) {
+  // TODO: Replace with iterator!
+  // Same implementation as below
+}
+
+state_sequence::state_sequence(state &&s) {
+  // TODO: Replace with iterator; this assumes that the state stores
+  // ids sequentially!
+  visible_object::objid_t id = 0;
+  while (s.contains_object_with_id(id)) {
+    this->visible_objects.push_back(
+        visible_object(s.get_state_of_object(id).clone()));
+    id++;
+  }
+}
+
 state_sequence::state_sequence(std::vector<visible_object> &&initial_objects)
     : visible_objects(std::move(initial_objects)) {
   this->states_in_sequence.push_back(state_sequence::element(*this));

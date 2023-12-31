@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/state/state_sequence.hpp"
 #include "mcmini/model/transitions/transition_sequence.hpp"
 
@@ -44,14 +45,12 @@ class program {
  private:
   state_sequence states;
   transition_sequence trace;
-  // pending_transitions next_steps;
+  pending_transitions next_steps;
 
  public:
-  // give me a new program N steps back ->
+  using runner_id_t = uint32_t;
 
-  program(std::unique_ptr<state> initial_state);
-
-  //
+  program(state &&initial_state, pending_transitions &&initial_first_steps);
 };
 //
 
