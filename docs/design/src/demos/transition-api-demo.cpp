@@ -144,13 +144,27 @@ struct dd_table {
   }
 
   template <typename T1, typename T2>
+  static void casting_function_reverse(transition* t1, transition* t2,
+                                       t_callback callback) {
+    auto well_defined_handle =
+        reinterpret_cast<function_callback<T1, T2>>(callback);
+    well_defined_handle(static_cast<T1*>(t2), static_cast<T2*>(t1));
+  }
+
+  template <typename T1, typename T2>
   void register_dd_entry(function_callback<T1, T2> callback) {
-    auto unspecified_function_handle =
+    auto unspecified_function_handle_forward =
         reinterpret_cast<stored_callback>(casting_function<T1, T2>);
+    auto unspecified_function_handle_reversed =
+        reinterpret_cast<stored_callback>(casting_function_reverse<T1, T2>);
     auto unspecified_callback_handle = reinterpret_cast<t_callback>(callback);
 
     _internal_table[std::type_index(typeid(T1))][std::type_index(typeid(T2))] =
-        std::make_pair(unspecified_function_handle,
+        std::make_pair(unspecified_function_handle_forward,
+                       unspecified_callback_handle);
+
+    _internal_table[std::type_index(typeid(T2))][std::type_index(typeid(T1))] =
+        std::make_pair(unspecified_function_handle_reversed,
                        unspecified_callback_handle);
   }
 
@@ -167,18 +181,29 @@ struct dd_table {
   }
 };
 
-class transitionSub3 {};
+class transitionSub3 : public transition {};
+
+static dd_table ddt;
+
+template <typename T1, typename T2>
+void add_example() {
+  ddt.register_dd_entry<T1, T2>(is_dependent<T1, T2>);
+}
 
 int main() {
-  dd_table ddt;
-
-  ddt.register_dd_entry<transitionSub1, transitionSub2>(
-      is_dependent<transitionSub1, transitionSub2>);
+  add_example<transitionSub1, transitionSub2>();
+  add_example<transitionSub1, transitionSub3>();
+  add_example<transitionSub2, transitionSub3>();
 
   transition* sub1 = new transitionSub1();
   transition* sub2 = new transitionSub2();
+  transition* sub3 = new transitionSub3();
 
   ddt.call(sub1, sub2);
+  ddt.call(sub2, sub1);
+  ddt.call(sub1, sub3);
+  ddt.call(sub3, sub1);
+  ddt.call(sub2, sub3);
   // double_dispatch_table[std::type_index(typeid(transitionSub1))]
   //                      [std::type_index(typeid(transitionSub2))] =
   //                          reinterpret_cast<void (*)(transition*,
