@@ -1,8 +1,11 @@
 #include <dlfcn.h>
 
+#include <functional>
 #include <iostream>
 #include <memory>
+#include <typeindex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 // -----------------------------------------------------------------------------
@@ -100,65 +103,152 @@ void serializeInto<transitionSub2>(transitionSub2* subtype, std::ostream& os) {
   // Specific serialization logic for transitionSub2
 }
 
+typedef void (*function_type)(transition*, transition*);
+
+static std::unordered_map<std::type_index,
+                          std::unordered_map<std::type_index, function_type>>
+    double_dispatch_table;
+
+template <typename T1, typename T2>
+void is_dependent(T1* t1, T2* t2) {
+  std::cout << "Hello world!!! " << typeid(T1).name() << " "
+            << typeid(T2).name() << std::endl;
+}
+
 #include "type-id.hpp"
 
 extern "C" bool my_shared_k(const std::type_info& ti);
 extern "C" bool my_func(type_id_t q);
 
-int main() {
-  std::vector<void (*)(transition*, std::ostream&)> functions;
+struct dd_table {
+ public:
+  using t_callback = void (*)(transition*, transition*);
+  using stored_callback = void (*)(transition*, transition*, t_callback);
 
-  // Storing function pointers
-  functions.push_back(reinterpret_cast<void (*)(transition*, std::ostream&)>(
-      serializeInto<transitionSub1>));
-  functions.push_back(reinterpret_cast<void (*)(transition*, std::ostream&)>(
-      serializeInto<transitionSub2>));
+ private:
+  std::unordered_map<std::type_index,
+                     std::unordered_map<std::type_index,
+                                        std::pair<stored_callback, t_callback>>>
+      _internal_table;
 
-  // Example usage
-  transitionSub1 sub1;
-  transitionSub2 sub2;
+ public:
+  template <typename T1, typename T2>
+  using function_callback = void (*)(T1*, T2*);
 
-  std::unordered_map<type_id_t, int> uom;
-
-  uom[type_id<int>()] = 1;
-  uom[type_id<bool>()] = 2;
-
-  for (const auto& e : uom) {
-    std::cout << " " << e.second << std::endl;
+  template <typename T1, typename T2>
+  static void casting_function(transition* t1, transition* t2,
+                               t_callback callback) {
+    auto well_defined_handle =
+        reinterpret_cast<function_callback<T1, T2>>(callback);
+    well_defined_handle(static_cast<T1*>(t1), static_cast<T2*>(t2));
   }
 
-  // std::vector<type_id_t> a;
+  template <typename T1, typename T2>
+  void register_dd_entry(function_callback<T1, T2> callback) {
+    auto unspecified_function_handle =
+        reinterpret_cast<stored_callback>(casting_function<T1, T2>);
+    auto unspecified_callback_handle = reinterpret_cast<t_callback>(callback);
 
-  int b = 0;
+    _internal_table[std::type_index(typeid(T1))][std::type_index(typeid(T2))] =
+        std::make_pair(unspecified_function_handle,
+                       unspecified_callback_handle);
+  }
 
-  mcmini_serialize_transition(&sub1, std::cout);
+  void call(transition* t1, transition* t2) {
+    auto t1_type = std::type_index(typeid(*t1));
+    auto t2_type = std::type_index(typeid(*t2));
+    if (_internal_table.count(t1_type) > 0) {
+      if (_internal_table[t1_type].count(t2_type) > 0) {
+        // Only works if we cast it back...
+        auto& pair = _internal_table[t1_type][t2_type];
+        pair.first(t1, t2, pair.second);
+      }
+    }
+  }
+};
 
-  functions[0](&sub1,
-               std::cout);  // Calls specialized function for transitionSub1
-  functions[1](&sub2,
-               std::cout);  // Calls specialized function for transitionSub2
+class transitionSub3 {};
 
-  auto handle = dlopen("./libmcmini.so", RTLD_NOW);
+int main() {
+  dd_table ddt;
 
-  std::cerr << dlerror() << std::endl;
+  ddt.register_dd_entry<transitionSub1, transitionSub2>(
+      is_dependent<transitionSub1, transitionSub2>);
 
-  std::cout << handle << std::endl;
+  transition* sub1 = new transitionSub1();
+  transition* sub2 = new transitionSub2();
 
-  auto sym = dlsym(handle, "my_func");
-  auto shared_k_handle = dlsym(handle, "my_shared_k");
+  ddt.call(sub1, sub2);
+  // double_dispatch_table[std::type_index(typeid(transitionSub1))]
+  //                      [std::type_index(typeid(transitionSub2))] =
+  //                          reinterpret_cast<void (*)(transition*,
+  //                          transition*)>(
+  //                              is_dependent<transitionSub1, transitionSub2>);
 
-  std::cerr << dlerror() << std::endl;
+  // std::cout << typeid(*sub1).hash_code() << "\n"
+  //           << typeid(transitionSub1).hash_code() << std::endl;
 
-  std::cout << "Sym: " << sym << std::endl;
+  // std::cout << double_dispatch_table.size() << std::endl;
 
-  auto actual = reinterpret_cast<bool (*)(type_id_t)>(sym);
-  auto actual_k =
-      reinterpret_cast<bool (*)(const std::type_info&)>(shared_k_handle);
+  // auto h = double_dispatch_table[std::type_index(typeid(*sub1))]
+  //                               [std::type_index(typeid(*sub2))];
 
-  std::cout << "Equal?:" << actual(type_id<int>()) << std::endl;
-  std::cout << "Equal?:" << actual_k(typeid(shared_k)) << std::endl;
+  // std::cout << h << std::endl;
 
-  dlclose(handle);
+  // std::exit(0);
 
-  return 0;
+  // std::vector<void (*)(transition*, std::ostream&)> functions;
+
+  // // Storing function pointers
+  // functions.push_back(reinterpret_cast<void (*)(transition*, std::ostream&)>(
+  //     serializeInto<transitionSub1>));
+  // functions.push_back(reinterpret_cast<void (*)(transition*, std::ostream&)>(
+  //     serializeInto<transitionSub2>));
+
+  // // Example usage
+  // transitionSub1 sub1;
+  // transitionSub2 sub2;
+
+  // std::unordered_map<type_id_t, int> uom;
+
+  // uom[type_id<int>()] = 1;
+  // uom[type_id<bool>()] = 2;
+
+  // for (const auto& e : uom) {
+  //   std::cout << " " << e.second << std::endl;
+  // }
+
+  // // std::vector<type_id_t> a;
+
+  // mcmini_serialize_transition(&sub1, std::cout);
+
+  // functions[0](&sub1,
+  //              std::cout);  // Calls specialized function for transitionSub1
+  // functions[1](&sub2,
+  //              std::cout);  // Calls specialized function for transitionSub2
+
+  // auto handle = dlopen("./libmcmini.so", RTLD_LAZY | RTLD_GLOBAL);
+
+  // std::cerr << dlerror() << std::endl;
+
+  // std::cout << handle << std::endl;
+
+  // auto sym = dlsym(handle, "my_func");
+  // auto shared_k_handle = dlsym(handle, "my_shared_k");
+
+  // std::cerr << dlerror() << std::endl;
+
+  // std::cout << "Sym: " << sym << std::endl;
+
+  // auto actual = reinterpret_cast<bool (*)(type_id_t)>(sym);
+  // auto actual_k =
+  //     reinterpret_cast<bool (*)(const std::type_info&)>(shared_k_handle);
+
+  // std::cout << "Equal template ?:" << actual(type_id<shared_k>()) <<
+  // std::endl; std::cout << "Equal with --dynamic-list-cpp-typeinfo/RTTI?:"
+  //           << actual_k(typeid(shared_k)) << std::endl;
+
+  // dlclose(handle);
+
+  // return 0;
 }
