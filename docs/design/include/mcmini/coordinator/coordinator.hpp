@@ -121,9 +121,7 @@ class coordinator {
   /**
    *
    */
-  model::visible_object::objid_t record_new_object(void *system_handle);
-
-  real_world::process::runner_id_t add_runner(runner *);
+  model::state::objid_t record_new_object(void *system_handle);
 };
 
 };  // namespace mcmini

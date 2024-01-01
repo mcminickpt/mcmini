@@ -102,8 +102,8 @@ class transition {
    * reached by the system after this transition fires.
    */
   virtual status modify(mutable_state& state) = 0;
-
   virtual std::string to_string() const = 0;
+  virtual ~transition();
 };
 
 // Each subclass must specialize the following two templates. The templates

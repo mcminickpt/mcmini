@@ -47,10 +47,9 @@ class state_sequence : public state {
     friend state_sequence;
 
    public:
-    virtual bool contains_object_with_id(
-        visible_object::objid_t id) const override;
+    virtual bool contains_object_with_id(objid_t id) const override;
     virtual const visible_object_state &get_state_of_object(
-        visible_object::objid_t) const override;
+        objid_t) const override;
     virtual std::unique_ptr<mutable_state> mutable_clone() const override;
   };
 
@@ -70,16 +69,14 @@ class state_sequence : public state {
   state_sequence(state &&);
   state_sequence(state_sequence &) = delete;
   state_sequence(state_sequence &&) = default;
-  state_sequence(std::vector<visible_object> &&);
-
+  state_sequence(std::vector<std::unique_ptr<visible_object_base>> &&);
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
 
   /* `state` overrrides */
-  virtual bool contains_object_with_id(
-      visible_object::objid_t id) const override;
+  virtual bool contains_object_with_id(state::objid_t id) const override;
   virtual const visible_object_state &get_state_of_object(
-      visible_object::objid_t) const override;
+      state::objid_t) const override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 
   /* Applying transitions */
@@ -91,11 +88,12 @@ class state_sequence : public state {
    *
    * @return whether the transition was enabled at the final state in the
    * sequence. If the transition was disabled there, a new state will _not_ be
-   * added to the sequence and a `disabled` status will be returned.
+   * added to the sequence and a `disabled` status will be returned. OTherwise,
+   * the transition is _defined_ at the final state and a new state `s'` is
+   * added to the end of the sequence.
    */
   transition::status follow(const transition &t);
 
- public:
   const state &state_at(size_t i) const {
     return this->states_in_sequence.at(i);
   }
@@ -122,7 +120,7 @@ class state_sequence : public state {
 
   // INVARIANT: Objects must only be added to the collection and are never
   // removed.
-  mcmini::append_only<visible_object> visible_objects;
+  mcmini::append_only<std::unique_ptr<visible_object_base>> visible_objects;
   mcmini::append_only<element> states_in_sequence;
 };
 

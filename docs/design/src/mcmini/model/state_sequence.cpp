@@ -14,26 +14,26 @@ state_sequence::state_sequence(state &s) {
 state_sequence::state_sequence(state &&s) {
   // TODO: Replace with iterator; this assumes that the state stores
   // ids sequentially!
-  visible_object::objid_t id = 0;
+  state::objid_t id = 0;
   while (s.contains_object_with_id(id)) {
     this->visible_objects.push_back(
         visible_object(s.get_state_of_object(id).clone()));
     id++;
   }
 }
-
-state_sequence::state_sequence(std::vector<visible_object> &&initial_objects)
+state_sequence::state_sequence(
+    std::vector<std::unique_ptr<visible_object_base>> &&initial_objects)
     : visible_objects(std::move(initial_objects)) {
   this->states_in_sequence.push_back(state_sequence::element(*this));
 }
 
-bool state_sequence::contains_object_with_id(visible_object::objid_t id) const {
+bool state_sequence::contains_object_with_id(state::objid_t id) const {
   return id < visible_objects.size();
 }
 
 const visible_object_state &state_sequence::get_state_of_object(
-    visible_object::objid_t id) const {
-  return *this->visible_objects.at(id).get_current_state();
+    state::objid_t id) const {
+  return *this->visible_objects.at(id)->get_base_state();
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
@@ -49,13 +49,12 @@ state_sequence::element::element(const state_sequence &owner) {
   }
 }
 
-bool state_sequence::element::contains_object_with_id(
-    visible_object::objid_t id) const {
+bool state_sequence::element::contains_object_with_id(state::objid_t id) const {
   return id < this->visible_object_states.size();
 }
 
 const visible_object_state &state_sequence::element::get_state_of_object(
-    visible_object::objid_t id) const {
+    state::objid_t id) const {
   return *this->visible_object_states.at(id);
 }
 

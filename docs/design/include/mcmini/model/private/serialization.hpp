@@ -27,8 +27,9 @@ class serializer<
     // argument but we need to think about it (i.e. whether the singleton
     // pattern is appropriate here)
     int specific_id_for_subtype = 10;
-    os << specific_id_for_subtype;
+    os << typeid(*T).hash_code();
     serializeInto(subtype, os);
+
     // Do other work here
 
     // Flush the stream e.g. (ensure the write actually is carried out)

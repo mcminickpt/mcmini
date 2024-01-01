@@ -14,7 +14,7 @@ namespace mcmini::model {
  */
 class detached_state : public mutable_state {
  private:
-  mcmini::append_only<visible_object> visible_objects;
+  mcmini::append_only<std::unique_ptr<visible_object_base>> visible_objects;
 
  public:
   detached_state() = default;
@@ -24,14 +24,13 @@ class detached_state : public mutable_state {
   detached_state &operator=(detached_state &&) = default;
 
   /* `state` overrrides */
-  virtual bool contains_object_with_id(
-      visible_object::objid_t id) const override;
-  virtual visible_object::objid_t track_new_visible_object(
+  virtual bool contains_object_with_id(state::objid_t id) const override;
+  virtual state::objid_t track_new_visible_object(
       std::unique_ptr<visible_object_state>) override;
   virtual void record_new_state_for_visible_object(
-      visible_object::objid_t, std::unique_ptr<visible_object_state>) override;
+      state::objid_t, std::unique_ptr<visible_object_state>) override;
   virtual const visible_object_state &get_state_of_object(
-      visible_object::objid_t) const override;
+      state::objid_t) const override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 
