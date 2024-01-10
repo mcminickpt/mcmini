@@ -15,8 +15,7 @@ state_sequence::state_sequence(const state &&state) {
   // Iterate through all the objects. We need to attach
 }
 
-state_sequence::state_sequence(
-    std::vector<std::unique_ptr<some_visible_object>> &&initial_objects)
+state_sequence::state_sequence(std::vector<visible_object> &&initial_objects)
     : visible_objects(std::move(initial_objects)) {
   this->states_in_sequence.push_back(state_sequence::element(*this));
 }
@@ -27,7 +26,7 @@ bool state_sequence::contains_object_with_id(state::objid_t id) const {
 
 const visible_object_state *state_sequence::get_state_of_object(
     objid_t id) const {
-  return this->visible_objects.at(id)->get_base_state();
+  return this->visible_objects.at(id).get_current_state();
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
@@ -42,7 +41,7 @@ state_sequence state_sequence::consume_into_subsequence(size_t index) && {
 
 state_sequence::element::element(const state_sequence &owner) {
   for (const auto &obj : owner.visible_objects) {
-    this->visible_object_states.push_back(obj->get_base_state());
+    this->visible_object_states.push_back(obj.get_current_state());
   }
 }
 

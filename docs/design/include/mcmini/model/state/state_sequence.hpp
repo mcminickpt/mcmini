@@ -70,7 +70,7 @@ class state_sequence : public state {
 
   // INVARIANT: Objects must only be added to the collection and are never
   // removed.
-  mcmini::append_only<std::unique_ptr<some_visible_object>> visible_objects;
+  mcmini::append_only<visible_object> visible_objects;
   mcmini::append_only<element> states_in_sequence;
 
  public:
@@ -78,7 +78,7 @@ class state_sequence : public state {
   state_sequence(const state &&);
   state_sequence(state_sequence &) = delete;
   state_sequence(state_sequence &&) = default;
-  state_sequence(std::vector<std::unique_ptr<some_visible_object>> &&);
+  state_sequence(std::vector<visible_object> &&);
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
 

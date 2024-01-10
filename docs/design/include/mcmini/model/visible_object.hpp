@@ -7,17 +7,6 @@
 
 namespace mcmini::model {
 
-/// @brief A reference to a visible object, but whose contents are
-/// otherwise unknown (serves as a form of type erasure)
-class some_visible_object {
- public:
-  /* Prevent construction of the base class directly */
-  some_visible_object() = delete;
-  virtual ~some_visible_object();
-  virtual const visible_object_state *get_base_state() const = 0;
-  virtual std::unique_ptr<some_visible_object> clone() const = 0;
-};
-
 /**
  * @brief A placeholder which represents a snapshot of an object with which
  * multiple threads interact to communicate in a program.
@@ -35,15 +24,15 @@ class some_visible_object {
  * A visible object is represented by its most recent state. Two visible objects
  * are considered _equal_ iff their current states are equal to one another.
  */
-template <typename state_type>
-class visible_object final : public some_visible_object {
+class visible_object final {
  private:
-  std::vector<std::unique_ptr<const state_type>> history;
+  std::vector<std::unique_ptr<const visible_object_state>> history;
 
   /**
    *@brief Construct a visible object with the given history _history_.
    */
-  visible_object(std::vector<std::unique_ptr<const state_type>> history)
+  visible_object(
+      std::vector<std::unique_ptr<const visible_object_state>> history)
       : history(std::move(history)) {}
 
   visible_object(const visible_object &other, size_t num_states) {
@@ -59,31 +48,23 @@ class visible_object final : public some_visible_object {
    *get
    * @param initial_state the initial state of the object.
    */
-  visible_object(std::unique_ptr<const state_type> initial_state) {
+  visible_object(std::unique_ptr<const visible_object_state> initial_state) {
     push_state(std::move(initial_state));
   }
-  visible_object(const visible_object<state_type> &other) {
-    *this = std::move(other.clone());
-  }
-  visible_object &operator=(const visible_object<state_type> &other) {
-    return *this = std::move(other.clone());
-  }
-  bool operator==(const visible_object<state_type> &obj) {
-    return *get_current_state() == *obj.get_current_state();
+  visible_object(const visible_object &other) { *this = *other.clone(); }
+  visible_object &operator=(const visible_object &other) {
+    return *this = *other.clone();
   }
 
  public:
   size_t get_num_states() const { return history.size(); }
-  const state_type *state_at(size_t i) const {
+  const visible_object_state *state_at(size_t i) const {
     return this->history.at(i).get();
   }
-  const state_type *get_current_state() const {
+  const visible_object_state *get_current_state() const {
     return this->history.back().get();
   }
-  const visible_object_state *get_base_state() const override {
-    return get_current_state();
-  }
-  void push_state(std::unique_ptr<const state_type> s) {
+  void push_state(std::unique_ptr<const visible_object_state> s) {
     history.push_back(std::move(s));
   }
   /**
@@ -96,7 +77,8 @@ class visible_object final : public some_visible_object {
    * the first `num_states` states.
    */
   visible_object slice(size_t num_states) const {
-    auto sliced_states = std::vector<std::unique_ptr<const state_type>>();
+    auto sliced_states =
+        std::vector<std::unique_ptr<const visible_object_state>>();
     sliced_states.reserve(num_states);
     for (int j = 0; j < num_states; j++) {
       sliced_states.push_back(
@@ -104,9 +86,8 @@ class visible_object final : public some_visible_object {
     }
     return visible_object(std::move(sliced_states));
   }
-  std::unique_ptr<some_visible_object> clone() const override {
-    return mcmini::extensions::make_unique<visible_object>(*this,
-                                                           get_num_states());
+  std::unique_ptr<visible_object> clone() const {
+    return mcmini::extensions::make_unique<visible_object>(*this);
   }
 };
 }  // namespace mcmini::model

@@ -54,35 +54,22 @@ class mutable_state : public state {
   /**
    * @brief Begin tracking a new visible object _obj_ to this state.
    *
-   * @param obj the object to begin tracking in this state.
+   * @param initial_state the initial state of the object
    * @return the new id that is assigned to the object. This id is unique from
    * every other id assigned to the objects in this state.
    */
   virtual objid_t track_new_visible_object(
-      std::unique_ptr<some_visible_object> obj) = 0;
-
-  virtual some_visible_object *get_mutable_object_with_id(objid_t id) const = 0;
+      std::unique_ptr<visible_object_state> initial_state) = 0;
 
   /**
    * @brief Adds the given state _state_ for the object with id _id_.
-   *
-   * Creators of mutable state need to know the contents.
    *
    * @note: If the object with id `id` is _not_ a visible object tracking states
    * of type `visible_object_state_type`, the behavior of this function is
    * undefined.
    */
-  template <typename visible_object_state_type>
-  void record_new_state_for_visible_object(
-      objid_t id, std::unique_ptr<visible_object_state_type> new_state) {
-    asserts::assert_condition(
-        contains_object_with_id(id),
-        "The object must already tracked in order to add a new state");
-    auto *assumed_object_type =
-        static_cast<visible_object<visible_object_state_type> *>(
-            get_mutable_object_with_id(id));
-    assumed_object_type.push_state(std::move(new_state));
-  }
+  virtual void record_new_state_for_visible_object(
+      objid_t id, std::unique_ptr<visible_object_state> new_state) = 0;
 
   /**
    * @brief Creates a copy of the given state.
