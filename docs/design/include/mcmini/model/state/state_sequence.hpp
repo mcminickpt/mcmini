@@ -48,8 +48,8 @@ class state_sequence : public state {
 
    public:
     virtual bool contains_object_with_id(objid_t id) const override;
-    virtual const visible_object_state &get_state_of_object(
-        objid_t) const override;
+    virtual const visible_object_state *get_state_of_object(
+        objid_t id) const override;
     virtual std::unique_ptr<mutable_state> mutable_clone() const override;
   };
 
@@ -64,19 +64,28 @@ class state_sequence : public state {
    */
   void consume_diff(diff_state &&);
 
+  // INVARIANT: As new states are added to the visible objects in the
+  // mapping, new state views are also added with the appropriate object states
+  // replaced.
+
+  // INVARIANT: Objects must only be added to the collection and are never
+  // removed.
+  mcmini::append_only<std::unique_ptr<some_visible_object>> visible_objects;
+  mcmini::append_only<element> states_in_sequence;
+
  public:
-  state_sequence(state &);
-  state_sequence(state &&);
+  state_sequence(const state &);
+  state_sequence(const state &&);
   state_sequence(state_sequence &) = delete;
   state_sequence(state_sequence &&) = default;
-  state_sequence(std::vector<std::unique_ptr<visible_object_base>> &&);
+  state_sequence(std::vector<std::unique_ptr<some_visible_object>> &&);
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
 
   /* `state` overrrides */
   virtual bool contains_object_with_id(state::objid_t id) const override;
-  virtual const visible_object_state &get_state_of_object(
-      state::objid_t) const override;
+  virtual const visible_object_state *get_state_of_object(
+      objid_t id) const override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 
   /* Applying transitions */
@@ -102,26 +111,17 @@ class state_sequence : public state {
    * @brief Moves the contents from index 0 to index _index_ (inclusive) of this
    * sequence produce a the sequence formed by entries 0-index.
    *
-   * Any `state_view` objects which were vended by the sequence via the function
+   * Any `state` references which were vended by the sequence via the function
    * `state_sequence::state_at()` which point to indices past _index_ are no
    * longer valid after the sequence is consumed. All other views into the
-   * sequence are valid;
+   * sequence remain valid.
    *
    * @param index the last index that should be contained in the returned
    * subsequence.
-   * @return the resulting subsequence. The subsequence is identical
+   * @return the resulting subsequence. The subsequence is identical to this
+   * sequence up to index `index`
    */
   state_sequence consume_into_subsequence(size_t index) &&;
-
- private:
-  // INVARIANT: As new states are added to the visible objects in the
-  // mapping, new state views are also added with the appropriate object states
-  // replaced.
-
-  // INVARIANT: Objects must only be added to the collection and are never
-  // removed.
-  mcmini::append_only<std::unique_ptr<visible_object_base>> visible_objects;
-  mcmini::append_only<element> states_in_sequence;
 };
 
 }  // namespace mcmini::model

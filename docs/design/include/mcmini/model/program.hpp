@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/state/state_sequence.hpp"
 #include "mcmini/model/transitions/transition_sequence.hpp"
@@ -43,7 +45,7 @@ namespace mcmini::model {
  */
 class program {
  private:
-  state_sequence states;
+  state_sequence state_seq;
   transition_sequence trace;
   pending_transitions next_steps;
 
@@ -51,6 +53,43 @@ class program {
   using runner_id_t = uint32_t;
 
   program(state &&initial_state, pending_transitions &&initial_first_steps);
+  program(const program &) = delete;
+
+  const state_sequence &get_state_sequence() const { return this->state_seq; }
+  const transition_sequence &get_trace() const { return this->trace; }
+
+  /**
+   * @brief Returns a list of runners which are currently enabled.
+   */
+  std::unordered_set<runner_id_t> get_enabled_runners() const {
+    std::unordered_set<runner_id_t> enabled_runners;
+    for (const auto &runner_and_t : this->next_steps) {
+      if (runner_and_t.second->is_enabled_in(state_seq)) {
+        enabled_runners.insert(runner_and_t.first);
+      }
+    }
+    return enabled_runners;
+  }
+
+  /**
+   * @brief Returns a list of transitions that are both defined in this
+   * state and enabled in this state.
+   */
+  void execute_runner(runner_id_t p,
+                      std::unique_ptr<transition> new_transition) {
+    const transition *next_s_p = next_steps.get_transition_for_runner(p);
+
+    if (next_s_p) {
+      this->state_seq.follow(*next_s_p);
+      this->next_steps.displace_transition_for(p, std::move(new_transition));
+    } else {
+      // TODO: Handle the case where `p` doesn't exist. Perhaps this function
+      // should return a `mcmini::result<>` type.
+      throw std::runtime_error(
+          "Attempted to execute a runner whose transition was not currently "
+          "enabled");
+    }
+  }
 };
 //
 

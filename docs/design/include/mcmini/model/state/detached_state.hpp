@@ -3,6 +3,7 @@
 #include "mcmini/misc/append-only.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state.hpp"
+#include "mcmini/model/visible_object.hpp"
 
 namespace mcmini::model {
 
@@ -14,7 +15,7 @@ namespace mcmini::model {
  */
 class detached_state : public mutable_state {
  private:
-  mcmini::append_only<std::unique_ptr<visible_object_base>> visible_objects;
+  mcmini::append_only<std::unique_ptr<some_visible_object>> visible_objects;
 
  public:
   detached_state() = default;
@@ -24,13 +25,13 @@ class detached_state : public mutable_state {
   detached_state &operator=(detached_state &&) = default;
 
   /* `state` overrrides */
-  virtual bool contains_object_with_id(state::objid_t id) const override;
-  virtual state::objid_t track_new_visible_object(
-      std::unique_ptr<visible_object_state>) override;
-  virtual void record_new_state_for_visible_object(
-      state::objid_t, std::unique_ptr<visible_object_state>) override;
-  virtual const visible_object_state &get_state_of_object(
-      state::objid_t) const override;
+  virtual bool contains_object_with_id(objid_t id) const override;
+  virtual const visible_object_state *get_state_of_object(
+      objid_t id) const override;
+  virtual objid_t track_new_visible_object(
+      std::unique_ptr<some_visible_object> obj) override;
+  virtual some_visible_object *get_mutable_object_with_id(
+      objid_t id) const override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 

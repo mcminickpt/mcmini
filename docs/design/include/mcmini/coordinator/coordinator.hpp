@@ -77,7 +77,7 @@ namespace mcmini {
  */
 class coordinator {
  private:
-  model::program current_modeled_state;
+  model::program current_program_model;
   std::unique_ptr<real_world::process> current_process_handle;
   std::unique_ptr<real_world::process_source> process_source;
 
@@ -104,8 +104,8 @@ class coordinator {
               std::unique_ptr<real_world::process_source> &&process_source);
   ~coordinator() = default;
 
-  const model::program &get_current_modeled_state() const {
-    return this->current_modeled_state;
+  const model::program &get_current_program_model() const {
+    return this->current_program_model;
   }
 
   /**

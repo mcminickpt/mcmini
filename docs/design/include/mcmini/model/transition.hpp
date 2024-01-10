@@ -70,7 +70,7 @@ class transition {
    * were applied to state _s_ if such a transition is defined at _s_, and
    * otherwise the empty optional.
    */
-  mcmini::optional<std::unique_ptr<state>> apply_to(const state& s) {
+  mcmini::optional<std::unique_ptr<state>> apply_to(const state& s) const {
     std::unique_ptr<mutable_state> s_prime = s.mutable_clone();
     return modify(*s_prime) == status::exists
                ? mcmini::optional<std::unique_ptr<state>>(std::move(s_prime))
@@ -78,14 +78,22 @@ class transition {
   }
 
   /**
+   * @brief Whether the transition is defined in the given state.
+   *
+   * @param s the state to determine if this transition is enabled.
+   */
+  bool is_enabled_in(const state& s) const { return apply_to(s).has_value(); }
+
+  /**
    * @brief A result of a modification to a state.
    *
-   * There are two possible outcomes attempting to apply a transition function:
+   * There are two possible outcomes attempting to apply a transition
+   * function:
    *
-   * 1. Either the transition _exists_ at this state and is thus defined at the
-   * given state.
-   * 2. Or else the transition is _not_ defined as this state and the transition
-   * is disabled.
+   * 1. Either the transition _exists_ at this state and is thus defined at
+   * the given state.
+   * 2. Or else the transition is _not_ defined as this state and the
+   * transition is disabled.
    */
   enum class status { exists, disabled };
 
@@ -101,7 +109,7 @@ class transition {
    * undefined; otherwise, the object `state` will represent the new state `s'`
    * reached by the system after this transition fires.
    */
-  virtual status modify(mutable_state& state) = 0;
+  virtual status modify(mutable_state& state) const = 0;
   virtual std::string to_string() const = 0;
   virtual ~transition();
 };

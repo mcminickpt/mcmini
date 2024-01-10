@@ -6,23 +6,17 @@
 
 using namespace mcmini::model;
 
-state_sequence::state_sequence(state &s) {
-  // TODO: Replace with iterator!
-  // Same implementation as below
+state_sequence::state_sequence(const state &initial_state) {
+  // Iterate through all the objects and their states to make a clone
+  // Potentially allow for a move iterator to be constructed.
 }
 
-state_sequence::state_sequence(state &&s) {
-  // TODO: Replace with iterator; this assumes that the state stores
-  // ids sequentially!
-  state::objid_t id = 0;
-  while (s.contains_object_with_id(id)) {
-    this->visible_objects.push_back(
-        visible_object(s.get_state_of_object(id).clone()));
-    id++;
-  }
+state_sequence::state_sequence(const state &&state) {
+  // Iterate through all the objects. We need to attach
 }
+
 state_sequence::state_sequence(
-    std::vector<std::unique_ptr<visible_object_base>> &&initial_objects)
+    std::vector<std::unique_ptr<some_visible_object>> &&initial_objects)
     : visible_objects(std::move(initial_objects)) {
   this->states_in_sequence.push_back(state_sequence::element(*this));
 }
@@ -31,9 +25,9 @@ bool state_sequence::contains_object_with_id(state::objid_t id) const {
   return id < visible_objects.size();
 }
 
-const visible_object_state &state_sequence::get_state_of_object(
-    state::objid_t id) const {
-  return *this->visible_objects.at(id)->get_base_state();
+const visible_object_state *state_sequence::get_state_of_object(
+    objid_t id) const {
+  return this->visible_objects.at(id)->get_base_state();
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
@@ -41,11 +35,14 @@ std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
       this->visible_objects.cbegin(), this->visible_objects.cend());
 }
 
-state_sequence state_sequence::consume_into_subsequence(size_t index) && {}
+state_sequence state_sequence::consume_into_subsequence(size_t index) && {
+  // TODO: Implementation here. The subsequence should look exactly the same
+  // as this subsequence up to index `index`.
+}
 
 state_sequence::element::element(const state_sequence &owner) {
-  for (const visible_object &obj : owner.visible_objects) {
-    this->visible_object_states.push_back(obj.get_current_state());
+  for (const auto &obj : owner.visible_objects) {
+    this->visible_object_states.push_back(obj->get_base_state());
   }
 }
 
@@ -53,9 +50,9 @@ bool state_sequence::element::contains_object_with_id(state::objid_t id) const {
   return id < this->visible_object_states.size();
 }
 
-const visible_object_state &state_sequence::element::get_state_of_object(
+const visible_object_state *state_sequence::element::get_state_of_object(
     state::objid_t id) const {
-  return *this->visible_object_states.at(id);
+  return this->visible_object_states.at(id);
 }
 
 std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {

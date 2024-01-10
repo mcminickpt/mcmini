@@ -4,7 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "../demos/type-id.hpp"
+#define MCMINI_EXPORT __attribute__((visibility(default)))
 
 extern "C" __attribute__((constructor)) void my_ctor() {
   // Do something here
@@ -13,12 +13,4 @@ extern "C" __attribute__((constructor)) void my_ctor() {
 
   ((char *)buf)[9] = 0;
   write(1, buf, 10);
-}
-
-extern "C" VISIBLE bool my_func(type_id_t id) {
-  return id == type_id<shared_k>();
-}
-
-extern "C" VISIBLE bool my_shared_k(std::type_info &info) {
-  return info == typeid(shared_k);
 }

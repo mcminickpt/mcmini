@@ -7,14 +7,15 @@
 
 namespace mcmini::model {
 
-/// @brief A reference to _some_ visible object, but whose contents are
-/// otherwise unknown
-class visible_object_base {
+/// @brief A reference to a visible object, but whose contents are
+/// otherwise unknown (serves as a form of type erasure)
+class some_visible_object {
  public:
   /* Prevent construction of the base class directly */
-  visible_object_base() = delete;
-  virtual ~visible_object_base();
+  some_visible_object() = delete;
+  virtual ~some_visible_object();
   virtual const visible_object_state *get_base_state() const = 0;
+  virtual std::unique_ptr<some_visible_object> clone() const = 0;
 };
 
 /**
@@ -35,7 +36,7 @@ class visible_object_base {
  * are considered _equal_ iff their current states are equal to one another.
  */
 template <typename state_type>
-class visible_object final : public visible_object_base {
+class visible_object final : public some_visible_object {
  private:
   std::vector<std::unique_ptr<const state_type>> history;
 
@@ -44,6 +45,10 @@ class visible_object final : public visible_object_base {
    */
   visible_object(std::vector<std::unique_ptr<const state_type>> history)
       : history(std::move(history)) {}
+
+  visible_object(const visible_object &other, size_t num_states) {
+    *this = other.slice(num_states);
+  }
 
  public:
   visible_object(visible_object &&) = default;
@@ -99,6 +104,9 @@ class visible_object final : public visible_object_base {
     }
     return visible_object(std::move(sliced_states));
   }
-  visible_object clone() const { return slice(get_num_states()); }
+  std::unique_ptr<some_visible_object> clone() const override {
+    return mcmini::extensions::make_unique<visible_object>(*this,
+                                                           get_num_states());
+  }
 };
 }  // namespace mcmini::model
