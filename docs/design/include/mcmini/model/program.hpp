@@ -53,6 +53,7 @@ class program {
   using runner_id_t = uint32_t;
 
   program(state &&initial_state, pending_transitions &&initial_first_steps);
+  program(program &&) = default;
   program(const program &) = delete;
 
   const state_sequence &get_state_sequence() const { return this->state_seq; }

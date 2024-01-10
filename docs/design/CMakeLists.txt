@@ -27,6 +27,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/program.cpp
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
+  src/mcmini/real_world/fork_process_source.cpp
 )
 set(LIBMCMINI_C_SRC )
 set(LIBMCMINI_CPP_SRC
