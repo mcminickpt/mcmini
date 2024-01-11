@@ -7,10 +7,10 @@
 #define MCMINI_EXPORT __attribute__((visibility(default)))
 
 extern "C" __attribute__((constructor)) void my_ctor() {
-  // Do something here
+  // Do something here with the constructor (e.g. dlsym preparation)
   void *buf = malloc(10 * sizeof(char));
-  memset(buf, 0x31, 10 * sizeof(char));
+  memset(buf, (int)('A'), 10 * sizeof(char));
 
   ((char *)buf)[9] = 0;
-  write(1, buf, 10);
+  write(STDERR_FILENO, buf, 10);
 }

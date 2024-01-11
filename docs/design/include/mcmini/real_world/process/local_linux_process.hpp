@@ -1,5 +1,9 @@
 #pragma once
 
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include "mcmini/real_world/process.hpp"
 
 namespace mcmini::real_world {
@@ -16,6 +20,11 @@ class local_linux_process : public process {
   pid_t pid;
 
  public:
-  void execute_thread(tid_t tid) override;
+  local_linux_process() = default;
+  ~local_linux_process() {
+    kill(pid, SIGUSR1); /* TODO: React to errors here */
+    waitpid(pid, NULL, 0);
+  }
+  local_linux_process(pid_t pid) : pid(pid) {}
 };
 }  // namespace mcmini::real_world
