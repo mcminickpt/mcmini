@@ -17,3 +17,12 @@ void coordinator::execute_runner(runner::runner_id_t runner_id) {
   // this->current_program_model.execute_runner(runner_id,);
   /* What's the new transition? */
 }
+
+model::state::objid_t
+coordinator::callback_context::record_new_object_association(
+    void *remote_process_visible_object_handle,
+    std::unique_ptr<mcmini::model::visible_object_state> initial_state) {
+  // TODO: Create a new object through the coordinator and then map handle
+  // `remote_process_visible_object_handle` to the newly-created object.
+  return 0;
+}

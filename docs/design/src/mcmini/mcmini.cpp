@@ -1,6 +1,7 @@
 #include "mcmini/mcmini.hpp"
 
 #include "mcmini/coordinator/coordinator.hpp"
+#include "mcmini/detail/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
@@ -98,4 +99,31 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   std::cerr << "Model checking completed!" << std::endl;
 }
 
-int main(int argc, char **argv) { do_model_checking(); }
+struct Base {
+ public:
+  virtual ~Base() = default;
+};
+struct Test : public Base {
+  void greater_than(Test *) { std::cerr << "Yello" << std::endl; }
+};
+
+struct Test2 : public Test {
+  void foo(Test *) { std::cerr << "Yello from test2" << std::endl; }
+};
+
+int main(int argc, char **argv) {
+  do_model_checking();
+
+  Test t1;
+  Test t2;
+  Test2 t22;
+
+  mcmini::detail::double_dispatch_member_function_table<Base> ddt;
+
+  ddt.register_dd_entry(&Test::greater_than);
+  ddt.register_dd_entry(&Test2::foo);
+
+  ddt.call(&t1, &t2);
+
+  ddt.call(&t22, &t2);
+}

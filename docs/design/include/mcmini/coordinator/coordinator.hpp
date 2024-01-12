@@ -76,11 +76,6 @@ namespace mcmini {
  * aforementioned synchronization.
  */
 class coordinator {
- private:
-  model::program current_program_model;
-  std::unique_ptr<real_world::process> current_process_handle;
-  std::unique_ptr<real_world::process_source> process_source;
-
  public:
   /**
    * @brief Constructs a new coordinator which synchronizes processes.
@@ -103,6 +98,46 @@ class coordinator {
   coordinator(model::program &&initial_state,
               std::unique_ptr<real_world::process_source> &&process_source);
   ~coordinator() = default;
+
+  struct callback_context final {
+   private:
+    coordinator &_coordinator;
+
+    /*
+     * Prevent external construction (only the coordinator can construct
+     * instances of this class)
+     */
+
+    callback_context(coordinator &coordinator) = delete;
+    friend coordinator;
+
+   public:
+    /* Prevent external construction */
+    callback_context() = delete;
+
+    /**
+     * @brief Record the presence of a new visible object that is represented
+     * with the system id `system_handle`.
+     *
+     * @param remote_process_visible_object_handle the address containing the
+     * data for the new visible object across process handles of the
+     *
+     * TODO: Handles are assumed to remain valid _across process source
+     * invocations_. In the future we could support the ability to _remap_
+     * process handles dynamically during each new re-execution scheduled by the
+     * coordinator to handle aliasing etc.
+     *
+     * TODO: The handle could be _any_ value that is used in the multi-threaded
+     * program. For now, we restrict it to addresses.
+     *
+     * TODO: This should probably have a `result` as a return type. If the
+     * handle is already mapped, how we should deal with this situation is a bit
+     * unclear.
+     */
+    model::state::objid_t record_new_object_association(
+        void *remote_process_visible_object_handle,
+        std::unique_ptr<mcmini::model::visible_object_state> initial_state);
+  };
 
   const model::program &get_current_program_model() const {
     return this->current_program_model;
@@ -159,13 +194,13 @@ class coordinator {
    */
   void execute_runner(runner::runner_id_t);
 
-  /**
-   * TODO: Isolate this part of the coordinator from the model checker. This
-   * method shouldn't be exposed on that side.
+ private:
+  model::program current_program_model;
+  std::unique_ptr<real_world::process> current_process_handle;
+  std::unique_ptr<real_world::process_source> process_source;
+
+  /* Allow modifications through the `callback_context` (implementation detail)
    */
-  model::state::objid_t record_new_object_association(
-      void *system_handle,
-      std::unique_ptr<mcmini::model::visible_object_state> initial_state);
 };
 
 };  // namespace mcmini

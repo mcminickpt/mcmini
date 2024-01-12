@@ -19,6 +19,10 @@ class local_linux_process : public process {
  private:
   pid_t pid;
 
+  // TODO: Just add the shared memory portion here for now and figure out the
+  // "runner" bit later... Each local linux process will share the same static
+  // memory region
+
  public:
   local_linux_process() = default;
   ~local_linux_process() {

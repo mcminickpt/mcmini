@@ -30,9 +30,6 @@ struct process {
   using runner_id_t = uint32_t;
   std::unordered_map<runner_id_t, std::unique_ptr<runner>> runners;
 
-  // TODO: Just add the shared memory portion here for now and figure out the
-  // "runner" bit later...
-
  public:
   virtual ~process() = default;
 
