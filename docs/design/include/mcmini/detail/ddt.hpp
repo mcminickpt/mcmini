@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
@@ -83,10 +84,6 @@ struct double_dispatch_member_function_table {
                        unspecified_callback_handle);
   }
 
-  /**
-   * @brief Invoke the function
-   *
-   */
   void call(InterfaceType* t1, InterfaceType* t2) {
     auto t1_type = std::type_index(typeid(*t1));
     auto t2_type = std::type_index(typeid(*t2));
