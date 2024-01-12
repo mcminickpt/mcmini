@@ -11,3 +11,9 @@ coordinator::coordinator(
   // need to do this when we actual ask the coordinator to do anything.
   this->current_process_handle = this->process_source->make_new_process();
 }
+
+void coordinator::execute_runner(runner::runner_id_t runner_id) {
+  // this->current_process_handle->execute_runner(runner_id);
+  // this->current_program_model.execute_runner(runner_id,);
+  /* What's the new transition? */
+}

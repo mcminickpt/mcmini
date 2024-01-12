@@ -109,19 +109,63 @@ class coordinator {
   }
 
   /**
+   * @brief Returns the number of steps into the program the coordinator has
+   * directed programs.
    *
+   * The depth into the program is the number of transitions which have been
+   * executed by the coordinator.
    */
-  uint32_t get_depth_into_program() const;
+  uint32_t get_depth_into_program() const {
+    return current_program_model.get_trace().count();
+  }
 
   /**
+   * @brief Return execution to correspond to the world as it looked the given
+   * number of steps into execution.
+   *
+   * The coordinator can be scheduled to restore the model and the external
+   * world to correspond to how it looked in the past. This is useful for model
+   * checkers that want to.
+   *
+   * The method has no effect if `n == get_depth_into_program()`.
+   *
+   * @throws an exception is raised if the step `n` r
    *
    */
-  void go_to_nth_step(uint32_t n);
+  void return_to_depth(uint32_t n);
 
   /**
+   * @brief Coordinate the execution of the runner with the given id in both the
+   * model and the external world.
+   *
+   * When the coordinator is scheduled to execute a runner, the following
+   * sequence of events take place:
+   *
+   * 1. the next transition `t_runner` that McMini has modeled for the runner to
+   * execute is applied to the coordinator's model (`current_program_model`).
+   * The resulting state is added to the state sequence `S` and the transition
+   * `t_runner` is recorded by the program model.
+   * 2. the handle to the currently live process is scheduled to execute the
+   * runner with the corresponding id. The process's write handle is written
+   * into using the appropriate serialization function registered at runtime for
+   * the transition.
+   * 3. after the process has completed execution, the coordinate reads from the
+   * process' read handle and invokes the appropriate deserialization function.
+   *
+   * The coordinator passes itself as part of the deserialization and
+   * serialization processes. During the deserialization phase, new objects may
+   * be discovered in the state resulting
    *
    */
-  model::state::objid_t record_new_object(void *system_handle);
+  void execute_runner(runner::runner_id_t);
+
+  /**
+   * TODO: Isolate this part of the coordinator from the model checker. This
+   * method shouldn't be exposed on that side.
+   */
+  model::state::objid_t record_new_object_association(
+      void *system_handle,
+      std::unique_ptr<mcmini::model::visible_object_state> initial_state);
 };
 
 };  // namespace mcmini

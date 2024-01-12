@@ -26,6 +26,7 @@ class process_source {
    * to tell us what the issue was and would make for better error outputs.
    */
   virtual std::unique_ptr<process> make_new_process() = 0;
+  virtual ~process_source() = default;
 };
 
 }  // namespace mcmini::real_world

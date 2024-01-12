@@ -31,14 +31,18 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
     // program
     char* args[] = {const_cast<char*>(this->target_program.c_str()), NULL};
 
-    std::cerr << "About to exec with libmcmini.so loaded!" << std::endl;
+    std::cerr << "About to exec with libmcmini.so loaded! Attempting to run "
+              << this->target_program.c_str() << " " << target_program
+              << std::endl;
     execvp(this->target_program.c_str(), args);
 
     // TODO: Handle exevp error here ->
+    perror("execvp");
+    exit(EXIT_FAILURE);
   }
 
   // TODO: Handle execvp failing in the fork()-ed child..
   // if failed --> return nullptr
 
-  return mcmini::extensions::make_unique<local_linux_process>();
+  return mcmini::extensions::make_unique<local_linux_process>(child_pid);
 }

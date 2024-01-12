@@ -1,5 +1,7 @@
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 
+#include <unistd.h>
+
 #include <iostream>
 #include <stack>
 #include <unordered_set>

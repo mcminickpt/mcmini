@@ -22,9 +22,18 @@ class local_linux_process : public process {
  public:
   local_linux_process() = default;
   ~local_linux_process() {
+    std::cerr << "Killing process??" << std::endl;
+    if (pid <= 0) {
+      return;
+    }
+    std::cerr << "Killing process" << std::endl;
     kill(pid, SIGUSR1); /* TODO: React to errors here */
     waitpid(pid, NULL, 0);
   }
   local_linux_process(pid_t pid) : pid(pid) {}
+
+  void execute_runner(runner_id_t mcmini_runner_id) override {
+    /* TODO: sem_post + sem_wait pair */
+  }
 };
 }  // namespace mcmini::real_world

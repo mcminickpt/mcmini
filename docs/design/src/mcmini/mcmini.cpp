@@ -40,7 +40,7 @@ void do_model_checking(
   // beginning)
   auto process_source =
       mcmini::extensions::make_unique<mcmini::real_world::fork_process_source>(
-          "ls");
+          "demo");
 
   mcmini::coordinator coordinator(std::move(model_for_program_starting_at_main),
                                   std::move(process_source));

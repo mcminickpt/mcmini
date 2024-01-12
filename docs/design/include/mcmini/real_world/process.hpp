@@ -34,6 +34,8 @@ struct process {
   // "runner" bit later...
 
  public:
+  virtual ~process() = default;
+
   /**
    * @brief Schedule the runner with id `id` for execution.
    *
@@ -50,10 +52,14 @@ struct process {
    *
    * @returns the next transition that runner _runner_
    */
-  std::unique_ptr<model::transition> execute_runner(
-      runner_id_t mcmini_runner_id);
+  virtual void execute_runner(runner_id_t mcmini_runner_id) = 0;
 
-  runner_id_t add_runner(std::unique_ptr<runner> new_runner);
+  // TODO: We assume at the moment that the number of runners is fixed and that
+  // every call to `execute_runner` above is valid. Eventually, to support more
+  // complicated runners (e.g. entire processes, a runner representing multiple
+  // threads, etc.) the idea of "adding" a new slot for a runner dynamically
+  // might be needed. runner_id_t add_runner(std::unique_ptr<runner>
+  // new_runner);
 };
 
 }  // namespace mcmini::real_world

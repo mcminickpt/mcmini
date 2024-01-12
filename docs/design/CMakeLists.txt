@@ -32,6 +32,7 @@ set(MCMINI_CPP_SRC
 set(LIBMCMINI_C_SRC )
 set(LIBMCMINI_CPP_SRC
   src/lib/entry.cpp
+  src/lib/wrappers.cpp
 )
 
 # -Wall -> be strict with warnings

@@ -53,6 +53,7 @@ class algorithm {
    */
   virtual void verify_using(mcmini::coordinator &coordinator,
                             const callbacks &callbacks) = 0;
+  virtual ~algorithm() = default;
 
   void verify_using(mcmini::coordinator &coordinator) {
     callbacks no_callbacks;
