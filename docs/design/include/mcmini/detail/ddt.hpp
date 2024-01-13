@@ -5,18 +5,26 @@
 #include <typeindex>
 #include <typeinfo>
 
+#include "mcmini/misc/optional.hpp"
+
 namespace mcmini::detail {
 
-template <typename InterfaceType, typename ReturnType = void>
-struct double_dispatch_member_function_table {
- private:
-  using t_callback = ReturnType (InterfaceType::*)(InterfaceType*);
-  using stored_callback = ReturnType (*)(InterfaceType*, InterfaceType*,
-                                         t_callback);
+template <typename InterfaceType, typename FunctionType>
+struct double_dispatch_member_function_table;
 
-  std::unordered_map<std::type_index,
-                     std::unordered_map<std::type_index,
-                                        std::pair<stored_callback, t_callback>>>
+template <typename InterfaceType, typename ReturnType, typename... Args>
+struct double_dispatch_member_function_table<InterfaceType,
+                                             ReturnType(Args...)> {
+ private:
+  using opaque_callback = ReturnType (InterfaceType::*)(InterfaceType*,
+                                                        Args...);
+  using stored_callback = ReturnType (*)(InterfaceType*, InterfaceType*,
+                                         opaque_callback, Args...);
+
+  std::unordered_map<
+      std::type_index,
+      std::unordered_map<std::type_index,
+                         std::pair<stored_callback, opaque_callback>>>
       _internal_table;
 
   // In the intermediate
@@ -34,19 +42,23 @@ struct double_dispatch_member_function_table {
   // pointer-to-member function pointer, subsequently invoking the callback
   // through `well_defined_handle` is defined.
   template <typename T1, typename T2>
-  static void casting_function(InterfaceType* t1, InterfaceType* t2,
-                               t_callback callback) {
+  static ReturnType casting_function(InterfaceType* t1, InterfaceType* t2,
+                                     opaque_callback callback, Args... args) {
     auto well_defined_handle =
         reinterpret_cast<member_function_callback<T1, T2>>(callback);
-    (static_cast<T1&>(*t1).*well_defined_handle)(static_cast<T2*>(t2));
+    return (static_cast<T1&>(*t1).*well_defined_handle)(static_cast<T2*>(t2),
+                                                        std::forward(args)...);
   }
 
   template <typename T1, typename T2>
-  static void casting_function_reverse(InterfaceType* t1, InterfaceType* t2,
-                                       t_callback callback) {
+  static ReturnType casting_function_reverse(InterfaceType* t1,
+                                             InterfaceType* t2,
+                                             opaque_callback callback,
+                                             Args... args) {
     auto well_defined_handle =
         reinterpret_cast<member_function_callback<T1, T2>>(callback);
-    (static_cast<T1&>(*t2).*well_defined_handle)(static_cast<T2*>(t1));
+    return (static_cast<T1&>(*t2).*well_defined_handle)(static_cast<T2*>(t1),
+                                                        std::forward(args)...);
   }
 
  public:
@@ -58,7 +70,7 @@ struct double_dispatch_member_function_table {
       "for more details on why this is necessary");
 
   template <typename T1, typename T2>
-  using member_function_callback = void (T1::*)(T2*);
+  using member_function_callback = ReturnType (T1::*)(T2*, Args...);
 
   template <typename T1, typename T2>
   void register_dd_entry(member_function_callback<T1, T2> callback) {
@@ -72,7 +84,8 @@ struct double_dispatch_member_function_table {
     // """
     // The reinterpret_cast<> here is used to store the variable-type callback
     // _callback_ registered for the particular combination
-    auto unspecified_callback_handle = reinterpret_cast<t_callback>(callback);
+    auto unspecified_callback_handle =
+        reinterpret_cast<opaque_callback>(callback);
 
     // TODO: Check if the callback has been registered; if so, an error should
     // be returned indicated that this is the case.
@@ -84,15 +97,18 @@ struct double_dispatch_member_function_table {
                        unspecified_callback_handle);
   }
 
-  void call(InterfaceType* t1, InterfaceType* t2) {
+  mcmini::optional<ReturnType> call(InterfaceType* t1, InterfaceType* t2,
+                                    Args... args) {
     auto t1_type = std::type_index(typeid(*t1));
     auto t2_type = std::type_index(typeid(*t2));
     if (_internal_table.count(t1_type) > 0) {
       if (_internal_table[t1_type].count(t2_type) > 0) {
         auto& pair = _internal_table[t1_type][t2_type];
-        pair.first(t1, t2, pair.second);
+        return mcmini::optional<ReturnType>(
+            pair.first(t1, t2, pair.second, std::forward(args)...));
       }
     }
+    return mcmini::optional<ReturnType>();
   }
 };
 

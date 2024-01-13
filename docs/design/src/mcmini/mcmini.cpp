@@ -110,23 +110,44 @@ struct Test : public Base {
 
 struct Test2 : public Test {
   void foo(Test *) { std::cerr << "Yello from test2" << std::endl; }
+  int foobar(Test *) {
+    std::cerr << "Yello from foobar" << std::endl;
+    return 0;
+  }
+
+  int foobar2(Base *) {
+    std::cerr << "Yello from foobar2" << std::endl;
+    return 0;
+  }
 };
 
 int main(int argc, char **argv) {
   do_model_checking();
 
+  Base b;
   Test t1;
   Test t2;
   Test2 t22;
 
-  mcmini::detail::double_dispatch_member_function_table<Base> ddt;
+  // mcmini::detail::double_dispatch_member_function_table<Base, void(void)>
+  // ddt;
 
-  ddt.register_dd_entry(&Test::greater_than);
-  ddt.register_dd_entry(&Test2::foo);
+  // ddt.register_dd_entry(&Test::greater_than);
+  // ddt.register_dd_entry(&Test2::foo);
 
-  ddt.call(&t1, &t2);
+  // ddt.call(&t1, &t2);
 
-  ddt.call(&t22, &t2);
+  // ddt.call(&t22, &t2);=
+
+  mcmini::detail::double_dispatch_member_function_table<Base, int(void)> ddt1;
+  // ddt1;
+
+  ddt1.register_dd_entry(&Test2::foobar);
+  ddt1.register_dd_entry(&Test2::foobar2);
+
+  int h = ddt1.call(&b, &t22).value();
+
+  std::cerr << h << "\n";
 
   // auto y = std::make_index_sequence<10>{};
 }
