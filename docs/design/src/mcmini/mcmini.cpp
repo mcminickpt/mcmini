@@ -105,11 +105,13 @@ struct Base {
   virtual ~Base() = default;
 };
 struct Test : public Base {
-  void greater_than(Test *) { std::cerr << "Yello" << std::endl; }
+  void greater_than(Test *) {
+    std::cerr << "Yello from test void" << std::endl;
+  }
 };
 
 struct Test2 : public Test {
-  void foo(Test *) { std::cerr << "Yello from test2" << std::endl; }
+  void foo(Test *) { std::cerr << "Yello from test2 void" << std::endl; }
   int foobar(Test *) {
     std::cerr << "Yello from foobar" << std::endl;
     return 0;
@@ -129,15 +131,16 @@ int main(int argc, char **argv) {
   Test t2;
   Test2 t22;
 
-  // mcmini::detail::double_dispatch_member_function_table<Base, void(void)>
-  // ddt;
+  mcmini::detail::double_dispatch_member_function_table<Base, void(void)> ddt;
+  // // ddt;
 
-  // ddt.register_dd_entry(&Test::greater_than);
-  // ddt.register_dd_entry(&Test2::foo);
+  ddt.register_dd_entry(&Test::greater_than);
+  ddt.register_dd_entry(&Test2::foo);
 
-  // ddt.call(&t1, &t2);
+  ddt.call(&t1, &t2);
+  ddt.call(&t1, &t22);
 
-  // ddt.call(&t22, &t2);=
+  // // ddt.call(&t22, &t2);=
 
   mcmini::detail::double_dispatch_member_function_table<Base, int(void)> ddt1;
   // ddt1;
@@ -146,8 +149,7 @@ int main(int argc, char **argv) {
   ddt1.register_dd_entry(&Test2::foobar2);
 
   int h = ddt1.call(&b, &t22).value();
+  int gg = ddt1.call(&t2, &t22).value();
 
   std::cerr << h << "\n";
-
-  // auto y = std::make_index_sequence<10>{};
 }
