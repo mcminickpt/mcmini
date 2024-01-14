@@ -4,8 +4,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#define MCMINI_EXPORT __attribute__((visibility(default)))
-
 extern "C" __attribute__((constructor)) void my_ctor() {
   // Do something here with the constructor (e.g. dlsym preparation)
   void *buf = malloc(10 * sizeof(char));

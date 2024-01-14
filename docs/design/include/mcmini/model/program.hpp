@@ -72,10 +72,6 @@ class program {
     return enabled_runners;
   }
 
-  /**
-   * @brief Returns a list of transitions that are both defined in this
-   * state and enabled in this state.
-   */
   void execute_runner(runner_id_t p,
                       std::unique_ptr<transition> new_transition) {
     const transition *next_s_p = next_steps.get_transition_for_runner(p);

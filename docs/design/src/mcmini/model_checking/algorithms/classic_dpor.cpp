@@ -24,8 +24,8 @@ void classic_dpor::verify_using(coordinator &coordinator,
 
   // Keep track of stuff here...
 
-  auto currently_enabled_runners =
-      coordinator.get_current_program_model().get_enabled_runners();
+  // auto enabled_runners =
+  //     coordinator.get_current_program_model().get_enabled_runners();
 
   // TODO: We could attach a `mcmini::model_checking::oracle` here which, given
   // a set of threads and a program trace, perhaps some other information,
@@ -34,6 +34,11 @@ void classic_dpor::verify_using(coordinator &coordinator,
   // Pick an enabled thread etc.
 
   // Based on the items in `dpor_specific_items`, do something interesting.
+
+  // For now, we simply tell the coordinator to run one thread for a few steps,
+  // backtrack once, and then exit
+  coordinator.execute_runner(0);
+  coordinator.execute_runner(0);
 }
 
 // void classic_dpor::dynamicallyUpdateBacktrackSets() {

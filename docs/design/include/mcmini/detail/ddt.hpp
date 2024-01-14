@@ -46,7 +46,7 @@ struct double_dispatch_member_function_table<InterfaceType,
                                      opaque_callback callback, Args... args) {
     auto well_defined_handle =
         reinterpret_cast<member_function_callback<T1, T2>>(callback);
-    return (static_cast<T1&>(*t1).*well_defined_handle)(static_cast<T2*>(t2),
+    return (static_cast<T1*>(t1)->*well_defined_handle)(static_cast<T2*>(t2),
                                                         std::forward(args)...);
   }
 
@@ -57,7 +57,7 @@ struct double_dispatch_member_function_table<InterfaceType,
                                              Args... args) {
     auto well_defined_handle =
         reinterpret_cast<member_function_callback<T1, T2>>(callback);
-    return (static_cast<T1&>(*t2).*well_defined_handle)(static_cast<T2*>(t1),
+    return (static_cast<T1*>(t2)->*well_defined_handle)(static_cast<T2*>(t1),
                                                         std::forward(args)...);
   }
 
@@ -74,6 +74,10 @@ struct double_dispatch_member_function_table<InterfaceType,
 
   template <typename T1, typename T2>
   void register_dd_entry(member_function_callback<T1, T2> callback) {
+    static_assert(std::is_base_of<InterfaceType, T1>::value,
+                  "T1 must be a subclass of InterfaceType");
+    static_assert(std::is_base_of<InterfaceType, T2>::value,
+                  "T2 must be a subclass of InterfaceType");
     // In the intermediate
     // See "https://en.cppreference.com/w/cpp/language/reinterpret_cast"
     // """
@@ -146,8 +150,8 @@ struct double_dispatch_member_function_table<InterfaceType, void(Args...)> {
                                opaque_callback callback, Args... args) {
     auto well_defined_handle =
         reinterpret_cast<member_function_callback<T1, T2>>(callback);
-    return (static_cast<T1&>(*t1).*well_defined_handle)(static_cast<T2*>(t2),
-                                                        std::forward(args)...);
+    (static_cast<T1*>(t1)->*well_defined_handle)(static_cast<T2*>(t2),
+                                                 std::forward(args)...);
   }
 
   template <typename T1, typename T2>
@@ -155,8 +159,8 @@ struct double_dispatch_member_function_table<InterfaceType, void(Args...)> {
                                        opaque_callback callback, Args... args) {
     auto well_defined_handle =
         reinterpret_cast<member_function_callback<T1, T2>>(callback);
-    return (static_cast<T1&>(*t2).*well_defined_handle)(static_cast<T2*>(t1),
-                                                        std::forward(args)...);
+    (static_cast<T1*>(t2)->*well_defined_handle)(static_cast<T2*>(t1),
+                                                 std::forward(args)...);
   }
 
  public:

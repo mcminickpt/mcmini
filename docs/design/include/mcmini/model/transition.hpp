@@ -110,28 +110,31 @@ class transition {
    * reached by the system after this transition fires.
    */
   virtual status modify(mutable_state& state) const = 0;
+
+  /**
+   * @brief Describes how encountering this transition at runtime affects the
+   * current program model.
+   *
+   * Transitions are created
+   *
+   * TODO: Turn this return type into a result to handle cases where destruction
+   * is impossible
+   *
+   * TODO: Determine if we need a reference to the state `S` in which discovery
+   * is occuring. It may be necessary, but for now we know that the callbacks
+   * have mostly been able to handle recovery with object creation only
+   */
+  virtual std::unique_ptr<transition> deserialize_from_wrapper_contents(
+      std::istream&, model_to_system_map&);
+
+  // TODO: Add a serialization method here later if we want to support
+  // transitions sending different return values to the wrapper functions that
+  // they represent. The signature would be something like
+  // `virtual void serialize(std::ostream&, const
+  // mcmini::coordinator::context::model_to_system_map&) const = 0;`
+
   virtual std::string to_string() const = 0;
   virtual ~transition();
 };
-
-// Each subclass must specialize the following two templates. The templates
-// provide functionality for serializing and deserializing a __model-side__
-// transition; that is, one used _in the McMini model_. The transition needs to
-// be represented for model checking algorithms. The serialization is necessary
-// to translate from the programs generating the transitions and their
-// representation in the model checker.
-template <typename T>
-void serialize_wrapper_return_into_stream(const T&, std::ostream&);
-
-template <typename T>
-T* deserialize_wrapper_hit_from_stream(std::istream& is);
-
-template <typename T>
-using transition_serializer =
-    std::function<decltype(serialize_wrapper_return_into_stream<T>)>;
-
-template <typename T>
-using transition_deserializer =
-    std::function<decltype(deserialize_wrapper_hit_from_stream<T>)>;
 
 }  // namespace mcmini::model

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+#include <unordered_map>
+
 #include "mcmini/model/transition.hpp"
 
 namespace mcmini::model {

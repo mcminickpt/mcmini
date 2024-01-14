@@ -123,6 +123,10 @@ struct Test2 : public Test {
   }
 };
 
+// std::unordered_map<std::type_index,
+//                    std::pair<stored_callback, opaque_callback>>
+//     _interface_type_callback_function_table;
+
 int main(int argc, char **argv) {
   do_model_checking();
 

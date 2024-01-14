@@ -19,9 +19,6 @@ namespace mcmini {
  */
 class runner {
  private:
-  // TODO: Is a reference to the pool which created the runner needed?
-  //   const runner_pool *owner;
-
  public:
   using runner_id_t = uint32_t;
 

@@ -10,6 +10,9 @@ class state_sequence;
 class transition;
 }  // namespace model
 
+class coordinator;
+class model_to_system_map;
+
 // TODO: Place all forward declarations here
 
 }  // namespace mcmini
