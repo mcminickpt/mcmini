@@ -48,6 +48,15 @@ class state {
     }
     return state;
   }
+
+  template <typename concrete_visible_object_state>
+  const concrete_visible_object_state *get_state_of_object(objid_t id) const {
+    static_assert(std::is_base_of<visible_object_state,
+                                  concrete_visible_object_state>::value,
+                  "Concrete type must be a subtype of `visible_object_state`");
+    return static_cast<const concrete_visible_object_state *>(
+        this->get_state_of_object(id));
+  }
 };
 
 class mutable_state : public state {

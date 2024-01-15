@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mcmini/forwards.hpp"
+#include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
 
 namespace mcmini {
@@ -39,6 +40,9 @@ struct model_to_system_map final {
    * TODO: See the TODOs below
    */
   void *get_remote_process_handle_for_object(model::state::objid_t id) const;
+
+  mcmini::optional<model::state::objid_t> get_object_for_remote_process_handle(
+      void *) const;
 
   /**
    * @brief Record the presence of a new visible object that is

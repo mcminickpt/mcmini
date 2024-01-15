@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 
 #include "mcmini/real_world/process.hpp"
+#include "mcmini/real_world/shm.hpp"
 
 namespace mcmini::real_world {
 
@@ -13,7 +14,6 @@ namespace mcmini::real_world {
  *
  * A `mcmini::real_world::linux_process` is a local proxy for a process running
  * on the same machine.
- *
  */
 class local_linux_process : public process {
  private:
@@ -23,16 +23,16 @@ class local_linux_process : public process {
   // "runner" bit later... Each local linux process will share the same static
   // memory region
 
+  static shared_memory_region read_write_region;
+
  public:
   local_linux_process() = default;
   ~local_linux_process() {
-    std::cerr << "Killing process??" << std::endl;
     if (pid <= 0) {
       return;
     }
-    std::cerr << "Killing process" << std::endl;
-    kill(pid, SIGUSR1); /* TODO: React to errors here */
-    waitpid(pid, NULL, 0);
+    kill(pid, SIGUSR1);    /* TODO: React to errors here */
+    waitpid(pid, NULL, 0); /* TODO: React to errors here */
   }
   local_linux_process(pid_t pid) : pid(pid) {}
 

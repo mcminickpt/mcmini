@@ -22,7 +22,8 @@ class process_source {
    *
    * @returns a handle to a new process ready to execute from the startin point
    * of this process source, or `nullptr` if the process could not be created.
-   * TODO: Returning a `result` type is better here -> the source would be able
+   *
+   * NOTE: Returning a `result` type is better here -> the source would be able
    * to tell us what the issue was and would make for better error outputs.
    */
   virtual std::unique_ptr<process> make_new_process() = 0;

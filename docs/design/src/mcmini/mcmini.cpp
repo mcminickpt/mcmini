@@ -130,42 +130,194 @@ struct Test2 : public Test {
 //                    std::pair<stored_callback, opaque_callback>>
 //     _interface_type_callback_function_table;
 
+#include <algorithm>
+#include <csignal>
+#include <cstdlib>
+#include <streambuf>
+
+class my_stream_buff : public std::basic_streambuf<char> {
+  std::streamsize write_pos = 0;
+  std::streamsize read_pos = 0;
+
+ public:
+  volatile char *ptr;
+
+  explicit my_stream_buff(size_t sz) : ptr(new volatile char[sz]) {}
+
+  ~my_stream_buff() { delete ptr; }
+
+ protected:
+  std::streamsize xsputn(const char *s, std::streamsize n) override {
+    std::copy(s + write_pos, s + write_pos + n, ptr);
+    write_pos += n;
+    return n;
+  }
+  std::streamsize xsgetn(char *s, std::streamsize n) override {
+    std::copy(ptr + read_pos, ptr + read_pos + n, s);
+    read_pos += n;
+    return n;
+  }
+
+  int overflow(int c) override {
+    // std::cerr
+    return std::streambuf::overflow(c);
+  }
+
+  int underflow() override {
+    // std::printf("Freom unerx");
+    return 1;  // std::streambuf::underflow();
+  }
+};
+
+class my_vol_stream_buf : public std::streambuf {
+  static constexpr size_t total_size = 1024;
+
+ public:
+  volatile char *ptr;
+
+  char buf[total_size];
+
+  void refresh() {
+    std::copy(ptr, ptr + total_size, buf);
+    setg(buf, buf, buf + total_size);
+    setp(buf, buf + total_size);
+  }
+
+  explicit my_vol_stream_buf(size_t sz) : ptr(new volatile char[sz]) {
+    refresh();
+  }
+
+  explicit my_vol_stream_buf(volatile void *ptr)
+      : ptr(static_cast<volatile char *>(ptr)) {
+    refresh();
+  }
+
+  ~my_vol_stream_buf() { delete ptr; }
+
+ protected:
+  std::streamsize xsputn(const char *s, std::streamsize n) override {
+    std::copy(s, s + n, pptr());
+    pbump(n); /* Move the write head */
+    return n;
+  }
+  std::streamsize xsgetn(char *s, std::streamsize n) override {
+    std::copy(gptr(), gptr() + n, s);
+    gbump(n); /* Move the read head */
+    return n;
+  }
+  int sync() override {
+    std::copy(buf, buf + total_size, ptr);
+    return std::streambuf::sync();
+  }
+};
+
+#include <sys/mman.h>
+
+#include "mcmini/real_world/shm.hpp"
+
+void signalasd(int sig) {}
+
+void signal_handler(int signal) {}
+
+void at_ex() { fprintf(stdout, "ATE XI\n"); }
+
+#include "mcmini/detail/volatile_mem_stream.hpp"
+
 int main(int argc, char **argv) {
   do_model_checking();
+
+  // std::signal(SIGABRT, signal);
+  // std::atexit(at_ex);
+  // std::abort();
 
   Base b;
   Test t1;
   Test t2;
   Test2 t22;
+  mcmini::real_world::shared_memory_region regions{"test", 100};
 
-  mcmini::model::detached_state d;
+  mcmini::detail::volatile_mem_stream vms{&regions};
 
-  mcmini::model::state::objid_t id =
-      d.add_object(mcmini::model::objects::mutex_state::make(
-          mcmini::model::objects::mutex_state::uninitialized));
-  mcmini::model::transitions::mutex_init mut{id};
+  // void *reg = mmap(NULL, 1000, PROT_READ | PROT_WRITE, MAP_ANONYMOUS, 0, 0);
 
-  std::cerr << mut.is_enabled_in(d) << std::endl;
+  // if (reg == MAP_FAILED) {
+  //   perror("mmap");
+  //   exit(EXIT_FAILURE);
+  // }
+  // // munmap(a, 100);
 
-  mcmini::detail::double_dispatch_member_function_table<Base, void(void)> ddt;
-  // // ddt;
+  // volatile char *a = new volatile char[10];
+  // volatile char *bb = new volatile char[10];
 
-  ddt.register_dd_entry(&Test::greater_than);
-  ddt.register_dd_entry(&Test2::foo);
+  // a[0] = 'A';
+  // a[1] = 'B';
+  // a[2] = 'C';
+  // a[3] = 'D';
+  // std::copy(a, a + 9, bb);
 
-  ddt.call(&t1, &t2);
-  ddt.call(&t1, &t22);
+  // std::unique_ptr<volatile int> aaa;
 
-  // // ddt.call(&t22, &t2);=
+  // delete a;
+  // delete bb;
 
-  mcmini::detail::double_dispatch_member_function_table<Base, int(void)> ddt1;
+  auto *y = std::cerr.rdbuf(&vms);
+
+  std::cerr << "abcdefghijklmnop" << std::endl;
+  std::cerr << "qrst" << std::endl;
+  std::cerr << "uvw";
+  std::cerr.rdbuf(y);
+
+  sleep(10);
+
+  // my_vol_stream_buf buf2{100};
+  // auto *y2 = std::cin.rdbuf(&buf2);
+  // auto *y3 = std::cerr.rdbuf(&buf2);
+
+  // int bbb = 0;
+  // std::cerr << 10 << 'G' << 'E' << std::endl;
+  // std::cin >> bbb;
+  // // std::cout << buf2.buf[0] << "WHAT";
+
+  // std::cout << bbb << " AD" << std::endl;
+
+  // // std::cerr << 123 << 456 << 789 << std::endl;
+
+  // // std::cout << bbb << " AD" << std::endl;
+
+  // std::cin.rdbuf(y2);
+  // std::cerr.rdbuf(y3);
+
+  // mcmini::model::detached_state d;
+
+  // mcmini::model::state::objid_t id =
+  //     d.add_object(mcmini::model::objects::mutex_state::make(
+  //         mcmini::model::objects::mutex_state::uninitialized));
+  // mcmini::model::transitions::mutex_init mut{id};
+
+  // std::cerr << mut.is_enabled_in(d) << std::endl;
+  // std::cerr << (uintptr_t)(0x00) << std::endl;
+
+  // mcmini::detail::double_dispatch_member_function_table<Base, void(void)>
+  // ddt;
+  // // // ddt;
+
+  // ddt.register_dd_entry(&Test::greater_than);
+  // ddt.register_dd_entry(&Test2::foo);
+
+  // ddt.call(&t1, &t2);
+  // ddt.call(&t1, &t22);
+
+  // // // ddt.call(&t22, &t2);=
+
+  // mcmini::detail::double_dispatch_member_function_table<Base, int(void)>
   // ddt1;
+  // // ddt1;
 
-  ddt1.register_dd_entry(&Test2::foobar);
-  ddt1.register_dd_entry(&Test2::foobar2);
+  // ddt1.register_dd_entry(&Test2::foobar);
+  // ddt1.register_dd_entry(&Test2::foobar2);
 
-  int h = ddt1.call(&b, &t22).value();
-  int gg = ddt1.call(&t2, &t22).value();
+  // int h = ddt1.call(&b, &t22).value();
+  // int gg = ddt1.call(&t2, &t22).value();
 
-  std::cerr << h << "\n";
+  // std::cerr << h << "\n";
 }
