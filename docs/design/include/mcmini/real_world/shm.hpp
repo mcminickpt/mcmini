@@ -28,9 +28,12 @@ struct shared_memory_region {
 
   volatile void* get() const { return this->shm_mmap_region; }
   volatile void* contents() const { return get(); }
-  volatile char* byte_stream() const {
-    return static_cast<volatile char*>(shm_mmap_region);
+
+  template <typename T>
+  volatile T* as_stream_of() const {
+    return static_cast<volatile T*>(shm_mmap_region);
   }
+  volatile char* byte_stream() const { return as_stream_of<char>(); }
   size_t size() const { return this->region_size; }
 
  private:

@@ -19,10 +19,11 @@ class local_linux_process : public process {
  private:
   pid_t pid;
 
-  // TODO: Just add the shared memory portion here for now and figure out the
+  // TODO: We add the shared memory portion here for now and figure out the
   // "runner" bit later... Each local linux process will share the same static
-  // memory region
-
+  // memory region. Even in the runner model, the thread runners would each
+  // share the memory region but it wouldn't be attached to the processes
+  // themselves
   static shared_memory_region read_write_region;
 
  public:

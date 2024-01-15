@@ -15,19 +15,19 @@ struct mutex_init : public mcmini::model::transition {
   ~mutex_init() = default;
 
   status modify(mcmini::model::mutable_state& s) const override {
-    auto m = s.get_state_of_object<model::objects::mutex_state>(0);
-    s.add_state_for(mutex, mcmini::model::objects::mutex_state::make(
-                               mcmini::model::objects::mutex_state::unlocked));
+    using namespace mcmini::model::objects;
+    s.add_state_for(mutex, mutex_state::make(mutex_state::unlocked));
     return status::exists;
   }
 
   std::unique_ptr<transition> deserialize_from_wrapper_contents(
       std::istream& is, model_to_system_map& map) const override {
-    // mcmini::real_world::remote_address<pthread_mutex_t> a;
-
-    // is >> a;
-
-    return mcmini::extensions::make_unique<mutex_init>(*this);
+    using namespace mcmini::model::objects;
+    void* mutex_addr;
+    is >> mutex_addr;
+    auto mutex_id = map.observe_remote_process_handle(
+        mutex_addr, mutex_state::make(mutex_state::uninitialized));
+    return mcmini::extensions::make_unique<mutex_init>(mutex_id);
   }
 
   std::string to_string() const override { return "mutex_init()"; }

@@ -41,6 +41,10 @@ struct model_to_system_map final {
    */
   void *get_remote_process_handle_for_object(model::state::objid_t id) const;
 
+  /**
+   * @brief Retrieve the object that corresponds to the given remote address, or
+   * the empty optional if no such address exists
+   */
   mcmini::optional<model::state::objid_t> get_object_for_remote_process_handle(
       void *) const;
 
@@ -67,6 +71,11 @@ struct model_to_system_map final {
   model::state::objid_t record_new_object_association(
       void *remote_process_visible_object_handle,
       std::unique_ptr<mcmini::model::visible_object_state> initial_state);
+
+  model::state::objid_t observe_remote_process_handle(
+      void *remote_process_visible_object_handle,
+      std::unique_ptr<mcmini::model::visible_object_state>
+          fallback_initial_state);
 };
 
 }  // namespace mcmini

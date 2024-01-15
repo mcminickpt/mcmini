@@ -10,17 +10,19 @@ struct remote_address final {
  private:
   T* remote_addr;
 
- public:
-  T* get() const { return remote_addr; }
+  T*& get_as_ref() { return remote_addr; }
 
   // template <typename U>
   // friend std::ostream& operator<<(std::ostream& os, remote_address<U>& ra) {
-  //   return (os << static_cast<void*>(ra.remote_addr));
+  //   return (os << static_cast<void*>(ra.get_as_ref()));
   // }
   // template <typename U>
   // friend std::istream& operator>>(std::istream& is, remote_address<U>& ra) {
-  //   return (is >> static_cast<const void*>(ra.get()));
+  //   return (is >>);
   // }
+
+ public:
+  T* get() const { return remote_addr; }
 };
 
 template <typename T>
