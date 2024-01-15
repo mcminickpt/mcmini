@@ -51,7 +51,9 @@ class visible_object final {
   visible_object(std::unique_ptr<const visible_object_state> initial_state) {
     push_state(std::move(initial_state));
   }
-  visible_object(const visible_object &other) { *this = *other.clone(); }
+  visible_object(const visible_object &other) {
+    *this = other.slice(other.get_num_states());
+  }
   visible_object &operator=(const visible_object &other) {
     return *this = *other.clone();
   }

@@ -8,11 +8,10 @@ namespace mcmini::model {
 
 /**
  * @brief A capture of the state of a particular visible object.
- *
  */
 class visible_object_state {
  public:
-  virtual ~visible_object_state();
+  virtual ~visible_object_state() = default;
 
   /**
    * Create a copy of this state.

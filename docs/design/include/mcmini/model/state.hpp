@@ -32,7 +32,7 @@ class state {
     auto state =
         mcmini::extensions::make_unique<StateType>(std::forward<Args>(args)...);
     for (auto elem = begin; elem != end; elem++) {
-      state->track_new_visible_object((*elem)->clone());
+      state->add_object((*elem)->clone());
     }
     return state;
   }
@@ -44,13 +44,14 @@ class state {
     auto state =
         mcmini::extensions::make_unique<StateType>(std::forward<Args>(args)...);
     for (auto elem = begin; elem != end; elem++) {
-      state->track_new_visible_object((*elem).get_current_state()->clone());
+      state->add_object((*elem).get_current_state()->clone());
     }
     return state;
   }
 };
 
 class mutable_state : public state {
+ public:
   /**
    * @brief Begin tracking a new visible object _obj_ to this state.
    *
@@ -58,7 +59,7 @@ class mutable_state : public state {
    * @return the new id that is assigned to the object. This id is unique from
    * every other id assigned to the objects in this state.
    */
-  virtual objid_t track_new_visible_object(
+  virtual objid_t add_object(
       std::unique_ptr<visible_object_state> initial_state) = 0;
 
   /**
@@ -68,7 +69,7 @@ class mutable_state : public state {
    * of type `visible_object_state_type`, the behavior of this function is
    * undefined.
    */
-  virtual void record_new_state_for_visible_object(
+  virtual void add_state_for(
       objid_t id, std::unique_ptr<visible_object_state> new_state) = 0;
 
   /**

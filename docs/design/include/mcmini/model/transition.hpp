@@ -104,12 +104,14 @@ class transition {
    * that transition is enabled there and the system moves into the state `s'`
    * the transition maps to `s`
    *
+   * @param s the state taken as an argument to the transition function; the
+   * state which this transition is "applied to"
    * @returns whether the transition were enabled in this state. If the
    * transition is _not_ enabled in this state, the contents of state is
    * undefined; otherwise, the object `state` will represent the new state `s'`
    * reached by the system after this transition fires.
    */
-  virtual status modify(mutable_state& state) const = 0;
+  virtual status modify(mutable_state& s) const = 0;
 
   /**
    * @brief Describes how encountering this transition at runtime affects the
@@ -125,7 +127,7 @@ class transition {
    * have mostly been able to handle recovery with object creation only
    */
   virtual std::unique_ptr<transition> deserialize_from_wrapper_contents(
-      std::istream&, model_to_system_map&);
+      std::istream&, model_to_system_map&) const = 0;
 
   // TODO: Add a serialization method here later if we want to support
   // transitions sending different return values to the wrapper functions that
@@ -134,7 +136,7 @@ class transition {
   // mcmini::coordinator::context::model_to_system_map&) const = 0;`
 
   virtual std::string to_string() const = 0;
-  virtual ~transition();
+  virtual ~transition() = default;
 };
 
 }  // namespace mcmini::model

@@ -10,13 +10,13 @@ bool detached_state::contains_object_with_id(state::objid_t id) const {
   return id < this->visible_objects.size();
 }
 
-state::objid_t detached_state::track_new_visible_object(
+state::objid_t detached_state::add_object(
     std::unique_ptr<visible_object_state> new_object) {
   visible_objects.push_back(visible_object(std::move(new_object)));
   return visible_objects.size() - 1;
 }
 
-void detached_state::record_new_state_for_visible_object(
+void detached_state::add_state_for(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
   this->visible_objects.at(id).push_state(std::move(new_state));
 }

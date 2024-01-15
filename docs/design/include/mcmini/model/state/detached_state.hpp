@@ -28,9 +28,9 @@ class detached_state : public mutable_state {
   virtual bool contains_object_with_id(objid_t id) const override;
   virtual const visible_object_state *get_state_of_object(
       objid_t id) const override;
-  virtual objid_t track_new_visible_object(
+  virtual objid_t add_object(
       std::unique_ptr<visible_object_state> initial_state) override;
-  virtual void record_new_state_for_visible_object(
+  virtual void add_state_for(
       objid_t id, std::unique_ptr<visible_object_state> new_state) override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 };

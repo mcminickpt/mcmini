@@ -70,7 +70,7 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
       // read(...);
 
       // auto state_of_some_object_in_the_ckpt_image = new mutex_state();
-      // state_of_program_at_main.record_new_state_for_visible_object();
+      // state_of_program_at_main.add_state_for();
   }
 
   {
@@ -123,6 +123,9 @@ struct Test2 : public Test {
   }
 };
 
+#include "mcmini/model/transition.hpp"
+#include "mcmini/model/transitions/mutex/mutex_init.hpp"
+
 // std::unordered_map<std::type_index,
 //                    std::pair<stored_callback, opaque_callback>>
 //     _interface_type_callback_function_table;
@@ -134,6 +137,15 @@ int main(int argc, char **argv) {
   Test t1;
   Test t2;
   Test2 t22;
+
+  mcmini::model::detached_state d;
+
+  mcmini::model::state::objid_t id =
+      d.add_object(mcmini::model::objects::mutex_state::make(
+          mcmini::model::objects::mutex_state::uninitialized));
+  mcmini::model::transitions::mutex_init mut{id};
+
+  std::cerr << mut.is_enabled_in(d) << std::endl;
 
   mcmini::detail::double_dispatch_member_function_table<Base, void(void)> ddt;
   // // ddt;
