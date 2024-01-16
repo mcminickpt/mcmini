@@ -1,7 +1,8 @@
 #include "mcmini/real_world/process/fork_process_source.hpp"
 
 #include <libgen.h>
-
+#include <sys/types.h>
+#include <unistd.h>
 #include <iostream>
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
