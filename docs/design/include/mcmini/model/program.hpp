@@ -72,8 +72,8 @@ class program {
     return enabled_runners;
   }
 
-  void execute_runner(runner_id_t p,
-                      std::unique_ptr<transition> new_transition) {
+  void model_executing_runner(runner_id_t p,
+                              std::unique_ptr<transition> new_transition) {
     const transition *next_s_p = next_steps.get_transition_for_runner(p);
 
     if (next_s_p) {

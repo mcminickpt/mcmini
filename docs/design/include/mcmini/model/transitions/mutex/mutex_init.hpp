@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mcmini/coordinator/model_to_system_map.hpp"
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/real_world/remote_address.hpp"
@@ -20,8 +21,12 @@ struct mutex_init : public mcmini::model::transition {
     return status::exists;
   }
 
-  std::unique_ptr<transition> deserialize_from_wrapper_contents(
-      std::istream& is, model_to_system_map& map) const override {
+  std::string to_string() const override { return "mutex_init()"; }
+
+  // Deserialization routine (could [and should] be moved outside the model)
+
+  static std::unique_ptr<transition> from_wrapper_contents(
+      std::istream& is, model_to_system_map& map) {
     using namespace mcmini::model::objects;
     void* mutex_addr;
     is >> mutex_addr;
@@ -29,8 +34,6 @@ struct mutex_init : public mcmini::model::transition {
         mutex_addr, mutex_state::make(mutex_state::uninitialized));
     return mcmini::extensions::make_unique<mutex_init>(mutex_id);
   }
-
-  std::string to_string() const override { return "mutex_init()"; }
 };
 
 }  // namespace mcmini::model::transitions

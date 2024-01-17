@@ -113,22 +113,6 @@ class transition {
    */
   virtual status modify(mutable_state& s) const = 0;
 
-  /**
-   * @brief Describes how encountering this transition at runtime affects the
-   * current program model.
-   *
-   * Transitions are created
-   *
-   * TODO: Turn this return type into a result to handle cases where destruction
-   * is impossible
-   *
-   * TODO: Determine if we need a reference to the state `S` in which discovery
-   * is occuring. It may be necessary, but for now we know that the callbacks
-   * have mostly been able to handle recovery with object creation only
-   */
-  virtual std::unique_ptr<transition> deserialize_from_wrapper_contents(
-      std::istream&, model_to_system_map&) const = 0;
-
   // TODO: Add a serialization method here later if we want to support
   // transitions sending different return values to the wrapper functions that
   // they represent. The signature would be something like

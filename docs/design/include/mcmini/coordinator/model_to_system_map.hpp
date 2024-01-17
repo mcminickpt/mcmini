@@ -27,7 +27,7 @@ struct model_to_system_map final {
    * Prevent external construction (only the coordinator can construct
    * instances of this class)
    */
-  model_to_system_map(coordinator &coordinator) = delete;
+  model_to_system_map(coordinator &coordinator) : _coordinator(coordinator) {}
   friend coordinator;
 
  public:

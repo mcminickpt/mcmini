@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "mcmini/detail/volatile_mem_stream.hpp"
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/shm.hpp"
 
@@ -25,20 +26,13 @@ class local_linux_process : public process {
   // share the memory region but it wouldn't be attached to the processes
   // themselves
   static shared_memory_region read_write_region;
+  static mcmini::detail::volatile_mem_stream &get_mem_stream_wrapper() {}
 
  public:
   local_linux_process() = default;
-  ~local_linux_process() {
-    if (pid <= 0) {
-      return;
-    }
-    kill(pid, SIGUSR1);    /* TODO: React to errors here */
-    waitpid(pid, NULL, 0); /* TODO: React to errors here */
-  }
+  virtual ~local_linux_process();
   local_linux_process(pid_t pid) : pid(pid) {}
 
-  void execute_runner(runner_id_t mcmini_runner_id) override {
-    /* TODO: sem_post + sem_wait pair */
-  }
+  std::istream &execute_runner(runner_id_t mcmini_runner_id) override;
 };
 }  // namespace mcmini::real_world

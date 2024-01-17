@@ -62,7 +62,7 @@ class state_sequence : public state {
    * @brief Consume the differences contained in the state given which produces
    * the diff.
    */
-  void consume_diff(diff_state &&);
+  void consume_diff(const diff_state &);
 
   // INVARIANT: As new states are added to the visible objects in the
   // mapping, new state views are also added with the appropriate object states

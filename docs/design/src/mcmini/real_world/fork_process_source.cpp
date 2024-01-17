@@ -33,8 +33,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
     char* args[] = {const_cast<char*>(this->target_program.c_str()), NULL};
 
     std::cerr << "About to exec with libmcmini.so loaded! Attempting to run "
-              << this->target_program.c_str() << " " << target_program
-              << std::endl;
+              << this->target_program.c_str() << std::endl;
     execvp(this->target_program.c_str(), args);
 
     // TODO: Handle exevp error here ->

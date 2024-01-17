@@ -1,5 +1,6 @@
 #pragma once
 
+#include <istream>
 #include <memory>
 
 #include "mcmini/model/transition.hpp"
@@ -47,9 +48,13 @@ struct process {
    * return. It is up to the caller to ensure that scheduling runner
    * `mcmini_runner_id` for execution will not block forever.
    *
-   * @returns the next transition that runner _runner_
+   * @returns a stream containing the serialized response from the process
+   * represented by this proxy. The stream must contain as its first element a
+   * `mcmini::model::transition_registry::rttid`. The McMini coordinator will
+   * use this identifier to invoke the appropriate callback function to
+   * transform the remaining contents of the stream into its model.
    */
-  virtual void execute_runner(runner_id_t mcmini_runner_id) = 0;
+  virtual std::istream &execute_runner(runner_id_t mcmini_runner_id) = 0;
 
   // TODO: We assume at the moment that the number of runners is fixed and that
   // every call to `execute_runner` above is valid. Eventually, to support more

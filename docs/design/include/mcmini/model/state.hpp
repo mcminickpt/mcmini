@@ -16,11 +16,12 @@ class state {
  public:
   using objid_t = uint32_t;
 
+  virtual ~state() = default;
   virtual bool contains_object_with_id(objid_t id) const = 0;
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
 
-  // TODO: Provide an interface here that conforms to C++11's
+  // TODO: Potentially provide an interface here that conforms to C++11's
   // iteration (a begin() and end() as virtual functions perhaps).
   // Each subclass can return the same `state_iterator` type that
   // is defined elsewhere which should provide a pair of objid_t
@@ -61,6 +62,8 @@ class state {
 
 class mutable_state : public state {
  public:
+  virtual ~mutable_state() = default;
+
   /**
    * @brief Begin tracking a new visible object _obj_ to this state.
    *

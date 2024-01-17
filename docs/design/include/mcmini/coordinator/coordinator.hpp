@@ -3,6 +3,7 @@
 #include "mcmini/coordinator/model_to_system_map.hpp"
 #include "mcmini/forwards.hpp"
 #include "mcmini/model/program.hpp"
+#include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/visible_object.hpp"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/real_world/runner.hpp"
@@ -84,6 +85,9 @@ class coordinator {
    * @param initial_state the state from which the coordinator begins
    * coordination with . This is often referred to as `s_0` or the "initial
    * state" in the model-checking literature.
+   * @param runtime_transition_mapping a registry which describes how to
+   * translate information from the `process_source` into transitions that can
+   * be consumed by the `mcmini::model::program` maintained by the coordinator.
    * @param process_source a process source which can repeatedly produce
    * processes starting at state `initial_state`. The coordinator will
    * repeatedly create new processes from this source part of its exploration.
@@ -97,6 +101,7 @@ class coordinator {
    * undefined (most likely this would lead to deadlocks etc.).
    */
   coordinator(model::program &&initial_state,
+              model::transition_registry &&runtime_transition_mapping,
               std::unique_ptr<real_world::process_source> &&process_source);
   ~coordinator() = default;
 
@@ -149,14 +154,16 @@ class coordinator {
    * process' read handle and invokes the appropriate deserialization function.
    *
    * The coordinator passes itself as part of the deserialization and
-   * serialization processes. During the deserialization phase, new objects may
-   * be discovered in the state resulting
+   * serialization processes. During the deserialization phase, objects may be
+   * newly discovered. After execution, any such objects will be recorded.
    *
+   * @param id the runner (thread) which should run.
    */
-  void execute_runner(runner::runner_id_t);
+  void execute_runner(runner::runner_id_t id);
 
  private:
   model::program current_program_model;
+  model::transition_registry runtime_transition_mapping;
   std::unique_ptr<real_world::process> current_process_handle;
   std::unique_ptr<real_world::process_source> process_source;
 

@@ -4,6 +4,7 @@
 #include "mcmini/detail/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state/detached_state.hpp"
+#include "mcmini/model/transitions/mutex/mutex_init.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
 
@@ -44,7 +45,11 @@ void do_model_checking(
       mcmini::extensions::make_unique<mcmini::real_world::fork_process_source>(
           "demo");
 
+  auto registry = mcmini::model::transition_registry();
+  registry.register_transition<mcmini::model::transitions::mutex_init>();
+
   mcmini::coordinator coordinator(std::move(model_for_program_starting_at_main),
+                                  std::move(registry),
                                   std::move(process_source));
 
   std::unique_ptr<mcmini::model_checking::algorithm> classic_dpor_checker =
@@ -90,6 +95,7 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
           "ls");
 
   mcmini::coordinator coordinator(std::move(model_for_program_starting_at_main),
+                                  mcmini::model::transition_registry(),
                                   std::move(process_source));
 
   std::unique_ptr<mcmini::model_checking::algorithm> classic_dpor_checker =
