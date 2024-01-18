@@ -13,27 +13,23 @@ namespace mcmini::model {
 /**
  * @brief A sequence of states.
  *
- * A _state sequence_ describes how a `mcnini::model:;program`'s state has
- * changed over time as its execution units have executed and taken action.
+ * A _state sequence_ is a sequence of states with the following properties:
  *
- * A _state_ is an unordered container of visible objects. Each visible object
- * is in turn composed of a sequence of a finite number of states.
- *
- *
- * * The sequence "owns" the visible objects
- * * A visible object is effectively objid_t
- * * Each visible object is effectively a sequence of states
- * * Three operations we just talked about
- * * The
+ * 1. for each state `s_i`, there exists some transition `t_i` such that `t_i`
+ * is defined at `s_i` (`t_i` is enabled there) and `s_{i+1} = t_i(s_i)`. That
+ * is, given any pair of states `s_i` and `s_j` in the sequence (i <= j), there
+ * exists a sequence of transitions `t_i, ..., t_j` such that `s_j =
+ * t_j(t_{j-1}(...(t_i(s_i))...))`
  */
 class state_sequence : public state {
  private:
   /**
    * @brief An element of a `mcmini::model::state_sequence`
    *
-   * The state_view and state_sequence are tightly
-   * intertwined. We allow them to work in tandem with one
-   * another as an implementation detail
+   * The `element` and `state_sequence` are tightly intertwined. We allow them
+   * to work in tandem with one another as an implementation detail to permit
+   * "views" of the objects the state sequence maintains as new states are added
+   * to the sequence via transitions
    */
   class element : public state {
    private:
@@ -54,26 +50,26 @@ class state_sequence : public state {
   };
 
   /**
-   * @brief A state which has a base
+   * @brief A state which maintains changes to an underlying base state.
+   *
+   * A `diff_state` manages the changes in state of objects which exist in a
+   * given state, as well as any newly-created objects
    */
   class diff_state;
 
   /**
-   * @brief Consume the differences contained in the state given which produces
-   * the diff.
+   * @brief Consume the differences contained in the `diff_state`
    */
   void consume_diff(const diff_state &);
 
   // INVARIANT: As new states are added to the visible objects in the
   // mapping, new state views are also added with the appropriate object states
   // replaced.
-
-  // INVARIANT: Objects must only be added to the collection and are never
-  // removed.
   mcmini::append_only<visible_object> visible_objects;
   mcmini::append_only<element> states_in_sequence;
 
  public:
+  state_sequence() = default;
   state_sequence(const state &);
   state_sequence(const state &&);
   state_sequence(state_sequence &) = delete;
@@ -97,7 +93,7 @@ class state_sequence : public state {
    *
    * @return whether the transition was enabled at the final state in the
    * sequence. If the transition was disabled there, a new state will _not_ be
-   * added to the sequence and a `disabled` status will be returned. OTherwise,
+   * added to the sequence and a `disabled` status will be returned. Otherwise,
    * the transition is _defined_ at the final state and a new state `s'` is
    * added to the end of the sequence.
    */
@@ -119,7 +115,8 @@ class state_sequence : public state {
    * @param index the last index that should be contained in the returned
    * subsequence.
    * @return the resulting subsequence. The subsequence is identical to this
-   * sequence up to index `index`
+   * sequence up to index `index`. Any objects which didn't exist prior to state
+   * `s_index` will not exist in the resulting sequence
    */
   state_sequence consume_into_subsequence(size_t index) &&;
 };

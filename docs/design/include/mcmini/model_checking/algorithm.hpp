@@ -8,15 +8,13 @@ namespace mcmini::model_checking {
 /**
  * @brief An abstraction representing a function which can formally verify
  * the correctness of a program modeled under McMini.
- *
- * A _model checking algorithm_ is nothing more than a function. Give
- *
  */
 class algorithm {
  public:
   // TODO: Eventually we may want to pass more information to the callbacks
   // (e.g. the algorithm itself or the coordinator) to provide detailed printing
   // information.
+  // TODO:
   struct callbacks {
    public:
     virtual void encountered_deadlock_in(const mcmini::model::program &) {}

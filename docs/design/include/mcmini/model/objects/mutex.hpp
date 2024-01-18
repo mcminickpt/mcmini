@@ -5,7 +5,7 @@
 
 namespace mcmini::model::objects {
 
-struct mutex_state : public mcmini::model::visible_object_state {
+struct mutex : public mcmini::model::visible_object_state {
  public:
   /* The four possible states for a mutex */
   enum state_type { uninitialized, unlocked, locked, destroyed };
@@ -14,19 +14,19 @@ struct mutex_state : public mcmini::model::visible_object_state {
   state_type current_state = state_type::uninitialized;
 
  public:
-  mutex_state() = default;
-  ~mutex_state() = default;
-  mutex_state(const mutex_state &) = default;
-  mutex_state(state_type state) : current_state(state) {}
-  static std::unique_ptr<mutex_state> make(state_type state) {
-    return mcmini::extensions::make_unique<mutex_state>(state);
+  mutex() = default;
+  ~mutex() = default;
+  mutex(const mutex &) = default;
+  mutex(state_type state) : current_state(state) {}
+  static std::unique_ptr<mutex> make(state_type state) {
+    return mcmini::extensions::make_unique<mutex>(state);
   }
 
   // ---- State Observation --- //
-  bool operator==(const mutex_state &other) const {
+  bool operator==(const mutex &other) const {
     return this->current_state == other.current_state;
   }
-  bool operator!=(const mutex_state &other) const {
+  bool operator!=(const mutex &other) const {
     return this->current_state != other.current_state;
   }
   bool is_locked() const { return this->current_state == locked; }
@@ -35,7 +35,7 @@ struct mutex_state : public mcmini::model::visible_object_state {
   bool is_initialized() const { return this->current_state != uninitialized; }
 
   std::unique_ptr<visible_object_state> clone() const override {
-    return mcmini::extensions::make_unique<mutex_state>(*this);
+    return mcmini::extensions::make_unique<mutex>(*this);
   }
 };
 

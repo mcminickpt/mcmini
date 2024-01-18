@@ -91,6 +91,12 @@ class mutable_state : public state {
    * and are independently modifiable with respect to the first state.
    */
   std::unique_ptr<mutable_state> clone() const { return this->mutable_clone(); }
+
+  template <typename concrete_visible_object_state>
+  const concrete_visible_object_state *get_state_of_object(objid_t id) const {
+    return (static_cast<const state *>(this))
+        ->get_state_of_object<concrete_visible_object_state>();
+  }
 };
 
 }  // namespace mcmini::model
