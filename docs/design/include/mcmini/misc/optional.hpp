@@ -2133,12 +2133,8 @@ struct hash<tl::optional<T>> {
 };
 }  // namespace std
 
-namespace mcmini {
-
 /* Alias optional provided */
 template <typename T>
 using optional = tl::optional<T>;
-
-}  // namespace mcmini
 
 #endif

@@ -1,7 +1,5 @@
 #pragma once
 
-namespace mcmini {
-
 namespace model {
 class state;
 class mutable_state;
@@ -14,5 +12,3 @@ class coordinator;
 class model_to_system_map;
 
 // TODO: Place all forward declarations here
-
-}  // namespace mcmini

@@ -3,9 +3,9 @@
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
-namespace mcmini::model::objects {
+namespace model::objects {
 
-struct mutex : public mcmini::model::visible_object_state {
+struct mutex : public model::visible_object_state {
  public:
   /* The four possible states for a mutex */
   enum state_type { uninitialized, unlocked, locked, destroyed };
@@ -19,7 +19,7 @@ struct mutex : public mcmini::model::visible_object_state {
   mutex(const mutex &) = default;
   mutex(state_type state) : current_state(state) {}
   static std::unique_ptr<mutex> make(state_type state) {
-    return mcmini::extensions::make_unique<mutex>(state);
+    return extensions::make_unique<mutex>(state);
   }
 
   // ---- State Observation --- //
@@ -35,8 +35,8 @@ struct mutex : public mcmini::model::visible_object_state {
   bool is_initialized() const { return this->current_state != uninitialized; }
 
   std::unique_ptr<visible_object_state> clone() const override {
-    return mcmini::extensions::make_unique<mutex>(*this);
+    return extensions::make_unique<mutex>(*this);
   }
 };
 
-}  // namespace mcmini::model::objects
+}  // namespace model::objects

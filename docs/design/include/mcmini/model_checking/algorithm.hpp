@@ -3,7 +3,7 @@
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/program.hpp"
 
-namespace mcmini::model_checking {
+namespace model_checking {
 
 /**
  * @brief An abstraction representing a function which can formally verify
@@ -17,9 +17,9 @@ class algorithm {
   // TODO:
   struct callbacks {
    public:
-    virtual void encountered_deadlock_in(const mcmini::model::program &) {}
-    virtual void encountered_crash_in(const mcmini::model::program &) {}
-    virtual void encountered_data_race_in(const mcmini::model::program &) {}
+    virtual void encountered_deadlock_in(const model::program &) {}
+    virtual void encountered_crash_in(const model::program &) {}
+    virtual void encountered_data_race_in(const model::program &) {}
   };
 
   /**
@@ -28,13 +28,13 @@ class algorithm {
    * To verify the correctness of a program using explicit-state model checking,
    * any verification algorithm must investigate all possible states of that
    * program. Each particular state of the program is represented in McMini by
-   * an instance `mcmini::model::state`. A state plus the collection of
+   * an instance `model::state`. A state plus the collection of
    * transitions which are defined at that state is captured in a
-   * `mcmini::model::program`.
+   * `model::program`.
    *
-   * The `mcmini::model::program` conceptually represents the "history" of
+   * The `model::program` conceptually represents the "history" of
    * changes that some process underwent. The process whose states are described
-   * by the program is represented `mcmini::real_world::process`.
+   * by the program is represented `real_world::process`.
    *
    * @param coordinator the coordinator which manages the syncrhonization of the
    * program and the processes which those programs represent.
@@ -49,14 +49,14 @@ class algorithm {
    * - if, at any point during verification, one of the corresponding processes
    * crashes.
    */
-  virtual void verify_using(mcmini::coordinator &coordinator,
+  virtual void verify_using(coordinator &coordinator,
                             const callbacks &callbacks) = 0;
   virtual ~algorithm() = default;
 
-  void verify_using(mcmini::coordinator &coordinator) {
+  void verify_using(coordinator &coordinator) {
     callbacks no_callbacks;
     this->verify_using(coordinator, no_callbacks);
   }
 };
 
-};  // namespace mcmini::model_checking
+};  // namespace model_checking

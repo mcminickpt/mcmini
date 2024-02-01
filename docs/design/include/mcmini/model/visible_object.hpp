@@ -5,7 +5,7 @@
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A placeholder which represents a snapshot of an object with which
@@ -18,7 +18,7 @@ namespace mcmini::model {
  * upon visible objects to transmit information from one thread to another.
  *
  * A visible object is comprised of a collection of states describing how that
- * object appeared during the execution of a `mcmini::model::program`. All
+ * object appeared during the execution of a `model::program`. All
  * objects own the states that represent them.
  *
  * A visible object is represented by its most recent state. Two visible objects
@@ -84,12 +84,12 @@ class visible_object final {
     sliced_states.reserve(num_states);
     for (int j = 0; j < num_states; j++) {
       sliced_states.push_back(
-          mcmini::extensions::to_const_unique_ptr(history.at(j)->clone()));
+          extensions::to_const_unique_ptr(history.at(j)->clone()));
     }
     return visible_object(std::move(sliced_states));
   }
   std::unique_ptr<visible_object> clone() const {
-    return mcmini::extensions::make_unique<visible_object>(*this);
+    return extensions::make_unique<visible_object>(*this);
   }
 };
-}  // namespace mcmini::model
+}  // namespace model

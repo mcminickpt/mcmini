@@ -28,10 +28,9 @@ void display_usage() {
 void do_model_checking(
     /* Pass arguments here or rearrange to configure the checker at
     runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
-  using namespace mcmini;
-  using namespace mcmini::extensions;
-  using namespace mcmini::model;
-  using namespace mcmini::real_world;
+  using namespace extensions;
+  using namespace model;
+  using namespace real_world;
 
   detached_state state_of_program_at_main;
   pending_transitions initial_first_steps;
@@ -56,18 +55,17 @@ void do_model_checking(
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           transition_registry(), std::move(process_source));
 
-  std::unique_ptr<mcmini::model_checking::algorithm> classic_dpor_checker =
-      make_unique<mcmini::model_checking::classic_dpor>();
+  std::unique_ptr<model_checking::algorithm> classic_dpor_checker =
+      make_unique<model_checking::classic_dpor>();
 
   classic_dpor_checker->verify_using(coordinator);
   std::cout << "Model checking completed!" << std::endl;
 }
 
 void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
-  mcmini::model::detached_state state_of_program_at_main;
-  mcmini::model::pending_transitions
-      initial_first_steps;  // TODO: Create initializer or else add other
-                            // methods
+  model::detached_state state_of_program_at_main;
+  model::pending_transitions initial_first_steps;  // TODO: Create initializer
+                                                   // or else add other methods
 
   // // TODO: Complete the initialization of the initial state here, i.e. a
   // // single thread "main" that is alive and then running the transition
@@ -88,22 +86,21 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
     // between libmcmini.so, libdmtcp.so, and the `mcmini` process
   }
 
-  mcmini::model::program model_for_program_starting_at_main(
+  model::program model_for_program_starting_at_main(
       std::move(state_of_program_at_main), std::move(initial_first_steps));
 
   // TODO: With a checkpoint restart, a fork_process_source doesn't suffice.
   // We'll need to create a different process source that can provide the
   // functionality we need to spawn new processes from the checkpoint image.
   auto process_source =
-      mcmini::extensions::make_unique<mcmini::real_world::fork_process_source>(
-          "ls");
+      extensions::make_unique<real_world::fork_process_source>("ls");
 
-  mcmini::coordinator coordinator(std::move(model_for_program_starting_at_main),
-                                  mcmini::model::transition_registry(),
-                                  std::move(process_source));
+  coordinator coordinator(std::move(model_for_program_starting_at_main),
+                          model::transition_registry(),
+                          std::move(process_source));
 
-  std::unique_ptr<mcmini::model_checking::algorithm> classic_dpor_checker =
-      mcmini::extensions::make_unique<mcmini::model_checking::classic_dpor>();
+  std::unique_ptr<model_checking::algorithm> classic_dpor_checker =
+      extensions::make_unique<model_checking::classic_dpor>();
 
   classic_dpor_checker->verify_using(coordinator);
 

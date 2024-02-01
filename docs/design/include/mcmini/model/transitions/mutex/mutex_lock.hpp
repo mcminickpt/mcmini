@@ -3,9 +3,9 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model::transitions {
+namespace model::transitions {
 
-struct mutex_lock : public mcmini::model::transition {
+struct mutex_lock : public model::transition {
  private:
   state::objid_t mutex_id; /* The mutex this transition initializes */
 
@@ -13,8 +13,8 @@ struct mutex_lock : public mcmini::model::transition {
   mutex_lock(state::objid_t mutex_id) : mutex_id(mutex_id) {}
   ~mutex_lock() = default;
 
-  status modify(mcmini::model::mutable_state& s) const override {
-    using namespace mcmini::model::objects;
+  status modify(model::mutable_state& s) const override {
+    using namespace model::objects;
 
     // A `mutex_lock` cannot be applied to a mutex already locked.
     const mutex* ms = s.get_state_of_object<mutex>(mutex_id);
@@ -30,4 +30,4 @@ struct mutex_lock : public mcmini::model::transition {
   }
 };
 
-}  // namespace mcmini::model::transitions
+}  // namespace model::transitions

@@ -1,6 +1,6 @@
 #include "mcmini/real_world/process/local_linux_process.hpp"
 
-using namespace mcmini::real_world;
+using namespace real_world;
 
 local_linux_process::~local_linux_process() {
   // TODO: Complete implementation

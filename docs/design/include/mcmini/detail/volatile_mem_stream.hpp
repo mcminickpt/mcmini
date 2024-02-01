@@ -4,16 +4,13 @@
 
 #include "mcmini/real_world/shm.hpp"
 
-namespace mcmini::detail {
-
 struct volatile_mem_stream : public std::streambuf {
  private:
-  const mcmini::real_world::shared_memory_region *read_write_region;
+  const real_world::shared_memory_region *read_write_region;
   char *volatile_cache;
 
  public:
-  volatile_mem_stream(
-      const mcmini::real_world::shared_memory_region *read_write_region)
+  volatile_mem_stream(const real_world::shared_memory_region *read_write_region)
       : read_write_region(read_write_region),
         volatile_cache(new char[read_write_region->size()]) {
     reset();
@@ -49,4 +46,3 @@ struct volatile_mem_stream : public std::streambuf {
     return std::streambuf::sync();
   }
 };
-}  // namespace mcmini::detail

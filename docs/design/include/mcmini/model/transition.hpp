@@ -6,7 +6,7 @@
 #include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A function over states of a program.
@@ -38,7 +38,7 @@ namespace mcmini::model {
  *
  * Formally, if a transition is defined in a state `s`, it means it's enabled
  * there according to the formal definition. However, the definition of
- * `mcmini::model::transition` allows the transition to produce a state _even if
+ * `model::transition` allows the transition to produce a state _even if
  * the process which is set to execute the transition isn't truly in a position
  * where the transition is being executed_. Transitions perform _look ups_ on
  * the particular state they are given
@@ -51,8 +51,8 @@ namespace mcmini::model {
  * the transition "thread 1 executes post(sem)" is _not_ enabled since thread 1
  * is _not_ executing a `post(sem)`. However, the implementation of "thread 1
  * executes post(sem)"  _would be defined_ in state `s_2`. In other words, a
- * `mcmini::model::state` _excludes_ the state of the _processes_; that is the
- * responsibility of `mcmini::model::program`.
+ * `model::state` _excludes_ the state of the _processes_; that is the
+ * responsibility of `model::program`.
  */
 class transition {
  public:
@@ -70,11 +70,11 @@ class transition {
    * were applied to state _s_ if such a transition is defined at _s_, and
    * otherwise the empty optional.
    */
-  mcmini::optional<std::unique_ptr<state>> apply_to(const state& s) const {
+  optional<std::unique_ptr<state>> apply_to(const state& s) const {
     std::unique_ptr<mutable_state> s_prime = s.mutable_clone();
     return modify(*s_prime) == status::exists
-               ? mcmini::optional<std::unique_ptr<state>>(std::move(s_prime))
-               : mcmini::optional<std::unique_ptr<state>>();
+               ? optional<std::unique_ptr<state>>(std::move(s_prime))
+               : optional<std::unique_ptr<state>>();
   }
 
   /**
@@ -117,10 +117,10 @@ class transition {
   // transitions sending different return values to the wrapper functions that
   // they represent. The signature would be something like
   // `virtual void serialize(std::ostream&, const
-  // mcmini::coordinator::context::model_to_system_map&) const = 0;`
+  // coordinator::context::model_to_system_map&) const = 0;`
 
   virtual std::string to_string() const = 0;
   virtual ~transition() = default;
 };
 
-}  // namespace mcmini::model
+}  // namespace model

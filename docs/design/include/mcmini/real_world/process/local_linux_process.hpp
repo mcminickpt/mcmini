@@ -8,12 +8,12 @@
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/shm.hpp"
 
-namespace mcmini::real_world {
+namespace real_world {
 
 /**
  * @brief A proxy for a process running under Linux.
  *
- * A `mcmini::real_world::linux_process` is a local proxy for a process running
+ * A `real_world::linux_process` is a local proxy for a process running
  * on the same machine.
  */
 class local_linux_process : public process {
@@ -26,7 +26,7 @@ class local_linux_process : public process {
   // share the memory region but it wouldn't be attached to the processes
   // themselves
   static shared_memory_region read_write_region;
-  static mcmini::detail::volatile_mem_stream &get_mem_stream_wrapper() {}
+  static volatile_mem_stream &get_mem_stream_wrapper() {}
 
  public:
   local_linux_process() = default;
@@ -35,4 +35,4 @@ class local_linux_process : public process {
 
   std::istream &execute_runner(runner_id_t mcmini_runner_id) override;
 };
-}  // namespace mcmini::real_world
+}  // namespace real_world

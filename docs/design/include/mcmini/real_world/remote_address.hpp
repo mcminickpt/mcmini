@@ -3,7 +3,7 @@
 #include <istream>
 #include <ostream>
 
-namespace mcmini::real_world {
+namespace real_world {
 
 template <typename T>
 struct remote_address final {
@@ -28,4 +28,4 @@ struct remote_address final {
 template <typename T>
 using remote_object = remote_address<T>;
 
-}  //  namespace mcmini::real_world
+}  //  namespace real_world

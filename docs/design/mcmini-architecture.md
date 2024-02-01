@@ -6,7 +6,7 @@ This strategic document serves as a blueprint for the upcoming development of Mc
 
 ### The Model
 
-At the heart of McMini lies the _Model_, an abstraction layer that facilitates the interaction between a live computational process and its analytical representation as perceived by the verifier. The `mcmini::model::program` serves as a pivotal element in this architecture, encapsulating:
+At the heart of McMini lies the _Model_, an abstraction layer that facilitates the interaction between a live computational process and its analytical representation as perceived by the verifier. The `model::program` serves as a pivotal element in this architecture, encapsulating:
 
 - **Trace Sequence (`S`)**: A chronological record of transitions, known as a _trace_, which catalogs the events that have transpired within the process. These transitions are linearizations of the actions the program has executed, detailed enough to reconstruct the program's path to its current state.
 
@@ -22,11 +22,11 @@ To further enhance the Model's granularity, we introduce the concept of _visible
 
 The Model Checker operates as the analytical core of McMini, tasked with rigorously validating the Model's integrity and ensuring its adherence to established correctness criteria. Leveraging the robustness of the Dynamic Partial Order Reduction (DPOR) algorithm, the Model Checker systematically explores all possible states of the program modeled by McMini.
 
-The implementation of the Model Checker is encapsulated within the `mcmini::model_checking::algorithm` class. This abstraction transforms the complex task of verification into a structured and methodical process. It is a functional entity designed to:
+The implementation of the Model Checker is encapsulated within the `model_checking::algorithm` class. This abstraction transforms the complex task of verification into a structured and methodical process. It is a functional entity designed to:
 
-- **Explore States**: Beginning from an initial state, often denoted as `s_0`, the algorithm ventures through the vast landscape of potential program states. Each state is represented by an instance of `mcmini::model::program`, which serves as a historical ledger detailing the transitions and state evolutions of the process under scrutiny.
+- **Explore States**: Beginning from an initial state, often denoted as `s_0`, the algorithm ventures through the vast landscape of potential program states. Each state is represented by an instance of `model::program`, which serves as a historical ledger detailing the transitions and state evolutions of the process under scrutiny.
 
-- **Model-Process Correspondence**: The algorithm maintains a critical invariant; the process under verification, represented by `mcmini::real_world::process`, must be accurately modeled by the initial state. This strict correspondence is the linchpin for the algorithm's exploration strategy, relying entirely on the Model to dictate the course of state space traversal.
+- **Model-Process Correspondence**: The algorithm maintains a critical invariant; the process under verification, represented by `real_world::process`, must be accurately modeled by the initial state. This strict correspondence is the linchpin for the algorithm's exploration strategy, relying entirely on the Model to dictate the course of state space traversal.
 
 - **Encounter Callbacks**: As the algorithm delves into the program's state space, it invokes specific callbacks in response to certain conditions:
   - **Deadlock Detection**: When encountering a state `s` where no further progress is possible, signifying a deadlock situation.
@@ -46,9 +46,9 @@ The Real World interface is McMini's conduit to live, operational processes. It 
 - **Process Control Operations**: Leverages standard operations like `exec` and `fork` to manage process execution flow, allowing McMini to simulate different execution paths and conditions.
 - **Checkpointing Integration**: Incorporates Distributed MultiThreaded CheckPointing (DMTCP) to create and restore snapshots of process states, providing a robust mechanism for state exploration and rollback capabilities.
 
-With the `mcmini::real_world::process_spawner`, McMini can instantiate new processes, emulating the birth of threads in an operating system. This functionality is crucial for exploring the multitude of execution paths a program can take, particularly in a multi-threaded environment.
+With the `real_world::process_spawner`, McMini can instantiate new processes, emulating the birth of threads in an operating system. This functionality is crucial for exploring the multitude of execution paths a program can take, particularly in a multi-threaded environment.
 
-The `mcmini::real_world::process` acts as a proxy for the actual processes running on the CPU, mirroring their forward-only progression through time. This design choice reflects the reality that processes in the operating system move unidirectionally forward, just as the sequence of instructions in a thread. The `process` structure provides the necessary interfaces for McMini to "execute" threads in a simulated environment, enabling the Model Checker to evaluate the program's behavior in various scenarios.
+The `real_world::process` acts as a proxy for the actual processes running on the CPU, mirroring their forward-only progression through time. This design choice reflects the reality that processes in the operating system move unidirectionally forward, just as the sequence of instructions in a thread. The `process` structure provides the necessary interfaces for McMini to "execute" threads in a simulated environment, enabling the Model Checker to evaluate the program's behavior in various scenarios.
 
 Furthermore, the `real_world::transition_encoding` offers a representation of McMini's transitions within the real-world processes. This encoding acts as a serialization layer, allowing McMini to translate its model transitions into a form that can be applied to and understood by the actual executing code.
 
@@ -60,7 +60,7 @@ The Coordinator, operationally known as the _Tracer_ within McMini, is charged w
 
 In essence, the Coordinator/Tracer acts as a dynamic bridge, adjusting the Model to reflect the live state of the process with each step it takes. It operates under the following principles:
 
-- **Stateful Synchronization**: The Coordinator maintains a consistent state between the model of the program (`mcmini::model::program`) and the actual running process (`mcmini::real_world::process`). This is vital because the program model represents not just a snapshot but a history of the process's execution, and any change in the process must be mirrored in the model.
+- **Stateful Synchronization**: The Coordinator maintains a consistent state between the model of the program (`model::program`) and the actual running process (`real_world::process`). This is vital because the program model represents not just a snapshot but a history of the process's execution, and any change in the process must be mirrored in the model.
 
 - **Execution Mapping**: The Coordinator maps each thread within the process to its subsequent action or "thread routine." As the process unfolds in real-time, only the next immediate action of any thread is definitively known. The Coordinator oversees the execution of these actions, subsequently discovering and integrating the next steps as they become apparent.
 
@@ -70,6 +70,6 @@ In essence, the Coordinator/Tracer acts as a dynamic bridge, adjusting the Model
 
 The role of the Coordinator/Tracer is thus not merely to monitor but to actively engage with both the Model and the process, facilitating a verification environment that is both reflective of the real world and capable of anticipating its future states.
 
-### Naming Conventions 
+### Naming Conventions
 
 We follow the naming conventions of the CoreFoundation regarding memory management where possible [see here](https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html#//apple_ref/doc/uid/20001148-CJBEJBHH)

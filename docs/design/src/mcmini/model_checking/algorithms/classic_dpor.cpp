@@ -8,8 +8,8 @@
 
 #include "mcmini/model/program.hpp"
 
-using namespace mcmini::model_checking;
-using namespace mcmini::model;
+using namespace model_checking;
+using namespace model;
 
 struct transition_sequence_entry {
   std::unordered_set<program::runner_id_t> backtrack_set;
@@ -27,7 +27,7 @@ void classic_dpor::verify_using(coordinator &coordinator,
   // auto enabled_runners =
   //     coordinator.get_current_program_model().get_enabled_runners();
 
-  // TODO: We could attach a `mcmini::model_checking::oracle` here which, given
+  // TODO: We could attach a `model_checking::oracle` here which, given
   // a set of threads and a program trace, perhaps some other information,
   // decides which thread to run. Something like this might be interesting here.
 

@@ -4,10 +4,10 @@
 
 #include "mcmini/real_world/process_source.hpp"
 
-namespace mcmini::real_world {
+namespace real_world {
 
 /**
- * @brief A factory which produces `mcmini::real_world::local_linux_process` by
+ * @brief A factory which produces `real_world::local_linux_process` by
  * `fork()`-ing this process followed by an `exec()` into the targeted process
  * located at `target` with `libmcmini.so` preloaded.
  *
@@ -30,4 +30,4 @@ class fork_process_source : public process_source {
   std::unique_ptr<process> make_new_process() override;
 };
 
-}  // namespace mcmini::real_world
+}  // namespace real_world

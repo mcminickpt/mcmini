@@ -1,6 +1,6 @@
 #include "mcmini/model/program.hpp"
 
-using namespace mcmini::model;
+using namespace model;
 
 program::program(state &&initial_state,
                  pending_transitions &&initial_first_steps)

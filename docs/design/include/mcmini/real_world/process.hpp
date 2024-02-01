@@ -6,19 +6,19 @@
 #include "mcmini/model/transition.hpp"
 #include "mcmini/real_world/runner.hpp"
 
-namespace mcmini::real_world {
+namespace real_world {
 
 /**
  * @brief A proxy for a process running on the CPU.
  *
- * A `mcmini::real_world::process` is a proxy for running code. It represents a
+ * A `real_world::process` is a proxy for running code. It represents a
  * static snapshot of executable code at a given moment in time as it runs under
  * McMini's.
  *
  * A process can be conceptualized as a "multi-dimensional" forward iterator;
  * that is, a process can undergo changes by _executing_ operations which cannot
  * be undone. Backwards progress is not possible for a
- * `mcmini::real_world::process`, which matches the forward execution of the
+ * `real_world::process`, which matches the forward execution of the
  * instruction streams.
  *
  * A process is a collection of different  _runners_ of execution. Each
@@ -50,7 +50,7 @@ struct process {
    *
    * @returns a stream containing the serialized response from the process
    * represented by this proxy. The stream must contain as its first element a
-   * `mcmini::model::transition_registry::rttid`. The McMini coordinator will
+   * `model::transition_registry::rttid`. The McMini coordinator will
    * use this identifier to invoke the appropriate callback function to
    * transform the remaining contents of the stream into its model.
    */
@@ -64,4 +64,4 @@ struct process {
   // new_runner);
 };
 
-}  // namespace mcmini::real_world
+}  // namespace real_world

@@ -3,7 +3,7 @@
 #include "mcmini/misc/asserts.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 
-using namespace mcmini::model;
+using namespace model;
 
 /* `state` overrrides */
 bool detached_state::contains_object_with_id(state::objid_t id) const {
@@ -27,5 +27,5 @@ const visible_object_state *detached_state::get_state_of_object(
 }
 
 std::unique_ptr<mutable_state> detached_state::mutable_clone() const {
-  return mcmini::extensions::make_unique<detached_state>(*this);
+  return extensions::make_unique<detached_state>(*this);
 }

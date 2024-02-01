@@ -2,7 +2,7 @@
 
 #include "mcmini/plugins.hpp"
 
-namespace mcmini::plugins {
+namespace plugins {
 
 /**
  * @brief A light-weight wrapper that provides an interface to loading plugins.
@@ -12,4 +12,4 @@ namespace mcmini::plugins {
  */
 class loader final {};
 
-};  // namespace mcmini::plugins
+};  // namespace plugins

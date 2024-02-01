@@ -4,7 +4,6 @@
 #include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
 
-namespace mcmini {
 /**
  * @brief A mapping between the remote addresses pointing to the C/C++ structs
  * the objects in McMini's model are emulating.
@@ -45,7 +44,7 @@ struct model_to_system_map final {
    * @brief Retrieve the object that corresponds to the given remote address, or
    * the empty optional if no such address exists
    */
-  mcmini::optional<model::state::objid_t> get_object_for_remote_process_handle(
+  optional<model::state::objid_t> get_object_for_remote_process_handle(
       void *) const;
 
   /**
@@ -70,12 +69,9 @@ struct model_to_system_map final {
    */
   model::state::objid_t record_new_object_association(
       void *remote_process_visible_object_handle,
-      std::unique_ptr<mcmini::model::visible_object_state> initial_state);
+      std::unique_ptr<model::visible_object_state> initial_state);
 
   model::state::objid_t observe_remote_process_handle(
       void *remote_process_visible_object_handle,
-      std::unique_ptr<mcmini::model::visible_object_state>
-          fallback_initial_state);
+      std::unique_ptr<model::visible_object_state> fallback_initial_state);
 };
-
-}  // namespace mcmini

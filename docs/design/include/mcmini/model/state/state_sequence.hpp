@@ -8,7 +8,7 @@
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A sequence of states.
@@ -24,7 +24,7 @@ namespace mcmini::model {
 class state_sequence : public state {
  private:
   /**
-   * @brief An element of a `mcmini::model::state_sequence`
+   * @brief An element of a `model::state_sequence`
    *
    * The `element` and `state_sequence` are tightly intertwined. We allow them
    * to work in tandem with one another as an implementation detail to permit
@@ -65,8 +65,8 @@ class state_sequence : public state {
   // INVARIANT: As new states are added to the visible objects in the
   // mapping, new state views are also added with the appropriate object states
   // replaced.
-  mcmini::append_only<visible_object> visible_objects;
-  mcmini::append_only<element> states_in_sequence;
+  append_only<visible_object> visible_objects;
+  append_only<element> states_in_sequence;
 
  public:
   state_sequence() = default;
@@ -121,4 +121,4 @@ class state_sequence : public state {
   state_sequence consume_into_subsequence(size_t index) &&;
 };
 
-}  // namespace mcmini::model
+}  // namespace model

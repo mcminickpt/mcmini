@@ -6,7 +6,7 @@
 
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A sequence of transitions.
@@ -33,4 +33,4 @@ class transition_sequence final {
   void push(std::unique_ptr<const transition>);
 };
 
-}  // namespace mcmini::model
+}  // namespace model

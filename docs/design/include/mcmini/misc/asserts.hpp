@@ -3,8 +3,6 @@
 #include <stdexcept>
 #include <string>
 
-namespace mcmini {
-
 struct asserts final {
   /* Prevent construction */
   asserts() = delete;
@@ -69,5 +67,3 @@ struct asserts final {
     assert_invariant(cond, std::string(why_invariant));
   }
 };
-
-}  // namespace mcmini

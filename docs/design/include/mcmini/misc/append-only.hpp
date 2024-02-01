@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <vector>
 
-namespace mcmini {
 template <typename T>
 struct append_only {
  private:
@@ -36,4 +35,3 @@ struct append_only {
   const_iterator cbegin() const { return this->contents.cbegin(); }
   const_iterator cend() const { return this->contents.cend(); }
 };
-}  // namespace mcmini

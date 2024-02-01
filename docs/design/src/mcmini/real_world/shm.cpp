@@ -8,7 +8,7 @@
 
 #include <cstdlib>
 
-using namespace mcmini::real_world;
+using namespace real_world;
 
 shared_memory_region::shared_memory_region(const std::string &shm_file_name,
                                            size_t region_size)

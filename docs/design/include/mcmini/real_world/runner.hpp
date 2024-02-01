@@ -2,8 +2,6 @@
 
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini {
-
 /**
  * @brief Manages the runtime execution of entities that exist outside of the
  * McMini model checker.
@@ -29,5 +27,3 @@ class runner {
   virtual std::istream &continue_to_next_transition(
       const model::transition &current_transition) = 0;
 };
-
-};  // namespace mcmini

@@ -5,11 +5,11 @@
 
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A collection of "next steps" for a set of threads running in a
- * `mcmini::model::program`
+ * `model::program`
  *
  * An important component of a program are the possible ways that is can evolve.
  * Evolution is described in McMini as _transitions_ -- functions of state which
@@ -53,4 +53,4 @@ struct pending_transitions final {
   }
 };
 
-}  // namespace mcmini::model
+}  // namespace model

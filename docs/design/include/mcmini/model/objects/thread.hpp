@@ -3,9 +3,9 @@
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
-namespace mcmini::model::objects {
+namespace model::objects {
 
-struct thread : public mcmini::model::visible_object_state {
+struct thread : public model::visible_object_state {
  public:
   /* The four possible states for a mutex */
   enum state_type { embryo, running, exited, killed };
@@ -19,7 +19,7 @@ struct thread : public mcmini::model::visible_object_state {
   thread(const thread &) = default;
   thread(state_type state) : current_state(state) {}
   static std::unique_ptr<thread> make(state_type state) {
-    return mcmini::extensions::make_unique<thread>(state);
+    return extensions::make_unique<thread>(state);
   }
   static std::unique_ptr<thread> make() { return thread::make(embryo); }
 
@@ -36,8 +36,8 @@ struct thread : public mcmini::model::visible_object_state {
   bool is_killed() const { return this->current_state == killed; }
 
   std::unique_ptr<visible_object_state> clone() const override {
-    return mcmini::extensions::make_unique<thread>(*this);
+    return extensions::make_unique<thread>(*this);
   }
 };
 
-}  // namespace mcmini::model::objects
+}  // namespace model::objects

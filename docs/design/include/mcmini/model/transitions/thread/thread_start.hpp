@@ -3,9 +3,9 @@
 #include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model::transitions {
+namespace model::transitions {
 
-struct thread_start : public mcmini::model::transition {
+struct thread_start : public model::transition {
  private:
   state::objid_t thread_id; /* The mutex this transition initializes */
 
@@ -13,8 +13,8 @@ struct thread_start : public mcmini::model::transition {
   thread_start(state::objid_t thread_id) : thread_id(thread_id) {}
   ~thread_start() = default;
 
-  status modify(mcmini::model::mutable_state& s) const override {
-    using namespace mcmini::model::objects;
+  status modify(model::mutable_state& s) const override {
+    using namespace model::objects;
     s.add_state_for(thread_id, thread::make(thread::running));
     return status::exists;
   }
@@ -24,4 +24,4 @@ struct thread_start : public mcmini::model::transition {
   }
 };
 
-}  // namespace mcmini::model::transitions
+}  // namespace model::transitions

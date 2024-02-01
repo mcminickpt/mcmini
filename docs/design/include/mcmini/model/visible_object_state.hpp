@@ -4,7 +4,7 @@
 
 #include <memory>
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A capture of the state of a particular visible object.
@@ -22,4 +22,4 @@ class visible_object_state {
   virtual std::unique_ptr<visible_object_state> clone() const = 0;
 };
 
-}  // namespace mcmini::model
+}  // namespace model

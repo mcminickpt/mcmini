@@ -3,9 +3,9 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model::transitions {
+namespace model::transitions {
 
-struct mutex_init : public mcmini::model::transition {
+struct mutex_init : public model::transition {
  private:
   state::objid_t mutex_id; /* The mutex this transition initializes */
 
@@ -13,8 +13,8 @@ struct mutex_init : public mcmini::model::transition {
   mutex_init(state::objid_t mutex_id) : mutex_id(mutex_id) {}
   ~mutex_init() = default;
 
-  status modify(mcmini::model::mutable_state& s) const override {
-    using namespace mcmini::model::objects;
+  status modify(model::mutable_state& s) const override {
+    using namespace model::objects;
     s.add_state_for(mutex_id, mutex::make(mutex::unlocked));
     return status::exists;
   }
@@ -24,4 +24,4 @@ struct mutex_init : public mcmini::model::transition {
   }
 };
 
-}  // namespace mcmini::model::transitions
+}  // namespace model::transitions

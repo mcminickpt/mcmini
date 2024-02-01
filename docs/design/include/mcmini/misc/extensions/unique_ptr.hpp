@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace mcmini::extensions {
+namespace extensions {
 
 template <typename T>
 constexpr std::unique_ptr<const T> to_const_unique_ptr(std::unique_ptr<T> ptr) {
@@ -16,4 +16,4 @@ template <class T, class... Args>
 constexpr std::unique_ptr<T> make_unique(Args&&... args) {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
-}  // namespace mcmini::extensions
+}  // namespace extensions

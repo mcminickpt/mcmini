@@ -5,7 +5,7 @@
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/visible_object.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A collection of visible object states.
@@ -13,9 +13,9 @@ namespace mcmini::model {
  * A `detached_state` is one which defines a state of a program outside of the
  * context of a sequence; that is, a detached state represents the states
  */
-class detached_state : public mutable_state {
+class detached_state : public model::mutable_state {
  private:
-  mcmini::append_only<visible_object> visible_objects;
+  append_only<model::visible_object> visible_objects;
 
  public:
   detached_state() = default;
@@ -35,4 +35,4 @@ class detached_state : public mutable_state {
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 
-}  // namespace mcmini::model
+}  // namespace model

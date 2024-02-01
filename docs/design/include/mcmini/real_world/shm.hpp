@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace mcmini::real_world {
+namespace real_world {
 
 /**
  * @brief A handle to a region of shared memory shared between the McMini
@@ -42,4 +42,4 @@ struct shared_memory_region {
   size_t region_size;
 };
 
-};  // namespace mcmini::real_world
+};  // namespace real_world

@@ -4,7 +4,7 @@
 
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 // -----------------------------------------------------------------------------
 // -----McMini Private API (inside McMini executable that runs the checker)-----
@@ -45,4 +45,4 @@ void serialize_transition(T* subtype, std::ostream& os) {
   serializer<T>::serialize(subtype, os);
 }
 
-}  // namespace mcmini::model
+}  // namespace model

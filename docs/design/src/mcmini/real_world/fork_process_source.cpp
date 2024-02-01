@@ -3,12 +3,13 @@
 #include <libgen.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include <iostream>
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/process/local_linux_process.hpp"
 
-using namespace mcmini::real_world;
+using namespace real_world;
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
   // const_cast<> is needed to call the C-functions here. A new/delete
@@ -44,5 +45,5 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   // TODO: Handle execvp failing in the fork()-ed child..
   // if failed --> return nullptr
 
-  return mcmini::extensions::make_unique<local_linux_process>(child_pid);
+  return extensions::make_unique<local_linux_process>(child_pid);
 }

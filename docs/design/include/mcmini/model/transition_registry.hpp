@@ -7,7 +7,7 @@
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A central repository where transitions are dynamically registered with
@@ -40,7 +40,7 @@ class transition_registry final {
   template <typename transition_subclass>
   runtime_type_id register_transition(transition_discovery_callback callback) {
     static_assert(std::is_base_of<transition, transition_subclass>::value,
-                  "Must be a subclass of `mcmini::model::transition`");
+                  "Must be a subclass of `model::transition`");
     // TODO: Mapping between types and the serialization
     // function pointers. For plugins loaded by McMini, each will have the
     // chance to register the transitions it defines. Here the RTTI needs to
@@ -82,4 +82,4 @@ class transition_registry final {
   std::vector<transition_discovery_callback> runtime_callbacks;
 };
 
-}  // namespace mcmini::model
+}  // namespace model

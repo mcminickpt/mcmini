@@ -6,7 +6,7 @@
 #include "mcmini/model/state/state_sequence.hpp"
 #include "mcmini/model/transitions/transition_sequence.hpp"
 
-namespace mcmini::model {
+namespace model {
 
 /**
  * @brief A capture of the states visited in a particular branch of the state
@@ -17,7 +17,7 @@ namespace mcmini::model {
  *
  * A program is an interface between a live process running on the CPU under
  * control of the operating system and the view of that process from the
- * perspective of the verifier. A _mcmini::model::program_ is a container that
+ * perspective of the verifier. A _model::program_ is a container that
  * comprises of the following three components:
  *
  * - a sequence `S` of transitions that have occurred called a _trace_.
@@ -81,7 +81,7 @@ class program {
       this->next_steps.displace_transition_for(p, std::move(new_transition));
     } else {
       // TODO: Handle the case where `p` doesn't exist. Perhaps this function
-      // should return a `mcmini::result<>` type.
+      // should return a `result<>` type.
       throw std::runtime_error(
           "Attempted to execute a runner whose transition was not currently "
           "enabled");
@@ -90,4 +90,4 @@ class program {
 };
 //
 
-};  // namespace mcmini::model
+};  // namespace model

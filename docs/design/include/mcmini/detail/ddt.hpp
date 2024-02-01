@@ -7,8 +7,6 @@
 
 #include "mcmini/misc/optional.hpp"
 
-namespace mcmini::detail {
-
 template <typename InterfaceType, typename FunctionType>
 struct double_dispatch_member_function_table;
 
@@ -101,18 +99,18 @@ struct double_dispatch_member_function_table<InterfaceType,
                        unspecified_callback_handle);
   }
 
-  mcmini::optional<ReturnType> call(InterfaceType* t1, InterfaceType* t2,
-                                    Args... args) {
+  optional<ReturnType> call(InterfaceType* t1, InterfaceType* t2,
+                            Args... args) {
     auto t1_type = std::type_index(typeid(*t1));
     auto t2_type = std::type_index(typeid(*t2));
     if (_internal_table.count(t1_type) > 0) {
       if (_internal_table[t1_type].count(t2_type) > 0) {
         auto& pair = _internal_table[t1_type][t2_type];
-        return mcmini::optional<ReturnType>(
+        return optional<ReturnType>(
             pair.first(t1, t2, pair.second, std::forward(args)...));
       }
     }
-    return mcmini::optional<ReturnType>();
+    return optional<ReturnType>();
   }
 };
 
@@ -210,5 +208,3 @@ struct double_dispatch_member_function_table<InterfaceType, void(Args...)> {
     }
   }
 };
-
-}  // namespace mcmini::detail

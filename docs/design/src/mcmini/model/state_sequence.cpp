@@ -4,7 +4,7 @@
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 
-using namespace mcmini::model;
+using namespace model;
 
 class state_sequence::diff_state : public mutable_state {
   //  private:
@@ -122,5 +122,5 @@ std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {
 
 // std::unique_ptr<mutable_state> state_sequence::diff_state::mutable_clone()
 //     const {
-//   return mcmini::extensions::make_unique<diff_state>(this->base_state);
+//   return extensions::make_unique<diff_state>(this->base_state);
 // }

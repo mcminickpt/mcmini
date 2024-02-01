@@ -7,7 +7,7 @@
 #include "mcmini/misc/asserts.hpp"
 #include "mcmini/model/visible_object.hpp"
 
-namespace mcmini::model {
+namespace model {
 /**
  * @brief A particular snapshot in time of a program undergoing verification
  * from the perspective of McMini.
@@ -31,7 +31,7 @@ class state {
   static std::unique_ptr<StateType> from_visible_object_states(
       ForwardIter begin, ForwardIter end, Args &&...args) {
     auto state =
-        mcmini::extensions::make_unique<StateType>(std::forward<Args>(args)...);
+        extensions::make_unique<StateType>(std::forward<Args>(args)...);
     for (auto elem = begin; elem != end; elem++) {
       state->add_object((*elem)->clone());
     }
@@ -43,7 +43,7 @@ class state {
                                                          ForwardIter end,
                                                          Args &&...args) {
     auto state =
-        mcmini::extensions::make_unique<StateType>(std::forward<Args>(args)...);
+        extensions::make_unique<StateType>(std::forward<Args>(args)...);
     for (auto elem = begin; elem != end; elem++) {
       state->add_object((*elem).get_current_state()->clone());
     }
@@ -99,4 +99,4 @@ class mutable_state : public state {
   }
 };
 
-}  // namespace mcmini::model
+}  // namespace model

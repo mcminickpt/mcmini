@@ -1,7 +1,5 @@
 #include "mcmini/coordinator/coordinator.hpp"
 
-using namespace mcmini;
-
 coordinator::coordinator(
     model::program &&initial_state,
     model::transition_registry &&runtime_transition_mapping,
@@ -38,18 +36,18 @@ void *model_to_system_map::get_remote_process_handle_for_object(
   return nullptr;
 }
 
-mcmini::optional<model::state::objid_t>
+optional<model::state::objid_t>
 model_to_system_map::get_object_for_remote_process_handle(void *handle) const {
   if (_coordinator.system_address_mapping.count(handle) > 0) {
-    return mcmini::optional<model::state::objid_t>(
+    return optional<model::state::objid_t>(
         _coordinator.system_address_mapping[handle]);
   }
-  return mcmini::optional<model::state::objid_t>();
+  return optional<model::state::objid_t>();
 }
 
 model::state::objid_t model_to_system_map::record_new_object_association(
     void *remote_process_visible_object_handle,
-    std::unique_ptr<mcmini::model::visible_object_state> initial_state) {
+    std::unique_ptr<model::visible_object_state> initial_state) {
   // TODO: Create a new object through the coordinator and then map handle
   // `remote_process_visible_object_handle` to the newly-created object.
   return 0;
@@ -57,8 +55,7 @@ model::state::objid_t model_to_system_map::record_new_object_association(
 
 model::state::objid_t model_to_system_map::observe_remote_process_handle(
     void *remote_process_visible_object_handle,
-    std::unique_ptr<mcmini::model::visible_object_state>
-        fallback_initial_state) {
+    std::unique_ptr<model::visible_object_state> fallback_initial_state) {
   return this
       ->get_object_for_remote_process_handle(
           remote_process_visible_object_handle)
