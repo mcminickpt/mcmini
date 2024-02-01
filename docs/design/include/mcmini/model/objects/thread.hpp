@@ -3,7 +3,8 @@
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
-namespace model::objects {
+namespace model {
+namespace objects {
 
 struct thread : public model::visible_object_state {
  public:
@@ -39,5 +40,5 @@ struct thread : public model::visible_object_state {
     return extensions::make_unique<thread>(*this);
   }
 };
-
-}  // namespace model::objects
+}  // namespace objects
+}  // namespace model

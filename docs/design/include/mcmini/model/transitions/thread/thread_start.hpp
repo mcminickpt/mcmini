@@ -3,7 +3,8 @@
 #include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace model::transitions {
+namespace model {
+namespace transitions {
 
 struct thread_start : public model::transition {
  private:
@@ -24,4 +25,5 @@ struct thread_start : public model::transition {
   }
 };
 
-}  // namespace model::transitions
+}  // namespace transitions
+}  // namespace model

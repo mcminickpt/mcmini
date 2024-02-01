@@ -6,4 +6,4 @@
  * binaries. See the ld(2) man page for how McMini should be compiled (`-E`
  * and/or `--dynamic-list-cpp-typeinfo` and`--dynamic-list-cpp-new`)
  */
-extern "C" void mcmini_plugin_launch();
+void mcmini_plugin_launch();

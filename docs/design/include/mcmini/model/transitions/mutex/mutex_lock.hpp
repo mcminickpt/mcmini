@@ -3,7 +3,8 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/transition.hpp"
 
-namespace model::transitions {
+namespace model {
+namespace transitions {
 
 struct mutex_lock : public model::transition {
  private:
@@ -29,5 +30,5 @@ struct mutex_lock : public model::transition {
     return "mutex_lock(" + std::to_string(mutex_id) + ")";
   }
 };
-
-}  // namespace model::transitions
+}  // namespace transitions
+}  // namespace model

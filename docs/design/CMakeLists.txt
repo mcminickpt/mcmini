@@ -38,7 +38,7 @@ set(LIBMCMINI_C_SRC
 set(LIBMCMINI_CPP_SRC)
 
 # -Wall -> be strict with warnings
-set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall)
+set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
 set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
 
 # -lrt -> shared memory
@@ -66,5 +66,5 @@ target_link_libraries(libmcmini
 add_executable(mcmini "${MCMINI_CPP_SRC}""${MCMINI_C_SRC}")
 target_include_directories(mcmini PUBLIC "${MCMINI_INCLUDE_DIR}")
 
-add_executable(api-demo src/demos/transition-api-demo.cpp)
-target_link_options(api-demo PUBLIC "-fvisibility=hidden")
+# Compile examples
+add_subdirectory(src/examples)
