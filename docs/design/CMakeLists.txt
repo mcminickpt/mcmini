@@ -31,11 +31,11 @@ set(MCMINI_CPP_SRC
   src/mcmini/real_world/local_linux_process.cpp
   src/mcmini/real_world/shm.cpp
 )
-set(LIBMCMINI_C_SRC )
-set(LIBMCMINI_CPP_SRC
-  src/lib/entry.cpp
-  src/lib/wrappers.cpp
+set(LIBMCMINI_C_SRC
+  src/lib/entry.c
+  src/lib/wrappers.c
 )
+set(LIBMCMINI_CPP_SRC)
 
 # -Wall -> be strict with warnings
 set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall)
