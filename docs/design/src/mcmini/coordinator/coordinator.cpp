@@ -32,7 +32,7 @@ void coordinator::execute_runner(runner::runner_id_t runner_id) {
 
 void *model_to_system_map::get_remote_process_handle_for_object(
     model::state::objid_t id) const {
-  // TODO:impl
+  // TODO: Implement this
   return nullptr;
 }
 

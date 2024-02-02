@@ -7,28 +7,27 @@
 using namespace model;
 
 class state_sequence::diff_state : public mutable_state {
-  //  private:
-  //   const state &base_state;
-  //   std::unordered_map<state::objid_t, visible_object> new_object_states;
+ private:
+  const state &base_state;
+  std::unordered_map<state::objid_t, visible_object> new_object_states;
 
-  //  public:
-  //   diff_state(const state &s) : base_state(s) {}
-  //   diff_state(const diff_state &ds)
-  //       : base_state(ds.base_state), new_object_states(ds.new_object_states)
-  //       {}
-  //   diff_state(detached_state &&) = delete;
-  //   diff_state &operator=(const diff_state &) = delete;
-  //   detached_state &operator=(detached_state &&) = delete;
+ public:
+  diff_state(const state &s) : base_state(s) {}
+  diff_state(const diff_state &ds)
+      : base_state(ds.base_state), new_object_states(ds.new_object_states) {}
+  diff_state(detached_state &&) = delete;
+  diff_state &operator=(const diff_state &) = delete;
+  detached_state &operator=(detached_state &&) = delete;
 
-  // /* `state` overrrides */
-  // virtual bool contains_object_with_id(objid_t id) const override;
-  // virtual const visible_object_state *get_state_of_object(
-  //     objid_t id) const override;
-  // virtual objid_t add_object(
-  //     std::unique_ptr<visible_object_state> initial_state) override;
-  // virtual void add_state_for(
-  //     objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  // virtual std::unique_ptr<mutable_state> mutable_clone() const override;
+  /* `state` overrrides */
+  virtual bool contains_object_with_id(objid_t id) const override;
+  virtual const visible_object_state *get_state_of_object(
+      objid_t id) const override;
+  virtual objid_t add_object(
+      std::unique_ptr<visible_object_state> initial_state) override;
+  virtual void add_state_for(
+      objid_t id, std::unique_ptr<visible_object_state> new_state) override;
+  virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 
 state_sequence::state_sequence(const state &initial_state) {
@@ -64,11 +63,13 @@ transition::status state_sequence::follow(const transition &t) {
   // the `apply_to` function: it simply returns a clone of the state it was
   // provided. A `diff_state` copies only the reference to its underlying
   // "backing" state, and only new objects will be
-  // TODO: Initialize this with a reference to this state.
-  diff_state *ds;
-  auto maybe_diff = t.apply_to(*ds);
+  diff_state ds(*this);
+  auto maybe_diff = t.apply_to(ds);
 
   if (maybe_diff.has_value()) {
+    // Assumes that the `mutable_clone()` of diff_state is also a
+    // `diff_state` and that `apply_to()` returns the mutated clone. Since these
+    // are implementation details under our control, this assumption holds
     const diff_state &ds_after_t =
         static_cast<const diff_state &>(*maybe_diff.value());
 
@@ -80,22 +81,19 @@ transition::status state_sequence::follow(const transition &t) {
     this->consume_diff(ds_after_t);
     this->states_in_sequence.push_back(element(*this));
 
-    // consume the difference
     return transition::status::exists;
   }
-
   return transition::status::disabled;
-
-  // We know the
 }
 
-void state_sequence::consume_diff(const diff_state &) {
+void state_sequence::consume_diff(const diff_state &ds) {
   /* TODO: Implement consumption of new states */
 }
 
 state_sequence state_sequence::consume_into_subsequence(size_t index) && {
   // TODO: Implementation here. The subsequence should look exactly the same
-  // as this subsequence up to index `index`.
+  // as this subsequence up to index `index`.-
+  return state_sequence();
 }
 
 state_sequence::element::element(const state_sequence &owner) {
@@ -120,7 +118,32 @@ std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {
 
 //////// state_sequence::diff_state ///////
 
-// std::unique_ptr<mutable_state> state_sequence::diff_state::mutable_clone()
-//     const {
-//   return extensions::make_unique<diff_state>(this->base_state);
-// }
+bool state_sequence::diff_state::contains_object_with_id(objid_t id) const {
+  return this->new_object_states.count(id) > 0 ||
+         this->base_state.contains_object_with_id(id);
+}
+
+const visible_object_state *state_sequence::diff_state::get_state_of_object(
+    objid_t id) const {
+  if (this->new_object_states.count(id) > 0) {
+    return this->new_object_states.at(id).get_current_state();
+  } else {
+    return this->base_state.get_state_of_object(id);
+  }
+}
+
+state::objid_t state_sequence::diff_state::add_object(
+    std::unique_ptr<visible_object_state> initial_state) {
+  // TODO: Implement
+  return 0;
+}
+
+void state_sequence::diff_state::add_state_for(
+    objid_t id, std::unique_ptr<visible_object_state> new_state) {
+  // TODO: Implement
+}
+
+std::unique_ptr<mutable_state> state_sequence::diff_state::mutable_clone()
+    const {
+  return extensions::make_unique<diff_state>(this->base_state);
+}

@@ -48,7 +48,7 @@ struct pending_transitions final {
   std::unique_ptr<const transition> displace_transition_for(
       runner_id_t id, std::unique_ptr<const transition> new_transition) {
     auto old_transition = std::move(_contents[id]);
-    _contents.insert({id, std::move(new_transition)});
+    _contents[id] = std::move(new_transition);
     return old_transition;
   }
 };

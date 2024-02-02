@@ -40,6 +40,11 @@ void do_model_checking(
   initial_first_steps.displace_transition_for(
       0, make_unique<transitions::thread_start>(thread_id));
 
+  state_sequence ss;
+  ss.follow(*initial_first_steps.get_transition_for_runner(0));
+
+  std::exit(EXIT_SUCCESS);
+
   /*
   TODO: Complete the initialization of the initial state here, i.e. a
   single thread "main" that is alive and then running the transition `t`

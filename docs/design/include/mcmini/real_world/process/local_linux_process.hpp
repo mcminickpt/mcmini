@@ -26,12 +26,11 @@ class local_linux_process : public process {
   // share the memory region but it wouldn't be attached to the processes
   // themselves
   static shared_memory_region read_write_region;
-  static volatile_mem_stream &get_mem_stream_wrapper() {}
 
  public:
   local_linux_process() = default;
-  virtual ~local_linux_process();
   local_linux_process(pid_t pid) : pid(pid) {}
+  virtual ~local_linux_process();
 
   std::istream &execute_runner(runner_id_t mcmini_runner_id) override;
 };
