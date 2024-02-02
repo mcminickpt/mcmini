@@ -32,8 +32,8 @@ set(MCMINI_CPP_SRC
   src/mcmini/real_world/shm.cpp
 )
 set(LIBMCMINI_C_SRC
-  src/lib/entry.c
-  src/lib/wrappers.c
+  src/libmcmini/entry.c
+  src/libmcmini/wrappers.c
 )
 set(LIBMCMINI_CPP_SRC)
 
