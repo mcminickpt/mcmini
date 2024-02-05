@@ -16,6 +16,10 @@ struct thread_start : public model::transition {
 
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
+    auto* thread_state = s.get_state_of_object<thread>(thread_id);
+    if (!thread_state->is_embryo()) {
+      return status::disabled;
+    }
     s.add_state_for(thread_id, thread::make(thread::running));
     return status::exists;
   }

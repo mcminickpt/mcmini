@@ -68,13 +68,13 @@ class transition {
    * @param s the state to pass as an argument to the transition.
    * @returns the resulting state _s'_ that would be produced if this transition
    * were applied to state _s_ if such a transition is defined at _s_, and
-   * otherwise the empty optional.
+   * otherwise `nullptr`
    */
-  optional<std::unique_ptr<state>> apply_to(const state& s) const {
+  std::unique_ptr<state> apply_to(const state& s) const {
     std::unique_ptr<mutable_state> s_prime = s.mutable_clone();
     return modify(*s_prime) == status::exists
-               ? optional<std::unique_ptr<state>>(std::move(s_prime))
-               : optional<std::unique_ptr<state>>();
+               ? std::unique_ptr<state>(std::move(s_prime))
+               : std::unique_ptr<state>();
   }
 
   /**
@@ -82,7 +82,7 @@ class transition {
    *
    * @param s the state to determine if this transition is enabled.
    */
-  bool is_enabled_in(const state& s) const { return apply_to(s).has_value(); }
+  bool is_enabled_in(const state& s) const { return apply_to(s) != nullptr; }
 
   /**
    * @brief A result of a modification to a state.

@@ -12,14 +12,8 @@ namespace model {
 class visible_object_state {
  public:
   virtual ~visible_object_state() = default;
-
-  /**
-   * Create a copy of this state.
-   *
-   * @return a pointer to a new object representing an object with the same
-   * state.
-   */
   virtual std::unique_ptr<visible_object_state> clone() const = 0;
+  virtual std::string to_string() const = 0;
 };
 
 }  // namespace model

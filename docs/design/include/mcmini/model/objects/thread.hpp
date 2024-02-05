@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
@@ -38,6 +40,9 @@ struct thread : public model::visible_object_state {
 
   std::unique_ptr<visible_object_state> clone() const override {
     return extensions::make_unique<thread>(*this);
+  }
+  std::string to_string() const override {
+    return "thread(" + std::to_string(current_state) + ")";
   }
 };
 }  // namespace objects

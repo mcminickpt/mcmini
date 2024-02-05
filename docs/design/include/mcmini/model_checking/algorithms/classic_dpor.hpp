@@ -11,6 +11,11 @@ namespace model_checking {
 class classic_dpor final : public algorithm {
  public:
   void verify_using(coordinator &, const callbacks &) override;
+
+  void verify_using(coordinator &coordinator) {
+    callbacks no_callbacks;
+    this->verify_using(coordinator, no_callbacks);
+  }
 };
 
 }  // namespace model_checking

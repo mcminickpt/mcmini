@@ -26,6 +26,7 @@ class detached_state : public model::mutable_state {
 
   /* `state` overrrides */
   virtual bool contains_object_with_id(objid_t id) const override;
+  virtual size_t count() const override { return visible_objects.size(); }
   virtual const visible_object_state *get_state_of_object(
       objid_t id) const override;
   virtual objid_t add_object(

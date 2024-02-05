@@ -38,6 +38,9 @@ struct mutex : public model::visible_object_state {
   std::unique_ptr<visible_object_state> clone() const override {
     return extensions::make_unique<mutex>(*this);
   }
+  std::string to_string() const override {
+    return "mutex(" + std::to_string(current_state) + ")";
+  }
 };
 }  // namespace objects
 }  // namespace model
