@@ -40,15 +40,10 @@ class visible_object final {
   }
 
  public:
+  visible_object() = default;
   visible_object(visible_object &&) = default;
   visible_object &operator=(visible_object &&) = default;
-
-  /**
-   * @brief Construct a visible object with the given initial state.
-   *get
-   * @param initial_state the initial state of the object.
-   */
-  visible_object(std::unique_ptr<const visible_object_state> initial_state) {
+  visible_object(std::unique_ptr<const visible_object_state> &&initial_state) {
     push_state(std::move(initial_state));
   }
   visible_object(const visible_object &other) {
@@ -88,6 +83,16 @@ class visible_object final {
     }
     return visible_object(std::move(sliced_states));
   }
+
+  /// @brief Extracts the current state from this object.
+  /// @return a pointer to the current state of this object
+  std::unique_ptr<const visible_object_state> consume_into_current_state() && {
+    if (history.empty()) {
+      return nullptr;
+    }
+    return std::move(history.back());
+  }
+
   std::unique_ptr<visible_object> clone() const {
     return extensions::make_unique<visible_object>(*this);
   }

@@ -17,6 +17,7 @@ class state {
   using objid_t = uint32_t;
 
   virtual ~state() = default;
+  virtual size_t count() const = 0;
   virtual bool contains_object_with_id(objid_t id) const = 0;
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
@@ -95,7 +96,7 @@ class mutable_state : public state {
   template <typename concrete_visible_object_state>
   const concrete_visible_object_state *get_state_of_object(objid_t id) const {
     return (static_cast<const state *>(this))
-        ->get_state_of_object<concrete_visible_object_state>();
+        ->get_state_of_object<concrete_visible_object_state>(id);
   }
 };
 

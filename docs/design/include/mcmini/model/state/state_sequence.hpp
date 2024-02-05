@@ -21,7 +21,7 @@ namespace model {
  * exists a sequence of transitions `t_i, ..., t_j` such that `s_j =
  * t_j(t_{j-1}(...(t_i(s_i))...))`
  */
-class state_sequence : public state {
+class state_sequence : public mutable_state {
  private:
   /**
    * @brief An element of a `model::state_sequence`
@@ -37,51 +37,59 @@ class state_sequence : public state {
     /// _owning_sequence_ to which this element belongs.
     ///
     /// Each state in the view
-    std::vector<const visible_object_state *> visible_object_states;
+    std::unordered_map<state::objid_t, const visible_object_state *>
+        visible_object_states;
 
     element(const state_sequence &owner);
     friend state_sequence;
 
    public:
+    element() = default;
+    void point_to_state_for(objid_t id, const visible_object_state *new_state) {
+      this->visible_object_states[id] = new_state;
+    }
+    virtual size_t count() const override {
+      return visible_object_states.size();
+    }
     virtual bool contains_object_with_id(objid_t id) const override;
     virtual const visible_object_state *get_state_of_object(
         objid_t id) const override;
     virtual std::unique_ptr<mutable_state> mutable_clone() const override;
   };
 
-  /**
-   * @brief A state which maintains changes to an underlying base state.
-   *
-   * A `diff_state` manages the changes in state of objects which exist in a
-   * given state, as well as any newly-created objects
-   */
   class diff_state;
 
-  /**
-   * @brief Consume the differences contained in the `diff_state`
-   */
-  void consume_diff(const diff_state &);
-
+  void push_state_snapshot() {
+    this->states_in_sequence.push_back(element(*this));
+  }
   // INVARIANT: As new states are added to the visible objects in the
-  // mapping, new state views are also added with the appropriate object states
-  // replaced.
+  // mapping `visible_objects`, new state views are also added with the
+  // appropriate object states replaced for the _last element_ of
+  // `states_in_sequence`. When new objects are added to `visible_objects`, a
+  // corresponding object state is added to the _last_ element in the sequence.
   append_only<visible_object> visible_objects;
   append_only<element> states_in_sequence;
 
  public:
-  state_sequence() = default;
+  state_sequence();
   state_sequence(const state &);
   state_sequence(const state &&);
   state_sequence(state_sequence &) = delete;
   state_sequence(state_sequence &&) = default;
   state_sequence(std::vector<visible_object> &&);
+  state_sequence(append_only<visible_object> &&);
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
 
   /* `state` overrrides */
   virtual bool contains_object_with_id(state::objid_t id) const override;
+  virtual size_t count() const override { return visible_objects.size(); }
   virtual const visible_object_state *get_state_of_object(
       objid_t id) const override;
+  virtual objid_t add_object(
+      std::unique_ptr<visible_object_state> initial_state) override;
+  virtual void add_state_for(
+      objid_t id, std::unique_ptr<visible_object_state> new_state) override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 
   /* Applying transitions */
@@ -99,6 +107,7 @@ class state_sequence : public state {
    */
   transition::status follow(const transition &t);
 
+  size_t state_count() const { return this->states_in_sequence.size(); }
   const state &state_at(size_t i) const {
     return this->states_in_sequence.at(i);
   }
