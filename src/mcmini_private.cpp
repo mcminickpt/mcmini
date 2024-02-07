@@ -4,6 +4,10 @@
 #include "mcmini/signals.h"
 #include "mcmini/transitions/MCTransitionsShared.h"
 #include <vector>
+#include <sys/wait.h> // For waitpid
+#include <errno.h>    // For errno
+#include <cstring>    // For strerror
+#include <iostream>   // For std::cerr
 
 extern "C" {
 #include "mcmini/mc_shared_sem.h"
@@ -467,19 +471,26 @@ mc_run_thread_to_next_visible_operation(tid_t tid)
 }
 
 void
-mc_terminate_trace()
-{
-  if (trace_pid == -1) return; // No child
-  kill(trace_pid, SIGUSR1);
-  mc_wait_for_trace();
-  trace_pid = -1;
-}
-
-void
-mc_wait_for_trace()
-{
+mc_wait_for_trace() {
   MC_ASSERT(trace_pid != -1);
-  waitpid(trace_pid, NULL, 0);
+
+  int status;
+  if (waitpid(trace_pid, &status, 0) == -1) {
+    std::cerr << "Error waiting for trace process " << trace_pid << ": "
+              << strerror(errno) << std::endl;
+  } else {
+    // Check how the trace process exited
+    if (WIFEXITED(status)) {
+      std::cerr << "Trace process " << trace_pid << " exited with status "
+                << WEXITSTATUS(status) << std::endl;
+    } else if (WIFSIGNALED(status)) {
+      std::cerr << "Trace process " << trace_pid << " was killed by signal "
+                << WTERMSIG(status) << std::endl;
+    } else {
+      std::cerr << "Trace process " << trace_pid << " exited abnormally."
+                << std::endl;
+    }
+  }
 }
 
 void
