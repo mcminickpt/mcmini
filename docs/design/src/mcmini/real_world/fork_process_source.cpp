@@ -17,33 +17,41 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   // as the char * is not actually modified, this is OK and the best way
   // to interface with the C library routines
 
-  // TODO: Extract this into a helper method, be wary of setenv() leaking to
-  // other  sources in the future.
-  char buf[1000];
-  buf[sizeof(buf) - 1] = '\0';
-  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
-           (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
-           dirname(const_cast<char*>(this->target_program.c_str())));
-  setenv("LD_PRELOAD", buf, 1);
+  setup_ld_preload();
 
-  // TODO: Handle fork() failing
   pid_t child_pid = fork();
+  if (child_pid == -1) {
+    perror("fork");
+    return nullptr;  // Handle fork() failing
+  }
+
   if (child_pid == 0) {
-    // TODO: Pass arguments and command line parameters to the target
-    // program
+    // TODO: Add additional arguments here if needed
     char* args[] = {const_cast<char*>(this->target_program.c_str()), NULL};
 
     std::cerr << "About to exec with libmcmini.so loaded! Attempting to run "
               << this->target_program.c_str() << std::endl;
     execvp(this->target_program.c_str(), args);
 
-    // TODO: Handle exevp error here ->
-    perror("execvp");
+    perror("execvp");  // Handle execvp error here
     exit(EXIT_FAILURE);
+  } else {
+    int status;
+    waitpid(child_pid, &status, 0);  // Wait for the child to exit
+    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+      // Handle execvp failing in the fork()-ed child
+      return nullptr;
+    }
   }
 
-  // TODO: Handle execvp failing in the fork()-ed child..
-  // if failed --> return nullptr
-
   return extensions::make_unique<local_linux_process>(child_pid);
+}
+
+void fork_process_source::setup_ld_preload() {
+  char buf[1000];
+  buf[sizeof(buf) - 1] = '\0';
+  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
+           (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
+           dirname(const_cast<char*>(this->target_program.c_str())));
+  setenv("LD_PRELOAD", buf, 1);
 }

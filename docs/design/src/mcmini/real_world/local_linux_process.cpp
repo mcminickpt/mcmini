@@ -1,14 +1,33 @@
 #include "mcmini/real_world/process/local_linux_process.hpp"
 
+#include <errno.h>
+#include <sys/wait.h>
+
+#include <cstring>
+#include <iostream>
+
 using namespace real_world;
 
 local_linux_process::~local_linux_process() {
-  // TODO: Complete implementation
   if (pid <= 0) {
     return;
   }
-  kill(pid, SIGUSR1);    /* TODO: React to errors here */
-  waitpid(pid, NULL, 0); /* TODO: React to errors here */
+  if (kill(pid, SIGUSR1) == -1) {
+    std::cerr << "Error sending SIGUSR1 to process " << pid << ": "
+              << strerror(errno) << std::endl;
+  }
+
+  int status;
+  if (waitpid(pid, &status, 0) == -1) {
+    std::cerr << "Error waiting for process " << pid << ": " << strerror(errno)
+              << std::endl;
+  } else if (!WIFEXITED(status)) {
+    std::cerr << "Process " << pid << " did not exit normally." << std::endl;
+    if (WIFSIGNALED(status)) {
+      std::cerr << "Process " << pid << " was terminated by signal "
+                << WTERMSIG(status) << std::endl;
+    }
+  }
 }
 
 std::istream &local_linux_process::execute_runner(
