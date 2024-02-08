@@ -85,7 +85,6 @@ main(int argc, char* argv[])
     return 1;
   }
 
-
   int NUM_READERS = atoi(argv[1]);
   int NUM_WRITERS = atoi(argv[2]);
   DEBUG = atoi(argv[3]);

@@ -49,6 +49,5 @@ int main(int argc, char* argv[])
     free(threads);
     free(tids);
     pthread_barrier_destroy(&barrier);
-
     return 0;
 }
