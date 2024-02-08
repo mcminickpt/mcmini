@@ -51,6 +51,5 @@ int main(int argc, char* argv[])
     pthread_mutex_destroy(&mutex);
     sem_destroy(&sem);
     pthread_cond_destroy(&cond);
-
     return 0;
 }
