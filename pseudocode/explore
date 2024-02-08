@@ -1,0 +1,221 @@
+struct thread_identity: Equatable {
+    // Indirect identifier of a thread
+    // across exec() system calls to run
+    // the target program
+}
+
+struct thread_descriptor {
+    let identity: thread_identity
+    // Other state of a thread, e.g.
+    // if it is alive at this point
+    var is_alive: Bool
+}
+
+struct visible_operation {
+    // one of
+    // sem_operation
+    // mutex_operation
+    // read/write operation
+    // ...
+}
+
+struct transition {
+    let owner: thread_identity
+    let operation: visible_operation
+}
+
+struct total_state {
+    // Collection<semaphore_state> sem_states;
+    // Collection<mutex_state> mutex_states;
+    // ...
+
+    // Collection<transition> transitions; // Threads that are alive or dead at this point
+    var transitions: [transition]
+
+    func enabled_transitions() -> [transition] {
+        return transitions.filter { enabled($0) }
+    }
+}
+
+// DPOR structs
+struct transition_stack_item {
+    let transition: transition
+    // Possibly the state that is transitions FROM
+    // Possibly the index in the state stack that
+    // the transition moves from
+    // Index in the statestack
+}
+
+struct state_stack_item {
+    let wrappedState: total_state
+    var backtrack_set: Set<thread_identity>
+    var done_set: Set<thread_identity>
+
+    // Eventually
+    // sleep_set
+    // enabled_set
+    // lock_set
+    // etc.
+}
+
+struct stack<Item> {
+//    void push(Item);
+//    Item pop();
+//    Item peek();
+//    Item get(int i);
+};
+
+struct state_stack : stack<state_stack_item>
+struct transition_stack : stack<transition_stack_item>
+struct thread_table: hash_table<thread_identity>
+
+// We say a state stack, but it's more like a deque since we need
+// to be able to remove from both ends of the deque
+state_stack S; // N items
+transition_stack T; // N - 1 items -> one less
+transition_stack U;
+thread_table thread_table; // All threads ever discovered
+
+// Invariant: t is a transition
+func next(s: state_stack_item, t: transition) -> state_stack_item {
+    let wrappedState = s.wrappedState
+
+    guard wrappedState.enabled_transitions().contains(t) else {
+        // Invalid! Transition from this state undefined
+        fatalError()
+    }
+
+    update_global_states(for: wrappedState, withTransition: t)
+    update_transitions(for: wrappedState, withTransition: t)
+
+    return state_stack_item(wrappedState: wrappedState,
+                            backtrack_set: [],
+                            done_set: [])
+}
+
+func happens_before_relation(_ i: Int, _ j: Int, tstack: transition_stack) -> Bool {
+    i < j && depends(tstack.get(i), tstack.get(j))
+}
+
+func happens_before_relation(_ i: Int, p: thread_identity, tstack: transition_stack) {
+
+    let N = tstack.count
+    // (i + 1)...N and i case can be combined into a single for-loop
+    for k in i...N where happens_before_relation(i, k, tstack: tstack)  {
+        if tstack.get(k).transition.owner == p { return true }
+    }
+
+    return false
+}
+
+// KEY IDEA:  We are implementing cooperative multi-threading,
+//      instead of parallel multi-threading.  Only one thread
+//      has control at a time, and they must yield to the
+//      next thread by doing sem_post() to the next thread's semaphore
+//      and then sem_wait() on their own semaphore.
+// DPOR thread will be an independent thread
+const int NUM_THREADS  /* Keep it simple; initialize the number of threads and ignore when target creates threads *
+DPOR_new(state_stack_item[], 0);
+func DPOR_new(state_stack_item[], level, cur_thread) {
+   // Initialize new level with cur_thread
+    ...
+   // We have to separately determine if enabled;
+   //  For example, if cur_op == mutex_lock, we check if it's already locked.
+   if not is_enabled(cur_thread):
+     return
+   // PRINCIPLE:  Only one thread active at a time.
+   sem_post(semaphores[cur_thread])
+   sem_wait(semaphores[this_thread])
+   if level < MAX_LEVEL:
+     for thread in THREADS:
+        DPOR_new(state_stack_item[], level+1, thread)
+   return;
+}
+
+// We can use thread-local variables, so that we know about ourselves.
+// Target apps call mutex_lock_wrapper() directly for now.
+//  Later, we can use dlsym() for a transparent wrapper.
+__thread this_thread = XXX
+mutex_lock_wrapper(...) {
+   sem_post(semaphores[DPOR_thread])
+   sem_wait(semaphores[this_thread])
+  // DPOR is keeping a 'shadow struct' of the mutex so that we can track what libpthread.so has
+   ... /* Update state of the shadow struct for this mutex */
+   real_mutex_lock(...) // Let libpthread do its stuff in target app
+   return;  // this_thread continues to be active, but we
+             // now execute the remaining code of this transition
+            // which is normal sequential code
+  // NOTE: After 'this_thread' finishes the sequential code,
+  //    it will enter another wrapper (mutex_lock/unlock or other)
+  //     and the beginning of every wrapper says to
+  //     sem_post() to the DPOR_thread and wait.
+}
+
+func DPOR() {
+    // Run the source program for a fixed number ($K$) of iterations
+    let s = state_stack_item(wrappedState:
+                                initial_state_of_source_program,
+                             backtrack_set: [],
+                             done_set: [])
+    while (!S.isEmpty) {
+        let s = S.pop_top()
+        T.pop_top()
+        if (!s.backtracking_set.isEmpty) {
+            //
+            explore(s)
+            T = U
+        }
+    }
+}
+
+func explore(state: state_stack_item, max_depth: Int) {
+    let depth = S.get_index(state)
+    let V = T[depth]
+    var s = S[depth]
+    var t = select_transition_and_remove_from_backtrack_set(s)
+    s.done_set.insert(t)
+
+    repeat {
+        S.push(s)
+        V.append(t)
+        s = next(s, t)
+            // sleep set?
+        dynamically_update_backtrack_sets(item: s)
+        t = one of s.wrappedState.enabled_transitions()
+        depth += 1
+    } while !s.wrappedState.enabled_transitions().isEmpty && depth < max_depth
+
+    U = V
+}
+
+// Essence of DPOR backfilling
+func dynamically_update_backtrack_sets(item: state_stack_item) {
+    let wrappedState = item.wrappedState
+    let enabledTransitions = wrappedState.transitions.filter { transition_enabled($0) } // enabled_transitions(...)
+    let threads = wrappedState.transitions.map { $0.owner }
+
+    for thread in threads {
+        guard let transitionN = enabledTransitions.first { $0.owner == thread } else { continue }
+        guard let (transitionD, i) = T.enumerated().first { coenabled($0.transition, transitionN) && depends($0.transition, transitionN) } else { continue }
+
+        // Reference to the state the transition came from
+        let fromState = transitionD.state_ref
+        let E = fromState.totalState.enabled_transitions().map { $0.owner }.filter { owner in
+            guard let j = find_transition_in_state_stack(with) else { return false }
+            return owner == thread || happens_before_relation(j, p: owner, tstack: T)
+        }
+
+        if !E.isEmpty {
+            fromState.backtrack_set.insert(any element of E) // Optimize to choose a good one!
+        }
+        else {
+            fromState.backtrack_set.formUnion(E)
+        }
+    }
+}
+
+T1 -> sem_post of sem_1 which has count 1
+T2 -> sem_post of sem_1 which has count 0
+
+
+

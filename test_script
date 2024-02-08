@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+
+import os
+import subprocess
+import argparse
+import glob
+
+PROGRAM_DIR = "test"
+DEADLOCK_DIR = os.path.join(PROGRAM_DIR, "deadlock_program")
+NON_DEADLOCK_DIR = os.path.join(PROGRAM_DIR, "program")
+
+def run_program(directory, program, program_args, output_dir, quiet):
+    program_path = os.path.join(directory, program)
+    standalone_command = program_path + " " + " ".join(program_args)
+    try:
+        subprocess.run(standalone_command, shell=True, check=True, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError:
+        print(f"Error in program {program}. Look at usage message above...")
+        return
+    command = "/usr/bin/time -v ./mcmini " + program_path + " " + " ".join(program_args) + " 2>&1"
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    exclude_metrics = ["Percent of CPU this job got", "Elapsed (wall clock) time", "Average shared text size",
+                       "Average unshared data size", "Average stack size", "Average total size",
+                       "Maximum resident set size", "Average resident set size", "Major (requiring I/O) page faults",
+                       "Minor (reclaiming a frame) page faults", "Voluntary context switches",
+                       "Involuntary context switches", "Swaps", "File system inputs", "File system outputs",
+                       "Socket messages sent", "Socket messages received", "Signals delivered", "Page size", "Exit status"]
+
+    with open(os.path.join(output_dir, program), 'w') as f:
+        f.write(f"Command being timed: {command}\n")
+        while True:
+            output = proc.stdout.readline()
+            if output == b'' and proc.poll() is not None:
+                break
+            if output:
+                line = output.strip().decode('utf-8')
+                if any(metric in line for metric in exclude_metrics):
+                    continue
+                if 'User time' in line or 'System time' in line:
+                    parts = line.split(maxsplit=3)  # split the line into parts
+                    metric = parts[0] + " " + parts[1]
+                    value, unit = parts[3], ''  # get the value and unit
+                    value = round(float(value), 3)  # convert the value into float
+                    line = f"{metric} {value} {unit}"
+                f.write(f"{line}\n")  # write each line into the file
+                if not quiet:
+                    print(line)  # print the line to the terminal
+        rc = proc.poll()
+        f.write(f"Exit status: {rc}\n")
+
+def main(args):
+    directory = DEADLOCK_DIR if args.deadlock else NON_DEADLOCK_DIR
+    output_dir = "test/output_deadlock" if args.deadlock else "test/output_non_deadlock"
+    
+    if args.directory != "":
+        output_dir = args.directory
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    if args.program:
+        program = args.program[0]
+        if args.deadlock:
+            program = program + "_deadlock"
+        program_args = args.program[1:]
+        run_program(directory, program, program_args, output_dir, args.quiet)
+    else:
+        print("Program flag -p or --program is required.")
+        return
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--program', required=True, nargs='*', help="Specify the program to run and its arguments.")
+    parser.add_argument('-d', '--deadlock', action='store_true', help="Run deadlock versions of the programs.")
+    parser.add_argument('--directory', type=str, default="", help="Directory to store the output. If not specified, defaults to '../test/output_deadlock' or '../test/output_non_deadlock' depending on the deadlock flag.")
+    parser.add_argument('-q', '--quiet', action='store_true', help="If specified, the script will not print the output to the terminal.")
+    args = parser.parse_args()
+    main(args)

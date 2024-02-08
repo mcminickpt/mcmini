@@ -1,0 +1,27 @@
+def proc(S, i):
+	return thread executing ith step in sequence S
+
+def last(S):
+	return the last state after executing all of S (probably after a fork)
+
+def co-enabled(tr1, tr2):
+	if tr1 and tr2 are mutex operations on the same mutex:
+		return no unlock/lock pair
+	return True
+
+def enabled(tr):
+
+	if tr.type == MUTEX:
+		return tr.mutex_op.code == MUTEX_UNLOCKED
+
+	if tr.type == SEMAPHORE:
+		return tr.semaphore_op.semaphore.count > 0
+
+	if tr.type == THREAD_SPAWN:
+		return !tr.spawn_op.mc_thread.is_alive
+
+	// Condition variables?
+
+	return True
+
+

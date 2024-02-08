@@ -1,0 +1,6 @@
+#!/bin/zsh
+
+@MCMINI_SCRIPTS_DIR@/clean.zsh
+@MCMINI_SCRIPTS_DIR@/build.zsh
+
+

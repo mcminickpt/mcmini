@@ -1,0 +1,152 @@
+declare proc(T)
+
+global_read
+global_write
+
+sem_init
+sem_wait
+sem_post
+sem_getvalue
+
+mutex_init
+mutex_lock
+mutex_unlock
+
+pthread_create
+pthread_join
+
+enum visible_operation_type {
+	SEMAPHORE,
+	MUTEX,
+	GLOBAL_ACCESS,
+	THREAD_SPAWN // Ignored for now
+}
+
+Sequence of transitions -> some sort of list
+
+struct transition {
+	mc_thread executor;
+	visible_operation_type type;
+	union {
+		mc_semaphore_op semaphore_op;
+		mc_mutex_op mutex_op;
+		mc_global_op global_op;
+		mc_thread_spawn_op spawn_op
+	}
+};
+
+
+// -- SEMAPHORE -- \\
+enum semaphore_state {SEMAPHORE_LOCKED, SEMAPHORE_UNLOCKED, SEMAPHORE_UNKNOWN};
+struct mc_semaphore {
+  int init_time;
+  sem_t *semaphore_addr;
+  int count; // negative is # of blocked threads; positive is # of free passes
+};
+
+enum mc_semaphore_op_code { SEM_INIT, SEM_WAIT, SEM_POST, SEM_GETVALUE };
+struct mc_semaphore_op {
+	struct mc_semaphore semaphore;
+	enum mc_semaphore_op_code code;
+};
+\\ -- END -- //
+
+
+// -- GLOBAL -- \\
+enum global_state { GLOBAL_WRITE, GLOBAL_READ };
+struct mc_global_op {
+  void *raw_addr;
+  enum global_state code;
+};
+\\ -- END -- //
+
+
+// -- MUTEX -- \\
+enum mutex_state { MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN };
+struct mc_mutex {
+  pthread_mutex_t *mutex_addr;
+  enum mutex_state state;
+};
+
+enum mc_mutex_op_code { MUTEX_INIT, MUTEX_LOCK, MUTEX_UNLOCK };
+struct mc_mutex {
+  mc_mutex mutex;
+  enum mc_mutex_op_code code;
+};
+\\ -- END -- //
+
+// -- THREAD CREATION -- \\
+enum mc_thread_state { MUTEX_LOCKED, MUTEX_UNLOCKED, MUTEX_UNKNOWN };
+struct mc_thread_spawn {
+  mc_thread thread;
+  enum mc_thread_state state;
+};
+
+enum mc_thread_spawn_op_code { PTHREAD_CREATE, PTHREAD_JOIN };
+struct mc_thread_spawn_op {
+  mc_thread_spawn spawn;
+  enum mc_thread_spawn_op_code code;
+};
+\\ -- END -- //
+
+
+def depends(tr1, tr2):
+	if proc(tr1) == proc(tr2):
+		return True
+
+	if tr1.type == THREAD_SPAWN && tr2.type == THREAD_SPAWN:
+		return depends_thread(tr1, tr2)
+
+	if tr1.type == SEMAPHORE && tr2.type == SEMAPHORE:
+		return depends_semaphore(tr1.semaphore_op, tr2.semaphore_op)
+
+	if tr1.type == MUTEX && tr2.type == MUTEX:
+		return depends_lock(tr1.mutex_op, tr2.mutex_op)
+
+	if tr1.type == GLOBAL_ACCESS && tr2.type == GLOBAL_ACCESS:
+		return depends_global(tr1.global_op, tr2.global_op)
+
+	return False
+
+# Assume different threads, same pthread created/waited on
+def depends_thread(op1, op2):
+	if op1.code == PTHREAD_JOIN && op2.code == PTHREAD_JOIN:
+		return False
+	elif op1.code == PTHREAD_JOIN || op2.code == PTHREAD_JOIN:
+		return True
+	return False
+
+# Assume different threads, same semaphore
+def depends_semaphore(op1, op2):
+
+	if op1.code == SEM_INIT && op2.code == SEM_INIT:
+		return False
+	elif op1.code == SEM_INIT || op2.code == SEM_INIT:
+		return True
+
+	if op1.code == SEM_GETVALUE && op2.code == SEM_GETVALUE:
+		return False
+	elif op1.code == SEM_GETVALUE || op2.code == SEM_GETVALUE:
+		return True
+
+	if op1.code == SEM_WAIT || op2.code == SEM_WAIT:
+		return True
+
+	return False
+
+# Assume different threads, same lock
+def depends_lock(op1, op2):
+	if op1.code == MUTEX_INIT && op2.code == MUTEX_INIT:
+		return False
+	elif op1.code == MUTEX_INIT || op2.code == MUTEX_INIT:
+		return True
+
+	if op1.code == MUTEX_LOCK || op2.code == MUTEX_LOCK:
+		return True
+
+	return False
+
+# Assume different threads, same global variable
+def depends_global(op1, op2):
+	return op1.code == GLOBAL_WRITE || op2.code == GLOBAL_WRITE
+
