@@ -25,6 +25,7 @@ class local_linux_process : public process {
   // memory region. Even in the runner model, the thread runners would each
   // share the memory region but it wouldn't be attached to the processes
   // themselves
+
   static shared_memory_region read_write_region;
 
  public:
@@ -32,6 +33,12 @@ class local_linux_process : public process {
   local_linux_process(pid_t pid) : pid(pid) {}
   virtual ~local_linux_process();
 
-  std::istream &execute_runner(runner_id_t mcmini_runner_id) override;
+  std::istream& execute_runner(runner_id_t mcmini_runner_id) override;
+
+  // Initialize the shared memory region
+  static void initializeSharedMemory(const std::string& shm_file_name,
+                                     size_t region_size) {
+    read_write_region = shared_memory_region(shm_file_name, region_size);
+  }
 };
 }  // namespace real_world
