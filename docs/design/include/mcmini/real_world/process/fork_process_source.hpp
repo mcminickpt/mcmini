@@ -22,6 +22,7 @@ class fork_process_source : public process_source {
                                // is eventually supported
                                // Alternatively, have McMini conditionally
                                // compile a std::filesystem::path e.g.
+  void setup_ld_preload();
 
  public:
   fork_process_source(std::string target_program)
