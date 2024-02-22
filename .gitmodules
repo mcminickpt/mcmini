@@ -1,3 +1,6 @@
 [submodule "test/lib"]
 	path = external/googletest
 	url = https://github.com/google/googletest
+[submodule "dmtcp"]
+	path = dmtcp
+	url = https://github.com/dmtcp/dmtcp.git
