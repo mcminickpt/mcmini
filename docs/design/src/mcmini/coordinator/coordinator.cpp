@@ -1,5 +1,7 @@
 #include "mcmini/coordinator/coordinator.hpp"
 
+#include <iostream>
+
 coordinator::coordinator(
     model::program &&initial_state,
     model::transition_registry &&runtime_transition_mapping,
@@ -19,11 +21,30 @@ void coordinator::execute_runner(runner::runner_id_t runner_id) {
 
   wrapper_response_stream >> transition_registry_id;
 
-  // TODO: Handle the case where lookup fails (this indicates a failure on the
-  // end of libmcmini.so... we should probably abort?)
+  // Check if the transition_registry_id read successfully
+  if (!wrapper_response_stream) {
+    // Log the error and abort the execution
+    std::cerr << "Failed to read the transition_registry_id from the wrapper "
+                 "response stream."
+              << std::endl;
+    // Handle the failure appropriately, potentially aborting the execution
+    abort();
+  }
+
   model_to_system_map remote_address_mapping = model_to_system_map(*this);
-  model::transition_registry::transition_discovery_callback callback_function =
+  auto callback_function =
       runtime_transition_mapping.get_callback_for(transition_registry_id);
+
+  // Check if the callback function is valid
+  if (!callback_function) {
+    // Log the error and abort the execution
+    std::cerr << "Failed to retrieve a valid callback for the "
+                 "transition_registry_id: "
+              << transition_registry_id << std::endl;
+    // Handle the failure appropriately, potentially aborting the execution
+    abort();
+  }
+
   std::unique_ptr<model::transition> transition_encountered_at_runtime =
       callback_function(wrapper_response_stream, remote_address_mapping);
   this->current_program_model.model_executing_runner(
@@ -32,8 +53,18 @@ void coordinator::execute_runner(runner::runner_id_t runner_id) {
 
 void *model_to_system_map::get_remote_process_handle_for_object(
     model::state::objid_t id) const {
-  // TODO: Implement this
-  return nullptr;
+  for (const auto &pair : _coordinator.system_address_mapping) {
+    if (pair.second == id) {
+      return pair
+          .first;  // Found the system handle corresponding to the object ID
+    }
+  }
+
+  // Optional: Log an error if the object ID is not found
+  std::cerr << "Object ID " << id << " not found in the system address mapping."
+            << std::endl;
+
+  return nullptr;  // Return nullptr if the object ID is not found
 }
 
 optional<model::state::objid_t>
@@ -48,9 +79,24 @@ model_to_system_map::get_object_for_remote_process_handle(void *handle) const {
 model::state::objid_t model_to_system_map::record_new_object_association(
     void *remote_process_visible_object_handle,
     std::unique_ptr<model::visible_object_state> initial_state) {
-  // TODO: Create a new object through the coordinator and then map handle
-  // `remote_process_visible_object_handle` to the newly-created object.
-  return 0;
+  // Generate a new unique object ID. This could be based on a counter, UUID, or
+  // any other unique identifier strategy
+  static model::state::objid_t nextObjId =
+      0;  // Example using a simple counter, should be replaced with a
+          // thread-safe and more robust approach
+  model::state::objid_t newObjId = nextObjId++;
+
+  // Associate the new object ID with the provided system handle in the
+  // coordinator's mapping Direct access is used here because
+  // model_to_system_map is a friend of coordinator
+  _coordinator.system_address_mapping[remote_process_visible_object_handle] =
+      newObjId;
+
+  // You might also need to store the initial state of the object somewhere in
+  // the coordinator or another appropriate place
+
+  // Return the new object ID
+  return newObjId;
 }
 
 model::state::objid_t model_to_system_map::observe_remote_process_handle(
