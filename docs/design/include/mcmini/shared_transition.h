@@ -26,6 +26,21 @@ struct SharedTransition {
   struct TypeInfo type;
 };
 
+// Function to create a SharedTransition
+struct SharedTransition createSharedTransition(tid_t executor, struct TypeInfo type) {
+  struct SharedTransition transition;
+  transition.executor = executor;
+  transition.type = type;
+  return transition;
+}
+
+void thread_post_visible_operation_hit(const std::type_info &type);
+
+void thread_await_scheduler();
+void thread_await_scheduler_for_thread_start_transition();
+void thread_awake_scheduler_for_thread_finish_transition();
+void mc_exit_main_thread();
+
 #endif
 
 
