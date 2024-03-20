@@ -5,45 +5,64 @@
 
 #include <pthread.h>
 #include <memory>
+#include "docs/design/include/mcmini/shared_transition.h"
 
-// Adjust the transition type enum based on your requirements
-enum TransitionType { MutexInit, /* Add other transition types as needed */ };
 
-struct MCTransition {
-  // Include necessary information about the transition
-  // (This is a placeholder; you may extend it as needed)
-  std::shared_ptr<void> data;
+// struct MCTransition {
+//   // Include necessary information about the transition
+//   // (This is a placeholder; you may extend it as needed)
+//   std::shared_ptr<void> data;
 
-  MCTransition(/* Add relevant parameters */) {
-    // Initialize the transition data based on the parameters
-    // (This is a placeholder; you may extend it as needed)
-  }
+//   MCTransition(/* Add relevant parameters */) {
+//     // Initialize the transition data based on the parameters
+//     // (This is a placeholder; you may extend it as needed)
+//   }
 
-  // Implement additional functions if needed
-};
+//   // Implement additional functions if needed
+// };
+
+MC_EXTERN int mc_pthread_mutex_init(pthread_mutex_t *,
+                                    const pthread_mutexattr_t *);
+
 
 struct MCMutexShadow {
   pthread_mutex_t *systemIdentity;
   enum State { undefined, unlocked, locked, destroyed } state;
-
-  MCMutexShadow(pthread_mutex_t *systemIdentity)
+  explicit MCMutexShadow(pthread_mutex_t *systemIdentity)
     : systemIdentity(systemIdentity), state(undefined)
   {}
 };
 
-// Add more specific information as needed for MCMutexInit
-struct MCMutexInit : public MCTransition {
-  TransitionType type;
+struct MCMutex : public MCVisibleObject {
+private:
 
-  MCMutexInit(/* Add relevant parameters */) : type(MutexInit) {
-    // Initialize additional data based on parameters
-    // (This is a placeholder; you may extend it as needed)
-  }
+  MCMutexShadow mutexShadow;
 
-  std::shared_ptr<MCTransition> staticCopy() const {
-    // Implement if needed
-    return nullptr;
-  }
+public:
+
+  inline explicit MCMutex(MCMutexShadow shadow)
+    : MCVisibleObject(), mutexShadow(shadow)
+  {}
+  inline MCMutex(const MCMutex &mutex)
+    : MCVisibleObject(mutex.getObjectId()),
+      mutexShadow(mutex.mutexShadow)
+  {}
+
+  std::shared_ptr<MCVisibleObject> copy() override;
+  MCSystemID getSystemId() override;
+
+  bool operator==(const MCMutex &) const;
+  bool operator!=(const MCMutex &) const;
+
+  bool canAcquire(tid_t) const;
+  bool isLocked() const;
+  bool isUnlocked() const;
+  bool isDestroyed() const;
+
+  void lock(tid_t);
+  void unlock();
+  void init();
+  void deinit();
 };
 
 #endif // WRAPPERS_H
