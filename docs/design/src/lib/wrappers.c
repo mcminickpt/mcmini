@@ -2,6 +2,7 @@
 #include "mcmini/spy/intercept/interception.h"
 #include "mcmini/shared_sem.h"
 #include "mcmini/shared_transition.h"
+#include "wrappers.h"
 #include "mcmini/entry.h"
 #include <stdint.h>
 
@@ -11,20 +12,6 @@ extern MC_THREAD_LOCAL tid_t tid_self;
 #define TID_INVALID               (-1ul) // ULONG_MAX
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 
-enum State {
-    undefined,
-    unlocked,
-    locked,
-    destroyed
-};
-struct MCMutexShadow {
-    pthread_mutex_t *systemIdentity;
-    enum State state;
-};
-void init_MCMutexShadow(struct MCMutexShadow *mutexShadow, pthread_mutex_t *systemIdentity) {
-    mutexShadow->systemIdentity = systemIdentity;
-    mutexShadow->state = undefined;
-}
 
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr) {
@@ -49,7 +36,6 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
 extern void *shmTransitionData;
 memcpy(shmTransitionTypeInfo, newTypeInfo, sizeof(SharedTransition));
 
-shared_sem_wake_runner(cv);
-shared_sem_wait_for_runner(cv);
+thread_await_scheduler();
 return __real_pthread_mutex_init(mutex, mutexattr);
     }

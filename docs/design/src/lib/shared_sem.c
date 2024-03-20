@@ -1,5 +1,5 @@
-#include "docs/design/include/mcmini/shared_sem.h"
-#include "docs/design/include/mcmini/wrappers.h"
+#include "mcmini/shared_sem.h"
+#include "mcmini/wrappers.h"
 
 void shared_sem_init(shared_sem_ref ref) {
   if (!ref) return;
