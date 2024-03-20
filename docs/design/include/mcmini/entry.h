@@ -2,8 +2,8 @@
 #define INCLUDE_ENTRY_H
 #include <stddef.h>
 #include <stdint.h>
-#include "docs/design/include/mcmini/shared_sem.h"
-#include "docs/design/include/mcmini/shared_transition.h"
+#include "mcmini/shared_sem.h"
+#include "mcmini/shared_transition.h"
 #define MAX_TOTAL_THREADS_IN_PROGRAM         (20u)
 
 /**

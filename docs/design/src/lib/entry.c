@@ -9,8 +9,8 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include "docs/design/include/mcmini/shared_transition.h"
-#include "docs/design/include/mcmini/entry.h"
+#include "mcmini/shared_transition.h"
+#include "mcmini/entry.h"
 
 #define MAX_SHARED_MEMORY_ALLOCATION         (4096u)
 
@@ -143,8 +143,8 @@ __attribute__((constructor)) void my_ctor() {
 
   /* Open shm file to discover sem_t region + read/write loc for McMini to read from  etc*/
     initialize_shared_memory_globals();
- 
+
   //Discover the sem_t region and read/write loc
   intialize_trace_list();
-  
+
 }
