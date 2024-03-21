@@ -1,0 +1,5 @@
+
+#ifndef MC_MINI_DMTCP_PLUGIN_H
+#define MC_MINI_DMTCP_PLUGIN_H
+
+#endif
