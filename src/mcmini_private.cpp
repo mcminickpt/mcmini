@@ -471,6 +471,15 @@ mc_run_thread_to_next_visible_operation(tid_t tid)
 }
 
 void
+mc_terminate_trace() 
+{
+  if (trace_pid == -1) return; // No child
+  kill(trace_pid, SIGUSR1);
+  mc_wait_for_trace();
+  trace_pid = -1;
+}
+
+void
 mc_wait_for_trace() {
   MC_ASSERT(trace_pid != -1);
 
