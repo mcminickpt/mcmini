@@ -1,6 +1,7 @@
 #include "mcmini/coordinator/coordinator.hpp"
 
 #include <iostream>
+#include <state.hpp>
 
 coordinator::coordinator(
     model::program &&initial_state,
@@ -79,23 +80,19 @@ model_to_system_map::get_object_for_remote_process_handle(void *handle) const {
 model::state::objid_t model_to_system_map::record_new_object_association(
     void *remote_process_visible_object_handle,
     std::unique_ptr<model::visible_object_state> initial_state) {
-  // Generate a new unique object ID. This could be based on a counter, UUID, or
-  // any other unique identifier strategy
-  static model::state::objid_t nextObjId =
-      0;  // Example using a simple counter, should be replaced with a
-          // thread-safe and more robust approach
-  model::state::objid_t newObjId = nextObjId++;
+  auto &programModel = _coordinator.get_current_program_model();
+  auto &stateSeq = const_cast<model::state_sequence &>(
+      programModel.get_state_sequence());  // Use const_cast as a last resort
+
+  // Use the new method
+  auto newObjId =
+      stateSeq.add_object_and_consume_diff(std::move(initial_state));
 
   // Associate the new object ID with the provided system handle in the
-  // coordinator's mapping Direct access is used here because
-  // model_to_system_map is a friend of coordinator
+  // coordinator's mapping.
   _coordinator.system_address_mapping[remote_process_visible_object_handle] =
       newObjId;
 
-  // You might also need to store the initial state of the object somewhere in
-  // the coordinator or another appropriate place
-
-  // Return the new object ID
   return newObjId;
 }
 

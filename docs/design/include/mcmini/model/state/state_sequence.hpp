@@ -22,7 +22,7 @@ namespace model {
  * t_j(t_{j-1}(...(t_i(s_i))...))`
  */
 class state_sequence : public state {
- private:
+ public:
   /**
    * @brief An element of a `model::state_sequence`
    *
@@ -55,7 +55,25 @@ class state_sequence : public state {
    * A `diff_state` manages the changes in state of objects which exist in a
    * given state, as well as any newly-created objects
    */
-  class diff_state;
+
+  class diff_state : public mutable_state {
+   private:
+    const state &base_state;
+    std::unordered_map<state::objid_t, visible_object> new_object_states;
+    static std::atomic<state::objid_t>
+        nextObjId;  // Atomic counter for unique ID generation
+
+   public:
+    explicit diff_state(const state &s);
+
+    bool contains_object_with_id(objid_t id) const override;
+    const visible_object_state *get_state_of_object(objid_t id) const override;
+    objid_t add_object(
+        std::unique_ptr<visible_object_state> initial_state) override;
+    void add_state_for(
+        objid_t id, std::unique_ptr<visible_object_state> new_state) override;
+    std::unique_ptr<mutable_state> mutable_clone() const override;
+  };
 
   /**
    * @brief Consume the differences contained in the `diff_state`
@@ -119,6 +137,11 @@ class state_sequence : public state {
    * `s_index` will not exist in the resulting sequence
    */
   state_sequence consume_into_subsequence(size_t index) &&;
+
+  // New method to add an object and consume diff
+  // TODO: More docs once we agree on the implementation
+  model::state::objid_t add_object_and_consume_diff(
+      std::unique_ptr<model::visible_object_state> initial_state);
 };
 
 }  // namespace model

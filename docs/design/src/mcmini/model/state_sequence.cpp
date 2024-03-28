@@ -1,10 +1,15 @@
 #include "mcmini/model/state/state_sequence.hpp"
 
+#include <atomic>
+
 #include "mcmini/misc/asserts.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 
 using namespace model;
+
+// Correct initialization of the static atomic counter for unique ID generation
+std::atomic<state::objid_t> state_sequence::diff_state::nextObjId{0};
 
 class state_sequence::diff_state : public mutable_state {
  private:
@@ -90,6 +95,15 @@ void state_sequence::consume_diff(const diff_state &ds) {
   /* TODO: Implement consumption of new states */
 }
 
+model::state::objid_t state_sequence::add_object_and_consume_diff(
+    std::unique_ptr<model::visible_object_state> initial_state) {
+  diff_state diffState(
+      *this);  // Assuming you can create a diff_state from *this
+  auto newObjId = diffState.add_object(std::move(initial_state));
+  consume_diff(diffState);
+  return newObjId;
+}
+
 state_sequence state_sequence::consume_into_subsequence(size_t index) && {
   // TODO: Implementation here. The subsequence should look exactly the same
   // as this subsequence up to index `index`.-
@@ -134,8 +148,14 @@ const visible_object_state *state_sequence::diff_state::get_state_of_object(
 
 state::objid_t state_sequence::diff_state::add_object(
     std::unique_ptr<visible_object_state> initial_state) {
-  // TODO: Implement
-  return 0;
+  // Generate a new unique object ID using the atomic counter.
+  // fetch_add increments the counter and returns the previous value.
+  state::objid_t newObjId = nextObjId.fetch_add(1, std::memory_order_relaxed);
+
+  // Store the new object state with the generated ID.
+  this->new_object_states[newObjId] = visible_object(std::move(initial_state));
+
+  return newObjId;
 }
 
 void state_sequence::diff_state::add_state_for(
