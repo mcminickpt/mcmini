@@ -122,7 +122,7 @@ class coordinator {
 
   /**
    * @brief Return execution to correspond to the world as it looked the given
-   * number of steps into execution.
+   * number of steps into execution.==
    *
    * The coordinator can be scheduled to restore the model and the external
    * world to correspond to how it looked in the past. This is useful for model
