@@ -2,7 +2,7 @@
 #include "mcmini/spy/intercept/interception.h"
 #include "mcmini/shared_sem.h"
 #include "mcmini/shared_transition.h"
-#include "wrappers.h"
+#include "MutexTransiitionWrappers.h"
 #include "mcmini/entry.h"
 #include <stdint.h>
 
