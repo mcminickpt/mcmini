@@ -69,7 +69,7 @@ main(int argc, char *argv[])
     }
     else if (strcmp(cur_arg[0], "--print-at-trace") == 0) {
       setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
-      cur_arg += 2;
+      cur_arg += 1;
     }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
