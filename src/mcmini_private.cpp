@@ -449,62 +449,58 @@ mc_fork_next_trace_at_current_state()
     // move to a different point in the trace, we can simply break
     // out of the loop moving the execution forward of the current
     // trace in order to start a new one.
-    if (rerunCurrentTraceForDebugger) { break; }
+    if (rerunCurrentTraceForDebugger) {
+      break;
+    }
 
     // NOTE: This is reliant on the fact
     // that threads are created in the same order
     // when we create them. This will always be consistent,
     // but we might need to look out for when a thread dies
-    tid_t nextTid =
-      programState->getThreadRunningTransitionAtIndex(i);
+    tid_t nextTid = programState->getThreadRunningTransitionAtIndex(i);
     mc_run_thread_to_next_visible_operation(nextTid);
   }
 }
 
-void
-mc_run_thread_to_next_visible_operation(tid_t tid)
-{
+void mc_run_thread_to_next_visible_operation(tid_t tid) {
   MC_ASSERT(tid != TID_INVALID);
   mc_shared_sem_ref sem = &(*trace_sleep_list)[tid];
   mc_shared_sem_wake_thread(sem);
   mc_shared_sem_wait_for_thread(sem);
 }
 
-void
-mc_terminate_trace() 
-{
-  if (trace_pid == -1) return; // No child
+void mc_terminate_trace() {
+  if (trace_pid == -1) return;  // No child
   kill(trace_pid, SIGUSR1);
   mc_wait_for_trace();
   trace_pid = -1;
 }
 
-void
-mc_wait_for_trace() {
+void mc_wait_for_trace() {
   MC_ASSERT(trace_pid != -1);
 
+#ifdef NDEBUG
   int status;
   if (waitpid(trace_pid, &status, 0) == -1) {
-    std::cerr << "Error waiting for trace process " << trace_pid << ": "
-              << strerror(errno) << std::endl;
+    fprintf(stderr, "Error waiting for trace process `%lu` %s",
+            (uint64_t)trace_pid, strerror(errno));
   } else {
     // Check how the trace process exited
     if (WIFEXITED(status)) {
-      std::cerr << "Trace process " << trace_pid << " exited with status "
-                << WEXITSTATUS(status) << std::endl;
+      fprintf(stderr, "Trace process `%lu` exited with status %d",
+              (uint64_t)trace_pid, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-      std::cerr << "Trace process " << trace_pid << " was killed by signal "
-                << WTERMSIG(status) << std::endl;
+      fprintf(stderr, "Trace process `%lu` was killed by signal `%d`\n",
+              (uint64_t)trace_pid, WTERMSIG(status));
     } else {
-      std::cerr << "Trace process " << trace_pid << " exited abnormally."
-                << std::endl;
+      fprintf(stderr, "Trace process `%lu` exited abnormally.",
+              (uint64_t)trace_pid);
     }
   }
+#endif
 }
 
-void
-mc_trace_panic()
-{
+void mc_trace_panic() {
   pid_t schedpid = getppid();
   kill(schedpid, SIGUSR1);
 
