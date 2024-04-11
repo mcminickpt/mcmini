@@ -70,7 +70,7 @@
 transitionId = 0
 def print_mcmini_stats():
   global transitionId
-  print("*** trace: " + str(gdb.parse_and_eval("traceId")) + "; " +
+  print("*** traceId: " + str(gdb.parse_and_eval("traceId")) + "; " +
         "transition: " + str(transitionId) + "; "
         "thread: " + str(gdb.selected_inferior().num) + "." +
                      str(gdb.selected_thread().num) +

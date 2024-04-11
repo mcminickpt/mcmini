@@ -95,7 +95,7 @@ sigchld_handler_scheduler(int sig, siginfo_t *info, void *unused)
   char msg[512];
   int len =
     snprintf(msg, sizeof(msg),
-             "Trace %lu stopped early!\n"
+             "traceId %lu stopped early!\n"
              "  (possible SEGFAULT, assert failure, or exit with failure\n"
              "   between thread operations)\n",
              traceId);

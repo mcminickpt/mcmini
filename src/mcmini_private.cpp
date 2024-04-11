@@ -43,14 +43,14 @@ static char resultString[1000] = "***** Model checking completed! *****\n";
 static void addResult(const char *result) {
   char stats[1000];
   if (strstr(resultString, result) != NULL) {
-    result = "  (Other trace numbers exist: ...)\n";
+    result = "  (Other trace numbers (traceId) exist: ...)\n";
     if (strstr(resultString, result) == NULL) {
       strncat(resultString, result, sizeof(resultString) - strlen(resultString));
     }
     return;
   }
   strncat(resultString, result, sizeof(resultString) - strlen(resultString));
-  snprintf(stats, 80, "  (Trace number: %lu)\n", traceId);
+  snprintf(stats, 80, "  (Trace number (traceId): %lu)\n", traceId);
   strncat(resultString, stats, sizeof(resultString) - strlen(resultString));
 }
 static void printResults() {
@@ -490,13 +490,13 @@ void mc_wait_for_trace() {
   } else if (verbose) {
     // Check how the trace process exited
     if (WIFEXITED(status)) {
-      fprintf(stderr, "Trace process `%lu` exited with status %d",
+      fprintf(stderr, "Trace process with traceId `%lu` exited with status %d",
               (uint64_t)trace_pid, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-      fprintf(stderr, "Trace process `%lu` was killed by signal `%d`\n",
+      fprintf(stderr, "Trace process with traceId `%lu` was killed by signal `%d`\n",
               (uint64_t)trace_pid, WTERMSIG(status));
     } else {
-      fprintf(stderr, "Trace process `%lu` exited abnormally.",
+      fprintf(stderr, "Trace process with traceId `%lu` exited abnormally.",
               (uint64_t)trace_pid);
     }
   }
@@ -565,7 +565,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   const bool programHasNoErrors = !hasDeadlock;
 
   if (hasDeadlock) {
-    mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
+    mcprintf("TraceId %lu, *** DEADLOCK DETECTED ***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
     addResult("*** DEADLOCK DETECTED ***\n");
@@ -580,10 +580,10 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   static char *verbose = getenv(ENV_VERBOSE);
   if (programHasNoErrors && verbose) {
     if (verbose[0] == '1') {
-      mcprintf("Trace %3d:  ", traceId);
+      mcprintf("TraceId %3d:  ", traceId);
       programState->printThreadSchedule();
     } else {
-      mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
+      mcprintf("TraceId: %d, *** NO FAILURE DETECTED ***\n", traceId);
       programState->printTransitionStack();
       programState->printNextTransitions();
     }
@@ -616,7 +616,7 @@ mc_report_undefined_behavior(const char *msg)
           "\n"
           "Undefined Behavior Detected! \t\n"
           "............................ \t\n"
-          "mcmini aborted the execution of trace %lu because\t\n"
+          "mcmini aborted the execution of trace with traceId %lu because\t\n"
           "it detected undefined behavior\t\n"
           "............................ \n"
           "Reason: %s \t\n\n",
@@ -671,13 +671,13 @@ get_config_for_execution_environment()
     maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
   }
 
-  if (getenv(ENV_DEBUG_AT_TRACE) != NULL) {
-    gdbTraceNumber = strtoul(getenv(ENV_DEBUG_AT_TRACE), NULL, 10);
+  if (getenv(ENV_DEBUG_AT_TRACE_ID) != NULL) {
+    gdbTraceNumber = strtoul(getenv(ENV_DEBUG_AT_TRACE_ID), NULL, 10);
   }
 
-  if (getenv(ENV_PRINT_AT_TRACE) != NULL) {
+  if (getenv(ENV_PRINT_AT_TRACE_ID) != NULL) {
     stackContentDumpTraceNumber =
-      strtoul(getenv(ENV_PRINT_AT_TRACE), nullptr, 10);
+      strtoul(getenv(ENV_PRINT_AT_TRACE_ID), nullptr, 10);
   }
   if (getenv(ENV_CHECK_FORWARD_PROGRESS) != NULL) {
     expectForwardProgressOfThreads = true;
