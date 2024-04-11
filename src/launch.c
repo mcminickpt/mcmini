@@ -91,10 +91,16 @@ main(int argc, char *argv[])
       setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[0] + 2, 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--quiet") == 0 ||
+             strcmp(cur_arg[0], "-q") == 0) {
+      setenv(ENV_QUIET, "1", 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
                       "              [--first-deadlock|--first|-f]\n"
+                      "              [--quiet|-q]\n"
                       "              [--print-at-traceId|-p <num>]\n"
                       "              [--debug-at-traceId|-d <num>]\n"
                       "              [--verbose|-v] [-v -v]\n"
