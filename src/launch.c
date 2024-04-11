@@ -67,17 +67,20 @@ main(int argc, char *argv[])
       setenv(ENV_LONG_TEST, "1", 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--print-at-trace") == 0) {
-      setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
-      cur_arg += 2;
+    else if (strcmp(cur_arg[0], "--print-at-traceId") == 0 ||
+             strcmp(cur_arg[0], "-p") == 0) {
+      setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[1], 1);
+      cur_arg += 1;
     }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
-      fprintf(stderr,
-              "Usage: mcmini [--max-depth-per-thread|-m <num>] "
-              "[--debug-at-trace|-d <num>]\n"
-              "[--first-deadlock|-first] [--print-at-trace <num>]\n"
-              "[--verbose|-v] [-v -v] [--help|-h] target_executable\n");
+      fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
+                      "              [--first-deadlock|--first|-f]\n"
+                      "              [--print-at-traceId|-p <num>]\n"
+                      "              [--debug-at-traceId|-d <num>]\n"
+                      "              [--verbose|-v] [-v -v]\n"
+                      "              [--help|-h]\n"
+                      "              target_executable\n");
       exit(1);
     }
     else {
