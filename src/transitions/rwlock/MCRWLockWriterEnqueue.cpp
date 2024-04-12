@@ -76,6 +76,6 @@ MCRWLockWriterEnqueue::dependentWith(const MCTransition *other) const
 void
 MCRWLockWriterEnqueue::print() const
 {
-  printf("thread %lu: pthread_rwlock_wrlock(%lu) (wait)\n",
+  printf("thread %lu: pthread_rwlock_wrlock(object:%lu) (wait)\n",
          this->thread->tid, this->rwlock->getObjectId());
 }

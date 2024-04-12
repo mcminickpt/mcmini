@@ -75,7 +75,7 @@ MCBarrierInit::dependentWith(const MCTransition *other) const
 void
 MCBarrierInit::print() const
 {
-  printf("thread %lu: pthread_barrier_init(%lu, _, %u)\n",
+  printf("thread %lu: pthread_barrier_init(object:%lu, _, %u)\n",
          this->thread->tid, this->barrier->getObjectId(),
          this->barrier->getCount());
 }

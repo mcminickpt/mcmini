@@ -159,7 +159,7 @@ void
 MCCondEnqueue::print() const
 {
   printf(
-    "thread %lu: pthread_cond_wait(%lu, %lu) (awake -> asleep)\n",
+    "thread %lu: pthread_cond_wait(object:%lu, object:%lu) (awake -> asleep)\n",
     this->thread->tid, this->conditionVariable->getObjectId(),
     this->mutex->getObjectId());
 }

@@ -70,6 +70,6 @@ MCRWWLockInit::dependentWith(const MCTransition *other) const
 void
 MCRWWLockInit::print() const
 {
-  printf("thread %lu: pthread_rwwlock_init(%lu)\n", this->thread->tid,
+  printf("thread %lu: pthread_rwwlock_init(object:%lu, _)\n", this->thread->tid,
          this->rwwlock->getObjectId());
 }

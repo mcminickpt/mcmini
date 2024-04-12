@@ -75,6 +75,6 @@ MCSemPost::dependentWith(const MCTransition *other) const
 void
 MCSemPost::print() const
 {
-  printf("thread %lu: sem_post(%lu)\n", this->thread->tid,
+  printf("thread %lu: sem_post(object:%lu)\n", this->thread->tid,
          this->sem->getObjectId());
 }

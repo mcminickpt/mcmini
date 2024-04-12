@@ -69,6 +69,6 @@ MCSemInit::dependentWith(const MCTransition *other) const
 void
 MCSemInit::print() const
 {
-  printf("thread %lu: sem_init(%lu, 0, %u)\n", this->thread->tid,
+  printf("thread %lu: sem_init(object:%lu, 0, %u)\n", this->thread->tid,
          this->sem->getObjectId(), this->sem->getCount());
 }

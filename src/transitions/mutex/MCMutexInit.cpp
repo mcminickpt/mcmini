@@ -86,6 +86,6 @@ MCMutexInit::dependentWith(const MCTransition *other) const
 void
 MCMutexInit::print() const
 {
-  printf("thread %lu: pthread_mutex_init(%lu, _)\n",
+  printf("thread %lu: pthread_mutex_init(object:%lu, _)\n",
          this->thread->tid, this->mutex->getObjectId());
 }

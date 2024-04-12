@@ -96,6 +96,6 @@ MCRWLockReaderLock::dependentWith(const MCTransition *other) const
 void
 MCRWLockReaderLock::print() const
 {
-  printf("thread %lu: pthread_rwlock_rdlock(%lu) (lock)\n",
+  printf("thread %lu: pthread_rwlock_rdlock(object:%lu) (lock)\n",
          this->thread->tid, this->rwlock->getObjectId());
 }

@@ -76,6 +76,6 @@ MCCondSignal::dependentWith(const MCTransition *other) const
 void
 MCCondSignal::print() const
 {
-  printf("thread %lu: pthread_cond_signal(%lu)\n", this->thread->tid,
+  printf("thread %lu: pthread_cond_signal(object:%lu)\n", this->thread->tid,
          this->conditionVariable->getObjectId());
 }

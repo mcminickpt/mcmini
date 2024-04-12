@@ -82,6 +82,6 @@ MCBarrierWait::enabledInState(const MCStack *state) const
 void
 MCBarrierWait::print() const
 {
-  printf("thread %lu: pthread_barrier_wait(%lu)\n", this->thread->tid,
+  printf("thread %lu: pthread_barrier_wait(object:%lu)\n", this->thread->tid,
          this->barrier->getObjectId());
 }
