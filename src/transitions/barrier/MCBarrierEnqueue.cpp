@@ -72,6 +72,6 @@ MCBarrierEnqueue::dependentWith(const MCTransition *other) const
 void
 MCBarrierEnqueue::print() const
 {
-  printf("thread %lu: pthread_barrier_wait(%lu) (enqueue)\n",
+  printf("thread %lu: pthread_barrier_wait(object:%lu) (enqueue)\n",
          this->thread->tid, this->barrier->getObjectId());
 }

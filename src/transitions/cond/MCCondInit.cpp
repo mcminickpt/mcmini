@@ -89,6 +89,6 @@ MCCondInit::dependentWith(const MCTransition *other) const
 void
 MCCondInit::print() const
 {
-  printf("thread %lu: pthread_cond_init(%lu)\n", this->thread->tid,
+  printf("thread %lu: pthread_cond_init(object:%lu, _)\n", this->thread->tid,
          this->conditionVariable->getObjectId());
 }

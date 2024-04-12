@@ -75,6 +75,6 @@ MCCondBroadcast::dependentWith(const MCTransition *other) const
 void
 MCCondBroadcast::print() const
 {
-  printf("thread %lu: pthread_cond_broadcast(%lu)\n",
+  printf("thread %lu: pthread_cond_broadcast(object:%lu)\n",
          this->thread->tid, this->conditionVariable->getObjectId());
 }
