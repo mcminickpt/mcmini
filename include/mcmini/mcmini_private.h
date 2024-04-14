@@ -1,8 +1,6 @@
 #ifndef INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 #define INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 
-#include "mcmini/config.h"
-#include "mcmini/MCDeferred.h"
 #include "mcmini/MCShared.h"
 #include "mcmini/MCSharedTransition.h"
 #include "mcmini/MCStack.h"
@@ -200,7 +198,7 @@ void mc_initialize_shared_memory_globals();
  * point in time. As a trace process evolves and executes more
  * transitions, the state is updated to reflect this fact.
  */
-extern MCDeferred<MCStack> programState;
+extern MCStack *programState;
 
 /**
  * @brief Initialize the global program state object `programState`
