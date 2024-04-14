@@ -479,12 +479,15 @@ void mc_terminate_trace() {
 void mc_wait_for_trace() {
   MC_ASSERT(trace_pid != -1);
 
-#ifdef NDEBUG
   int status;
+  char *v = getenv(ENV_VERBOSE);
+  bool verbose = v ? v[0] == '1' : false;
   if (waitpid(trace_pid, &status, 0) == -1) {
-    fprintf(stderr, "Error waiting for trace process `%lu` %s",
-            (uint64_t)trace_pid, strerror(errno));
-  } else {
+    if (verbose) {
+      fprintf(stderr, "Error waiting for trace process `%lu` %s",
+              (uint64_t)trace_pid, strerror(errno));
+    }
+  } else if (verbose) {
     // Check how the trace process exited
     if (WIFEXITED(status)) {
       fprintf(stderr, "Trace process `%lu` exited with status %d",
@@ -497,7 +500,6 @@ void mc_wait_for_trace() {
               (uint64_t)trace_pid);
     }
   }
-#endif
 }
 
 void mc_trace_panic() {
