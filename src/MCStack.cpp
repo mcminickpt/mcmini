@@ -891,7 +891,7 @@ MCStack::printTransitionStack() const
 void
 MCStack::printNextTransitions() const
 {
-  printf("THREAD STATES\n");
+  printf("THREAD PENDING OPERATIONS\n");
   auto numThreads = this->getNumProgramThreads();
   for (auto i = 0; i < numThreads; i++) {
     this->getNextTransitionForThread(i).print();

@@ -223,6 +223,17 @@ mc_create_global_state_object()
   programState->start();
 }
 
+int countVisibleObjectsOfType(int objectId) {
+  int count = 0;
+  for (int i = 0; i <= objectId; i++) {
+    if (typeid(programState->getTransitionAtIndex(i)) ==
+        typeid(programState->getTransitionAtIndex(objectId))) {
+      count++;
+    }
+  }
+  return count;
+}
+
 void
 mc_prepare_to_model_check_new_program()
 {

@@ -1,4 +1,5 @@
 #include "mcmini/transitions/barrier/MCBarrierWait.h"
+#include "mcmini/mcmini_private.h"
 
 MCTransition *
 MCReadBarrierWait(const MCSharedTransition *shmTransition,
@@ -82,6 +83,7 @@ MCBarrierWait::enabledInState(const MCStack *state) const
 void
 MCBarrierWait::print() const
 {
-  printf("thread %lu: pthread_barrier_wait(object:%lu)\n", this->thread->tid,
-         this->barrier->getObjectId());
+  printf("thread %lu: pthread_barrier_wait(barr:%u)\n",
+         this->thread->tid,
+         countVisibleObjectsOfType(this->barrier->getObjectId()));
 }

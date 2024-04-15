@@ -79,6 +79,7 @@ MCRWWLockWriter1Enqueue::dependentWith(
 void
 MCRWWLockWriter1Enqueue::print() const
 {
-  printf("thread %lu: pthread_rwwlock_wr1lock(object:%lu) (wait)\n",
-         this->thread->tid, this->rwwlock->getObjectId());
+  printf("thread %lu: pthread_rwwlock_wr1lock(rwl:%u) (wait)\n",
+         this->thread->tid,
+         countVisibleObjectsOfType(this->rwwlock->getObjectId()));
 }

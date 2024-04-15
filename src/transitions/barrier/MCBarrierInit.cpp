@@ -1,4 +1,5 @@
 #include "mcmini/transitions/barrier/MCBarrierInit.h"
+#include "mcmini/mcmini_private.h"
 
 MCTransition *
 MCReadBarrierInit(const MCSharedTransition *shmTransition,
@@ -75,7 +76,8 @@ MCBarrierInit::dependentWith(const MCTransition *other) const
 void
 MCBarrierInit::print() const
 {
-  printf("thread %lu: pthread_barrier_init(object:%lu, _, %u)\n",
-         this->thread->tid, this->barrier->getObjectId(),
+  printf("thread %lu: pthread_barrier_init(barr:%u, _, %u)\n",
+         this->thread->tid,
+         countVisibleObjectsOfType(this->barrier->getObjectId()),
          this->barrier->getCount());
 }

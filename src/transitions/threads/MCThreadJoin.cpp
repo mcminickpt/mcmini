@@ -115,6 +115,6 @@ MCThreadJoin::joinsOnThread(
 void
 MCThreadJoin::print() const
 {
-  printf("thread %lu: pthread_join(%lu, _)\n", this->thread->tid,
+  printf("thread %lu: pthread_join(thr:%lu, _)\n", this->thread->tid,
          this->target->tid);
 }
