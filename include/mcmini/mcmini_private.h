@@ -210,6 +210,14 @@ extern MCDeferred<MCStack> programState;
 void mc_create_global_state_object();
 
 /**
+ * @brief Return id for the operation type of objectID
+ *
+ * This counts how many objects, i,  of the same type
+ * as objectId exist, for i < ojbectId.
+ */
+int countVisibleObjectsOfType(int objectId);
+
+/**
  * @brief Perform setup for the global program state object in
  * preparation for a new model checking session
  *

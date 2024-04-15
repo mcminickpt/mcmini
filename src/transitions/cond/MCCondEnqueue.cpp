@@ -158,8 +158,8 @@ MCCondEnqueue::dependentWith(const MCTransition *other) const
 void
 MCCondEnqueue::print() const
 {
-  printf(
-    "thread %lu: pthread_cond_wait(object:%lu, object:%lu) (awake -> asleep)\n",
-    this->thread->tid, this->conditionVariable->getObjectId(),
-    this->mutex->getObjectId());
+  printf("thread %lu: pthread_cond_wait(cond:%u, mut:%u) (awake -> asleep)\n",
+         this->thread->tid,
+         countVisibleObjectsOfType(this->conditionVariable->getObjectId()),
+         countVisibleObjectsOfType(this->mutex->getObjectId()));
 }

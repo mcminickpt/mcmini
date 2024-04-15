@@ -1,4 +1,5 @@
 #include "mcmini/transitions/rwlock/MCRWLockInit.h"
+#include "mcmini/mcmini_private.h"
 
 MCTransition *
 MCReadRWLockInit(const MCSharedTransition *shmTransition,
@@ -70,6 +71,6 @@ MCRWLockInit::dependentWith(const MCTransition *other) const
 void
 MCRWLockInit::print() const
 {
-  printf("thread %lu: pthread_rwlock_init(object:%lu, _)\n", this->thread->tid,
-         this->rwlock->getObjectId());
+  printf("thread %lu: pthread_rwlock_init(rwl:%u, _)\n", this->thread->tid,
+         countVisibleObjectsOfType(this->rwlock->getObjectId()));
 }

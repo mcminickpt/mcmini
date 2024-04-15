@@ -95,6 +95,6 @@ MCThreadCreate::doesCreateThread(tid_t tid) const
 void
 MCThreadCreate::print() const
 {
-  printf("thread %lu: pthread_create(%lu)\n", this->thread->tid,
+  printf("thread %lu: pthread_create(thr:%lu, _, _, _)\n", this->thread->tid,
          this->target->tid);
 }
