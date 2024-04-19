@@ -13,10 +13,6 @@ using namespace real_world;
 shared_memory_region::shared_memory_region(const std::string &shm_file_name,
                                            size_t region_size)
     : shm_file_name(shm_file_name), region_size(region_size) {
-  // TODO: We should figure out how to handle errors on failure besides simply
-  // exiting. Probably we should have a factory that can return a result of
-  // either the region or some sort of failure condition.
-
   // This creates a file in /dev/shm/
   int fd = shm_open(shm_file_name.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) {

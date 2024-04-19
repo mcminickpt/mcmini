@@ -1,5 +1,7 @@
 #include "mcmini/coordinator/coordinator.hpp"
 
+#include "mcmini/real_world/process.hpp"
+
 coordinator::coordinator(
     model::program &&initial_state,
     model::transition_registry &&runtime_transition_mapping,
@@ -7,16 +9,19 @@ coordinator::coordinator(
     : current_program_model(std::move(initial_state)),
       runtime_transition_mapping(std::move(runtime_transition_mapping)),
       process_source(std::move(process_source)) {
-  // TODO: This may not be appropriate at construction time. Probably we only
-  // need to do this when we actual ask the coordinator to do anything.
-  this->current_process_handle = this->process_source->make_new_process();
+  this->current_process_handle = this->process_source->force_new_process();
 }
 
 void coordinator::execute_runner(runner::runner_id_t runner_id) {
+  if (!current_process_handle) {
+    throw real_world::process::execution_exception(
+        "Failed to execute runner with id \"" + std::to_string(runner_id) +
+        "\": the process is not alive");
+  }
   std::istream &wrapper_response_stream =
       this->current_process_handle->execute_runner(runner_id);
-  model::transition_registry::runtime_type_id transition_registry_id;
 
+  model::transition_registry::runtime_type_id transition_registry_id;
   wrapper_response_stream >> transition_registry_id;
 
   // TODO: Handle the case where lookup fails (this indicates a failure on the
@@ -24,8 +29,19 @@ void coordinator::execute_runner(runner::runner_id_t runner_id) {
   model_to_system_map remote_address_mapping = model_to_system_map(*this);
   model::transition_registry::transition_discovery_callback callback_function =
       runtime_transition_mapping.get_callback_for(transition_registry_id);
+  if (!callback_function) {
+    throw real_world::process::execution_exception(
+        "Execution resulted in a runner scheduled to execute the transition "
+        "type with the RTTID '" +
+        std::to_string(transition_registry_id) +
+        "' but this identifier has not been registered before model checking "
+        "began. Double check that the coordinator was properly configured "
+        "before launch; otherwise, please report this as a bug in "
+        "libmcmini.so with this message.");
+  }
   std::unique_ptr<model::transition> transition_encountered_at_runtime =
       callback_function(wrapper_response_stream, remote_address_mapping);
+
   this->current_program_model.model_executing_runner(
       runner_id, std::move(transition_encountered_at_runtime));
 }

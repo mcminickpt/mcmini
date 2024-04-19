@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <memory>
 #include <unordered_map>
 
@@ -99,5 +100,8 @@ class mutable_state : public state {
         ->get_state_of_object<concrete_visible_object_state>(id);
   }
 };
+
+constexpr static auto invalid_obj_id =
+    std::numeric_limits<state::objid_t>::max();
 
 }  // namespace model

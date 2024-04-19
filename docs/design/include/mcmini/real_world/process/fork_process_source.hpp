@@ -18,7 +18,7 @@ class fork_process_source : public process_source {
  private:
   // The name of the program which we should exec() into with libmcmini.so
   // preloaded.
-  std::string target_program;  // TODO: Favor std::filesystem::path if C++17
+  std::string target_program;  // NOTE: Favor std::filesystem::path if C++17
                                // is eventually supported
                                // Alternatively, have McMini conditionally
                                // compile a std::filesystem::path e.g.

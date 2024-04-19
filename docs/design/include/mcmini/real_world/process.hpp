@@ -1,5 +1,6 @@
 #pragma once
 
+#include <exception>
 #include <istream>
 #include <memory>
 
@@ -32,14 +33,20 @@ struct process {
   std::unordered_map<runner_id_t, std::unique_ptr<runner>> runners;
 
  public:
-  virtual ~process() = default;
+  struct execution_exception : public std::runtime_error {
+    explicit execution_exception(const char *c) : std::runtime_error(c) {}
+    explicit execution_exception(const std::string &s)
+        : std::runtime_error(s) {}
+  };
 
   /**
    * @brief Schedule the runner with id `id` for execution.
    *
    * This method signals the proxy process to resume execution of the runner
-   * with id `mcmini_runner_id`. The method blocks until the runner reaches the
-   * next semantically interesting point of execution according to that runner.
+   * with id `mcmini_runner_id`. The method blocks until the runner reaches
+ the
+   * next semantically interesting point of execution according to that
+ runner.
    *
    * @note The process may not actually contain a runner with id
    * `mcmini_runner_id`, or the runner with the id `mcmini_runner_id` may be
@@ -53,6 +60,9 @@ struct process {
    * `model::transition_registry::rttid`. The McMini coordinator will
    * use this identifier to invoke the appropriate callback function to
    * transform the remaining contents of the stream into its model.
+   * @throws an `execution_exception` is raised if the provided runner doesn't
+   * yet exist or if the runner exists but something went wrong during
+   * execution.
    */
   virtual std::istream &execute_runner(runner_id_t mcmini_runner_id) = 0;
 
@@ -62,6 +72,7 @@ struct process {
   // threads, etc.) the idea of "adding" a new slot for a runner dynamically
   // might be needed. runner_id_t add_runner(std::unique_ptr<runner>
   // new_runner);
+  virtual ~process() = default;
 };
 
 }  // namespace real_world

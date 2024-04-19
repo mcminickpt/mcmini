@@ -282,7 +282,7 @@
 
 // int main() {
 //   add_example<transitionSub1, transitionSub2>();
-//   add_example<transitionSub1, transitionSub3>();
+//   add_example<transitionSub1, trafstnsitionSub3>();
 //   add_example<transitionSub2, transitionSub3>();
 
 //   transition* sub1 = new transitionSub1();
