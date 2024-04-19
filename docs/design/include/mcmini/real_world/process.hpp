@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "mcmini/model/transition.hpp"
-#include "mcmini/real_world/runner.hpp"
 
 namespace real_world {
 
@@ -30,7 +29,6 @@ namespace real_world {
 struct process {
  public:
   using runner_id_t = uint32_t;
-  std::unordered_map<runner_id_t, std::unique_ptr<runner>> runners;
 
  public:
   struct execution_exception : public std::runtime_error {
@@ -44,9 +42,8 @@ struct process {
    *
    * This method signals the proxy process to resume execution of the runner
    * with id `mcmini_runner_id`. The method blocks until the runner reaches
- the
-   * next semantically interesting point of execution according to that
- runner.
+   * the next semantically interesting point of execution according to that
+   * runner.
    *
    * @note The process may not actually contain a runner with id
    * `mcmini_runner_id`, or the runner with the id `mcmini_runner_id` may be
@@ -63,15 +60,13 @@ struct process {
    * @throws an `execution_exception` is raised if the provided runner doesn't
    * yet exist or if the runner exists but something went wrong during
    * execution.
+   * TODO: We assume at the moment that the number of runners is fixed and that
+   * every call to `execute_runner` above is valid. Eventually, to support more
+   * complicated runners (e.g. entire processes, a runner representing multiple
+   * threads, etc.) the idea of "adding" a new slot for a runner dynamically
+   * might be needed.
    */
   virtual std::istream &execute_runner(runner_id_t mcmini_runner_id) = 0;
-
-  // TODO: We assume at the moment that the number of runners is fixed and that
-  // every call to `execute_runner` above is valid. Eventually, to support more
-  // complicated runners (e.g. entire processes, a runner representing multiple
-  // threads, etc.) the idea of "adding" a new slot for a runner dynamically
-  // might be needed. runner_id_t add_runner(std::unique_ptr<runner>
-  // new_runner);
   virtual ~process() = default;
 };
 

@@ -6,6 +6,7 @@
 #include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/visible_object.hpp"
 #include "mcmini/real_world/process_source.hpp"
+#include "mcmini/real_world/remote_address.hpp"
 #include "mcmini/real_world/runner.hpp"
 
 /**
@@ -160,19 +161,16 @@ class coordinator {
    * @param execution_exception is raised if the runner cannot be executed by
    * the coordinator.
    */
-  void execute_runner(runner::runner_id_t id);
+  void execute_runner(real_world::process::runner_id_t id);
 
  private:
   model::program current_program_model;
   model::transition_registry runtime_transition_mapping;
   std::unique_ptr<real_world::process> current_process_handle;
   std::unique_ptr<real_world::process_source> process_source;
+  std::unordered_map<real_world::remote_address<void>, model::state::objid_t>
+      system_address_mapping;
 
-  /// @brief A mapping between remote addresses in the processes produced by
-  /// `process_source` and those of the
-  std::unordered_map<void *, model::state::objid_t> system_address_mapping;
-
-  /// Allow modifications through the `model_to_system_map` (implementation
-  /// detail)
+  // Allow modifications through the `model_to_system_map` (impl detail)
   friend model_to_system_map;
 };
