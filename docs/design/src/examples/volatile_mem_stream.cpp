@@ -1,9 +1,12 @@
+
+
 #include "mcmini/misc/volatile_mem_stream.hpp"
 
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
 
+#include "mcmini/real_world/remote_address.hpp"
 #include "mcmini/real_world/shm.hpp"
 
 int main() {
@@ -11,7 +14,7 @@ int main() {
 
   volatile int *smr_bytes = smr.as_stream_of<int>();
 
-  // std::memset((void *)smr.get(), 0x22, smr.size());
+  // std::memset((void *)smr.get(), 0x22, smr.size());q
   volatile_mem_stream vms{&smr};
 
   uint32_t my_val = UINT32_MAX;

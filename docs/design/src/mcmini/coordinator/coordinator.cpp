@@ -2,6 +2,8 @@
 
 #include "mcmini/real_world/process.hpp"
 
+using namespace real_world;
+
 coordinator::coordinator(
     model::program &&initial_state,
     model::transition_registry &&runtime_transition_mapping,
@@ -12,7 +14,7 @@ coordinator::coordinator(
   this->current_process_handle = this->process_source->force_new_process();
 }
 
-void coordinator::execute_runner(runner::runner_id_t runner_id) {
+void coordinator::execute_runner(process::runner_id_t runner_id) {
   if (!current_process_handle) {
     throw real_world::process::execution_exception(
         "Failed to execute runner with id \"" + std::to_string(runner_id) +
