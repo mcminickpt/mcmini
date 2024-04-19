@@ -35,7 +35,6 @@ set(LIBMCMINI_C_SRC
   src/libmcmini/entry.c
   src/libmcmini/wrappers.c
 )
-set(LIBMCMINI_CPP_SRC)
 
 # -Wall -> be strict with warnings
 set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
@@ -48,7 +47,7 @@ set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
 set(LIBMCMINI_EXTRA_LINK_FLAGS -lrt -pthread -lm -ldl)
 
 # libmcmini.so -> the dylib which is loaded
-add_library(libmcmini SHARED "${LIBMCMINI_CPP_SRC}""${LIBMCMINI_C_SRC}")
+add_library(libmcmini SHARED "${LIBMCMINI_C_SRC}")
 add_library(McMini::Dylib ALIAS libmcmini)
 set_target_properties(libmcmini PROPERTIES OUTPUT_NAME "mcmini")
 

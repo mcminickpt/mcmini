@@ -32,18 +32,13 @@ void do_model_checking(
   using namespace model;
   using namespace real_world;
 
-  detached_state state_of_program_at_main;
+  state_sequence state_of_program_at_main;
   pending_transitions initial_first_steps;
 
   state::objid_t thread_id =
       state_of_program_at_main.add_object(model::objects::thread::make());
   initial_first_steps.displace_transition_for(
       0, make_unique<transitions::thread_start>(thread_id));
-
-  state_sequence ss;
-  ss.follow(*initial_first_steps.get_transition_for_runner(0));
-
-  std::exit(EXIT_SUCCESS);
 
   /*
   TODO: Complete the initialization of the initial state here, i.e. a
@@ -55,7 +50,7 @@ void do_model_checking(
   // For "vanilla" model checking where we start at the beginning of the
   // program, a fork_process_source suffices (fork() + exec() brings us to the
   // beginning)
-  auto process_source = make_unique<fork_process_source>("demo");
+  auto process_source = make_unique<fork_process_source>("hello-world");
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           transition_registry(), std::move(process_source));

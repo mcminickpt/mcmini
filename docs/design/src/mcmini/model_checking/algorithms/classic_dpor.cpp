@@ -37,8 +37,14 @@ void classic_dpor::verify_using(coordinator &coordinator,
 
   // For now, we simply tell the coordinator to run one thread for a few steps,
   // backtrack once, and then exit
-  coordinator.execute_runner(0);
-  coordinator.execute_runner(0);
+
+  // Execution may fail... we should raise an exception in these cases
+  try {
+    coordinator.execute_runner(0);
+    coordinator.execute_runner(0);
+  } catch (real_world::process::execution_exception &e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+  }
 }
 
 // void classic_dpor::dynamicallyUpdateBacktrackSets() {

@@ -16,6 +16,13 @@ namespace real_world {
  */
 class process_source {
  public:
+  struct process_creation_exception : public std::runtime_error {
+    explicit process_creation_exception(const char *c)
+        : std::runtime_error(c) {}
+    explicit process_creation_exception(const std::string &s)
+        : std::runtime_error(s) {}
+  };
+
   /**
    * @brief Spawn a new process starting from the the fixed point of this
    * process source.
@@ -27,6 +34,19 @@ class process_source {
    * to tell us what the issue was and would make for better error outputs.
    */
   virtual std::unique_ptr<process> make_new_process() = 0;
+
+  /**
+   * @brief Attempts to make a new process and raises a
+   * `process_soprocess_creation_exception` on failure
+   */
+  std::unique_ptr<process> force_new_process() {
+    auto p = make_new_process();
+    if (!p) {
+      throw process_creation_exception("Process creation failed");
+    }
+    return p;
+  }
+
   virtual ~process_source() = default;
 };
 

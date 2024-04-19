@@ -108,11 +108,12 @@ class coordinator {
   }
 
   /**
-   * @brief Returns the number of steps into the program the coordinator has
-   * directed programs.
+   * @brief Returns the number of steps (thread routine/visible operation calls)
+   * intercepted by `libmcmini.so` loaded into the current live process the
+   * coordinator is managing.
    *
    * The depth into the program is the number of transitions which have been
-   * executed by the coordinator.
+   * scheduled for execution by the coordinator.
    */
   uint32_t get_depth_into_program() const {
     return current_program_model.get_trace().count();
@@ -128,8 +129,8 @@ class coordinator {
    *
    * The method has no effect if `n == get_depth_into_program()`.
    *
-   * @throws an exception is raised if the step `n` r
-   *
+   * @throws an exception is raised if the step `n` is greater than then the
+   * execution depth of the current program.
    */
   void return_to_depth(uint32_t n);
 
@@ -156,6 +157,8 @@ class coordinator {
    * newly discovered. After execution, any such objects will be recorded.
    *
    * @param id the runner (thread) which should run.
+   * @param execution_exception is raised if the runner cannot be executed by
+   * the coordinator.
    */
   void execute_runner(runner::runner_id_t id);
 

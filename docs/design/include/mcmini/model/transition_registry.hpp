@@ -72,9 +72,10 @@ class transition_registry final {
    * id this registry assigned.
    *
    * @returns a function pointer which can produce a new transition of the type
-   * assigned id `rttid`.
+   * assigned id `rttid`, or `nullptr` if no such `rttid` has been registered.
    */
   transition_discovery_callback get_callback_for(runtime_type_id rttid) {
+    if (this->runtime_callbacks.size() <= rttid) return nullptr;
     return this->runtime_callbacks.at(rttid);
   }
 

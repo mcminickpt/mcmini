@@ -19,12 +19,4 @@ class runner {
  private:
  public:
   using runner_id_t = uint32_t;
-
-  /**
-   *
-   *
-   */
-  virtual std::istream &continue_to_next_transition(
-      const model::transition &current_transition) = 0;
-  virtual ~runner() = default;
 };

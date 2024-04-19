@@ -25,7 +25,7 @@ struct thread_start : public model::transition {
   }
 
   std::string to_string() const override {
-    return "thread_start(" + std::to_string(thread_id) + ")";
+    return "thread_start(thread:" + std::to_string(thread_id) + ")";
   }
 };
 

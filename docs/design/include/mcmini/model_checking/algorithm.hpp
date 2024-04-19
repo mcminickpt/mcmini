@@ -17,6 +17,7 @@ class algorithm {
   // TODO:
   struct callbacks {
    public:
+    virtual void encountered_unknown_error_in(const model::program &) {}
     virtual void encountered_deadlock_in(const model::program &) {}
     virtual void encountered_crash_in(const model::program &) {}
     virtual void encountered_data_race_in(const model::program &) {}
