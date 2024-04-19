@@ -1,7 +1,7 @@
 #include "mcmini/mcmini.hpp"
 
 #include "mcmini/coordinator/coordinator.hpp"
-#include "mcmini/detail/ddt.hpp"
+#include "mcmini/misc/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"

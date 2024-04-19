@@ -1,4 +1,4 @@
-#include "mcmini/detail/volatile_mem_stream.hpp"
+#include "mcmini/misc/volatile_mem_stream.hpp"
 
 #include <cstdlib>
 #include <cstring>

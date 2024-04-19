@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "mcmini/detail/volatile_mem_stream.hpp"
+#include "mcmini/misc/volatile_mem_stream.hpp"
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/shm.hpp"
 
