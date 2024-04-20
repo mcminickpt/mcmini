@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <cstring>
 #include <iostream>
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
@@ -16,34 +17,23 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   // or malloc/free _could be_ needed, we'd need to check the man page. As long
   // as the char * is not actually modified, this is OK and the best way
   // to interface with the C library routines
-
   setup_ld_preload();
 
+  errno = 0;
   pid_t child_pid = fork();
   if (child_pid == -1) {
-    perror("fork");
-    return nullptr;  // Handle fork() failing
-  }
-
-  if (child_pid == 0) {
+    throw process_source::process_creation_exception(
+        "Failed to create a new process (fork(2) failed): " +
+        std::string(strerror(errno)));
+  } else if (child_pid == 0) {
     // TODO: Add additional arguments here if needed
     char* args[] = {const_cast<char*>(this->target_program.c_str()), NULL};
-
     std::cerr << "About to exec with libmcmini.so loaded! Attempting to run "
               << this->target_program.c_str() << std::endl;
     execvp(this->target_program.c_str(), args);
-
     perror("execvp");  // Handle execvp error here
-    exit(EXIT_FAILURE);
-  } else {
-    int status;
-    waitpid(child_pid, &status, 0);  // Wait for the child to exit
-    if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-      // Handle execvp failing in the fork()-ed child
-      return nullptr;
-    }
+    std::exit(EXIT_FAILURE);
   }
-
   return extensions::make_unique<local_linux_process>(child_pid);
 }
 

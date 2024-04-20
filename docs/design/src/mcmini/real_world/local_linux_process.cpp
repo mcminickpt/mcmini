@@ -9,16 +9,15 @@
 #include <mutex>
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/real_world/runner_mailbox.h"
 
 using namespace real_world;
 using namespace extensions;
 
 std::unique_ptr<shared_memory_region> local_linux_process::rw_region = nullptr;
-std::unique_ptr<volatile_mem_streambuf> local_linux_process::vms = nullptr;
 
 void local_linux_process::initialize_shared_memory() {
   rw_region = make_unique<shared_memory_region>("hello", 100);
-  vms = make_unique<volatile_mem_streambuf>(*rw_region);
 }
 
 local_linux_process::local_linux_process(pid_t pid) : pid(pid) {
@@ -48,14 +47,23 @@ local_linux_process::~local_linux_process() {
   }
 }
 
-runner_mailbox_stream &local_linux_process::execute_runner(
-    runner_id_t mcmini_runner_id) {
-  /* TODO: sem_wait + sem_post pair */
+runner_mailbox_stream &local_linux_process::execute_runner(runner_id_t id) {
+  volatile runner_mailbox *rmb = rw_region->as_stream_of<runner_mailbox>(id);
+  volatile_mem_streambuf runner_mem_stream{&rmb->cnts, sizeof(&rmb->cnts)};
 
-  // TODO: Keep a list of mailboxes and index by the id
-  static runner_mailbox_stream mb{vms.get()};
+  // TODO: When the `libmcmini.so` portion of the synchronization is complete,
+  // we can uncomment this without deadlocking
+  // mc_wake_thread(rmb);
+  // mc_wait_for_thread(rmb);
 
-  uint32_t j = 0;
-  mb.write(&j);
-  return mb;
+  static volatile_mem_streambuf runner_mailbox_bufs[50];
+  static runner_mailbox_stream *runner_mailbox_streams[50];
+
+  if (runner_mailbox_streams[id]) {
+    delete runner_mailbox_streams[id];
+  }
+  runner_mailbox_bufs[id] = std::move(runner_mem_stream);
+  runner_mailbox_streams[id] =
+      new runner_mailbox_stream{&runner_mailbox_bufs[id]};
+  return *runner_mailbox_streams[id];
 }
