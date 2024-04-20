@@ -34,6 +34,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/real_world/shm.cpp
 )
 set(LIBMCMINI_C_SRC
+  src/common/runner_mailbox.c
   src/libmcmini/entry.c
   src/libmcmini/wrappers.c
 )

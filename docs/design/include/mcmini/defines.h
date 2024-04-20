@@ -6,6 +6,7 @@
 #define MCMINI_LIBRARY_ENTRY_POINT
 #define MCMINI_EXPORT __attribute__((visibility(default)))
 #define MCMINI_PRIVATE __attribute__((visibility(hidden)))
+#define MCMINI_THREAD_LOCAL _Thread_local
 
 #define MAX_TOTAL_THREADS_IN_PROGRAM (20u)
 #define MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM (10000u)

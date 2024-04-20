@@ -8,6 +8,23 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
+
+#include "mcmini/real_world/runner_mailbox.h"
+#include "mcmini/entry.h"
+
+
+volatile void *shm_start = NULL;
+const static size_t shm_size = sizeof(runner_mailbox) * MAX_TOTAL_THREADS_IN_PROGRAM;
+MCMINI_THREAD_LOCAL tid_t tid_self = TID_INVALID;
+
+tid_t
+mc_created_new_thread()
+{
+  static tid_t tid_next = 0;
+  tid_self = tid_next++;
+  return tid_self;
+}
 
 void
 mc_get_shm_handle_name(char *dst, size_t sz)
@@ -19,67 +36,55 @@ mc_get_shm_handle_name(char *dst, size_t sz)
 void *
 mc_allocate_shared_memory_region()
 {
-  return NULL;
-  // TODO: Allocation
-  // //  If the region exists, then this returns a fd for the existing
-  // //  region. Otherwise, it creates a new shared memory region.
-  // char dpor[100];
-  // mc_get_shm_handle_name(dpor, sizeof(dpor));
+  char dpor[100];
+  mc_get_shm_handle_name(dpor, sizeof(dpor));
 
-  // // This creates a file in /dev/shm/
-  // int fd = shm_open(dpor, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  // if (fd == -1) {
-  //   if (errno == EACCES) {
-  //     fprintf(stderr,
-  //             "Shared memory region '%s' not owned by this process\n",
-  //             dpor);
-  //   } else {
-  //     perror("shm_open");
-  //   }
-  //   mc_exit(EXIT_FAILURE);
-  // }
-  // int rc = ftruncate(fd, shmAllocationSize);
-  // if (rc == -1) {
-  //   perror("ftruncate");
-  //   mc_exit(EXIT_FAILURE);
-  // }
-  // // We want stack at same address for each process.  Otherwise, a
-  // // pointer
-  // //   to an address in the stack data structure will not work
-  // // TODO: Would the following suffice instead?
-  // //
-  // // static char large_region[1_000_000];
-  // // void *shm_map_addr = ;
-  // //
-  // // Or do we even need the same location anymore?
-  // //
-  // void *stack_address = (void *)0x4444000;
-  // void *shmStart =
-  //   mmap(stack_address, shmAllocationSize, PROT_READ | PROT_WRITE,
-  //        MAP_SHARED | MAP_FIXED, fd, 0);
-  // if (shmStart == MAP_FAILED) {
-  //   perror("mmap");
-  //   mc_exit(EXIT_FAILURE);
-  // }
-  // // shm_unlink(dpor); // Don't unlink while child processes need to
-  // // open this.
-  // fsync(fd);
-  // close(fd);
-  // return shmStart;
+  int fd = shm_open(dpor, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  if (fd == -1) {
+    if (errno == EACCES) {
+      fprintf(stderr,
+              "Shared memory region '%s' not owned by this process\n",
+              dpor);
+    } else {
+      perror("shm_open");
+    }
+    mc_exit(EXIT_FAILURE);
+  }
+  int rc = ftruncate(fd, shm_size);
+  if (rc == -1) {
+    perror("ftruncate");
+    mc_exit(EXIT_FAILURE);
+  }
+
+  void *shm_start =
+    mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (shm_start == MAP_FAILED) {
+    perror("mmap");
+    mc_exit(EXIT_FAILURE);
+  }
+
+  /* The parent process will handle shm_unlink() */
+  fsync(fd);
+  close(fd);
+  return shm_start;
 }
 
 void
 mc_deallocate_shared_memory_region()
 {
-  // TODO: Deallocation
-  // char shm_file_name[100];
-  // mc_get_shm_handle_name(shm_file_name, sizeof(shm_file_name));
-  // int rc = munmap(shmStart, shmAllocationSize);
-  // if (rc == -1) {
-  //   perror("munmap");
-  //   mc_exit(EXIT_FAILURE);
-  // }
+  char shm_file_name[100];
+  mc_get_shm_handle_name(shm_file_name, sizeof(shm_file_name));
+  if (shm_start) {
+      int rc = munmap((void*)shm_start, shm_size);
+      if (rc == -1) {
+        perror("munmap");
+        mc_exit(EXIT_FAILURE);
+      }
+  }
 
+  // TODO: Unlinking likely shouldn't happen in child
+  // processes where `libmcmini.so` is loaded; instead,
+  // that should be left to the McMini process to handle.
   // rc = shm_unlink(shm_file_name);
   // if (rc == -1) {
   //   if (errno == EACCES) {
@@ -94,12 +99,6 @@ mc_deallocate_shared_memory_region()
 }
 
 void
-mc_initialize_shared_memory_globals()
-{
-  // TODO: We can do this just as in mcmini_private.hpp
-}
-
-void
 mc_exit(int status)
 {
   // The exit() function is intercepted. Calling exit() directly
@@ -110,15 +109,36 @@ mc_exit(int status)
   _Exit(status);
 }
 
+void
+thread_await_scheduler()
+{
+  assert(tid_self != TID_INVALID);
+  volatile runner_mailbox *thread_mailbox = ((volatile runner_mailbox*)(shm_start)) + tid_self;
+  mc_wake_scheduler(thread_mailbox);
+  mc_wait_for_scheduler(thread_mailbox);
+}
+
+void
+thread_await_scheduler_for_thread_start_transition()
+{
+  assert(tid_self != TID_INVALID);
+  volatile runner_mailbox *thread_mailbox = ((volatile runner_mailbox*)(shm_start)) + tid_self;
+  mc_wait_for_scheduler(thread_mailbox);
+}
+
+void
+thread_awake_scheduler_for_thread_finish_transition()
+{
+  assert(tid_self != TID_INVALID);
+  volatile runner_mailbox *thread_mailbox = ((volatile runner_mailbox*)(shm_start)) + tid_self;
+  mc_wake_scheduler(thread_mailbox);
+}
+
 __attribute__((constructor)) void my_ctor() {
-  // Do something here with the constructor (e.g. dlsym preparation)
-  void *buf = malloc(10 * sizeof(char));
-  memset(buf, (int)('A'), 10 * sizeof(char));
-
-  /* Open shm file to discover sem_t region + read/write loc for McMini to read from  etc*/
-
-
-  ((char *)buf)[9] = 0;
-  write(STDERR_FILENO, buf, 10);
-  free(buf);
+  mc_created_new_thread();
+  atexit(&mc_deallocate_shared_memory_region);
+  shm_start = mc_allocate_shared_memory_region();
+  printf("YO!\n");
+  thread_await_scheduler_for_thread_start_transition();
+  printf("YO2!\n");
 }
