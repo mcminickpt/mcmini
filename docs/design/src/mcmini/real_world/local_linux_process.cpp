@@ -14,11 +14,11 @@ using namespace real_world;
 using namespace extensions;
 
 std::unique_ptr<shared_memory_region> local_linux_process::rw_region = nullptr;
-std::unique_ptr<volatile_mem_stream> local_linux_process::vms = nullptr;
+std::unique_ptr<volatile_mem_streambuf> local_linux_process::vms = nullptr;
 
 void local_linux_process::initialize_shared_memory() {
   rw_region = make_unique<shared_memory_region>("hello", 100);
-  vms = make_unique<volatile_mem_stream>(*rw_region);
+  vms = make_unique<volatile_mem_streambuf>(*rw_region);
 }
 
 local_linux_process::local_linux_process(pid_t pid) : pid(pid) {

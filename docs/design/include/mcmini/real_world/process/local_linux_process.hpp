@@ -4,7 +4,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include "mcmini/misc/volatile_mem_stream.hpp"
+#include "mcmini/misc/volatile_mem_streambuf.hpp"
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/shm.hpp"
 
@@ -27,7 +27,7 @@ class local_linux_process : public process {
   // themselves
   static void initialize_shared_memory();
   static std::unique_ptr<shared_memory_region> rw_region;
-  static std::unique_ptr<volatile_mem_stream> vms;
+  static std::unique_ptr<volatile_mem_streambuf> vms;
 
  public:
   local_linux_process() = default;
