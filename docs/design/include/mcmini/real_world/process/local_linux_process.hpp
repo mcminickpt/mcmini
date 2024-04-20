@@ -27,7 +27,6 @@ class local_linux_process : public process {
   // themselves
   static void initialize_shared_memory();
   static std::unique_ptr<shared_memory_region> rw_region;
-  static std::unique_ptr<volatile_mem_streambuf> vms;
 
  public:
   local_linux_process() = default;

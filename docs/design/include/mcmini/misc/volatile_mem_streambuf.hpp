@@ -12,6 +12,7 @@ struct volatile_mem_streambuf : public std::streambuf {
   volatile char *rw_region;
 
  public:
+  volatile_mem_streambuf() = default;
   volatile_mem_streambuf(
       const real_world::shared_memory_region &read_write_region)
       : volatile_mem_streambuf(read_write_region.get(),
