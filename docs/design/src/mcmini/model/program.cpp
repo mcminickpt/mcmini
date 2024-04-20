@@ -2,7 +2,6 @@
 
 using namespace model;
 
-program::program(state &&initial_state,
+program::program(const state &initial_state,
                  pending_transitions &&initial_first_steps)
-    : next_steps(std::move(initial_first_steps)),
-      state_seq(std::move(initial_state)) {}
+    : next_steps(std::move(initial_first_steps)), state_seq(initial_state) {}

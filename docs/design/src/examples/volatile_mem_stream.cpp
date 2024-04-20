@@ -14,8 +14,9 @@ int main() {
 
   volatile int *smr_bytes = smr.as_stream_of<int>();
 
+
   // std::memset((void *)smr.get(), 0x22, smr.size());q
-  volatile_mem_stream vms{&smr};
+  volatile_mem_stream vms{smr.byte_stream(20), 30};
 
   uint32_t my_val = UINT32_MAX;
 

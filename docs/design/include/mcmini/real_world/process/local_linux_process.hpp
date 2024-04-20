@@ -28,13 +28,12 @@ class local_linux_process : public process {
   static void initialize_shared_memory();
   static std::unique_ptr<shared_memory_region> rw_region;
   static std::unique_ptr<volatile_mem_stream> vms;
-  std::istream rw_region_stream;
 
  public:
   local_linux_process() = default;
   local_linux_process(pid_t pid);
   virtual ~local_linux_process();
 
-  std::istream &execute_runner(runner_id_t mcmini_runner_id) override;
+  runner_mailbox_stream &execute_runner(runner_id_t mcmini_runner_id) override;
 };
 }  // namespace real_world

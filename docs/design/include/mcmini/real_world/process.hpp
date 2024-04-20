@@ -1,10 +1,9 @@
 #pragma once
 
 #include <exception>
-#include <istream>
 #include <memory>
 
-#include "mcmini/model/transition.hpp"
+#include "mcmini/real_world/runner_mailbox_stream.hpp"
 
 namespace real_world {
 
@@ -52,8 +51,8 @@ struct process {
    * return. It is up to the caller to ensure that scheduling runner
    * `mcmini_runner_id` for execution will not block forever.
    *
-   * @returns a stream containing the serialized response from the process
-   * represented by this proxy. The stream must contain as its first element a
+   * @returns a mailbox containing the serialized response from the process
+   * represented by this proxy. The mailbox must contain as its first element a
    * `model::transition_registry::rttid`. The McMini coordinator will
    * use this identifier to invoke the appropriate callback function to
    * transform the remaining contents of the stream into its model.
@@ -66,7 +65,8 @@ struct process {
    * threads, etc.) the idea of "adding" a new slot for a runner dynamically
    * might be needed.
    */
-  virtual std::istream &execute_runner(runner_id_t mcmini_runner_id) = 0;
+  virtual runner_mailbox_stream &execute_runner(
+      runner_id_t mcmini_runner_id) = 0;
   virtual ~process() = default;
 };
 

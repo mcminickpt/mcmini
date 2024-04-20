@@ -11,8 +11,8 @@ bool detached_state::contains_object_with_id(state::objid_t id) const {
 }
 
 state::objid_t detached_state::add_object(
-    std::unique_ptr<visible_object_state> new_object) {
-  visible_objects.push_back(visible_object(std::move(new_object)));
+    std::unique_ptr<const visible_object_state> new_object) {
+  visible_objects.push_back(std::move(new_object));
   return visible_objects.size() - 1;
 }
 
@@ -24,6 +24,11 @@ void detached_state::add_state_for(
 const visible_object_state *detached_state::get_state_of_object(
     objid_t id) const {
   return this->visible_objects.at(id).get_current_state();
+}
+
+std::unique_ptr<const visible_object_state> detached_state::consume_obj(
+    objid_t id) && {
+  return std::move(visible_objects.at(id)).consume_into_current_state();
 }
 
 std::unique_ptr<mutable_state> detached_state::mutable_clone() const {

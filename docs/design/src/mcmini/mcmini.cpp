@@ -3,11 +3,14 @@
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/misc/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/misc/volatile_mem_stream.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"
 #include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
+#include "mcmini/real_world/runner_mailbox_stream.hpp"
+#include "mcmini/real_world/shm.hpp"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -25,6 +28,11 @@ void display_usage() {
   std::exit(EXIT_FAILURE);
 }
 
+std::unique_ptr<model::transition> test_callback(
+    const real_world::runner_mailbox_stream& rms, model_to_system_map& msm) {
+  return extensions::make_unique<model::transitions::thread_start>(0);
+}
+
 void do_model_checking(
     /* Pass arguments here or rearrange to configure the checker at
     runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
@@ -34,26 +42,25 @@ void do_model_checking(
 
   state_sequence state_of_program_at_main;
   pending_transitions initial_first_steps;
+  transition_registry tr;
 
-  state::objid_t thread_id =
+  state::objid_t main_thread_id =
       state_of_program_at_main.add_object(model::objects::thread::make());
   initial_first_steps.displace_transition_for(
-      0, make_unique<transitions::thread_start>(thread_id));
+      0, make_unique<transitions::thread_start>(main_thread_id));
 
-  /*
-  TODO: Complete the initialization of the initial state here, i.e. a
-  single thread "main" that is alive and then running the transition `t`
-  */
-  program model_for_program_starting_at_main(
-      std::move(state_of_program_at_main), std::move(initial_first_steps));
+  program model_for_program_starting_at_main(state_of_program_at_main,
+                                             std::move(initial_first_steps));
 
   // For "vanilla" model checking where we start at the beginning of the
   // program, a fork_process_source suffices (fork() + exec() brings us to the
   // beginning)
   auto process_source = make_unique<fork_process_source>("hello-world");
 
+  tr.register_transition(&test_callback);
+
   coordinator coordinator(std::move(model_for_program_starting_at_main),
-                          transition_registry(), std::move(process_source));
+                          std::move(tr), std::move(process_source));
 
   std::unique_ptr<model_checking::algorithm> classic_dpor_checker =
       make_unique<model_checking::classic_dpor>();
@@ -107,4 +114,4 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   std::cerr << "Model checking completed!" << std::endl;
 }
 
-int main(int argc, char **argv) { do_model_checking(); }
+int main(int argc, char** argv) { do_model_checking(); }

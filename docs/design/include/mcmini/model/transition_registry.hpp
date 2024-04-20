@@ -6,6 +6,7 @@
 
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/transition.hpp"
+#include "mcmini/real_world/runner_mailbox_stream.hpp"
 
 namespace model {
 
@@ -26,8 +27,8 @@ class transition_registry final {
  public:
   using runtime_type_id = uint32_t;
   using rttid = runtime_type_id;
-  using transition_discovery_callback =
-      std::unique_ptr<transition> (*)(std::istream&, model_to_system_map&);
+  using transition_discovery_callback = std::unique_ptr<transition> (*)(
+      const real_world::runner_mailbox_stream&, model_to_system_map&);
 
   /**
    * @brief Marks the specified transition subclass as possible to encounter at
@@ -37,10 +38,7 @@ class transition_registry final {
    * associate with the returned id
    * @returns a positive integer which conceptually represents the transition.
    */
-  template <typename transition_subclass>
   runtime_type_id register_transition(transition_discovery_callback callback) {
-    static_assert(std::is_base_of<transition, transition_subclass>::value,
-                  "Must be a subclass of `model::transition`");
     // TODO: Mapping between types and the serialization
     // function pointers. For plugins loaded by McMini, each will have the
     // chance to register the transitions it defines. Here the RTTI needs to

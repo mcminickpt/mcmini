@@ -21,6 +21,8 @@ class state {
   virtual size_t count() const = 0;
   virtual bool contains_object_with_id(objid_t id) const = 0;
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
+  virtual std::unique_ptr<const visible_object_state> consume_obj(
+      objid_t id) && = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
 
   // TODO: Potentially provide an interface here that conforms to C++11's
@@ -74,7 +76,7 @@ class mutable_state : public state {
    * every other id assigned to the objects in this state.
    */
   virtual objid_t add_object(
-      std::unique_ptr<visible_object_state> initial_state) = 0;
+      std::unique_ptr<const visible_object_state> initial_state) = 0;
 
   /**
    * @brief Adds the given state _state_ for the object with id _id_.

@@ -25,15 +25,16 @@ class detached_state : public model::mutable_state {
   detached_state &operator=(detached_state &&) = default;
 
   /* `state` overrrides */
-  virtual bool contains_object_with_id(objid_t id) const override;
-  virtual size_t count() const override { return visible_objects.size(); }
-  virtual const visible_object_state *get_state_of_object(
-      objid_t id) const override;
-  virtual objid_t add_object(
-      std::unique_ptr<visible_object_state> initial_state) override;
-  virtual void add_state_for(
-      objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  virtual std::unique_ptr<mutable_state> mutable_clone() const override;
+  size_t count() const override { return visible_objects.size(); }
+  bool contains_object_with_id(objid_t id) const override;
+  const visible_object_state *get_state_of_object(objid_t id) const override;
+  objid_t add_object(
+      std::unique_ptr<const visible_object_state> initial_state) override;
+  void add_state_for(objid_t id,
+                     std::unique_ptr<visible_object_state> new_state) override;
+  std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
+      override;
+  std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 
 }  // namespace model

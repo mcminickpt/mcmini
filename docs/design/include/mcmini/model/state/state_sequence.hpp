@@ -54,6 +54,8 @@ class state_sequence : public mutable_state {
     virtual bool contains_object_with_id(objid_t id) const override;
     virtual const visible_object_state *get_state_of_object(
         objid_t id) const override;
+    virtual std::unique_ptr<const visible_object_state>
+        consume_obj(objid_t id) && override;
     virtual std::unique_ptr<mutable_state> mutable_clone() const override;
   };
 
@@ -73,7 +75,7 @@ class state_sequence : public mutable_state {
  public:
   state_sequence();
   state_sequence(const state &);
-  state_sequence(const state &&);
+  // state_sequence(state &&);
   state_sequence(state_sequence &) = delete;
   state_sequence(state_sequence &&) = default;
   state_sequence(std::vector<visible_object> &&);
@@ -87,9 +89,11 @@ class state_sequence : public mutable_state {
   virtual const visible_object_state *get_state_of_object(
       objid_t id) const override;
   virtual objid_t add_object(
-      std::unique_ptr<visible_object_state> initial_state) override;
+      std::unique_ptr<const visible_object_state> initial_state) override;
   virtual void add_state_for(
       objid_t id, std::unique_ptr<visible_object_state> new_state) override;
+  virtual std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
+      override;
   virtual std::unique_ptr<mutable_state> mutable_clone() const override;
 
   /* Applying transitions */
