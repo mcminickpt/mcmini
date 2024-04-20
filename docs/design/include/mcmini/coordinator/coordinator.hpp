@@ -7,7 +7,6 @@
 #include "mcmini/model/visible_object.hpp"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/real_world/remote_address.hpp"
-#include "mcmini/real_world/runner.hpp"
 
 /**
  * @brief A mechanism which synchronizes a McMini model of a program

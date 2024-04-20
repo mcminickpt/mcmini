@@ -14,7 +14,7 @@ class state_sequence::diff_state : public mutable_state {
   const state_sequence &base_state;
 
  public:
-  // Purposely exposed for implementation
+  // Purposely exposed in this private cpp file for implementation (pimpl).
   std::unordered_map<state::objid_t, visible_object> new_object_states;
 
   diff_state(const state_sequence &s) : base_state(s) {}
@@ -36,24 +36,23 @@ class state_sequence::diff_state : public mutable_state {
     }
     return count;
   }
-  virtual const visible_object_state *get_state_of_object(
-      objid_t id) const override;
-  virtual objid_t add_object(
-      std::unique_ptr<visible_object_state> initial_state) override;
-  virtual void add_state_for(
-      objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  virtual std::unique_ptr<mutable_state> mutable_clone() const override;
+  const visible_object_state *get_state_of_object(objid_t id) const override;
+  objid_t add_object(
+      std::unique_ptr<const visible_object_state> initial_state) override;
+  void add_state_for(objid_t id,
+                     std::unique_ptr<visible_object_state> new_state) override;
+  std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
+      override;
+  std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 
 state_sequence::state_sequence() { this->push_state_snapshot(); }
 
-state_sequence::state_sequence(const state &initial_state) {
-  // TODO: Iterate through all the objects and their states to make a clone
-  // Potentially allow for a move iterator to be constructed.
-}
-
-state_sequence::state_sequence(const state &&state) {
-  // TODO: Iterate through all the objects. We need to attach
+state_sequence::state_sequence(const state &s) {
+  this->push_state_snapshot();
+  const size_t num_objs = s.count();
+  for (objid_t i = 0; i < num_objs; i++)
+    add_object(s.get_state_of_object(i)->clone());
 }
 
 state_sequence::state_sequence(std::vector<visible_object> &&initial_objects)
@@ -62,7 +61,7 @@ state_sequence::state_sequence(std::vector<visible_object> &&initial_objects)
 }
 
 state_sequence::state_sequence(append_only<visible_object> &&ao)
-    : visible_objects(ao) {
+    : visible_objects(std::move(ao)) {
   this->push_state_snapshot();
 }
 
@@ -76,12 +75,12 @@ const visible_object_state *state_sequence::get_state_of_object(
 }
 
 state::objid_t state_sequence::add_object(
-    std::unique_ptr<visible_object_state> initial_state) {
+    std::unique_ptr<const visible_object_state> initial_state) {
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new object, as this element effectively represents this state
   objid_t id = visible_objects.size();
   this->states_in_sequence.back().point_to_state_for(id, initial_state.get());
-  visible_objects.push_back(visible_object(std::move(initial_state)));
+  visible_objects.push_back(std::move(initial_state));
   return id;
 }
 
@@ -91,6 +90,11 @@ void state_sequence::add_state_for(
   // this new state, as this element effectively represents this state
   this->states_in_sequence.back().point_to_state_for(id, new_state.get());
   this->visible_objects.at(id).push_state(std::move(new_state));
+}
+
+std::unique_ptr<const visible_object_state> state_sequence::consume_obj(
+    objid_t id) && {
+  return std::move(visible_objects.at(id)).consume_into_current_state();
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
@@ -155,6 +159,12 @@ const visible_object_state *state_sequence::element::get_state_of_object(
   return this->visible_object_states.at(id);
 }
 
+std::unique_ptr<const visible_object_state>
+state_sequence::element::consume_obj(objid_t id) && {
+  throw std::runtime_error(
+      "Consumption is not permitted on elements of a state sequence");
+}
+
 std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {
   auto state = extensions::make_unique<detached_state>();
   for (objid_t i = 0; i < this->visible_object_states.size(); i++)
@@ -179,7 +189,7 @@ const visible_object_state *state_sequence::diff_state::get_state_of_object(
 }
 
 state::objid_t state_sequence::diff_state::add_object(
-    std::unique_ptr<visible_object_state> initial_state) {
+    std::unique_ptr<const visible_object_state> initial_state) {
   // The next id that would be assigned if one more than
   // the largest id available. The last id of the base it `size() - 1` and
   // we are `new_object_state.size()` elements in
@@ -193,6 +203,11 @@ void state_sequence::diff_state::add_state_for(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
   auto &s = new_object_states[id];
   s.push_state(std::move(new_state));
+}
+
+std::unique_ptr<const visible_object_state>
+state_sequence::diff_state::consume_obj(objid_t id) && {
+  throw std::runtime_error("Consumption is not permitted on diff states");
 }
 
 std::unique_ptr<mutable_state> state_sequence::diff_state::mutable_clone()

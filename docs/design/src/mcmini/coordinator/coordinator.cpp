@@ -20,32 +20,32 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         "Failed to execute runner with id \"" + std::to_string(runner_id) +
         "\": the process is not alive");
   }
-  std::istream &wrapper_response_stream =
+  model::transition_registry::runtime_type_id rttid;
+  runner_mailbox_stream &mb =
       this->current_process_handle->execute_runner(runner_id);
+  mb.read(&rttid);
 
-  model::transition_registry::runtime_type_id transition_registry_id;
-  wrapper_response_stream >> transition_registry_id;
-
-  // TODO: Handle the case where lookup fails (this indicates a failure on the
-  // end of libmcmini.so... we should probably abort?)
-  model_to_system_map remote_address_mapping = model_to_system_map(*this);
   model::transition_registry::transition_discovery_callback callback_function =
-      runtime_transition_mapping.get_callback_for(transition_registry_id);
+      runtime_transition_mapping.get_callback_for(rttid);
   if (!callback_function) {
     throw real_world::process::execution_exception(
         "Execution resulted in a runner scheduled to execute the transition "
         "type with the RTTID '" +
-        std::to_string(transition_registry_id) +
+        std::to_string(rttid) +
         "' but this identifier has not been registered before model checking "
         "began. Double check that the coordinator was properly configured "
         "before launch; otherwise, please report this as a bug in "
         "libmcmini.so with this message.");
   }
-  std::unique_ptr<model::transition> transition_encountered_at_runtime =
-      callback_function(wrapper_response_stream, remote_address_mapping);
-
+  model_to_system_map remote_address_mapping = model_to_system_map(*this);
+  auto pending_operation = callback_function(mb, remote_address_mapping);
+  if (!pending_operation) {
+    throw real_world::process::execution_exception(
+        "Failed to translate the data written into the mailbox of runner " +
+        std::to_string(runner_id));
+  }
   this->current_program_model.model_executing_runner(
-      runner_id, std::move(transition_encountered_at_runtime));
+      runner_id, std::move(pending_operation));
 }
 
 void *model_to_system_map::get_remote_process_handle_for_object(

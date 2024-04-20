@@ -52,16 +52,14 @@ class program {
  public:
   using runner_id_t = uint32_t;
 
-  program(state &&initial_state, pending_transitions &&initial_first_steps);
+  program(const state &initial_state,
+          pending_transitions &&initial_first_steps);
   program(program &&) = default;
   program(const program &) = delete;
 
   const state_sequence &get_state_sequence() const { return this->state_seq; }
   const transition_sequence &get_trace() const { return this->trace; }
 
-  /**
-   * @brief Returns a list of runners which are currently enabled.
-   */
   std::unordered_set<runner_id_t> get_enabled_runners() const {
     std::unordered_set<runner_id_t> enabled_runners;
     for (const auto &runner_and_t : this->next_steps) {

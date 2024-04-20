@@ -85,7 +85,8 @@ class visible_object final {
   }
 
   /// @brief Extracts the current state from this object.
-  /// @return a pointer to the current state of this object
+  /// @return a pointer to the current state of this object, or `nullptr` is the
+  /// object contains no states.
   std::unique_ptr<const visible_object_state> consume_into_current_state() && {
     if (history.empty()) {
       return nullptr;

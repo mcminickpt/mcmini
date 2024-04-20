@@ -28,7 +28,9 @@ struct shared_memory_region {
   volatile T* as_stream_of() const {
     return static_cast<volatile T*>(shm_mmap_region);
   }
-  volatile char* byte_stream() const { return as_stream_of<char>(); }
+  volatile char* byte_stream(off64_t off = 0) const {
+    return as_stream_of<char>() + off;
+  }
   size_t size() const { return this->region_size; }
 
  private:
