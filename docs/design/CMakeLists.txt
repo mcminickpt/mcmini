@@ -18,7 +18,9 @@ set(MCMINI_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 set(MCMINI_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake")
 
 # Project source files
-set(MCMINI_C_SRC )
+set(MCMINI_C_SRC
+  src/common/runner_mailbox.c
+)
 set(MCMINI_CPP_SRC
   src/mcmini/mcmini.cpp
   src/mcmini/visible_object.cpp
