@@ -73,13 +73,10 @@ class program {
   void model_executing_runner(runner_id_t p,
                               std::unique_ptr<transition> new_transition) {
     const transition *next_s_p = next_steps.get_transition_for_runner(p);
-
     if (next_s_p) {
       this->state_seq.follow(*next_s_p);
       this->next_steps.displace_transition_for(p, std::move(new_transition));
     } else {
-      // TODO: Handle the case where `p` doesn't exist. Perhaps this function
-      // should return a `result<>` type.
       throw std::runtime_error(
           "Attempted to execute a runner whose transition was not currently "
           "enabled");

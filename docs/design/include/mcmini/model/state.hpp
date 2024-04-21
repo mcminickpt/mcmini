@@ -16,6 +16,7 @@ namespace model {
 class state {
  public:
   using objid_t = uint32_t;
+  using runner_id_t = uint32_t;
 
   virtual ~state() = default;
   virtual size_t count() const = 0;

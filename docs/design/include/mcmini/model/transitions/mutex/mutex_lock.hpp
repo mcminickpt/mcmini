@@ -8,10 +8,11 @@ namespace transitions {
 
 struct mutex_lock : public model::transition {
  private:
-  state::objid_t mutex_id; /* The mutex this transition initializes */
+  state::objid_t mutex_id; /* The mutex this transition locks */
 
  public:
-  mutex_lock(state::objid_t mutex_id) : mutex_id(mutex_id) {}
+  mutex_lock(runner_id_t executor, state::objid_t mutex_id)
+      : mutex_id(mutex_id), transition(executor) {}
   ~mutex_lock() = default;
 
   status modify(model::mutable_state& s) const override {

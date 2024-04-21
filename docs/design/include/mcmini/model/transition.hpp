@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "mcmini/forwards.hpp"
-#include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
 
 namespace model {
@@ -41,7 +40,7 @@ namespace model {
  * `model::transition` allows the transition to produce a state _even if
  * the process which is set to execute the transition isn't truly in a position
  * where the transition is being executed_. Transitions perform _look ups_ on
- * the particular state they are given
+ * the particular state they are given.
  *
  * For example, consider a transition "post(sem)" which takes a visible object
  * (a semaphore) with id `sem` as an argument. The sempahore `sem` may exist in
@@ -52,10 +51,26 @@ namespace model {
  * is _not_ executing a `post(sem)`. However, the implementation of "thread 1
  * executes post(sem)"  _would be defined_ in state `s_2`. In other words, a
  * `model::state` _excludes_ the state of the _processes_; that is the
- * responsibility of `model::program`.
+ * responsibility of `model::program` to ensure that this transition is indeed
+ * the next one for the process running it.
+ *
+ * @note Our definition of transition is more in line with Abdulla et al. 2017,
+ * viz. one in which we assume a program is a collection of processes each of
+ * which can be represented as partial functions executing atomically;
+ * therefore, every transition in McMini is executed by _some_ runner, even if
+ * the runner itself is virtual (e.g. a transition that affects multiple
+ * threads).
  */
 class transition {
  public:
+  using runner_id_t = uint32_t;
+
+  /**
+   * The thread/runner which actually executes this transition.
+   */
+  const runner_id_t executor;
+  transition(runner_id_t executor) : executor(executor) {}
+
   /**
    * @brief Attempts to produce a state _s'_ from state _s_ through the
    * application of this transition function on argument _s_
