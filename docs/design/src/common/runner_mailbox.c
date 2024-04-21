@@ -1,4 +1,4 @@
-#include "mcmini/real_world/runner_mailbox.h"
+#include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/defines.h"
 #include "string.h"
 

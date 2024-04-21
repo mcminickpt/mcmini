@@ -10,28 +10,14 @@
 
 #include "mcmini/defines.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
-#include "mcmini/real_world/runner_mailbox.h"
+#include "mcmini/real_world/mailbox/runner_mailbox.h"
 
 using namespace real_world;
 using namespace extensions;
 
-std::unique_ptr<shared_memory_region> local_linux_process::rw_region = nullptr;
-
-void local_linux_process::initialize_shared_memory() {
-  rw_region = make_unique<shared_memory_region>("hello", 100);
-  volatile runner_mailbox *mbp = rw_region->as_stream_of<runner_mailbox>();
-
-  // TODO: This should be a configurable parameter perhaps...
-  const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
-  for (int i = 0; i < max_total_threads; i++) {
-    mc_runner_mailbox_init(mbp + i);
-  }
-}
-
-local_linux_process::local_linux_process(pid_t pid) : pid(pid) {
-  static std::once_flag shm_once_flag;
-  std::call_once(shm_once_flag, initialize_shared_memory);
-}
+local_linux_process::local_linux_process(pid_t pid,
+                                         shared_memory_region &shm_slice)
+    : pid(pid), shm_slice(shm_slice) {}
 
 local_linux_process::~local_linux_process() {
   if (pid <= 0) {
@@ -56,7 +42,7 @@ local_linux_process::~local_linux_process() {
 }
 
 runner_mailbox_stream &local_linux_process::execute_runner(runner_id_t id) {
-  volatile runner_mailbox *rmb = rw_region->as_stream_of<runner_mailbox>(id);
+  volatile runner_mailbox *rmb = shm_slice.as_stream_of<runner_mailbox>(id);
   volatile_mem_streambuf runner_mem_stream{&rmb->cnts, sizeof(&rmb->cnts)};
 
   mc_wake_thread(rmb);

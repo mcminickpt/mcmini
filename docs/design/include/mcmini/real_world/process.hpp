@@ -3,7 +3,7 @@
 #include <exception>
 #include <memory>
 
-#include "mcmini/real_world/runner_mailbox_stream.hpp"
+#include "mcmini/real_world/mailbox/runner_mailbox_stream.hpp"
 
 namespace real_world {
 

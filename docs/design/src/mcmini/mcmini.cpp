@@ -9,7 +9,6 @@
 #include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
-#include "mcmini/real_world/runner_mailbox_stream.hpp"
 #include "mcmini/real_world/shm.hpp"
 
 #define _XOPEN_SOURCE_EXTENDED 1

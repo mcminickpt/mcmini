@@ -20,6 +20,7 @@ set(MCMINI_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake")
 # Project source files
 set(MCMINI_C_SRC
   src/common/runner_mailbox.c
+  src/common/shm_config.c
 )
 set(MCMINI_CPP_SRC
   src/mcmini/mcmini.cpp
@@ -35,6 +36,7 @@ set(MCMINI_CPP_SRC
 )
 set(LIBMCMINI_C_SRC
   src/common/runner_mailbox.c
+  src/common/shm_config.c
   src/libmcmini/entry.c
   src/libmcmini/wrappers.c
 )

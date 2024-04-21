@@ -10,12 +10,11 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "mcmini/real_world/runner_mailbox.h"
+#include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/entry.h"
-
+#include "mcmini/common/shm_config.h"
 
 volatile void *shm_start = NULL;
-const static size_t shm_size = sizeof(runner_mailbox) * MAX_TOTAL_THREADS_IN_PROGRAM;
 MCMINI_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 
 tid_t
@@ -24,13 +23,6 @@ mc_created_new_thread()
   static tid_t tid_next = 0;
   tid_self = tid_next++;
   return tid_self;
-}
-
-void
-mc_get_shm_handle_name(char *dst, size_t sz)
-{
-  snprintf(dst, sz, "/mcmini-%s-%lu", getenv("USER"), (long)getpid());
-  dst[sz - 1] = '\0';
 }
 
 void *

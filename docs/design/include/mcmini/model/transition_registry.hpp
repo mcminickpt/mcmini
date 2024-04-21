@@ -6,7 +6,7 @@
 
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/transition.hpp"
-#include "mcmini/real_world/runner_mailbox_stream.hpp"
+#include "mcmini/real_world/mailbox/runner_mailbox_stream.hpp"
 
 namespace model {
 
