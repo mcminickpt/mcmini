@@ -648,12 +648,12 @@ mc_report_undefined_behavior(const char *msg)
   mc_terminate_trace();
   fprintf(stderr,
           "\n"
-          "Undefined Behavior Detected! \t\n"
-          "............................ \t\n"
-          "mcmini aborted the execution of trace with traceId %lu because\t\n"
-          "it detected undefined behavior\t\n"
+          "Undefined or Illegal Behavior Detected!\n"
+          "............................\n"
+          "mcmini aborted the execution of trace with traceId %lu because\n"
+          "it detected undefined behavior\n"
           "............................ \n"
-          "Reason: %s \t\n\n",
+          "Reason: %s\n\n",
           traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();

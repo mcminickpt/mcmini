@@ -35,9 +35,12 @@ public:
     explicit Shadow(pthread_cond_t *cond) : cond(cond) {}
   };
 
+  // `FIXME:  This used to be private.  But MCReadCondSignal, etc.,
+  //          needs to set shadow.state to 'initialized'.
+  Shadow shadow;
+
 private:
 
-  Shadow shadow;
   unsigned int numRemainingSpuriousWakeups = 0;
   std::unique_ptr<ConditionVariablePolicy> policy;
 
