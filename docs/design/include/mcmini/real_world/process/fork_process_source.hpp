@@ -33,6 +33,7 @@ class fork_process_source : public process_source {
   static void initialize_shared_memory();
 
   void setup_ld_preload();
+  void reset_binary_semaphores_for_new_process();
 
  public:
   fork_process_source(std::string target_program);
