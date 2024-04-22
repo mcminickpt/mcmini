@@ -6,22 +6,22 @@
 namespace model {
 namespace transitions {
 
-struct thread_start : public model::transition {
+struct thread_exit : public model::transition {
  public:
-  thread_start(state::runner_id_t executor) : transition(executor) {}
-  ~thread_start() = default;
+  thread_exit(state::runner_id_t executor) : transition(executor) {}
+  ~thread_exit() = default;
 
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
     auto* thread_state = s.get_state_of_runner<thread>(executor);
-    if (!thread_state->is_embryo()) {
+    if (!thread_state->is_running()) {
       return status::disabled;
     }
-    s.add_state_for_runner(executor, thread::make(thread::running));
+    s.add_state_for_runner(executor, thread::make(thread::exited));
     return status::exists;
   }
 
-  std::string to_string() const override { return "starts"; }
+  std::string to_string() const override { return "exits"; }
 };
 
 }  // namespace transitions
