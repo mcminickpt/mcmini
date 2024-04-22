@@ -20,8 +20,13 @@ class state {
 
   virtual ~state() = default;
   virtual size_t count() const = 0;
+  virtual size_t runner_count() const = 0;
   virtual bool contains_object_with_id(objid_t id) const = 0;
+  virtual bool contains_runner_with_id(runner_id_t id) const = 0;
+  virtual objid_t get_objid_for_runner(runner_id_t id) const = 0;
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
+  virtual const visible_object_state *get_state_of_runner(
+      runner_id_t id) const = 0;
   virtual std::unique_ptr<const visible_object_state> consume_obj(
       objid_t id) && = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
@@ -80,14 +85,30 @@ class mutable_state : public state {
       std::unique_ptr<const visible_object_state> initial_state) = 0;
 
   /**
+   * @brief Begin tracking a new visible object, but consider it as the state of
+   * a new runner.
+   */
+  virtual runner_id_t add_runner(
+      std::unique_ptr<const visible_object_state> initial_state) = 0;
+
+  /**
    * @brief Adds the given state _state_ for the object with id _id_.
    *
    * @note: If the object with id `id` is _not_ a visible object tracking states
    * of type `visible_object_state_type`, the behavior of this function is
    * undefined.
    */
-  virtual void add_state_for(
+  virtual void add_state_for_obj(
       objid_t id, std::unique_ptr<visible_object_state> new_state) = 0;
+
+  /**
+   * @brief Adds the given state _state_ for the runner with id _id_.
+   *
+   * This is equivalent to first retrieving the object id of the runner in this
+   * state and then asking for that object's state.
+   */
+  virtual void add_state_for_runner(
+      runner_id_t id, std::unique_ptr<visible_object_state> new_state) = 0;
 
   /**
    * @brief Creates a copy of the given state.

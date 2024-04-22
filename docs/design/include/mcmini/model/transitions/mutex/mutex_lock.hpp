@@ -23,12 +23,12 @@ struct mutex_lock : public model::transition {
     if (ms->is_locked()) {
       return status::disabled;
     }
-    s.add_state_for(mutex_id, mutex::make(mutex::locked));
+    s.add_state_for_obj(mutex_id, mutex::make(mutex::locked));
     return status::exists;
   }
 
   std::string to_string() const override {
-    return "mutex_lock(" + std::to_string(mutex_id) + ")";
+    return "mutex_lock(mutex:" + std::to_string(mutex_id) + ")";
   }
 };
 }  // namespace transitions

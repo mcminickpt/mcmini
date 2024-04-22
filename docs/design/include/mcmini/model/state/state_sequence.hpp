@@ -23,57 +23,27 @@ namespace model {
  */
 class state_sequence : public mutable_state {
  private:
-  /**
-   * @brief An element of a `model::state_sequence`
-   *
-   * The `element` and `state_sequence` are tightly intertwined. We allow them
-   * to work in tandem with one another as an implementation detail to permit
-   * "views" of the objects the state sequence maintains as new states are added
-   * to the sequence via transitions
-   */
-  class element : public state {
-   private:
-    /// @brief A collection of references to states in the sequence
-    /// _owning_sequence_ to which this element belongs.
-    ///
-    /// Each state in the view
-    std::unordered_map<state::objid_t, const visible_object_state *>
-        visible_object_states;
-
-    element(const state_sequence &owner);
-    friend state_sequence;
-
-   public:
-    element() = default;
-    void point_to_state_for(objid_t id, const visible_object_state *new_state) {
-      this->visible_object_states[id] = new_state;
-    }
-    virtual size_t count() const override {
-      return visible_object_states.size();
-    }
-    virtual bool contains_object_with_id(objid_t id) const override;
-    virtual const visible_object_state *get_state_of_object(
-        objid_t id) const override;
-    virtual std::unique_ptr<const visible_object_state>
-        consume_obj(objid_t id) && override;
-    virtual std::unique_ptr<mutable_state> mutable_clone() const override;
-  };
-
   class diff_state;
+  class element;
 
-  void push_state_snapshot() {
-    this->states_in_sequence.push_back(element(*this));
-  }
+  /// @brief Inserts an instance of `element` in the `states_in_sequence`
+  void push_state_snapshot();
+
   // INVARIANT: As new states are added to the visible objects in the
   // mapping `visible_objects`, new state views are also added with the
   // appropriate object states replaced for the _last element_ of
   // `states_in_sequence`. When new objects are added to `visible_objects`, a
   // corresponding object state is added to the _last_ element in the sequence.
   append_only<visible_object> visible_objects;
-  append_only<element> states_in_sequence;
+  append_only<element *> states_in_sequence;
+
+  // INVARIANT: Runner ids are assigned sequentially. A runner with id `id` is
+  // mapped to the object id at index `id - 1`.
+  append_only<state::objid_t> runner_to_obj_map;
 
  public:
   state_sequence();
+  ~state_sequence();
   state_sequence(const state &);
   // state_sequence(state &&);
   state_sequence(state_sequence &) = delete;
@@ -84,17 +54,25 @@ class state_sequence : public mutable_state {
   state_sequence &operator=(const state_sequence &) = delete;
 
   /* `state` overrrides */
-  virtual bool contains_object_with_id(state::objid_t id) const override;
-  virtual size_t count() const override { return visible_objects.size(); }
-  virtual const visible_object_state *get_state_of_object(
-      objid_t id) const override;
-  virtual objid_t add_object(
+  size_t count() const override { return visible_objects.size(); }
+  size_t runner_count() const override { return runner_to_obj_map.size(); }
+  objid_t get_objid_for_runner(runner_id_t id) const override;
+  bool contains_object_with_id(state::objid_t id) const override;
+  bool contains_runner_with_id(runner_id_t id) const override;
+  const visible_object_state *get_state_of_object(objid_t id) const override;
+  const visible_object_state *get_state_of_runner(
+      runner_id_t id) const override;
+  objid_t add_object(
       std::unique_ptr<const visible_object_state> initial_state) override;
-  virtual void add_state_for(
+  runner_id_t add_runner(
+      std::unique_ptr<const visible_object_state> initial_state) override;
+  void add_state_for_obj(
       objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  virtual std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
+  void add_state_for_runner(
+      runner_id_t id, std::unique_ptr<visible_object_state> new_state) override;
+  std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
       override;
-  virtual std::unique_ptr<mutable_state> mutable_clone() const override;
+  std::unique_ptr<mutable_state> mutable_clone() const override;
 
   /* Applying transitions */
 
@@ -111,10 +89,8 @@ class state_sequence : public mutable_state {
    */
   transition::status follow(const transition &t);
 
-  size_t state_count() const { return this->states_in_sequence.size(); }
-  const state &state_at(size_t i) const {
-    return this->states_in_sequence.at(i);
-  }
+  size_t state_count() const;
+  const state &state_at(size_t i) const;
 
   /**
    * @brief Moves the contents from index 0 to index _index_ (inclusive) of this
