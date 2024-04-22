@@ -43,8 +43,8 @@ void do_model_checking(
   pending_transitions initial_first_steps;
   transition_registry tr;
 
-  state::objid_t main_thread_id =
-      state_of_program_at_main.add_object(model::objects::thread::make());
+  state::runner_id_t main_thread_id =
+      state_of_program_at_main.add_runner(model::objects::thread::make());
   initial_first_steps.displace_transition_for(
       0, make_unique<transitions::thread_start>(main_thread_id));
 

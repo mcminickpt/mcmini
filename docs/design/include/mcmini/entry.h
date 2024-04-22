@@ -2,6 +2,10 @@
 
 #include "mcmini/defines.h"
 
-void mc_exit(int status);
+extern volatile void *shm_start;
+extern MCMINI_THREAD_LOCAL tid_t tid_self;
+
+void mc_exit(int);
+
 
 

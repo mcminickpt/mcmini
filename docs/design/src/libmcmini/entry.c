@@ -10,15 +10,13 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "mcmini/real_world/mailbox/runner_mailbox.h"
-#include "mcmini/entry.h"
-#include "mcmini/common/shm_config.h"
+#include "mcmini/mcmini.h"
 
 volatile void *shm_start = NULL;
 MCMINI_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 
 tid_t
-mc_created_new_thread()
+mc_register_this_thread()
 {
   static tid_t tid_next = 0;
   tid_self = tid_next++;
@@ -73,21 +71,6 @@ mc_deallocate_shared_memory_region()
         mc_exit(EXIT_FAILURE);
       }
   }
-
-  // TODO: Unlinking likely shouldn't happen in child
-  // processes where `libmcmini.so` is loaded; instead,
-  // that should be left to the McMini process to handle.
-  // rc = shm_unlink(shm_file_name);
-  // if (rc == -1) {
-  //   if (errno == EACCES) {
-  //     fprintf(stderr,
-  //             "Shared memory region '%s' not owned by this process\n",
-  //             shm_file_name);
-  //   } else {
-  //     perror("shm_unlink");
-  //   }
-  //   mc_exit(EXIT_FAILURE);
-  // }
 }
 
 void
@@ -101,36 +84,10 @@ mc_exit(int status)
   _Exit(status);
 }
 
-void
-thread_await_scheduler()
-{
-  assert(tid_self != TID_INVALID);
-  volatile runner_mailbox *thread_mailbox = ((volatile runner_mailbox*)(shm_start)) + tid_self;
-  mc_wake_scheduler(thread_mailbox);
-  mc_wait_for_scheduler(thread_mailbox);
-}
-
-void
-thread_await_scheduler_for_thread_start_transition()
-{
-  assert(tid_self != TID_INVALID);
-  volatile runner_mailbox *thread_mailbox = ((volatile runner_mailbox*)(shm_start)) + tid_self;
-  mc_wait_for_scheduler(thread_mailbox);
-}
-
-void
-thread_awake_scheduler_for_thread_finish_transition()
-{
-  assert(tid_self != TID_INVALID);
-  volatile runner_mailbox *thread_mailbox = ((volatile runner_mailbox*)(shm_start)) + tid_self;
-  mc_wake_scheduler(thread_mailbox);
-}
-
-__attribute__((constructor)) void my_ctor() {
-  mc_created_new_thread();
+__attribute__((constructor)) void libmcmini_main() {
+  mc_register_this_thread();
+  mc_load_intercepted_pthread_functions();
   atexit(&mc_deallocate_shared_memory_region);
   shm_start = mc_allocate_shared_memory_region();
-  printf("YO!\n");
   thread_await_scheduler_for_thread_start_transition();
-  printf("YO2!\n");
 }

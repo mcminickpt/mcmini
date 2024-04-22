@@ -38,6 +38,7 @@ set(LIBMCMINI_C_SRC
   src/common/runner_mailbox.c
   src/common/shm_config.c
   src/libmcmini/entry.c
+  src/libmcmini/interception.c
   src/libmcmini/wrappers.c
 )
 
