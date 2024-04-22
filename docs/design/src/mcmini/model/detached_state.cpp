@@ -5,7 +5,6 @@
 
 using namespace model;
 
-/* `state` overrrides */
 bool detached_state::contains_object_with_id(state::objid_t id) const {
   return id < this->visible_objects.size();
 }

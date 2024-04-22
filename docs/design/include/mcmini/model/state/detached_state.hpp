@@ -14,7 +14,7 @@ namespace model {
  * context of a sequence; that is, a detached state represents the states
  */
 class detached_state : public model::mutable_state {
- private:
+ protected:
   append_only<model::visible_object> visible_objects;
 
   // INVARIANT: Runner ids are assigned sequentially. A runner with id `id` is

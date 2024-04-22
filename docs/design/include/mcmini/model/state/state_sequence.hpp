@@ -5,7 +5,7 @@
 
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/append-only.hpp"
-#include "mcmini/model/state.hpp"
+#include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transition.hpp"
 
 namespace model {
@@ -21,7 +21,7 @@ namespace model {
  * exists a sequence of transitions `t_i, ..., t_j` such that `s_j =
  * t_j(t_{j-1}(...(t_i(s_i))...))`
  */
-class state_sequence : public mutable_state {
+class state_sequence : public detached_state {
  private:
   class diff_state;
   class element;
@@ -53,25 +53,10 @@ class state_sequence : public mutable_state {
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
 
-  /* `state` overrrides */
-  size_t count() const override { return visible_objects.size(); }
-  size_t runner_count() const override { return runner_to_obj_map.size(); }
-  objid_t get_objid_for_runner(runner_id_t id) const override;
-  bool contains_object_with_id(state::objid_t id) const override;
-  bool contains_runner_with_id(runner_id_t id) const override;
-  const visible_object_state *get_state_of_object(objid_t id) const override;
-  const visible_object_state *get_state_of_runner(
-      runner_id_t id) const override;
   objid_t add_object(
-      std::unique_ptr<const visible_object_state> initial_state) override;
-  runner_id_t add_runner(
       std::unique_ptr<const visible_object_state> initial_state) override;
   void add_state_for_obj(
       objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  void add_state_for_runner(
-      runner_id_t id, std::unique_ptr<visible_object_state> new_state) override;
-  std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
-      override;
   std::unique_ptr<mutable_state> mutable_clone() const override;
 
   /* Applying transitions */

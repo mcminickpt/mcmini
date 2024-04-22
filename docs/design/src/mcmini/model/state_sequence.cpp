@@ -77,29 +77,6 @@ void state_sequence::push_state_snapshot() {
   this->states_in_sequence.push_back(new element(*this));
 }
 
-bool state_sequence::contains_object_with_id(state::objid_t id) const {
-  return id < visible_objects.size();
-}
-
-bool state_sequence::contains_runner_with_id(state::runner_id_t id) const {
-  return id < runner_to_obj_map.size();
-}
-
-state::objid_t state_sequence::get_objid_for_runner(runner_id_t id) const {
-  return this->contains_runner_with_id(id) ? runner_to_obj_map.at(id)
-                                           : model::invalid_obj_id;
-}
-
-const visible_object_state *state_sequence::get_state_of_object(
-    objid_t id) const {
-  return this->visible_objects.at(id).get_current_state();
-}
-
-const visible_object_state *state_sequence::get_state_of_runner(
-    runner_id_t id) const {
-  return this->get_state_of_object(this->get_objid_for_runner(id));
-}
-
 state::objid_t state_sequence::add_object(
     std::unique_ptr<const visible_object_state> initial_state) {
   // INVARIANT: The current element needs to update at index `id` to reflect
@@ -110,30 +87,12 @@ state::objid_t state_sequence::add_object(
   return id;
 }
 
-state::runner_id_t state_sequence::add_runner(
-    std::unique_ptr<const visible_object_state> new_state) {
-  objid_t id = this->add_object(std::move(new_state));
-  this->runner_to_obj_map.push_back(id);
-  return this->runner_to_obj_map.size() - 1;
-}
-
 void state_sequence::add_state_for_obj(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
   this->states_in_sequence.back()->point_to_state_for(id, new_state.get());
   this->visible_objects.at(id).push_state(std::move(new_state));
-}
-
-void state_sequence::add_state_for_runner(
-    runner_id_t id, std::unique_ptr<visible_object_state> new_state) {
-  return this->add_state_for_obj(this->get_objid_for_runner(id),
-                                 std::move(new_state));
-}
-
-std::unique_ptr<const visible_object_state> state_sequence::consume_obj(
-    objid_t id) && {
-  return std::move(visible_objects.at(id)).consume_into_current_state();
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
