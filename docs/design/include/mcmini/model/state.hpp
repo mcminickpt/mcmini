@@ -145,7 +145,7 @@ class mutable_state : public state {
   }
 };
 
-constexpr static auto invalid_obj_id =
+constexpr static auto invalid_objid =
     std::numeric_limits<state::objid_t>::max();
 
 }  // namespace model

@@ -20,10 +20,9 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         "Failed to execute runner with id \"" + std::to_string(runner_id) +
         "\": the process is not alive");
   }
-  model::transition_registry::runtime_type_id rttid;
-  runner_mailbox_stream &mb =
+  volatile runner_mailbox *mb =
       this->current_process_handle->execute_runner(runner_id);
-  mb.read(&rttid);
+  model::transition_registry::runtime_type_id rttid = mb->cnts[0];
 
   model::transition_registry::transition_discovery_callback callback_function =
       runtime_transition_mapping.get_callback_for(rttid);
@@ -38,7 +37,7 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         "libmcmini.so with this message.");
   }
   model_to_system_map remote_address_mapping = model_to_system_map(*this);
-  auto pending_operation = callback_function(mb, remote_address_mapping);
+  auto pending_operation = callback_function(*mb, remote_address_mapping);
   if (!pending_operation) {
     throw real_world::process::execution_exception(
         "Failed to translate the data written into the mailbox of runner " +
@@ -48,36 +47,30 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
       runner_id, std::move(pending_operation));
 }
 
-void *model_to_system_map::get_remote_process_handle_for_object(
+remote_address<void> model_to_system_map::get_remote_process_handle_for_object(
     model::state::objid_t id) const {
-  // TODO: Implement this
-  return nullptr;
+  // TODO: Implement his
+  return remote_address<void>{};
 }
 
-optional<model::state::objid_t>
-model_to_system_map::get_object_for_remote_process_handle(void *handle) const {
+model::state::objid_t model_to_system_map::get_object_for_remote_process_handle(
+    remote_address<void> handle) const {
   if (_coordinator.system_address_mapping.count(handle) > 0) {
-    return optional<model::state::objid_t>(
-        _coordinator.system_address_mapping[handle]);
+    return _coordinator.system_address_mapping[handle];
   }
-  return optional<model::state::objid_t>();
-}
-
-model::state::objid_t model_to_system_map::record_new_object_association(
-    void *remote_process_visible_object_handle,
-    std::unique_ptr<model::visible_object_state> initial_state) {
-  // TODO: Create a new object through the coordinator and then map handle
-  // `remote_process_visible_object_handle` to the newly-created object.
-  return 0;
+  return model::invalid_objid;
 }
 
 model::state::objid_t model_to_system_map::observe_remote_process_handle(
-    void *remote_process_visible_object_handle,
+    remote_address<void> remote_process_visible_object_handle,
     std::unique_ptr<model::visible_object_state> fallback_initial_state) {
-  return this
-      ->get_object_for_remote_process_handle(
-          remote_process_visible_object_handle)
-      .value_or(this->record_new_object_association(
-          remote_process_visible_object_handle,
-          std::move(fallback_initial_state)));
+  model::state::objid_t existing_obj =
+      this->get_object_for_remote_process_handle(
+          remote_process_visible_object_handle);
+  if (existing_obj != model::invalid_objid) {
+    return existing_obj;
+  }
+
+  // TODO: Inform the coordinator of the new object
+  return model::invalid_objid;
 }

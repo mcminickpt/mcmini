@@ -24,6 +24,7 @@ struct remote_address final {
 
  public:
   T* get() const { return remote_addr; }
+  remote_address() : remote_addr(nullptr) {}
   remote_address(T* p) : remote_addr(p) {}
 
   bool operator==(const remote_address<T>& o) const {

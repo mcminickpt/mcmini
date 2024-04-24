@@ -3,7 +3,7 @@
 #include <exception>
 #include <memory>
 
-#include "mcmini/real_world/mailbox/runner_mailbox_stream.hpp"
+#include "mcmini/real_world/mailbox/runner_mailbox.h"
 
 namespace real_world {
 
@@ -37,7 +37,7 @@ struct process {
   };
 
   /**
-   * @brief Schedule the runner with id `id` for execution.
+   * @brief Schedule the given runner for execution.
    *
    * This method signals the proxy process to resume execution of the runner
    * with id `mcmini_runner_id`. The method blocks until the runner reaches
@@ -65,8 +65,7 @@ struct process {
    * threads, etc.) the idea of "adding" a new slot for a runner dynamically
    * might be needed.
    */
-  virtual runner_mailbox_stream &execute_runner(
-      runner_id_t mcmini_runner_id) = 0;
+  virtual volatile runner_mailbox *execute_runner(runner_id_t) = 0;
   virtual ~process() = default;
 };
 

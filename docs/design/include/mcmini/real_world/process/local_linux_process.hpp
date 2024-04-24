@@ -38,7 +38,6 @@ class local_linux_process : public process {
  public:
   local_linux_process(pid_t pid, shared_memory_region &shm_slice);
   virtual ~local_linux_process();
-
-  runner_mailbox_stream &execute_runner(runner_id_t mcmini_runner_id) override;
+  volatile runner_mailbox *execute_runner(runner_id_t) override;
 };
 }  // namespace real_world

@@ -41,21 +41,9 @@ local_linux_process::~local_linux_process() {
   }
 }
 
-runner_mailbox_stream &local_linux_process::execute_runner(runner_id_t id) {
+volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   volatile runner_mailbox *rmb = shm_slice.as_stream_of<runner_mailbox>(id);
-  volatile_mem_streambuf runner_mem_stream{&rmb->cnts, sizeof(&rmb->cnts)};
-
   mc_wake_thread(rmb);
   mc_wait_for_thread(rmb);
-
-  static volatile_mem_streambuf runner_mailbox_bufs[50];
-  static runner_mailbox_stream *runner_mailbox_streams[50];
-
-  if (runner_mailbox_streams[id]) {
-    delete runner_mailbox_streams[id];
-  }
-  runner_mailbox_bufs[id] = std::move(runner_mem_stream);
-  runner_mailbox_streams[id] =
-      new runner_mailbox_stream{&runner_mailbox_bufs[id]};
-  return *runner_mailbox_streams[id];
+  return rmb;
 }

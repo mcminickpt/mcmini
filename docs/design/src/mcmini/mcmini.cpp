@@ -28,7 +28,7 @@ void display_usage() {
 }
 
 std::unique_ptr<model::transition> test_callback(
-    const real_world::runner_mailbox_stream& rms, model_to_system_map& msm) {
+    const volatile runner_mailbox& rms, model_to_system_map& msm) {
   return extensions::make_unique<model::transitions::thread_start>(0);
 }
 
@@ -52,8 +52,8 @@ void do_model_checking(
                                              std::move(initial_first_steps));
 
   // For "vanilla" model checking where we start at the beginning of the
-  // program, a fork_process_source suffices (fork() + exec() brings us to the
-  // beginning)
+  // program, a `fork_process_source suffices` (fork() + exec() brings us to the
+  // beginning).
   auto process_source = make_unique<fork_process_source>("hello-world");
 
   tr.register_transition(&test_callback);

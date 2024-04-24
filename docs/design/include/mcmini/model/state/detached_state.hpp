@@ -23,6 +23,8 @@ class detached_state : public model::mutable_state {
 
  public:
   detached_state() = default;
+  detached_state(std::vector<visible_object> &&);
+  detached_state(append_only<visible_object> &&);
   detached_state(const detached_state &) = default;
   detached_state(detached_state &&) = default;
   detached_state &operator=(const detached_state &) = default;

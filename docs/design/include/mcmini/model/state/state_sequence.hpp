@@ -20,6 +20,10 @@ namespace model {
  * is, given any pair of states `s_i` and `s_j` in the sequence (i <= j), there
  * exists a sequence of transitions `t_i, ..., t_j` such that `s_j =
  * t_j(t_{j-1}(...(t_i(s_i))...))`
+ *
+ * A `state_sequence` is itself a `model::mutable_state` that is conceptually
+ * represented by the final state in the sequence. A state sequence is never
+ * empty,
  */
 class state_sequence : public detached_state {
  private:
@@ -34,12 +38,12 @@ class state_sequence : public detached_state {
   // appropriate object states replaced for the _last element_ of
   // `states_in_sequence`. When new objects are added to `visible_objects`, a
   // corresponding object state is added to the _last_ element in the sequence.
-  append_only<visible_object> visible_objects;
   append_only<element *> states_in_sequence;
 
-  // INVARIANT: Runner ids are assigned sequentially. A runner with id `id` is
-  // mapped to the object id at index `id - 1`.
-  append_only<state::objid_t> runner_to_obj_map;
+  /// @brief Retrieves the state which represents that sequence as a whole.
+  element &get_representative_state() const {
+    return *this->states_in_sequence.back();
+  }
 
  public:
   state_sequence();
@@ -53,7 +57,12 @@ class state_sequence : public detached_state {
   state_sequence &operator=(const state_sequence &&) = delete;
   state_sequence &operator=(const state_sequence &) = delete;
 
+  size_t count() const override;
+  size_t runner_count() const override;
+  size_t get_num_states_in_sequence() const;
   objid_t add_object(
+      std::unique_ptr<const visible_object_state> initial_state) override;
+  runner_id_t add_runner(
       std::unique_ptr<const visible_object_state> initial_state) override;
   void add_state_for_obj(
       objid_t id, std::unique_ptr<visible_object_state> new_state) override;
@@ -74,7 +83,8 @@ class state_sequence : public detached_state {
    */
   transition::status follow(const transition &t);
 
-  size_t state_count() const;
+  const state &front() const;
+  const state &back() const;
   const state &state_at(size_t i) const;
 
   /**

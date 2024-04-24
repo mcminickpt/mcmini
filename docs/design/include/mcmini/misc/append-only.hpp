@@ -16,6 +16,7 @@ struct append_only {
   using const_iterator = typename std::vector<T>::const_iterator;
 
   append_only() = default;
+  append_only(size_type count) : contents(count) {}
   append_only(std::vector<T> &&contents) : contents(std::move(contents)) {}
   append_only(append_only &&) = default;
   append_only(const append_only &) = default;

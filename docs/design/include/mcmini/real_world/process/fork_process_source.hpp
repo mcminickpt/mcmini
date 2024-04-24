@@ -26,10 +26,6 @@ class fork_process_source : public process_source {
                                // Alternatively, have McMini conditionally
                                // compile a std::filesystem::path e.g.
   static std::unique_ptr<shared_memory_region> rw_region;
-  static volatile_mem_streambuf
-      runner_mailbox_bufs[MAX_TOTAL_THREADS_IN_PROGRAM];
-  static runner_mailbox_stream
-      *runner_mailbox_streams[MAX_TOTAL_THREADS_IN_PROGRAM];
   static void initialize_shared_memory();
 
   void setup_ld_preload();

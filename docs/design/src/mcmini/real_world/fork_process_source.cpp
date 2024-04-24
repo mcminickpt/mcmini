@@ -30,9 +30,7 @@ void fork_process_source::initialize_shared_memory() {
 
   // TODO: This should be a configurable parameter perhaps...
   const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
-  for (int i = 0; i < max_total_threads; i++) {
-    mc_runner_mailbox_init(mbp + i);
-  }
+  for (int i = 0; i < max_total_threads; i++) mc_runner_mailbox_init(mbp + i);
 }
 
 fork_process_source::fork_process_source(std::string target_program)

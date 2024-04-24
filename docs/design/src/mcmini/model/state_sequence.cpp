@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 #include "mcmini/misc/append-only.hpp"
 #include "mcmini/misc/asserts.hpp"
@@ -38,6 +39,7 @@ class state_sequence::element : public state {
 
  public:
   element() = default;
+  void record_new_runner() { max_visible_runner_id++; }
   void point_to_state_for(objid_t id, const visible_object_state *new_state) {
     this->visible_object_states[id] = new_state;
   }
@@ -58,18 +60,26 @@ state_sequence::state_sequence() { this->push_state_snapshot(); }
 
 state_sequence::state_sequence(const state &s) {
   this->push_state_snapshot();
+
+  // Copy objects
   const size_t num_objs = s.count();
-  for (objid_t i = 0; i < num_objs; i++)
+  for (objid_t i = 0; i < num_objs; i++) {
     add_object(s.get_state_of_object(i)->clone());
+  }
+
+  // Copy runner information. Here, the state of the runner has already been
+  // captured
+  this->runner_to_obj_map = append_only<objid_t>(s.runner_count());
+  std::iota(this->runner_to_obj_map.begin(), this->runner_to_obj_map.end(), 0);
 }
 
 state_sequence::state_sequence(std::vector<visible_object> &&initial_objects)
-    : visible_objects(std::move(initial_objects)) {
+    : detached_state(std::move(initial_objects)) {
   this->push_state_snapshot();
 }
 
 state_sequence::state_sequence(append_only<visible_object> &&ao)
-    : visible_objects(std::move(ao)) {
+    : detached_state(std::move(ao)) {
   this->push_state_snapshot();
 }
 
@@ -82,8 +92,15 @@ state::objid_t state_sequence::add_object(
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new object, as this element effectively represents this state
   objid_t id = visible_objects.size();
-  this->states_in_sequence.back()->point_to_state_for(id, initial_state.get());
+  this->get_representative_state().point_to_state_for(id, initial_state.get());
   visible_objects.push_back(std::move(initial_state));
+  return id;
+}
+
+state::runner_id_t state_sequence::add_runner(
+    std::unique_ptr<const visible_object_state> initial_state) {
+  state::objid_t id = detached_state::add_runner(std::move(initial_state));
+  this->get_representative_state().record_new_runner();
   return id;
 }
 
@@ -91,7 +108,7 @@ void state_sequence::add_state_for_obj(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
-  this->states_in_sequence.back()->point_to_state_for(id, new_state.get());
+  this->get_representative_state().point_to_state_for(id, new_state.get());
   this->visible_objects.at(id).push_state(std::move(new_state));
 }
 
@@ -109,17 +126,33 @@ state_sequence state_sequence::consume_into_subsequence(size_t index) && {
   return ss;
 }
 
+size_t state_sequence::count() const {
+  return this->get_representative_state().count();
+}
+
+size_t state_sequence::runner_count() const {
+  return this->get_representative_state().runner_count();
+}
+
 const state &state_sequence::state_at(size_t i) const {
   return *this->states_in_sequence.at(i);
 }
 
-size_t state_sequence::state_count() const {
+const state &state_sequence::front() const {
+  return *this->states_in_sequence.at(0);
+}
+
+const state &state_sequence::back() const {
+  return *this->states_in_sequence.back();
+}
+
+size_t state_sequence::get_num_states_in_sequence() const {
   return this->states_in_sequence.size();
 }
 
 state_sequence::~state_sequence() {
   // The elements have been dynamically allocated
-  for (const auto *element : this->states_in_sequence) delete element;
+  for (const element *element : this->states_in_sequence) delete element;
 }
 
 //////// state_sequence::element ///////
@@ -135,7 +168,7 @@ state_sequence::element::element(const state_sequence &owner) : owner(owner) {
 state::objid_t state_sequence::element::get_objid_for_runner(
     runner_id_t id) const {
   return this->contains_runner_with_id(id) ? owner.runner_to_obj_map.at(id)
-                                           : model::invalid_obj_id;
+                                           : model::invalid_objid;
 }
 
 bool state_sequence::element::contains_object_with_id(state::objid_t id) const {

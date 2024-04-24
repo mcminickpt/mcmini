@@ -5,6 +5,11 @@
 
 using namespace model;
 
+detached_state::detached_state(std::vector<visible_object> &&objs)
+    : visible_objects(std::move(objs)) {}
+detached_state::detached_state(append_only<visible_object> &&objs)
+    : visible_objects(std::move(objs)) {}
+
 bool detached_state::contains_object_with_id(state::objid_t id) const {
   return id < this->visible_objects.size();
 }
@@ -15,7 +20,7 @@ bool detached_state::contains_runner_with_id(state::runner_id_t id) const {
 
 state::objid_t detached_state::get_objid_for_runner(runner_id_t id) const {
   return this->contains_runner_with_id(id) ? runner_to_obj_map.at(id)
-                                           : model::invalid_obj_id;
+                                           : model::invalid_objid;
 }
 
 const visible_object_state *detached_state::get_state_of_object(

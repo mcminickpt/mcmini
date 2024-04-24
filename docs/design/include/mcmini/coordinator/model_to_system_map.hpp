@@ -3,6 +3,7 @@
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
+#include "mcmini/real_world/remote_address.hpp"
 
 /**
  * @brief A mapping between the remote addresses pointing to the C/C++ structs
@@ -38,14 +39,15 @@ struct model_to_system_map final {
    *
    * TODO: See the TODOs below
    */
-  void *get_remote_process_handle_for_object(model::state::objid_t id) const;
+  real_world::remote_address<void> get_remote_process_handle_for_object(
+      model::state::objid_t id) const;
 
   /**
    * @brief Retrieve the object that corresponds to the given remote address, or
-   * the empty optional if no such address exists
+   * `model::invalid_objid` if the address is not known to this mapping.
    */
-  optional<model::state::objid_t> get_object_for_remote_process_handle(
-      void *) const;
+  model::state::objid_t get_object_for_remote_process_handle(
+      real_world::remote_address<void>) const;
 
   /**
    * @brief Record the presence of a new visible object that is
@@ -58,20 +60,8 @@ struct model_to_system_map final {
    * invocations_. In the future we could support the ability to _remap_
    * process handles dynamically during each new re-execution scheduled by
    * the coordinator to handle aliasing etc.
-   *
-   * TODO: The handle could be _any_ value that is used in the
-   * multi-threaded program. For now, we restrict it to addresses for the
-   * mutex case etc.
-   *
-   * TODO: This should probably have a `result` as a return type. If the
-   * handle is already mapped, how we should deal with this situation is a
-   * bit unclear.
    */
-  model::state::objid_t record_new_object_association(
-      void *remote_process_visible_object_handle,
-      std::unique_ptr<model::visible_object_state> initial_state);
-
   model::state::objid_t observe_remote_process_handle(
-      void *remote_process_visible_object_handle,
+      real_world::remote_address<void> remote_process_visible_object_handle,
       std::unique_ptr<model::visible_object_state> fallback_initial_state);
 };
