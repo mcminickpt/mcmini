@@ -2,7 +2,7 @@
 
 #include <pthread.h>
 
-#include "mcmini/entry.h"
+#include "mcmini/lib/entry.h"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 
 void thread_await_scheduler();

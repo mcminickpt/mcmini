@@ -36,9 +36,9 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr) {
   // TODO: write into the shm region enough information
   // to determine what just happened on the model side
-
   volatile runner_mailbox *mb = thread_get_mailbox();
-  memcpy((void*)mb->cnts, &mutex, sizeof(pthread_mutex_t));
+  uint32_t t = MUTEX_INIT_TYPE;
+  memcpy_v(mb->cnts, &t, sizeof(t));
 
   // The coordinator first assumes data is written as follows:
   // transition id followed by payload.
@@ -48,7 +48,6 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
   // (new transition can be added at runtime)
   // For now, it suffices to assign a fixed value and just assume it
   // corresponds on the model side
-
   thread_await_scheduler();
   return 0;
 }
