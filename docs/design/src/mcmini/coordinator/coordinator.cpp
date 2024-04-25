@@ -22,7 +22,7 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
   }
   volatile runner_mailbox *mb =
       this->current_process_handle->execute_runner(runner_id);
-  model::transition_registry::runtime_type_id rttid = mb->cnts[0];
+  model::transition_registry::runtime_type_id rttid = mb->type;
 
   model::transition_registry::transition_discovery_callback callback_function =
       runtime_transition_mapping.get_callback_for(rttid);

@@ -44,3 +44,11 @@ int pthread_mutex_init(pthread_mutex_t *mutex,
                        const pthread_mutexattr_t *mutexattr) {
   return mc_pthread_mutex_init(mutex, mutexattr);
 }
+
+int pthread_mutex_lock(pthread_mutex_t *mutex) {
+  return mc_pthread_mutex_lock(mutex);
+}
+
+int pthread_mutex_unlock(pthread_mutex_t *mutex) {
+  return mc_pthread_mutex_unlock(mutex);
+}

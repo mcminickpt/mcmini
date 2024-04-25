@@ -12,4 +12,6 @@ volatile runner_mailbox *thread_get_mailbox();
 
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr);
+int mc_pthread_mutex_lock(pthread_mutex_t *mutex);
+int mc_pthread_mutex_unlock(pthread_mutex_t *mutex);
 
