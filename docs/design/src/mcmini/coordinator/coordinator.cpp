@@ -47,12 +47,6 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
       runner_id, std::move(pending_operation));
 }
 
-remote_address<void> model_to_system_map::get_remote_process_handle_for_object(
-    model::state::objid_t id) const {
-  // TODO: Implement his
-  return remote_address<void>{};
-}
-
 model::state::objid_t model_to_system_map::get_object_for_remote_process_handle(
     remote_address<void> handle) const {
   if (_coordinator.system_address_mapping.count(handle) > 0) {
@@ -69,8 +63,37 @@ model::state::objid_t model_to_system_map::observe_remote_process_handle(
           remote_process_visible_object_handle);
   if (existing_obj != model::invalid_objid) {
     return existing_obj;
-  }
+  } else {
+    model::state::objid_t new_objid =
+        _coordinator.current_program_model.state_seq.add_object(
+            std::move(fallback_initial_state));
 
-  // TODO: Inform the coordinator of the new object
-  return model::invalid_objid;
+    _coordinator.system_address_mapping.insert(
+        {remote_process_visible_object_handle, new_objid});
+
+    return new_objid;
+  }
+}
+
+model::state::objid_t model_to_system_map::observe_remote_process_runner(
+    real_world::remote_address<void> remote_process_visible_object_handle,
+    std::unique_ptr<model::visible_object_state> fallback_initial_state) {
+  model::state::objid_t existing_obj =
+      this->get_object_for_remote_process_handle(
+          remote_process_visible_object_handle);
+  if (existing_obj != model::invalid_objid) {
+    return existing_obj;
+  } else {
+    model::state::runner_id_t new_runner_id =
+        _coordinator.current_program_model.state_seq.add_runner(
+            std::move(fallback_initial_state));
+    model::state::objid_t new_objid =
+        _coordinator.current_program_model.get_state_sequence()
+            .get_objid_for_runner(new_runner_id);
+
+    _coordinator.system_address_mapping.insert(
+        {remote_process_visible_object_handle, new_objid});
+
+    return new_objid;
+  }
 }

@@ -48,6 +48,7 @@ class program {
   state_sequence state_seq;
   transition_sequence trace;
   pending_transitions next_steps;
+  friend model_to_system_map;
 
  public:
   using runner_id_t = uint32_t;
@@ -72,6 +73,12 @@ class program {
 
   void model_executing_runner(runner_id_t p,
                               std::unique_ptr<transition> new_transition) {
+    if (p != new_transition->get_executor()) {
+      throw std::invalid_argument(
+          "Attempted to assign a transition to runner " + std::to_string(p) +
+          " with a different runner (" +
+          std::to_string(new_transition->get_executor()) + ")");
+    }
     const transition *next_s_p = next_steps.get_transition_for_runner(p);
     if (next_s_p) {
       this->state_seq.follow(*next_s_p);

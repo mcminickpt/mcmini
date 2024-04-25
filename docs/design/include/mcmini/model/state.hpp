@@ -97,6 +97,9 @@ class mutable_state : public state {
   /**
    * @brief Begin tracking a new visible object, but consider it as the state of
    * a new runner.
+   *
+   * @return the id of the runner that was just added. This is NOT the same as
+   * the runner's object id.
    */
   virtual runner_id_t add_runner(
       std::unique_ptr<const visible_object_state> initial_state) = 0;

@@ -35,14 +35,6 @@ struct model_to_system_map final {
   model_to_system_map() = delete;
 
   /**
-   * @brief Retrieve the remote address of the object with id `id`.
-   *
-   * TODO: See the TODOs below
-   */
-  real_world::remote_address<void> get_remote_process_handle_for_object(
-      model::state::objid_t id) const;
-
-  /**
    * @brief Retrieve the object that corresponds to the given remote address, or
    * `model::invalid_objid` if the address is not known to this mapping.
    */
@@ -62,6 +54,9 @@ struct model_to_system_map final {
    * the coordinator to handle aliasing etc.
    */
   model::state::objid_t observe_remote_process_handle(
-      real_world::remote_address<void> remote_process_visible_object_handle,
-      std::unique_ptr<model::visible_object_state> fallback_initial_state);
+      real_world::remote_address<void>,
+      std::unique_ptr<model::visible_object_state>);
+  model::state::objid_t observe_remote_process_runner(
+      real_world::remote_address<void>,
+      std::unique_ptr<model::visible_object_state>);
 };

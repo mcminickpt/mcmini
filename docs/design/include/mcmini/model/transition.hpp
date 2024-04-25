@@ -65,11 +65,12 @@ class transition {
  public:
   using runner_id_t = uint32_t;
 
-  /**
-   * The thread/runner which actually executes this transition.
-   */
-  const runner_id_t executor;
   transition(runner_id_t executor) : executor(executor) {}
+
+  /**
+   * @brief Returns the runner which executes this transition.
+   */
+  runner_id_t get_executor() const { return executor; }
 
   /**
    * @brief Attempts to produce a state _s'_ from state _s_ through the
@@ -136,6 +137,12 @@ class transition {
 
   virtual std::string to_string() const = 0;
   virtual ~transition() = default;
+
+ protected:
+  /**
+   * The thread/runner which actually executes this transition.
+   */
+  const runner_id_t executor;
 };
 
 }  // namespace model

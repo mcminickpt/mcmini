@@ -51,7 +51,6 @@ shared_memory_region::~shared_memory_region() {
   int rc = munmap(const_cast<void *>(shm_mmap_region), size());
   if (rc == -1) {
     std::perror("munmap");
-    std::exit(EXIT_FAILURE);
   }
   rc = shm_unlink(shm_file_name.c_str());
   if (rc == -1) {
@@ -63,6 +62,5 @@ shared_memory_region::~shared_memory_region() {
     } else {
       std::perror("shm_unlink");
     }
-    std::exit(EXIT_FAILURE);
   }
 }

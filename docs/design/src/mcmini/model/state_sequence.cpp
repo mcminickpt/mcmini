@@ -99,7 +99,7 @@ state::objid_t state_sequence::add_object(
 
 state::runner_id_t state_sequence::add_runner(
     std::unique_ptr<const visible_object_state> initial_state) {
-  state::objid_t id = detached_state::add_runner(std::move(initial_state));
+  state::runner_id_t id = detached_state::add_runner(std::move(initial_state));
   this->get_representative_state().record_new_runner();
   return id;
 }

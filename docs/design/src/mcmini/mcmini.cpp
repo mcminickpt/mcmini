@@ -113,4 +113,19 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   std::cerr << "Model checking completed!" << std::endl;
 }
 
-int main(int argc, char** argv) { do_model_checking(); }
+int main_cpp(int argc, const char** argv) {
+  do_model_checking();
+  return EXIT_SUCCESS;
+}
+
+int main(int argc, const char** argv) {
+  try {
+    return main_cpp(argc, argv);
+  } catch (const std::exception& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  } catch (...) {
+    std::cerr << "ERROR: Unknown error occurred" << std::endl;
+    return EXIT_FAILURE;
+  }
+}
