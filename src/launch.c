@@ -85,7 +85,7 @@ main(int argc, char *argv[])
         fprintf(stderr, "%s: illegal value\n", "--print-at-traceId");
         exit(1);
       }
-      cur_arg += 1;
+      cur_arg += 2;
     }
     else if (cur_arg[0][1] == 'p' && isdigit(cur_arg[0][2])) {
       setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[0] + 2, 1);
