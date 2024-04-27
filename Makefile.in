@@ -6,7 +6,7 @@ CFLAGS=@CFLAGS@
 CXXFLAGS=@CXXFLAGS@
 # The defines needed for MCSharedLibraryWrappers.c (and maybe other things???).
 override CFLAGS+=-I${ROOT}/include -fPIC -DMC_SHARED_LIBRARY=1 -Dmcmini_checker_EXPORTS
-override CXXFLAGS=${CFLAGS} -std=gnu++11
+override CXXFLAGS=${CFLAGS}
 
 LIBOBJS1=src/MCObjectStore.o src/MCSharedTransition.o src/MCTransition.o src/mcmini_private.o src/MCStack.o src/MCTransitionFactory.o src/MCStackItem.o src/MCThreadData.o src/MCClockVector.o src/signals.o
 
