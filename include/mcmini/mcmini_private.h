@@ -1,6 +1,7 @@
 #ifndef INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 #define INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 
+#include "mcmini/config.h"
 #include "mcmini/MCDeferred.h"
 #include "mcmini/MCShared.h"
 #include "mcmini/MCSharedTransition.h"

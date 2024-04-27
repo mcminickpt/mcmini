@@ -13,10 +13,21 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "mcmini/config.h"
 
 int
 main(int argc, char *argv[])
 {
+  int width = strlen(PACKAGE_BUGREPORT) + 4;
+  char * stars = "***********************************************"
+                 "***********************************************";
+  printf(" %.*s\n * %s\n"
+         " * Copyright(c) Maxwell Pirtle, Luka Jovanovic, Gene Cooperman\n"
+         " *   (LGPLv3 license: See COPYING.md in source code distribution.)\n"
+         " * %s\n * %s\n %.*s\n\n", width, stars,
+         PACKAGE_STRING, PACKAGE_BUGREPORT, PACKAGE_URL,
+         width, stars);
+
   char **cur_arg = &argv[1];
   if (argc == 1) {
     cur_arg[0] = "--help";
