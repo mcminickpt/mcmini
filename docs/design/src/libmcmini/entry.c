@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE
+#define _GNU_SOURCE
 #include <semaphore.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,10 +11,12 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
+#include <signal.h>
+#include <sys/personality.h>
 
 #include "mcmini/mcmini.h"
 
-volatile void *shm_start = NULL;
+volatile void *global_shm_start = NULL;
 MCMINI_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 
 tid_t
@@ -23,7 +27,7 @@ mc_register_this_thread()
   return tid_self;
 }
 
-void *
+void
 mc_allocate_shared_memory_region()
 {
   char dpor[100];
@@ -46,9 +50,9 @@ mc_allocate_shared_memory_region()
     mc_exit(EXIT_FAILURE);
   }
 
-  void *shm_start =
+  void *gshms =
     mmap(NULL, shm_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-  if (shm_start == MAP_FAILED) {
+  if (gshms == MAP_FAILED) {
     perror("mmap");
     mc_exit(EXIT_FAILURE);
   }
@@ -56,7 +60,7 @@ mc_allocate_shared_memory_region()
   /* The parent process will handle shm_unlink() */
   fsync(fd);
   close(fd);
-  return shm_start;
+  global_shm_start = gshms;
 }
 
 void
@@ -64,8 +68,8 @@ mc_deallocate_shared_memory_region()
 {
   char shm_file_name[100];
   mc_get_shm_handle_name(shm_file_name, sizeof(shm_file_name));
-  if (shm_start) {
-      int rc = munmap((void*)shm_start, shm_size);
+  if (global_shm_start) {
+      int rc = munmap((void*)global_shm_start, shm_size);
       if (rc == -1) {
         perror("munmap");
         mc_exit(EXIT_FAILURE);
@@ -84,10 +88,45 @@ mc_exit(int status)
   _Exit(status);
 }
 
+void mc_template_process_loop_forever() {
+  volatile struct template_process_t *tpt = global_shm_start;
+  sigset_t sigurs1_set;
+  sigemptyset(&sigurs1_set);
+  sigaddset(&sigurs1_set, SIGUSR1);
+
+  while (1) {
+    int sig;
+    sigwait(&sigurs1_set, &sig);
+    pid_t cpid = fork();
+    if (cpid == -1) {
+      // `fork()` failed
+      tpt->cpid = TEMPLATE_FORK_FAILED;
+    }
+    else if (cpid == 0) {
+      // Child case: Simply return and escape into the child process.
+      return;
+    }
+    // `libmcmini.so` acting as a template process.
+    sem_post((sem_t*)&tpt->mcmini_process_sem);
+  }
+}
+
+void mc_prevent_addr_randomization() {
+  if (personality(ADDR_NO_RANDOMIZE) == -1) {
+    perror("personality");
+    mc_exit(EXIT_FAILURE);
+  }
+}
+
 __attribute__((constructor)) void libmcmini_main() {
+  mc_prevent_addr_randomization();
   mc_register_this_thread();
   mc_load_intercepted_pthread_functions();
+  mc_allocate_shared_memory_region();
   atexit(&mc_deallocate_shared_memory_region);
-  shm_start = mc_allocate_shared_memory_region();
+
+  if (getenv("libmcmini-freeze") != NULL) {
+    mc_template_process_loop_forever();
+  }
   thread_await_scheduler_for_thread_start_transition();
 }

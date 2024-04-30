@@ -114,6 +114,7 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
 }
 
 int main_cpp(int argc, const char** argv) {
+  install_process_wide_signal_handlers();
   do_model_checking();
   return EXIT_SUCCESS;
 }

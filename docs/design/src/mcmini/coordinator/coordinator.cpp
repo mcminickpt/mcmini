@@ -67,10 +67,8 @@ model::state::objid_t model_to_system_map::observe_remote_process_handle(
     model::state::objid_t new_objid =
         _coordinator.current_program_model.state_seq.add_object(
             std::move(fallback_initial_state));
-
     _coordinator.system_address_mapping.insert(
         {remote_process_visible_object_handle, new_objid});
-
     return new_objid;
   }
 }
@@ -90,10 +88,8 @@ model::state::objid_t model_to_system_map::observe_remote_process_runner(
     model::state::objid_t new_objid =
         _coordinator.current_program_model.get_state_sequence()
             .get_objid_for_runner(new_runner_id);
-
     _coordinator.system_address_mapping.insert(
         {remote_process_visible_object_handle, new_objid});
-
     return new_objid;
   }
 }

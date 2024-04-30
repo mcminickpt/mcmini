@@ -11,10 +11,10 @@
 int main() {
   real_world::shared_memory_region smr{"hello", 100};
 
-  volatile int *smr_bytes = smr.as_stream_of<int>();
+  volatile int *smr_bytes = smr.as_array_of<int>();
 
   // std::memset((void *)smr.get(), 0x22, smr.size());q
-  volatile_mem_streambuf vms{smr.byte_stream(20), 30};
+  volatile_mem_streambuf vms{smr.byte_array(20), 30};
 
   uint32_t my_val = UINT32_MAX;
 

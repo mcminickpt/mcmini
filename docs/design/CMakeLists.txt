@@ -24,6 +24,7 @@ set(MCMINI_C_SRC
 )
 set(MCMINI_CPP_SRC
   src/mcmini/mcmini.cpp
+  src/mcmini/signal.cpp
   src/mcmini/visible_object.cpp
   src/mcmini/coordinator/coordinator.cpp
   src/mcmini/model/detached_state.cpp

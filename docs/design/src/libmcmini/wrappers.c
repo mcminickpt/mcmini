@@ -4,7 +4,7 @@
 #include "mcmini/mcmini.h"
 
 volatile runner_mailbox *thread_get_mailbox() {
-  return ((volatile runner_mailbox*)(shm_start)) + tid_self;
+  return ((volatile runner_mailbox*)(global_shm_start + THREAD_SHM_OFFSET)) + tid_self;
 }
 
 void
@@ -36,6 +36,8 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr) {
   volatile runner_mailbox *mb = thread_get_mailbox();
   mb->type = MUTEX_INIT_TYPE;
+  printf("YO\n");
+  fsync(STDOUT_FILENO);
   thread_await_scheduler();
   return 0;
 }
@@ -43,6 +45,8 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
   volatile runner_mailbox *mb = thread_get_mailbox();
   mb->type = MUTEX_LOCK_TYPE;
+  printf("YYA");
+  fsync(STDOUT_FILENO);
   thread_await_scheduler();
   return 0;
 }

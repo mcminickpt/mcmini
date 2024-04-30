@@ -15,21 +15,36 @@ namespace real_world {
  * located at `target` with `libmcmini.so` preloaded.
  *
  * A `fork_process_source` is responsible for creating new processes by forking
- * this process and repeatedly `exec()`-ing into a new one.
+ * a template process, `exec()`-ing into a new one, and then repeatedly forking
+ * the new process to create new process sources. The processes that this
+ * process source vends are duplicates of the template process
  */
 class fork_process_source : public process_source {
  private:
   // The name of the program which we should exec() into with libmcmini.so
   // preloaded.
   std::string target_program;  // NOTE: Favor std::filesystem::path if C++17
-                               // is eventually supported
-                               // Alternatively, have McMini conditionally
-                               // compile a std::filesystem::path e.g.
+  // is eventually supported
+  // Alternatively, have McMini conditionally
+  // compile a std::filesystem::path e.g.
+
+  /// @brief The process id of the template process whose libmcmini performs a
+  /// `sigwait()` loop ad infinitum.
+  ///
+  /// This value refers to the process id of the process that is repeatedly
+  /// asked to invoke the `fork(2)` system call.
+  pid_t template_pid = no_template;
+  constexpr static pid_t no_template = -1;
+
   static std::unique_ptr<shared_memory_region> rw_region;
   static void initialize_shared_memory();
 
   void setup_ld_preload();
   void reset_binary_semaphores_for_new_process();
+  void make_new_template_process();
+  void template_process_sig_handler();
+
+  bool has_template_process_alive() const { return template_pid != -1; }
 
  public:
   fork_process_source(std::string target_program);

@@ -2,9 +2,11 @@
 
 #include <fcntl.h>
 #include <libgen.h>
+#include <sys/personality.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <csignal>
 #include <cstring>
 #include <iostream>
 #include <mutex>
@@ -14,6 +16,8 @@
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/local_linux_process.hpp"
+#include "mcmini/real_world/process/template_process.h"
+#include "mcmini/signal.hpp"
 
 using namespace real_world;
 using namespace extensions;
@@ -23,10 +27,9 @@ std::unique_ptr<shared_memory_region> fork_process_source::rw_region = nullptr;
 void fork_process_source::initialize_shared_memory() {
   const std::string shm_file_name = "/mcmini-" + std::string(getenv("USER")) +
                                     "-" + std::to_string((long)getpid());
-
   rw_region = make_unique<shared_memory_region>(shm_file_name, shm_size);
 
-  volatile runner_mailbox* mbp = rw_region->as_stream_of<runner_mailbox>();
+  volatile runner_mailbox* mbp = rw_region->as_array_of<runner_mailbox>();
 
   // TODO: This should be a configurable parameter perhaps...
   const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
@@ -42,10 +45,48 @@ fork_process_source::fork_process_source(std::string target_program)
 std::unique_ptr<process> fork_process_source::make_new_process() {
   setup_ld_preload();
   reset_binary_semaphores_for_new_process();
+  if (!has_template_process_alive()) make_new_template_process();
+
+  if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
+    this->template_pid = fork_process_source::no_template;
+
+    // The template process exited unexpectedly: we can no longer create a new
+    // process from it. `waitpid()` ensures that the child's resources are
+    // properly reacquired.
+    if (waitpid(this->template_pid, nullptr, 0) == -1) {
+      throw process_source::process_creation_exception(
+          "Failed to create a cleanup zombied child process (waitpid "
+          "returned -1): " +
+          std::string(strerror(errno)));
+    }
+    throw process_source::process_creation_exception(
+        "Failed to create a new process (template process died)");
+  }
+
+  const volatile template_process_t* tstruct =
+      rw_region->as<template_process_t>();
+  int rc = sem_wait((sem_t*)&tstruct->mcmini_process_sem);
+
+  if (rc != 0 && errno == EINTR) {
+    throw process_source::process_creation_exception(
+        "The template process ( " + std::to_string(template_pid) +
+        ") was not able to complete");
+  }
+
+  return extensions::make_unique<local_linux_process>(tstruct->cpid,
+                                                      *rw_region);
+}
+
+void fork_process_source::make_new_template_process() {
+  // Reset first. If an exception is raised in subsequent steps, we don't want
+  // to erroneously think that there is a template process when indeed there
+  // isn't one.
+  this->template_pid = fork_process_source::no_template;
 
   int pipefd[2];
   if (pipe(pipefd) == -1) {
-    throw std::runtime_error("Failed to open pipe(2)");
+    throw std::runtime_error("Failed to open pipe(2): " +
+                             std::string(strerror(errno)));
   }
 
   errno = 0;
@@ -56,28 +97,38 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         "Failed to create a new process (fork(2) failed): " +
         std::string(strerror(errno)));
   } else if (child_pid == 0) {
+    // ******************
     // Child process case
-
+    // ******************
     close(pipefd[0]);
     fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
 
-    // TODO: Add additional arguments here if needed
-    // const_cast<> is needed to call the C-functions here. A new/delete
+    // `const_cast<>` is needed to call the C-functions here. A new/delete
     // or malloc/free _could be_ needed, we'd need to check the man page. As
     // long as the char * is not actually modified, this is OK and the best way
     // to interface with the C library routines
-    char* args[] = {const_cast<char*>(this->target_program.c_str()), NULL};
-    std::cerr << "About to exec with libmcmini.so loaded! Attempting to run "
-              << this->target_program.c_str() << std::endl;
+    char* args[] = {const_cast<char*>(this->target_program.c_str()),
+                    NULL /*TODO: Add additional arguments here if needed */};
+    setenv("libmcmini-freeze", "1", 1);
+    personality(ADDR_NO_RANDOMIZE);
     execvp(this->target_program.c_str(), args);
+    unsetenv("libmcmini-freeze");
 
-    // IF EXECVP fails
+    // If `execvp()` fails, we signal the error to the parent process by writing
+    // into the pipe.
     int err = errno;
     write(pipefd[1], &err, sizeof(err));
     close(pipefd[1]);
     exit(EXIT_FAILURE);
+    // ******************
+    // Child process case
+    // ******************
+
   } else {
+    // *******************
     // Parent process case
+    // *******************
+
     close(pipefd[1]);  // Close write end
 
     int err = 0;
@@ -94,8 +145,12 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
           std::string(strerror(err)));
     }
     close(pipefd[0]);
+
+    // *******************
+    // Parent process case
+    // *******************
+    this->template_pid = child_pid;
   }
-  return extensions::make_unique<local_linux_process>(child_pid, *rw_region);
 }
 
 void fork_process_source::setup_ld_preload() {
@@ -115,7 +170,8 @@ void fork_process_source::reset_binary_semaphores_for_new_process() {
   //
   // INVARIANT: Only one `local_linux_process` is in existence at any given
   // time.
-  volatile runner_mailbox* mbp = rw_region->as_stream_of<runner_mailbox>();
+  volatile runner_mailbox* mbp =
+      rw_region->as_array_of<runner_mailbox>(0, THREAD_SHM_OFFSET);
   const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
   for (int i = 0; i < max_total_threads; i++) {
     mc_runner_mailbox_destroy(mbp + i);

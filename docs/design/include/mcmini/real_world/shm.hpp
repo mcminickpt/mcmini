@@ -23,13 +23,20 @@ struct shared_memory_region {
 
   volatile void* get() const { return this->shm_mmap_region; }
   volatile void* contents() const { return get(); }
-
-  template <typename T>
-  volatile T* as_stream_of(off64_t off = 0) const {
-    return static_cast<volatile T*>(shm_mmap_region) + off;
+  volatile void* off(off64_t offset) const {
+    return static_cast<volatile void*>(
+        static_cast<volatile char*>(shm_mmap_region) + offset);
   }
-  volatile char* byte_stream(off64_t off = 0) const {
-    return as_stream_of<char>(off);
+  template <typename T>
+  volatile T* as() const {
+    return static_cast<volatile T*>(shm_mmap_region);
+  }
+  template <typename T>
+  volatile T* as_array_of(off64_t off_out = 0, off64_t off_in = 0) const {
+    return static_cast<volatile T*>(off(off_in)) + off_out;
+  }
+  volatile char* byte_array(off64_t off = 0) const {
+    return as_array_of<char>(off);
   }
   size_t size() const { return this->region_size; }
 
