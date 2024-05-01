@@ -72,7 +72,9 @@ private:
 
 public:
 
-  inline MCObjectStore() { bzero(storage, sizeof(storage)); }
+  // NOTE:  This cast could be done in a more complicated C++ way:
+  //        https://stackoverflow.com/questions/66368061/error-clearing-an-object-of-non-trivial-type-with-memset
+  inline MCObjectStore() { memset((void *)storage, 0, sizeof(storage)); }
 
   inline objid_t
   registerNewObject(std::shared_ptr<MCVisibleObject> object)

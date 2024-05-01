@@ -26,9 +26,13 @@ thread_post_visible_operation_hit(const std::type_info &type,
 {
   auto newTypeInfo = MCSharedTransition(tid_self, type);
   auto newShmData  = shmData;
-  memcpy(shmTransitionTypeInfo, &newTypeInfo,
+  // NOTE: This cast could also be done in a more complicated way for C++:
+  //   https://stackoverflow.com/questions/57721104/avoid-wclass-memaccess-on-memcpy-of-a-pod-type-w-copy-disabled
+  memcpy((char *)shmTransitionTypeInfo,
+         (char *)(&newTypeInfo),
          sizeof(MCSharedTransition));
-  memcpy(shmTransitionData, newShmData, sizeof(SharedMemoryData));
+  memcpy((char *)shmTransitionData, (char *)newShmData,
+         sizeof(SharedMemoryData));
 }
 
 void thread_post_visible_operation_hit(const std::type_info &type);
