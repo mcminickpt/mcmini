@@ -67,8 +67,9 @@ public:
 
   ConditionVariable(const ConditionVariable &cond)
     : MCVisibleObject(cond.getObjectId()), shadow(cond.shadow),
-      mutex(nullptr), policy(std::move(cond.policy->clone())),
-      numRemainingSpuriousWakeups(cond.numRemainingSpuriousWakeups)
+      numRemainingSpuriousWakeups(cond.numRemainingSpuriousWakeups),
+      policy(std::move(cond.policy->clone())),
+      mutex(nullptr)
   {
     if (cond.mutex != nullptr) {
       mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(
