@@ -46,9 +46,10 @@ public:
     : MCVisibleObject(), semShadow(shadow)
   {}
   inline MCSemaphore(const MCSemaphore &sem)
-    : MCVisibleObject(sem.getObjectId()), semShadow(sem.semShadow),
+    : MCVisibleObject(sem.getObjectId()),
       waitingQueue(sem.waitingQueue),
-      spuriousWakeupCount(sem.spuriousWakeupCount)
+      spuriousWakeupCount(sem.spuriousWakeupCount),
+      semShadow(sem.semShadow)
   {}
 
   std::shared_ptr<MCVisibleObject> copy() override;

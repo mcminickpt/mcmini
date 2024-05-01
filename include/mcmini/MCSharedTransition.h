@@ -10,7 +10,7 @@ public:
   const std::type_info &type;
   tid_t executor;
   MCSharedTransition(tid_t executor, const std::type_info &type)
-    : executor(executor), type(type)
+    : type(type), executor(executor)
   {}
 };
 

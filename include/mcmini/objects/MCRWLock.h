@@ -50,11 +50,12 @@ public:
   {}
   inline MCRWLock(const MCRWLock &rwlock)
     : MCVisibleObject(rwlock.getObjectId()), shadow(rwlock.shadow),
-      type(rwlock.type), active_writer(rwlock.active_writer),
+      active_writer(rwlock.active_writer),
       active_readers(rwlock.active_readers),
       reader_queue(rwlock.reader_queue),
       writer_queue(rwlock.writer_queue),
-      acquire_queue(rwlock.acquire_queue)
+      acquire_queue(rwlock.acquire_queue),
+      type(rwlock.type)
   {}
 
   std::shared_ptr<MCVisibleObject> copy() override;
