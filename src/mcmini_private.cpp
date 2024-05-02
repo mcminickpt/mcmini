@@ -502,20 +502,22 @@ void mc_wait_for_trace() {
   bool verbose = v ? v[0] == '1' : false;
   if (waitpid(trace_pid, &status, 0) == -1) {
     if (verbose) {
-      fprintf(stderr, "Error waiting for trace process `%lu` %s",
+      fprintf(stderr, "Error waiting for trace process with pid `%lu` %s\n",
               (uint64_t)trace_pid, strerror(errno));
     }
   } else if (verbose) {
     // Check how the trace process exited
     if (WIFEXITED(status)) {
-      fprintf(stderr, "Trace process with traceId `%lu` exited with status %d",
-              (uint64_t)trace_pid, WEXITSTATUS(status));
+      fprintf(stderr,
+              "Trace process with traceId `%lu` exited with status %d\n",
+              traceId, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-      fprintf(stderr, "Trace process with traceId `%lu` was killed by signal `%d`\n",
-              (uint64_t)trace_pid, WTERMSIG(status));
+      fprintf(stderr,
+              "Trace process with traceId `%lu` was killed by signal `%d`\n",
+              traceId, WTERMSIG(status));
     } else {
-      fprintf(stderr, "Trace process with traceId `%lu` exited abnormally.",
-              (uint64_t)trace_pid);
+      fprintf(stderr, "Trace process with traceId `%lu` exited abnormally.\n",
+              traceId);
     }
   }
 }
