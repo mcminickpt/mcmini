@@ -23,9 +23,14 @@ struct MCRWLockShadow {
 };
 
 struct MCRWLock : public MCVisibleObject {
+public:
+
+  // FIXME:  This was private, but we need to access the state
+  //           in MCReadRWLockReaderLock()
+  MCRWLockShadow shadow;
+
 private:
 
-  MCRWLockShadow shadow;
   MCOptional<tid_t> active_writer = MCOptional<tid_t>::nil();
   std::vector<tid_t> active_readers;
 
