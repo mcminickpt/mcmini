@@ -18,6 +18,8 @@ MCReadRWLockInit(const MCSharedTransition *shmTransition,
     rwLock = newRWLock;
   }
 
+  rwLock -> shadow.state = MCRWLockShadow::State::unlocked;
+
   tid_t threadThatRanId = shmTransition->executor;
   auto threadThatRan    = state->getThreadWithId(threadThatRanId);
   return new MCRWLockInit(threadThatRan, rwLock);
