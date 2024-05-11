@@ -42,6 +42,7 @@ void classic_dpor::verify_using(coordinator &coordinator,
   try {
     coordinator.execute_runner(0);
     coordinator.execute_runner(0);
+    coordinator.return_to_depth(0);
   } catch (real_world::process::execution_exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
   }

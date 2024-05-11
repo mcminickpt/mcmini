@@ -19,7 +19,7 @@ struct mutex : public model::visible_object_state {
   ~mutex() = default;
   mutex(const mutex &) = default;
   mutex(state_type state) : current_state(state) {}
-  static std::unique_ptr<mutex> make(state_type state) {
+  static std::unique_ptr<mutex> make(state_type state = uninitialized) {
     return extensions::make_unique<mutex>(state);
   }
 

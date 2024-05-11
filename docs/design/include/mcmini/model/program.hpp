@@ -48,7 +48,6 @@ class program {
   state_sequence state_seq;
   transition_sequence trace;
   pending_transitions next_steps;
-  friend model_to_system_map;
 
  public:
   using runner_id_t = uint32_t;
@@ -61,34 +60,33 @@ class program {
   const state_sequence &get_state_sequence() const { return this->state_seq; }
   const transition_sequence &get_trace() const { return this->trace; }
 
-  std::unordered_set<runner_id_t> get_enabled_runners() const {
-    std::unordered_set<runner_id_t> enabled_runners;
-    for (const auto &runner_and_t : this->next_steps) {
-      if (runner_and_t.second->is_enabled_in(state_seq)) {
-        enabled_runners.insert(runner_and_t.first);
-      }
-    }
-    return enabled_runners;
-  }
+  size_t get_num_runners() const { return next_steps.size(); }
+  std::unordered_set<runner_id_t> get_enabled_runners() const;
 
-  void model_executing_runner(runner_id_t p,
-                              std::unique_ptr<transition> new_transition) {
-    if (p != new_transition->get_executor()) {
-      throw std::invalid_argument(
-          "Attempted to assign a transition to runner " + std::to_string(p) +
-          " with a different runner (" +
-          std::to_string(new_transition->get_executor()) + ")");
-    }
-    const transition *next_s_p = next_steps.get_transition_for_runner(p);
-    if (next_s_p) {
-      this->state_seq.follow(*next_s_p);
-      this->next_steps.displace_transition_for(p, std::move(new_transition));
-    } else {
-      throw std::runtime_error(
-          "Attempted to execute a runner whose transition was not currently "
-          "enabled");
-    }
-  }
+  state::objid_t discover_object(std::unique_ptr<visible_object_state>);
+  state::runner_id_t discover_runner(std::unique_ptr<visible_object_state>,
+                                     std::unique_ptr<transition>);
+
+  /// @brief Model the execution of runner `p` and replace its next operation
+  /// with `next_pending_operation`.
+  ///
+  /// @param p the id of the runner whose next transition should be simulated.
+  /// @param next_pending_operation the next transition this is pending after
+  /// `p` executes; that is, this is the transition that `p` will run in the
+  /// state modeled _after_ `next_s_p` is executed.
+  /// @throws an runtime exception is raised if the transition replacing
+  /// `next_s_p` is not executed by `p` or if `p` is not currently known to the
+  /// model.
+  void model_execution_of(runner_id_t p,
+                          std::unique_ptr<transition> next_pending_operation);
+
+  /// @brief Restore the model as if it were `n` steps into execution.
+  ///
+  /// @param n the number of transitions to consider executed to result in the
+  /// program model after the method has executed. Formally, if `t_0, t_1, ...,
+  /// t_(n-1), ..., t_k` is contained in the current trace, then the state after
+  /// this method is called will be `s_(n+1)` or `s_0` is `n = 0`.
+  void restore_model_at_depth(uint32_t n);
 };
 //
 

@@ -12,13 +12,10 @@ struct thread_start : public model::transition {
   ~thread_start() = default;
 
   status modify(model::mutable_state& s) const override {
+    // No modification necessary: we simply move into the next state
     using namespace model::objects;
     auto* thread_state = s.get_state_of_runner<thread>(executor);
-    if (!thread_state->is_embryo()) {
-      return status::disabled;
-    }
-    s.add_state_for_runner(executor, thread::make(thread::running));
-    return status::exists;
+    return thread_state->is_embryo() ? status::disabled : status::exists;
   }
 
   std::string to_string() const override { return "starts"; }

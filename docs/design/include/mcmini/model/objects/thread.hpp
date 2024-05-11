@@ -11,20 +11,19 @@ namespace objects {
 struct thread : public model::visible_object_state {
  public:
   /* The four possible states for a mutex */
-  enum state_type { embryo, running, exited, killed };
+  enum state { embryo, running, exited, killed };
 
  private:
-  state_type current_state = state_type::embryo;
+  state current_state = state::embryo;
 
  public:
   thread() = default;
   ~thread() = default;
   thread(const thread &) = default;
-  thread(state_type state) : current_state(state) {}
-  static std::unique_ptr<thread> make(state_type state) {
+  thread(state state) : current_state(state) {}
+  static std::unique_ptr<thread> make(state state = embryo) {
     return extensions::make_unique<thread>(state);
   }
-  static std::unique_ptr<thread> make() { return thread::make(embryo); }
 
   // ---- State Observation --- //
   bool operator==(const thread &other) const {

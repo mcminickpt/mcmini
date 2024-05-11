@@ -43,7 +43,7 @@ struct model_to_system_map final {
 
   /**
    * @brief Record the presence of a new visible object that is
-   * represented with the system id `system_handle`.
+   * represented with the system id.
    *
    * @param remote_process_visible_object_handle the address containing
    * the data for the new visible object across process handles of the
@@ -58,5 +58,6 @@ struct model_to_system_map final {
       std::unique_ptr<model::visible_object_state>);
   model::state::objid_t observe_remote_process_runner(
       real_world::remote_address<void>,
-      std::unique_ptr<model::visible_object_state>);
+      std::unique_ptr<model::visible_object_state>,
+      std::unique_ptr<model::transition>);
 };

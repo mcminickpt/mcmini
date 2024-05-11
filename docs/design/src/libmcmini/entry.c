@@ -90,23 +90,25 @@ mc_exit(int status)
 
 void mc_template_process_loop_forever() {
   volatile struct template_process_t *tpt = global_shm_start;
-  sigset_t sigurs1_set;
-  sigemptyset(&sigurs1_set);
-  sigaddset(&sigurs1_set, SIGUSR1);
-
   while (1) {
-    int sig;
-    sigwait(&sigurs1_set, &sig);
+    sem_wait((sem_t*)&tpt->libmcmini_sem);
     pid_t cpid = fork();
     if (cpid == -1) {
       // `fork()` failed
+        write(STDOUT_FILENO,"ENTERED2!", 10);
+          fsync(0);
       tpt->cpid = TEMPLATE_FORK_FAILED;
     }
     else if (cpid == 0) {
       // Child case: Simply return and escape into the child process.
+              write(STDOUT_FILENO,"ENTERED3!", 10);
+                fsync(0);
       return;
     }
     // `libmcmini.so` acting as a template process.
+    tpt->cpid = cpid;
+        write(STDOUT_FILENO,"ENTERED4!", 10);
+          fsync(0);
     sem_post((sem_t*)&tpt->mcmini_process_sem);
   }
 }
@@ -125,7 +127,7 @@ __attribute__((constructor)) void libmcmini_main() {
   mc_allocate_shared_memory_region();
   atexit(&mc_deallocate_shared_memory_region);
 
-  if (getenv("libmcmini-freeze") != NULL) {
+  if (getenv("libmcmini-template-loop") != NULL) {
     mc_template_process_loop_forever();
   }
   thread_await_scheduler_for_thread_start_transition();

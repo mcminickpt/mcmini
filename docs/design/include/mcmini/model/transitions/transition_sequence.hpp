@@ -25,12 +25,20 @@ class transition_sequence final {
 
  public:
   transition_sequence() = default;
-  transition_sequence consume_into_subsequence(uint32_t index) &&;
 
-  bool empty() const;
-  size_t count() const;
-  const transition* at(size_t i);
-  void push(std::unique_ptr<const transition>);
+  auto begin() -> decltype(contents.begin()) { return contents.begin(); }
+  auto end() -> decltype(contents.end()) { return contents.end(); }
+  auto begin() const -> decltype(contents.begin()) { return contents.begin(); }
+  auto end() const -> decltype(contents.end()) { return contents.end(); }
+
+  bool empty() const { return contents.empty(); }
+  size_t count() const { return contents.size(); }
+  const transition* at(size_t i) const { return contents.at(i).get(); }
+  std::unique_ptr<const transition> extract_at(size_t i);
+  void push(std::unique_ptr<const transition> t) {
+    contents.push_back(std::move(t));
+  }
+  void consume_into_subsequence(uint32_t depth);
 };
 
 }  // namespace model

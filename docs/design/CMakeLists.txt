@@ -19,6 +19,7 @@ set(MCMINI_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake")
 
 # Project source files
 set(MCMINI_C_SRC
+  src/common/mem.c
   src/common/runner_mailbox.c
   src/common/shm_config.c
 )
@@ -30,6 +31,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/detached_state.cpp
   src/mcmini/model/program.cpp
   src/mcmini/model/state_sequence.cpp
+  src/mcmini/model/transition_sequence.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
   src/mcmini/real_world/fork_process_source.cpp
   src/mcmini/real_world/local_linux_process.cpp

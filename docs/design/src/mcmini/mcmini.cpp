@@ -1,11 +1,14 @@
 #include "mcmini/mcmini.hpp"
 
 #include "mcmini/coordinator/coordinator.hpp"
+#include "mcmini/mem.h"
 #include "mcmini/misc/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/misc/volatile_mem_streambuf.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"
+#include "mcmini/model/transitions/mutex/mutex_lock.hpp"
+#include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
 #include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
@@ -22,29 +25,56 @@
 #include <iostream>
 #include <utility>
 
+using namespace extensions;
+using namespace model;
+using namespace real_world;
+
 void display_usage() {
   std::cout << "mcmini [options] <program>" << std::endl;
   std::exit(EXIT_FAILURE);
 }
 
-std::unique_ptr<model::transition> test_callback(
-    const volatile runner_mailbox& rms, model_to_system_map& msm) {
-  return extensions::make_unique<model::transitions::thread_start>(0);
+std::unique_ptr<model::transition> mutex_init_callback(
+    state::runner_id_t p, const volatile runner_mailbox& rmb,
+    model_to_system_map& m) {
+  pthread_mutex_t* remote_mut;
+  memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
+
+  // how do we get the runner???
+  state::objid_t mut =
+      m.observe_remote_process_handle(remote_mut, objects::mutex::make());
+  return make_unique<transitions::mutex_init>(p, mut);
+}
+
+std::unique_ptr<model::transition> mutex_lock_callback(
+    state::runner_id_t p, const volatile runner_mailbox& rmb,
+    model_to_system_map& m) {
+  pthread_mutex_t* remote_mut;
+  memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
+  state::objid_t mut =
+      m.observe_remote_process_handle(remote_mut, objects::mutex::make());
+  return make_unique<transitions::mutex_lock>(p, mut);
+}
+
+std::unique_ptr<model::transition> mutex_unlock_callback(
+    state::runner_id_t p, const volatile runner_mailbox& rmb,
+    model_to_system_map& m) {
+  pthread_mutex_t* remote_mut;
+  memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
+  state::objid_t mut =
+      m.observe_remote_process_handle(remote_mut, objects::mutex::make());
+  return make_unique<transitions::mutex_lock>(p, mut);
 }
 
 void do_model_checking(
     /* Pass arguments here or rearrange to configure the checker at
     runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
-  using namespace extensions;
-  using namespace model;
-  using namespace real_world;
-
   state_sequence state_of_program_at_main;
   pending_transitions initial_first_steps;
   transition_registry tr;
 
-  state::runner_id_t main_thread_id =
-      state_of_program_at_main.add_runner(model::objects::thread::make());
+  state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
+      objects::thread::make(objects::thread::state::running));
   initial_first_steps.displace_transition_for(
       0, make_unique<transitions::thread_start>(main_thread_id));
 
@@ -56,7 +86,9 @@ void do_model_checking(
   // beginning).
   auto process_source = make_unique<fork_process_source>("hello-world");
 
-  tr.register_transition(&test_callback);
+  tr.register_transition(&mutex_init_callback);
+  tr.register_transition(&mutex_lock_callback);
+  tr.register_transition(&mutex_unlock_callback);
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr), std::move(process_source));

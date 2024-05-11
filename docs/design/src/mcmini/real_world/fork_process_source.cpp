@@ -43,19 +43,19 @@ fork_process_source::fork_process_source(std::string target_program)
 }
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
+  // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
   setup_ld_preload();
   reset_binary_semaphores_for_new_process();
   if (!has_template_process_alive()) make_new_template_process();
 
+  // 2. Check if the current template process has previously exited; if so, it
+  // would have delivered a `SIGCHLD` to this process. By default this signal is
+  // ignored, but McMini explicitly captures it (see `signal_tracker`).
   if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
     this->template_pid = fork_process_source::no_template;
-
-    // The template process exited unexpectedly: we can no longer create a new
-    // process from it. `waitpid()` ensures that the child's resources are
-    // properly reacquired.
     if (waitpid(this->template_pid, nullptr, 0) == -1) {
       throw process_source::process_creation_exception(
-          "Failed to create a cleanup zombied child process (waitpid "
+          "Failed to create a cleanup zombied child process (waitpid(2) "
           "returned -1): " +
           std::string(strerror(errno)));
     }
@@ -63,14 +63,24 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         "Failed to create a new process (template process died)");
   }
 
+  // 3. If the current template process is alive, tell it to spawn a new
+  // process and then wait for it to successfully call `fork(2)` to tell us
+  // about its new child.
   const volatile template_process_t* tstruct =
       rw_region->as<template_process_t>();
-  int rc = sem_wait((sem_t*)&tstruct->mcmini_process_sem);
 
-  if (rc != 0 && errno == EINTR) {
+  if (sem_post((sem_t*)&tstruct->libmcmini_sem) != 0) {
     throw process_source::process_creation_exception(
-        "The template process ( " + std::to_string(template_pid) +
-        ") was not able to complete");
+        "The template process (" + std::to_string(template_pid) +
+        ") was not synchronized with correctly: " +
+        std::string(strerror(errno)));
+  }
+
+  if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
+    throw process_source::process_creation_exception(
+        "The template process (" + std::to_string(template_pid) +
+        ") was not synchronized with correctly: " +
+        std::string(strerror(errno)));
   }
 
   return extensions::make_unique<local_linux_process>(tstruct->cpid,
@@ -82,6 +92,13 @@ void fork_process_source::make_new_template_process() {
   // to erroneously think that there is a template process when indeed there
   // isn't one.
   this->template_pid = fork_process_source::no_template;
+
+  {
+    const volatile template_process_t* tstruct =
+        rw_region->as<template_process_t>();
+    sem_init((sem_t*)&tstruct->mcmini_process_sem, SEM_FLAG_SHARED, 0);
+    sem_init((sem_t*)&tstruct->libmcmini_sem, SEM_FLAG_SHARED, 0);
+  }
 
   int pipefd[2];
   if (pipe(pipefd) == -1) {
@@ -109,10 +126,10 @@ void fork_process_source::make_new_template_process() {
     // to interface with the C library routines
     char* args[] = {const_cast<char*>(this->target_program.c_str()),
                     NULL /*TODO: Add additional arguments here if needed */};
-    setenv("libmcmini-freeze", "1", 1);
+    setenv("libmcmini-template-loop", "1", 1);
     personality(ADDR_NO_RANDOMIZE);
     execvp(this->target_program.c_str(), args);
-    unsetenv("libmcmini-freeze");
+    unsetenv("libmcmini-template-loop");
 
     // If `execvp()` fails, we signal the error to the parent process by writing
     // into the pipe.
@@ -136,12 +153,12 @@ void fork_process_source::make_new_template_process() {
       // waitpid() ensures that the child's resources are properly reacquired.
       if (waitpid(child_pid, nullptr, 0) == -1) {
         throw process_source::process_creation_exception(
-            "Failed to create a cleanup zombied child process (waitpid "
+            "Failed to create a cleanup zombied child process (waitpid(2) "
             "returned -1): " +
             std::string(strerror(errno)));
       }
       throw process_source::process_creation_exception(
-          "Failed to create a new process (execvp failed): " +
+          "Failed to create a new process (execvp(2) failed): " +
           std::string(strerror(err)));
     }
     close(pipefd[0]);

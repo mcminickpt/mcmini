@@ -32,6 +32,7 @@ struct pending_transitions final {
     return _contents.cbegin();
   }
   auto cend() -> decltype(_contents.cend()) const { return _contents.cend(); }
+  size_t size() const { return this->_contents.size(); }
   /**
    * @brief Returns the transition mapped to id `id`, or `nullptr` if no such
    * runner has been mapped to an id.
@@ -47,6 +48,12 @@ struct pending_transitions final {
 
   std::unique_ptr<const transition> displace_transition_for(
       runner_id_t id, std::unique_ptr<const transition> new_transition) {
+    if (id != new_transition->get_executor()) {
+      throw std::runtime_error(
+          "Attempting to insert a transition executed by a different runner (" +
+          std::to_string(id) +
+          " != " + std::to_string(new_transition->get_executor()) + ")");
+    }
     auto old_transition = std::move(_contents[id]);
     _contents[id] = std::move(new_transition);
     return old_transition;

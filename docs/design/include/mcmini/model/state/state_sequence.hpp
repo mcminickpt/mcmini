@@ -96,13 +96,11 @@ class state_sequence : public detached_state {
    * longer valid after the sequence is consumed. All other views into the
    * sequence remain valid.
    *
-   * @param index the last index that should be contained in the returned
-   * subsequence.
-   * @return the resulting subsequence. The subsequence is identical to this
-   * sequence up to index `index`. Any objects which didn't exist prior to state
-   * `s_index` will not exist in the resulting sequence
+   * @param num_states the number of states that should be left in the sequence
+   * after consumption. If `num_states` is large than the number of states in
+   * this sequence, the method has no effect.
    */
-  state_sequence consume_into_subsequence(size_t index) &&;
+  void consume_into_subsequence(size_t num_states);
 };
 
 }  // namespace model

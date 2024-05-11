@@ -117,13 +117,11 @@ std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
       this->visible_objects.cbegin(), this->visible_objects.cend());
 }
 
-state_sequence state_sequence::consume_into_subsequence(size_t index) && {
-  auto elements = append_only<state_sequence::element *>(
-      this->states_in_sequence.begin(),
-      this->states_in_sequence.begin() + index + 1);
-  auto ss = state_sequence(std::move(this->visible_objects));
-  ss.states_in_sequence = std::move(elements);
-  return ss;
+void state_sequence::consume_into_subsequence(size_t num_states) {
+  if (num_states <= this->states_in_sequence.size())
+    this->states_in_sequence.erase(
+        this->states_in_sequence.begin() + num_states,
+        this->states_in_sequence.end());
 }
 
 size_t state_sequence::count() const {
