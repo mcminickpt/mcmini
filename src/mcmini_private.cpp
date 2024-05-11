@@ -43,7 +43,8 @@ static char resultString[1000] = "***** Model checking completed! *****\n";
 static void addResult(const char *result) {
   char stats[1000];
   if (strstr(resultString, result) != NULL) {
-    result = "  (Other trace numbers (traceId) exist: ...)\n";
+    result = "  (Other trace numbers (traceId) of bugs exist above;\n"
+             "   Use --first-deadlock (-f) to only show first one)\n";
     if (strstr(resultString, result) == NULL) {
       strncat(resultString, result, sizeof(resultString) - strlen(resultString));
     }
