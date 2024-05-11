@@ -52,13 +52,14 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   // would have delivered a `SIGCHLD` to this process. By default this signal is
   // ignored, but McMini explicitly captures it (see `signal_tracker`).
   if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
-    this->template_pid = fork_process_source::no_template;
     if (waitpid(this->template_pid, nullptr, 0) == -1) {
+      this->template_pid = fork_process_source::no_template;
       throw process_source::process_creation_exception(
           "Failed to create a cleanup zombied child process (waitpid(2) "
           "returned -1): " +
           std::string(strerror(errno)));
     }
+    this->template_pid = fork_process_source::no_template;
     throw process_source::process_creation_exception(
         "Failed to create a new process (template process died)");
   }
@@ -203,5 +204,30 @@ void fork_process_source::reset_binary_semaphores_for_new_process() {
   for (int i = 0; i < max_total_threads; i++) {
     mc_runner_mailbox_destroy(mbp + i);
     mc_runner_mailbox_init(mbp + i);
+  }
+}
+
+fork_process_source::~fork_process_source() {
+  if (template_pid <= 0) {
+    return;
+  }
+  if (kill(template_pid, SIGUSR1) == -1) {
+    std::cerr << "Error sending SIGUSR1 to process " << template_pid << ": "
+              << strerror(errno) << std::endl;
+  }
+
+  int status;
+  if (waitpid(template_pid, &status, 0) == -1) {
+    std::cerr << "Error waiting for process (fork) " << template_pid << ": "
+              << strerror(errno) << std::endl;
+  } else if (!WIFEXITED(status)) {
+    // TODO: Log
+
+    // std::cerr << "Process " << template_pid << " did not exit normally."
+    //           << std::endl;
+    // if (WIFSIGNALED(status)) {
+    //   std::cerr << "Process " << template_pid << " was terminated by signal "
+    //             << WTERMSIG(status) << std::endl;
+    // }
   }
 }

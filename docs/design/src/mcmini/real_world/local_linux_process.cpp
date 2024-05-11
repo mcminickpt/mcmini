@@ -28,17 +28,10 @@ local_linux_process::~local_linux_process() {
               << strerror(errno) << std::endl;
   }
 
-  int status;
-  if (waitpid(pid, &status, 0) == -1) {
-    std::cerr << "Error waiting for process " << pid << ": " << strerror(errno)
-              << std::endl;
-  } else if (!WIFEXITED(status)) {
-    std::cerr << "Process " << pid << " did not exit normally." << std::endl;
-    if (WIFSIGNALED(status)) {
-      std::cerr << "Process " << pid << " was terminated by signal "
-                << WTERMSIG(status) << std::endl;
-    }
-  }
+  // NOTE: The process `pid` is NOT a child of this process: it
+  // is a child of the template process (it is a grandchild of this
+  // process); hence, `waitpid()` is not an appropriate call and should occur
+  // instead in the `libmcmini.so` template process
 }
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {

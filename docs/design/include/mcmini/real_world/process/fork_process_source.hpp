@@ -48,6 +48,7 @@ class fork_process_source : public process_source {
 
  public:
   fork_process_source(std::string target_program);
+  ~fork_process_source();
   std::unique_ptr<process> make_new_process() override;
 };
 

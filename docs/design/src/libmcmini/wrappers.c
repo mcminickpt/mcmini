@@ -1,31 +1,27 @@
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
+
 #include "mcmini/mcmini.h"
 
 volatile runner_mailbox *thread_get_mailbox() {
-  return ((volatile runner_mailbox*)(global_shm_start + THREAD_SHM_OFFSET)) + tid_self;
+  return ((volatile runner_mailbox *)(global_shm_start + THREAD_SHM_OFFSET)) +
+         tid_self;
 }
 
-void
-thread_await_scheduler()
-{
+void thread_await_scheduler() {
   assert(tid_self != TID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
   mc_wake_scheduler(thread_mailbox);
   mc_wait_for_scheduler(thread_mailbox);
 }
 
-void
-thread_await_scheduler_for_thread_start_transition()
-{
+void thread_await_scheduler_for_thread_start_transition() {
   assert(tid_self != TID_INVALID);
   mc_wait_for_scheduler(thread_get_mailbox());
 }
 
-void
-thread_awake_scheduler_for_thread_finish_transition()
-{
+void thread_awake_scheduler_for_thread_finish_transition() {
   assert(tid_self != TID_INVALID);
   mc_wake_scheduler(thread_get_mailbox());
 }
@@ -55,16 +51,12 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   return 0;
 }
 
-void
-mc_exit_main_thread(void)
-{
+void mc_exit_main_thread(void) {
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
   thread_await_scheduler();
 }
 
-MCMINI_NO_RETURN void
-mc_transparent_exit(int status)
-{
+MCMINI_NO_RETURN void mc_transparent_exit(int status) {
   volatile runner_mailbox *mb = thread_get_mailbox();
   mb->type = PROCESS_EXIT_TYPE;
   memcpy_v(mb->cnts, &status, sizeof(status));
@@ -72,9 +64,7 @@ mc_transparent_exit(int status)
   libc_exit(status);
 }
 
-MCMINI_NO_RETURN void
-mc_transparent_abort(void)
-{
+MCMINI_NO_RETURN void mc_transparent_abort(void) {
   thread_await_scheduler();
   libc_abort();
 }
