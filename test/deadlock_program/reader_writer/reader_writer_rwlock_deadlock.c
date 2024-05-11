@@ -32,7 +32,7 @@ void *writer(void *unused) {
 }
 
 int main(int argc, char* argv[]) {
-    if(argc != 5){
+    if(argc != 4){
         printf("Usage: %s NUM_READERS NUM_WRITERS DEBUG\n", argv[0]);
         return 1;
     }
