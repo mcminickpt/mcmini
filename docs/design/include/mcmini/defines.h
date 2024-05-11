@@ -6,7 +6,18 @@
 #define MCMINI_LIBRARY_ENTRY_POINT
 #define MCMINI_EXPORT __attribute__((visibility(default)))
 #define MCMINI_PRIVATE __attribute__((visibility(hidden)))
+
+#ifdef __cplusplus
+#define MCMINI_THREAD_LOCAL thread_local
+#else
 #define MCMINI_THREAD_LOCAL _Thread_local
+#endif
+
+#ifdef __cplusplus
+#define MCMINI_NO_RETURN [[noreturn]]
+#else
+#define MCMINI_NO_RETURN __attribute__((__noreturn__))
+#endif
 
 #define MAX_TOTAL_TRANSITIONS_IN_PROGRAM (1500u)
 #define MAX_TOTAL_STATES_IN_STATE_STACK (MAX_TOTAL_TRANSITIONS_IN_PROGRAM + 1u)

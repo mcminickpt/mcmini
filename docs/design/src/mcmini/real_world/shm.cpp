@@ -48,11 +48,7 @@ shared_memory_region::~shared_memory_region() {
   // only concerned with the actual address value and will not attempt to access
   // the _contents_ of `shm_mmap_region` without the volatile qualification
   // (such an access is undefined behavior)
-  int rc = munmap(const_cast<void *>(shm_mmap_region), size());
-  if (rc == -1) {
-    std::perror("munmap");
-  }
-  rc = shm_unlink(shm_file_name.c_str());
+  int rc = shm_unlink(shm_file_name.c_str());
   if (rc == -1) {
     if (errno == EACCES) {
       std::fprintf(stderr,
@@ -62,5 +58,9 @@ shared_memory_region::~shared_memory_region() {
     } else {
       std::perror("shm_unlink");
     }
+  }
+  rc = munmap(const_cast<void *>(shm_mmap_region), size());
+  if (rc == -1) {
+    std::perror("munmap");
   }
 }

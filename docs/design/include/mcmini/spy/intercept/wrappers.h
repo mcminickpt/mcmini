@@ -15,3 +15,11 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex);
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex);
 
+/*
+  An `atexit()` handler is installed in libmcmini.so with this function.
+  This ensures that if the main thread exits the model checker still maintains
+  control.
+*/
+void mc_exit_main_thread(void);
+MCMINI_NO_RETURN void mc_transparent_abort();
+MCMINI_NO_RETURN void mc_transparent_exit(int status);

@@ -54,3 +54,27 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   thread_await_scheduler();
   return 0;
 }
+
+void
+mc_exit_main_thread(void)
+{
+  thread_get_mailbox()->type = THREAD_EXIT_TYPE;
+  thread_await_scheduler();
+}
+
+MCMINI_NO_RETURN void
+mc_transparent_exit(int status)
+{
+  volatile runner_mailbox *mb = thread_get_mailbox();
+  mb->type = PROCESS_EXIT_TYPE;
+  memcpy_v(mb->cnts, &status, sizeof(status));
+  thread_await_scheduler();
+  libc_exit(status);
+}
+
+MCMINI_NO_RETURN void
+mc_transparent_abort(void)
+{
+  thread_await_scheduler();
+  libc_abort();
+}

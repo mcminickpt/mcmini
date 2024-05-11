@@ -52,3 +52,19 @@ int pthread_mutex_lock(pthread_mutex_t *mutex) {
 int pthread_mutex_unlock(pthread_mutex_t *mutex) {
   return mc_pthread_mutex_unlock(mutex);
 }
+
+void exit(int status) {
+  mc_transparent_exit(status);
+}
+
+void abort(void) {
+  mc_transparent_abort();
+}
+
+MCMINI_NO_RETURN void libc_abort(void) {
+  (*abort_ptr)();
+}
+
+MCMINI_NO_RETURN void libc_exit(int status) {
+  (*exit_ptr)(status);
+}

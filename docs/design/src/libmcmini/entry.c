@@ -88,6 +88,10 @@ mc_exit(int status)
   _Exit(status);
 }
 
+void mc_prepare_for_model_checking() {
+  atexit(&mc_exit_main_thread);
+}
+
 void mc_template_process_loop_forever() {
   volatile struct template_process_t *tpt = global_shm_start;
   while (1) {
@@ -95,20 +99,15 @@ void mc_template_process_loop_forever() {
     pid_t cpid = fork();
     if (cpid == -1) {
       // `fork()` failed
-        write(STDOUT_FILENO,"ENTERED2!", 10);
-          fsync(0);
       tpt->cpid = TEMPLATE_FORK_FAILED;
     }
     else if (cpid == 0) {
       // Child case: Simply return and escape into the child process.
-              write(STDOUT_FILENO,"ENTERED3!", 10);
-                fsync(0);
+      mc_prepare_for_model_checking();
       return;
     }
     // `libmcmini.so` acting as a template process.
     tpt->cpid = cpid;
-        write(STDOUT_FILENO,"ENTERED4!", 10);
-          fsync(0);
     sem_post((sem_t*)&tpt->mcmini_process_sem);
   }
 }

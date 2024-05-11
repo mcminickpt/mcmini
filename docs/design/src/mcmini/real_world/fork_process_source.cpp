@@ -145,7 +145,6 @@ void fork_process_source::make_new_template_process() {
     // *******************
     // Parent process case
     // *******************
-
     close(pipefd[1]);  // Close write end
 
     int err = 0;
