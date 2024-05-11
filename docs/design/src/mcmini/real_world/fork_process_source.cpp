@@ -136,7 +136,18 @@ void fork_process_source::make_new_template_process() {
     int err = errno;
     write(pipefd[1], &err, sizeof(err));
     close(pipefd[1]);
-    exit(EXIT_FAILURE);
+
+    // @note: We invoke `quick_exit()` here to ensure that C++ static
+    // objects are NOT destroyed. `std::exit()` will invoke the destructors
+    // of such static objects. This is only intended to happen exactly once
+    // however; bad things likely would happen to a program which called the
+    // destructor on an object that already cleaned up its resources.
+    //
+    // We must remember that this child is in a completely separate process with
+    // a completely separate address space, but the shared resources that the
+    // McMini process holds onto will also (inadvertantly) be shared with the
+    // child. To get C++ to play nicely, this is how we do it.
+    std::quick_exit(EXIT_FAILURE);
     // ******************
     // Child process case
     // ******************
