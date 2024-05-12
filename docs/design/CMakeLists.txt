@@ -43,9 +43,9 @@ set(LIBMCMINI_C_SRC
   src/common/mem.c
   src/common/runner_mailbox.c
   src/common/shm_config.c
-  src/libmcmini/entry.c
-  src/libmcmini/interception.c
-  src/libmcmini/wrappers.c
+  src/lib/entry.c
+  src/lib/interception.c
+  src/lib/wrappers.c
 )
 
 # -Wall -> be strict with warnings
