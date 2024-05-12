@@ -13,6 +13,7 @@ coordinator::coordinator(
     : current_program_model(std::move(initial_state)),
       runtime_transition_mapping(std::move(runtime_transition_mapping)),
       process_source(std::move(process_source)) {
+  this->current_process_handle = nullptr;
   this->current_process_handle = this->process_source->force_new_process();
 }
 
@@ -52,6 +53,7 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
 
 void coordinator::return_to_depth(uint32_t n) {
   this->current_program_model.restore_model_at_depth(n);
+  this->current_process_handle = nullptr;
   this->current_process_handle = this->process_source->force_new_process();
 
   // Now regenerate the process from scratch. The new process handle has a state

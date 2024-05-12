@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "mcmini/mcmini.h"
 
@@ -81,6 +83,9 @@ void mc_exit(int status) {
 void mc_template_process_loop_forever(void) {
   volatile struct template_process_t *tpt = global_shm_start;
   while (1) {
+    // Before creating any more children, ensure that the previous one has
+    // definitely stopped execution
+    wait(NULL);
     sem_wait((sem_t *)&tpt->libmcmini_sem);
     pid_t cpid = fork();
     if (cpid == -1) {
@@ -114,17 +119,7 @@ void mc_prevent_addr_randomization(void) {
 }
 
 void mc_install_sig_handlers(void) {
-  // Ignore SIGCHLD signals delivered to the template.
-  // This prevents zombie processes from being left
-  // around without the `waitpid()`
-  //
-  // TODO: Determine how to handle the cases with a child
-  // that exits unexpectedly, e.g. from a SEGFAULT. In
-  // this case, we must handle SIGCHLD
-  struct sigaction action;
-  action.sa_handler = SIG_IGN;
-  sigemptyset(&action.sa_mask);
-  sigaction(SIGCHLD, &action, NULL);
+  // TODO: Install signal handlers here for crashes in the child
 }
 
 __attribute__((constructor)) void libmcmini_main() {

@@ -11,6 +11,7 @@
 #include "mcmini/defines.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
+#include "mcmini/real_world/process/fork_process_source.hpp"
 
 using namespace real_world;
 using namespace extensions;
@@ -27,11 +28,12 @@ local_linux_process::~local_linux_process() {
     std::cerr << "Error sending SIGUSR1 to process " << pid << ": "
               << strerror(errno) << std::endl;
   }
-
   // NOTE: The process `pid` is NOT a child of this process: it
   // is a child of the template process (it is a grandchild of this
   // process); hence, `waitpid()` is not an appropriate call and should occur
   // instead in the `libmcmini.so` template process
+  fork_process_source::num_children_in_flight.fetch_sub(
+      1, std::memory_order_relaxed);
 }
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {

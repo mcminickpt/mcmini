@@ -22,9 +22,12 @@
 using namespace real_world;
 using namespace extensions;
 
+std::atomic_uint32_t fork_process_source::num_children_in_flight;
 std::unique_ptr<shared_memory_region> fork_process_source::rw_region = nullptr;
 
 void fork_process_source::initialize_shared_memory() {
+  fork_process_source::num_children_in_flight.store(0,
+                                                    std::memory_order_relaxed);
   const std::string shm_file_name = "/mcmini-" + std::string(getenv("USER")) +
                                     "-" + std::to_string((long)getpid());
   rw_region = make_unique<shared_memory_region>(shm_file_name, shm_size);
@@ -43,10 +46,19 @@ fork_process_source::fork_process_source(std::string target_program)
 }
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
+  // Assert: only a single child should be in-flight at any point
+  if (fork_process_source::num_children_in_flight.load(
+          std::memory_order_relaxed) >= 1) {
+    throw process_creation_exception(
+        "At most one active child process can be in flight at any given time.");
+  }
+
   // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
   setup_ld_preload();
   reset_binary_semaphores_for_new_process();
-  if (!has_template_process_alive()) make_new_template_process();
+  if (!has_template_process_alive()) {
+    make_new_template_process();
+  }
 
   // 2. Check if the current template process has previously exited; if so, it
   // would have delivered a `SIGCHLD` to this process. By default this signal is
@@ -84,6 +96,8 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         std::string(strerror(errno)));
   }
 
+  fork_process_source::num_children_in_flight.fetch_add(
+      1, std::memory_order_relaxed);
   return extensions::make_unique<local_linux_process>(tstruct->cpid,
                                                       *rw_region);
 }
@@ -220,14 +234,5 @@ fork_process_source::~fork_process_source() {
   if (waitpid(template_pid, &status, 0) == -1) {
     std::cerr << "Error waiting for process (fork) " << template_pid << ": "
               << strerror(errno) << std::endl;
-  } else if (!WIFEXITED(status)) {
-    // TODO: Log
-
-    // std::cerr << "Process " << template_pid << " did not exit normally."
-    //           << std::endl;
-    // if (WIFSIGNALED(status)) {
-    //   std::cerr << "Process " << template_pid << " was terminated by signal "
-    //             << WTERMSIG(status) << std::endl;
-    // }
   }
 }

@@ -1,5 +1,8 @@
 #pragma once
 
+class coordinator;
+class model_to_system_map;
+
 namespace model {
 class state;
 class mutable_state;
@@ -8,7 +11,7 @@ class state_sequence;
 class transition;
 }  // namespace model
 
-class coordinator;
-class model_to_system_map;
-
-// TODO: Place all forward declarations here
+namespace real_world {
+class local_linux_process;
+class fork_process_source;
+}  // namespace real_world
