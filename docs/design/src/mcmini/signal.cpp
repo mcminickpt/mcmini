@@ -1,5 +1,12 @@
 #include "mcmini/signal.hpp"
 
+const std::unordered_map<signo_t, const char *> sig_to_str = {
+    {SIGINT, "SIGINT"},
+    {SIGCHLD, "SIGCHLD"},
+    {SIGKILL, "SIGKILL"},
+    {SIGUSR1, "SIGUSR1"},
+    {SIGUSR2, "SIGUSR2"}};
+
 void signal_tracker_sig_handler(int sig, siginfo_t *, void *) {
   signal_tracker::instance().set_signal(sig);
 }
@@ -28,6 +35,7 @@ void install_process_wide_signal_handlers() {
   action.sa_sigaction = &signal_tracker_sig_handler;
   sigemptyset(&action.sa_mask);
   sigaction(SIGCHLD, &action, NULL);
+  sigaction(SIGINT, &action, NULL);
   sigaction(SIGUSR1, &action, NULL);
   sigaction(SIGUSR2, &action, NULL);
 }
@@ -55,4 +63,31 @@ bool signal_tracker::try_consume_signal(int sig) {
     }
   }
   return false;  // No signal to consume
+}
+
+//*** Interrupted Error ***//
+
+struct signal_tracker::interrupted_error : public std::exception {
+ private:
+  std::string msg;
+  signo_t sig;
+
+ public:
+  explicit interrupted_error(signo_t sig) : sig(sig) {
+    msg = "Interrupted with signal " + std::to_string(sig);
+    if (sig_to_str.count(sig) != 0) {
+      msg += " (";
+      msg += sig_to_str.find(sig)->second;
+      msg += ")";
+    } else {
+      msg += " (unknown signal name)";
+    }
+  }
+  const char *what() const noexcept override { return msg.c_str(); }
+};
+
+void signal_tracker::throw_if_received(int sig) {
+  if (instance().try_consume_signal(sig)) {
+    throw interrupted_error(sig);
+  }
 }

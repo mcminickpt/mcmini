@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 #include "mcmini/model/program.hpp"
+#include "mcmini/signal.hpp"
 
 using namespace model_checking;
 using namespace model;
@@ -40,17 +41,13 @@ void classic_dpor::verify_using(coordinator &coordinator,
 
   // Execution may fail... we should raise an exception in these cases
   try {
-    coordinator.execute_runner(0);
-    coordinator.execute_runner(0);
-    coordinator.return_to_depth(0);
-
-    coordinator.execute_runner(0);
-    coordinator.execute_runner(0);
-    coordinator.return_to_depth(0);
-
-    coordinator.execute_runner(0);
-    coordinator.execute_runner(0);
-    coordinator.return_to_depth(0);
+    for (int i = 0; i < 5; i++) {
+      std::cout << "TEST" << i << std::endl;
+      coordinator.execute_runner(0);
+      coordinator.execute_runner(0);
+      coordinator.return_to_depth(0);
+      signal_tracker::throw_if_received(SIGINT);
+    }
   } catch (real_world::process::execution_exception &e) {
     std::cerr << "Error: " << e.what() << std::endl;
   }

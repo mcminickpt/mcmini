@@ -2,7 +2,12 @@
 
 #include <atomic>
 #include <csignal>
+#include <exception>
 #include <iostream>
+#include <unordered_map>
+
+using signo_t = int;
+extern const std::unordered_map<signo_t, const char *> sig_to_str;
 
 struct signal_tracker {
  private:
@@ -15,7 +20,9 @@ struct signal_tracker {
   std::atomic_uint32_t flags[MAX_SIGNAL_TYPES] = {};
 
  public:
+  struct interrupted_error;
   static signal_tracker &instance();
+  static void throw_if_received(int sig);
   void set_signal(int sig);
   bool has_signal(int sig) const;
   bool try_consume_signal(int sig);
