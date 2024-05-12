@@ -96,6 +96,13 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         std::string(strerror(errno)));
   }
 
+  if (tstruct->cpid == TEMPLATE_FORK_FAILED) {
+    throw process_source::process_creation_exception(
+        "The `fork(2)` call in the template process failed unexpectedly "
+        "(errno " +
+        std::to_string(tstruct->err) + "): " + strerror(tstruct->err));
+  }
+
   fork_process_source::num_children_in_flight.fetch_add(
       1, std::memory_order_relaxed);
   return extensions::make_unique<local_linux_process>(tstruct->cpid,

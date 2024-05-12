@@ -6,9 +6,14 @@ extern "C" {
 
 #include <semaphore.h>
 
-#define TEMPLATE_FORK_FAILED ((cpid)-2)  // fork(2) failed in the template
+#define TEMPLATE_FORK_FAILED (-2)  // fork(2) failed in the template
 
 struct template_process_t {
+
+  // Unused in most cases, but set in the event of an error after
+  // calling a C function in the template process
+  int err;
+
   // The current process id of the child process currently under control of this
   // template process.
   pid_t cpid;

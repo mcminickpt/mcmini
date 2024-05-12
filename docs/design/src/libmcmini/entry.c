@@ -90,6 +90,7 @@ void mc_template_process_loop_forever(void) {
     pid_t cpid = fork();
     if (cpid == -1) {
       // `fork()` failed
+      tpt->err = errno;
       tpt->cpid = TEMPLATE_FORK_FAILED;
     } else if (cpid == 0) {
       // Child case: Simply return and escape into the child process.
