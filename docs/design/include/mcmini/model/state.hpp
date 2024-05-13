@@ -6,6 +6,7 @@
 
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/asserts.hpp"
+#include "mcmini/model/defines.hpp"
 #include "mcmini/model/visible_object.hpp"
 
 namespace model {
@@ -16,7 +17,7 @@ namespace model {
 class state {
  public:
   using objid_t = uint32_t;
-  using runner_id_t = uint32_t;
+  using runner_id_t = ::runner_id_t;
 
   virtual ~state() = default;
   virtual size_t count() const = 0;

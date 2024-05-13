@@ -1,9 +1,11 @@
 #pragma once
 
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <typeindex>
 #include <typeinfo>
+#include <unordered_map>
 
 #include "mcmini/misc/optional.hpp"
 
@@ -99,18 +101,30 @@ struct double_dispatch_member_function_table<InterfaceType,
                        unspecified_callback_handle);
   }
 
-  optional<ReturnType> call(InterfaceType* t1, InterfaceType* t2,
-                            Args... args) {
+  ReturnType call_or(ReturnType fallback, InterfaceType* t1, InterfaceType* t2,
+                     Args... args) const {
     auto t1_type = std::type_index(typeid(*t1));
     auto t2_type = std::type_index(typeid(*t2));
     if (_internal_table.count(t1_type) > 0) {
-      if (_internal_table[t1_type].count(t2_type) > 0) {
-        auto& pair = _internal_table[t1_type][t2_type];
-        return optional<ReturnType>(
-            pair.first(t1, t2, pair.second, std::forward(args)...));
+      if (_internal_table.at(t1_type).count(t2_type) > 0) {
+        const auto& pair = _internal_table.at(t1_type).at(t2_type);
+        return pair.first(t1, t2, pair.second, std::forward(args)...);
       }
     }
-    return optional<ReturnType>();
+    return fallback;
+  }
+
+  ReturnType call(InterfaceType* t1, InterfaceType* t2, Args... args) const {
+    auto t1_type = std::type_index(typeid(*t1));
+    auto t2_type = std::type_index(typeid(*t2));
+    if (_internal_table.count(t1_type) > 0) {
+      if (_internal_table.at(t1_type).count(t2_type) > 0) {
+        const auto& pair = _internal_table.at(t1_type).at(t2_type);
+        return pair.first(t1, t2, pair.second, std::forward(args)...);
+      }
+    }
+    throw std::runtime_error(
+        "Attempted to invoke a method but missing runtime entry");
   }
 };
 

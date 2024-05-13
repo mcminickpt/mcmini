@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 
+#include "mcmini/model/defines.hpp"
 #include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/state/state_sequence.hpp"
 #include "mcmini/model/transitions/transition_sequence.hpp"
@@ -50,7 +51,7 @@ class program {
   pending_transitions next_steps;
 
  public:
-  using runner_id_t = uint32_t;
+  using runner_id_t = ::runner_id_t;
 
   program(const state &initial_state,
           pending_transitions &&initial_first_steps);
@@ -59,6 +60,12 @@ class program {
 
   const state_sequence &get_state_sequence() const { return this->state_seq; }
   const transition_sequence &get_trace() const { return this->trace; }
+  const pending_transitions &get_pending_transitions() const {
+    return this->next_steps;
+  }
+  const transition *get_pending_transition_for(runner_id_t rid) const {
+    return next_steps.get_transition_for_runner(rid);
+  }
 
   size_t get_num_runners() const { return next_steps.size(); }
   std::unordered_set<runner_id_t> get_enabled_runners() const;

@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "mcmini/forwards.hpp"
+#include "mcmini/model/defines.hpp"
 #include "mcmini/model/state.hpp"
 
 namespace model {
@@ -63,7 +64,7 @@ namespace model {
  */
 class transition {
  public:
-  using runner_id_t = uint32_t;
+  using runner_id_t = ::runner_id_t;
 
   transition(runner_id_t executor) : executor(executor) {}
 

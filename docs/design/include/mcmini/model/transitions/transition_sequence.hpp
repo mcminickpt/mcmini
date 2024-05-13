@@ -24,6 +24,7 @@ class transition_sequence final {
   std::vector<std::unique_ptr<const transition>> contents;
 
  public:
+  using index = size_t;
   transition_sequence() = default;
 
   auto begin() -> decltype(contents.begin()) { return contents.begin(); }
@@ -34,6 +35,7 @@ class transition_sequence final {
   bool empty() const { return contents.empty(); }
   size_t count() const { return contents.size(); }
   const transition* at(size_t i) const { return contents.at(i).get(); }
+  const transition* back() const { return contents.back().get(); }
   std::unique_ptr<const transition> extract_at(size_t i);
   void push(std::unique_ptr<const transition> t) {
     contents.push_back(std::move(t));

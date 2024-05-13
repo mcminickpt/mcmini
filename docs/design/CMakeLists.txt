@@ -34,6 +34,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model/transition_sequence.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
+  src/mcmini/model_checking/algorithms/clock_vector.cpp
   src/mcmini/real_world/fork_process_source.cpp
   src/mcmini/real_world/local_linux_process.cpp
   src/mcmini/real_world/shm.cpp
@@ -74,7 +75,7 @@ target_link_libraries(libmcmini
   PUBLIC
     "${LIBMCMINI_EXTRA_LINK_FLAGS}")
 
-add_executable(mcmini "${MCMINI_CPP_SRC}""${MCMINI_C_SRC}")
+add_executable(mcmini "${MCMINI_CPP_SRC}" "${MCMINI_C_SRC}")
 target_include_directories(mcmini PUBLIC "${MCMINI_INCLUDE_DIR}")
 
 # Compile examples

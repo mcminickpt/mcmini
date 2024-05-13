@@ -3,6 +3,7 @@
 #include <exception>
 #include <memory>
 
+#include "mcmini/model/defines.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 
 namespace real_world {
@@ -27,7 +28,7 @@ namespace real_world {
  */
 struct process {
  public:
-  using runner_id_t = uint32_t;
+  using runner_id_t = ::runner_id_t;
 
  public:
   struct execution_exception : public std::runtime_error {
