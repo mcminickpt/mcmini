@@ -71,5 +71,5 @@ extern typeof(&sleep) sleep_ptr;
 //  * above.
 //  */
 void load_intercepted_symbol_addresses();
-
+void check_mcmini_mode();
 #endif 
