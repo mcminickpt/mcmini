@@ -30,6 +30,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/visible_object.cpp
   src/mcmini/coordinator/coordinator.cpp
   src/mcmini/model/detached_state.cpp
+  src/mcmini/model/diff_state.cpp
   src/mcmini/model/program.cpp
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model/transition_sequence.cpp

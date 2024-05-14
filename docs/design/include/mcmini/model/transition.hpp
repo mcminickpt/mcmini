@@ -5,6 +5,7 @@
 #include "mcmini/forwards.hpp"
 #include "mcmini/model/defines.hpp"
 #include "mcmini/model/state.hpp"
+#include "mcmini/model/state/diff_state.hpp"
 
 namespace model {
 
@@ -67,39 +68,7 @@ class transition {
   using runner_id_t = ::runner_id_t;
 
   transition(runner_id_t executor) : executor(executor) {}
-
-  /**
-   * @brief Returns the runner which executes this transition.
-   */
   runner_id_t get_executor() const { return executor; }
-
-  /**
-   * @brief Attempts to produce a state _s'_ from state _s_ through the
-   * application of this transition function on argument _s_
-   *
-   * Recall that a transition is merely a function over the states of a
-   * concurrent system. Recall further that a transition is only a _partial_
-   * function: it need not be defined in all states of the concurrent system.
-   * This method thus returns
-   *
-   * @param s the state to pass as an argument to the transition.
-   * @returns the resulting state _s'_ that would be produced if this transition
-   * were applied to state _s_ if such a transition is defined at _s_, and
-   * otherwise `nullptr`
-   */
-  std::unique_ptr<state> apply_to(const state& s) const {
-    std::unique_ptr<mutable_state> s_prime = s.mutable_clone();
-    return modify(*s_prime) == status::exists
-               ? std::unique_ptr<state>(std::move(s_prime))
-               : std::unique_ptr<state>();
-  }
-
-  /**
-   * @brief Whether the transition is defined in the given state.
-   *
-   * @param s the state to determine if this transition is enabled.
-   */
-  bool is_enabled_in(const state& s) const { return apply_to(s) != nullptr; }
 
   /**
    * @brief A result of a modification to a state.
@@ -113,6 +82,50 @@ class transition {
    * transition is disabled.
    */
   enum class status { exists, disabled };
+
+  /**
+   * @brief Attempts to produce a state _s'_ from state _s_ through the
+   * application of this transition function on argument _s_
+   *
+   * Recall that a transition is merely a function over the states of a
+   * concurrent system. Recall further that a transition is only a _partial_
+   * function: it need not be defined in all states of the concurrent system.
+   * This method thus returns
+   *
+   * @param s the state to pass as an argument to the transition.
+   * @returns the resulting state _s'_ that would be produced if this transition
+   * were applied to state _s_ if such a transition is defined at _s_, along
+   * with the enabledness of the given transition. If the transition is not
+   * defined, a `diff_state` with base `s` is returned, but no other
+   * modifications are made to the base.
+   * @note a pair is NOT redundant here: it's possible for a transition to be
+   * enabled at state `s` but have no effect on it. Hence, we _cannot_ simply
+   * rely on the fact that the `diff_state` has changed w.r.t its base to
+   * determine enabledness; instead, we must return both the `diff_state` AND
+   * the enabled status.
+   * @note construction of a new `diff_state` in the `else` branch ensures that
+   * partial modifications to `s` are not transferred out of the call to
+   * the method into the resulting `diff_state`. Some parts of the transition
+   * may have modified the state, and only then would the transition have
+   * determined it is no longer enabled. This would be discouraged, but it's
+   * possible, so we opt for the defensive stance.
+   * @note the `diff_state` that is returned retains the reference to the state
+   * `s` supplied to this function. In other words, the state with respect to
+   * which the diff is defined is `s`. Keep this in mind if you plan to store
+   * the `diff_state` or continue using it after calling this function.
+   */
+  std::pair<diff_state, status> apply_to(const state& s) const {
+    diff_state s_prime{s};
+    return modify(s_prime) == status::exists
+               ? std::make_pair(s_prime, status::exists)
+               : std::make_pair(diff_state{s}, status::disabled);
+  }
+  constexpr bool is_enabled_in(const state& s) const {
+    return apply_to(s).second == status::exists;
+  }
+  constexpr bool is_disabled_in(const state& s) const {
+    return !is_enabled_in(s);
+  }
 
   /**
    * @brief Fire the transition as if it were run from state _state_.
@@ -140,9 +153,7 @@ class transition {
   virtual ~transition() = default;
 
  protected:
-  /**
-   * The thread/runner which actually executes this transition.
-   */
+  /// @brief The thread/runner which actually executes this transition.
   const runner_id_t executor;
 };
 

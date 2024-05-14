@@ -6,6 +6,7 @@
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/append-only.hpp"
 #include "mcmini/model/state/detached_state.hpp"
+#include "mcmini/model/state/diff_state.hpp"
 #include "mcmini/model/transition.hpp"
 
 namespace model {
@@ -27,7 +28,6 @@ namespace model {
  */
 class state_sequence : public detached_state {
  private:
-  class diff_state;
   class element;
 
   /// @brief Inserts an instance of `element` in the `states_in_sequence`
