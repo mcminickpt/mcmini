@@ -112,11 +112,6 @@ void state_sequence::add_state_for_obj(
   this->visible_objects.at(id).push_state(std::move(new_state));
 }
 
-std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
-  return state::from_visible_objects<detached_state>(
-      this->visible_objects.cbegin(), this->visible_objects.cend());
-}
-
 void state_sequence::consume_into_subsequence(size_t num_states) {
   if (num_states <= this->states_in_sequence.size())
     this->states_in_sequence.erase(
@@ -249,6 +244,13 @@ class state_sequence::diff_state : public mutable_state {
       override;
   std::unique_ptr<mutable_state> mutable_clone() const override;
 };
+
+std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
+  return extensions::make_unique<diff_state>(*this);
+  // return extensions::make_unique<detached_state>(this);
+  // return state::from_visible_objects<detached_state>(
+  //     this->visible_objects.cbegin(), this->visible_objects.cend());
+}
 
 state::objid_t state_sequence::diff_state::get_objid_for_runner(
     runner_id_t id) const {

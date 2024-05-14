@@ -13,20 +13,29 @@
 using namespace model;
 using namespace model_checking;
 
+struct classic_dpor::dpor_context {
+  std::vector<model_checking::stack_item> stack;
+  std::unordered_map<runner_id_t, runner_item> per_runner_clocks;
+
+  const transition *get_transition(int i) const {
+    return stack.at(i).get_out_transition();
+  }
+};
+
 void classic_dpor::verify_using(coordinator &coordinator,
                                 const callbacks &callbacks) {
   // The code below is an implementation of the model-checking algorithm of
   // Flanagan and Godefroid from 2015.
 
   // 1. Data structure set up
-  std::unordered_map<runner_id_t, runner_item> per_runner_clocks;
 
   /// @invariant: The number of items in the DPOR-specific stack is the same
   /// size as the number of transitions in the current trace plus one.
   ///
   /// The initial entry into the stack represents the information DPOR tracks
   /// for state `s_0`.
-  std::vector<stack_item> dpor_stack;
+  dpor_context context;
+  auto &dpor_stack = context.stack;
   dpor_stack.emplace_back(
       clock_vector(),
       coordinator.get_current_program_model().get_enabled_runners());
@@ -56,9 +65,8 @@ void classic_dpor::verify_using(coordinator &coordinator,
 
       {  // 2b. Update DPOR data structures (per-thread data, clock vectors,
          // backtrack sets)
-        this->grow_stack_after_running(coordinator, per_runner_clocks,
-                                       dpor_stack);
-        this->dynamically_update_backtrack_sets(coordinator, dpor_stack);
+        this->grow_stack_after_running(coordinator, context);
+        this->dynamically_update_backtrack_sets(coordinator, context);
       }
     }
 
@@ -75,13 +83,13 @@ void classic_dpor::verify_using(coordinator &coordinator,
 }
 
 clock_vector classic_dpor::accumulate_max_clock_vector_against(
-    const model::transition &t, const std::vector<stack_item> &stack) const {
+    const model::transition &t, const dpor_context &context) const {
   // The last state in the stack does NOT have an out transition, hence the
   // `nullptr` check. Note that `s_i.get_out_transition()` refers to `S_i`
   // (case-sensitive) in the paper, viz. the transition between states `s_i` and
   // `s_{i+1}`.
   clock_vector result;
-  for (const stack_item &s_i : stack) {
+  for (const stack_item &s_i : context.stack) {
     if (s_i.get_out_transition() != nullptr &&
         this->are_dependent(*s_i.get_out_transition(), t)) {
       result = clock_vector::max(result, s_i.get_clock_vector());
@@ -90,10 +98,8 @@ clock_vector classic_dpor::accumulate_max_clock_vector_against(
   return result;
 }
 
-void classic_dpor::grow_stack_after_running(
-    const coordinator &coordinator,
-    std::unordered_map<runner_id_t, runner_item> &per_runner_clocks,
-    std::vector<model_checking::stack_item> &stack) {
+void classic_dpor::grow_stack_after_running(const coordinator &coordinator,
+                                            dpor_context &context) {
   // In this method, the following invariants are assumed to hold:
   //
   // 1. `n` := `stack.size()`.
@@ -104,12 +110,12 @@ void classic_dpor::grow_stack_after_running(
   // After this method is executed, the stack will have size `n + 1`. Each entry
   // will correspond to the information DPOR cares about for each state in the
   // `coordinator`'s state sequence.
-  assert(coordinator.get_depth_into_program() == stack.size() + 1);
+  assert(coordinator.get_depth_into_program() == context.stack.size());
   const model::transition *t_n =
       coordinator.get_current_program_model().get_trace().back();
 
   // NOTE: `cv` corresponds to line 14.3 of figure 4 in the DPOR paper.
-  clock_vector cv = accumulate_max_clock_vector_against(*t_n, stack);
+  clock_vector cv = accumulate_max_clock_vector_against(*t_n, context);
 
   // NOTE: The assignment corresponds to line 14.4 of figure 4. Here `S'`
   // represents the transition sequence _after_ `t_n` has executed. Since the
@@ -123,11 +129,11 @@ void classic_dpor::grow_stack_after_running(
   // conceptually captured through the DPOR stack and the per-thread DPOR data.
   // The former contains the per-state clock vectors while the latter the
   // per-thread clock vectors (among other data).
-  stack_item &s_n = stack.back();
-  per_runner_clocks[t_n->get_executor()].set_clock_vector(cv);
-  stack.emplace_back(
+  context.per_runner_clocks[t_n->get_executor()].set_clock_vector(cv);
+  context.stack.emplace_back(
       cv, t_n, coordinator.get_current_program_model().get_enabled_runners());
-  stack_item &s_n_plus_1 = stack.back();
+  stack_item &s_n = context.stack.at(context.stack.size() - 2);
+  stack_item &s_n_plus_1 = context.stack.back();
 
   // INVARIANT: For each thread `p`, if such a thread is contained
   // in the sleep set of `s_n`, then `next(s_n, p)` MUST be the transition
@@ -141,12 +147,13 @@ void classic_dpor::grow_stack_after_running(
 
   // `t_n` is inserted into the sleep set AFTER execution. This is how sleep
   // sets work (see papers etc.)
+  s_n.set_out_transition(t_n);
   s_n.insert_into_sleep_set(t_n->get_executor());
   s_n.mark_searched(t_n->get_executor());
 }
 
 void classic_dpor::dynamically_update_backtrack_sets(
-    const coordinator &coordinator, std::vector<stack_item> &stack) {
+    const coordinator &coordinator, dpor_context &context) {
   /*
    * Updating the backtrack sets is accomplished as follows
    * (under the given assumptions)
@@ -199,7 +206,7 @@ void classic_dpor::dynamically_update_backtrack_sets(
   thread_ids.reserve(num_threads);
   for (tid_t i = 0; i < num_threads; i++) thread_ids.insert(i);
 
-  const ssize_t tStackTop = (ssize_t)(stack.size()) - 1;
+  const ssize_t tStackTop = (ssize_t)(context.stack.size()) - 1;
   const runner_id_t last_runner_to_execute =
       coordinator.get_current_program_model()
           .get_trace()
@@ -216,8 +223,8 @@ void classic_dpor::dynamically_update_backtrack_sets(
       const model::transition &nextSP = *coordinator.get_current_program_model()
                                              .get_pending_transitions()
                                              .get_transition_for_runner(rid);
-      dynamically_update_backtrack_sets_at_index(S_n, nextSP, stack.back(),
-                                                 tStackTop, rid);
+      dynamically_update_backtrack_sets_at_index(
+          context, S_n, nextSP, context.stack.back(), tStackTop, rid);
     }
   }
 
@@ -236,7 +243,7 @@ void classic_dpor::dynamically_update_backtrack_sets(
       const model::transition &S_i =
           *coordinator.get_current_program_model().get_trace().at(i);
       const bool shouldStop = dynamically_update_backtrack_sets_at_index(
-          S_i, next_s_p_for_latest_runner, stack.at(i), i,
+          context, S_i, next_s_p_for_latest_runner, context.stack.at(i), i,
           last_runner_to_execute);
       /*
        * Stop when we find the _first_ such i; this
@@ -248,36 +255,38 @@ void classic_dpor::dynamically_update_backtrack_sets(
   }
 }
 
-// bool MCStack::happensBefore(int i, int j) const {
-//   MC_ASSERT(i >= 0 && j >= 0);
-//   const tid_t tid = getThreadRunningTransitionAtIndex(i);
-//   const MCClockVector cv = clockVectorForTransitionAtIndex(j);
-//   return i <= cv.valueForThread(tid).value_or(0);
-// }
+bool classic_dpor::happens_before(const dpor_context &context, int i,
+                                  int j) const {
+  const runner_id_t rid =
+      context.stack.at(i).get_out_transition()->get_executor();
+  const clock_vector &cv = context.stack.at(i).get_clock_vector();
+  return i <= cv.value_for(rid);
+}
 
-// bool MCStack::happensBeforeThread(int i, tid_t p) const {
-//   const tid_t tid = getThreadRunningTransitionAtIndex(i);
-//   const MCClockVector cv = getThreadDataForThread(p).getClockVector();
-//   return i <= cv.valueForThread(tid).value_or(0);
-// }
+bool classic_dpor::happens_before_thread(const dpor_context &context, int i,
+                                         runner_id_t p) const {
+  const runner_id_t rid = context.get_transition(i)->get_executor();
+  const clock_vector &cv = context.per_runner_clocks.at(p).get_clock_vector();
+  return i <= cv.value_for(rid);
+}
 
-// bool MCStack::threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const {
-//   // We want to search the entire transition stack in this case
-//   const auto transitionStackHeight = this->getTransitionStackSize();
-//   for (int j = depth + 1; j < transitionStackHeight; j++) {
-//     if (q == this->getThreadRunningTransitionAtIndex(j) &&
-//         this->happensBeforeThread(j, p))
-//       return true;
-//   }
-//   return false;
-// }
+bool classic_dpor::threads_race_after(const dpor_context &context, int i,
+                                      runner_id_t q, runner_id_t p) const {
+  const size_t transitionStackHeight = context.stack.size();
+  for (size_t j = (size_t)i + 1; j < transitionStackHeight; j++) {
+    if (q == context.get_transition(j)->get_executor() &&
+        this->happens_before_thread(context, j, p))
+      return true;
+  }
+  return false;
+}
 
 bool classic_dpor::dynamically_update_backtrack_sets_at_index(
-    const model::transition &S_i, const model::transition &nextSP,
-    stack_item &preSi, int i, int p) {
+    const dpor_context &context, const model::transition &S_i,
+    const model::transition &nextSP, stack_item &preSi, int i, int p) {
   // TODO: add in co-enabled conditions
-  const bool has_reversible_race =
-      this->are_dependent(nextSP, S_i);  //&& !this->happensBeforeThread(i, p);
+  const bool has_reversible_race = this->are_dependent(nextSP, S_i) &&
+                                   !this->happens_before_thread(context, i, p);
 
   // If there exists i such that ...
   if (has_reversible_race) {
@@ -286,8 +295,8 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
     const std::unordered_set<runner_id_t> &enabled_at_preSi =
         preSi.get_enabled_runners();
 
-    for (tid_t q : enabled_at_preSi) {
-      const bool inE = q == p;  //|| this->threadsRaceAfterDepth(i, q, p);
+    for (runner_id_t q : enabled_at_preSi) {
+      const bool inE = q == p || this->threads_race_after(context, i, q, p);
 
       // If E != empty set
       if (inE && !preSi.sleep_set_contains(q)) E.insert(q);

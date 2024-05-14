@@ -38,19 +38,22 @@ class classic_dpor final : public algorithm {
   // Do not call these methods directly. They are implementation details of
   // the DPOR algorithm and are called at specific points in time!
 
-  clock_vector accumulate_max_clock_vector_against(
-      const model::transition &, const std::vector<stack_item> &stack) const;
+  struct dpor_context;
 
-  void grow_stack_after_running(const coordinator &,
-                                std::unordered_map<runner_id_t, runner_item> &,
-                                std::vector<model_checking::stack_item> &);
+  bool happens_before(const dpor_context &, int i, int j) const;
+  bool happens_before_thread(const dpor_context &, int i, runner_id_t p) const;
+  bool threads_race_after(const dpor_context &context, int i, runner_id_t q,
+                          runner_id_t p) const;
 
-  void dynamically_update_backtrack_sets(
-      const coordinator &, std::vector<model_checking::stack_item> &);
+  clock_vector accumulate_max_clock_vector_against(const model::transition &,
+                                                   const dpor_context &) const;
+
+  void grow_stack_after_running(const coordinator &, dpor_context &);
+  void dynamically_update_backtrack_sets(const coordinator &, dpor_context &);
 
   bool dynamically_update_backtrack_sets_at_index(
-      const model::transition &S_i, const model::transition &nextSP,
-      stack_item &preSi, int i, int p);
+      const dpor_context &, const model::transition &S_i,
+      const model::transition &nextSP, stack_item &preSi, int i, int p);
 };
 
 }  // namespace model_checking
