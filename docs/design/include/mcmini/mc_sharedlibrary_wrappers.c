@@ -1,8 +1,13 @@
 #define _GNU_SOURCE
-#include "docs/design/include/mcmini/MCSharedLibraryWrappers.h"
+#include "docs/design/include/mcmini/mc_sharedlibrary_wrappers.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdatomic.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdint.h>
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
@@ -59,6 +64,7 @@ void check_mcmini_mode() {
 
 struct Rec_list {
     pthread_mutex_t *mutex;
+    int state; // 0 - unlocked, 1 - locked
     struct Rec_list *next;
 };
 
@@ -70,7 +76,6 @@ Rec_list *current = NULL;
 void
 mc_load_intercepted_symbol_addresses()
 {  
-#if MC_SHARED_LIBRARY
   pthread_create_ptr       = dlsym(RTLD_NEXT, "pthread_create");
   pthread_join_ptr         = dlsym(RTLD_NEXT, "pthread_join");
   pthread_mutex_init_ptr   = dlsym(RTLD_NEXT, "pthread_mutex_init");
@@ -96,32 +101,8 @@ mc_load_intercepted_symbol_addresses()
   pthread_cond_broadcast_ptr =
     dlsym(RTLD_NEXT, "pthread_cond_broadcast");
   sleep_ptr = dlsym(RTLD_NEXT, "sleep");
-#else
-  pthread_create_ptr         = &pthread_create;
-  pthread_join_ptr           = &pthread_join;
-  pthread_mutex_init_ptr     = &pthread_mutex_init;
-  pthread_mutex_lock_ptr     = &pthread_mutex_lock;
-  pthread_mutex_unlock_ptr   = &pthread_mutex_unlock;
-  sem_post_ptr               = &sem_post;
-  sem_wait_ptr               = &sem_wait;
-  sem_init_ptr               = &sem_init;
-  exit_ptr                   = &exit;
-  abort_ptr                  = &abort;
-//   pthread_barrier_init_ptr   = &pthread_barrier_init;
-//   pthread_barrier_wait_ptr   = &pthread_barrier_wait;
-//   pthread_rwlock_init_ptr    = &pthread_rwlock_init;
-//   pthread_rwlock_unlock_ptr  = &pthread_rwlock_unlock;
-//   pthread_rwlock_rdlock_ptr  = &pthread_rwlock_rdlock;
-//   pthread_rwlock_wrlock_ptr  = &pthread_rwlock_wrlock;
-  pthread_cond_init_ptr      = &pthread_cond_init;
-  pthread_cond_wait_ptr      = &pthread_cond_wait;
-  pthread_cond_signal_ptr    = &pthread_cond_signal;
-  pthread_cond_broadcast_ptr = &pthread_cond_broadcast;
-  sleep_ptr                  = &sleep;
-#endif
 }
 
-#if MC_SHARED_LIBRARY
 int
 pthread_create(pthread_t *pthread, const pthread_attr_t *attr,
                void *(*routine)(void *), void *arg)
@@ -205,9 +186,12 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
     	  perror("malloc");
     	  exit(EXIT_FAILURE);
 	}
+  //recording the address of mutex and its state
 	newNode->mutex = mutex;
 	newNode->next = NULL; // Ensure the new node's next pointer is initialized to NULL
-
+  if (return_value == 0) {
+    newNode->state = 1;
+  } 
 	if (head == NULL) {
     	  head = newNode;
     	  current = head;
@@ -265,50 +249,50 @@ abort()
   else __real_abort();
 }
 
-int
-pthread_barrier_init(pthread_barrier_t *barrier,
-                     const pthread_barrierattr_t *attr,
-                     unsigned int count)
-{
-  if(mcmini_enabled) return mc_pthread_barrier_init(barrier, attr, count);
-  else return __real_pthread_barrier_init(barrier, attr, count);
-}
+// int
+// pthread_barrier_init(pthread_barrier_t *barrier,
+//                      const pthread_barrierattr_t *attr,
+//                      unsigned int count)
+// {
+//   if(mcmini_enabled) return mc_pthread_barrier_init(barrier, attr, count);
+//   else return __real_pthread_barrier_init(barrier, attr, count);
+// }
 
-int
-pthread_barrier_wait(pthread_barrier_t *barrier)
-{
-  if(mcmini_enabled) return mc_pthread_barrier_wait(barrier);
-  else return __real_pthread_barrier_wait(barrier);
-}
+// int
+// pthread_barrier_wait(pthread_barrier_t *barrier)
+// {
+//   if(mcmini_enabled) return mc_pthread_barrier_wait(barrier);
+//   else return __real_pthread_barrier_wait(barrier);
+// }
 
-int
-pthread_rwlock_init(pthread_rwlock_t *rwlock,
-                    const pthread_rwlockattr_t *attr)
-{
-  if(mcmini_enabled) return mc_pthread_rwlock_init(rwlock, attr);
-  else return __real_pthread_rwlock_init(rwlock, attr);
-}
+// int
+// pthread_rwlock_init(pthread_rwlock_t *rwlock,
+//                     const pthread_rwlockattr_t *attr)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwlock_init(rwlock, attr);
+//   else return __real_pthread_rwlock_init(rwlock, attr);
+// }
 
-int
-pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwlock_rdlock(rwlock);
-  else return __real_pthread_rwlock_rdlock(rwlock);
-}
+// int
+// pthread_rwlock_rdlock(pthread_rwlock_t *rwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwlock_rdlock(rwlock);
+//   else return __real_pthread_rwlock_rdlock(rwlock);
+// }
 
-int
-pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwlock_wrlock(rwlock);
-  else   return __real_pthread_rwlock_wrlock(rwlock);
-  }
+// int
+// pthread_rwlock_wrlock(pthread_rwlock_t *rwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwlock_wrlock(rwlock);
+//   else   return __real_pthread_rwlock_wrlock(rwlock);
+//   }
 
-int
-pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwlock_unlock(rwlock);
-  else  return __real_pthread_rwlock_unlock(rwlock);
-}
+// int
+// pthread_rwlock_unlock(pthread_rwlock_t *rwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwlock_unlock(rwlock);
+//   else  return __real_pthread_rwlock_unlock(rwlock);
+// }
 
 // int
 // pthread_rwlock_destroy(pthread_rwlock_t *rwlock)
@@ -353,42 +337,41 @@ sleep(unsigned int seconds)
   return 0;
 }
 
-int
-pthread_rwwlock_init(pthread_rwwlock_t *rwwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwwlock_init(rwwlock);
+// int
+// pthread_rwwlock_init(pthread_rwwlock_t *rwwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwwlock_init(rwwlock);
 
-}
+// }
 
-int
-pthread_rwwlock_rdlock(pthread_rwwlock_t *rwwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwwlock_rdlock(rwwlock);
-}
+// int
+// pthread_rwwlock_rdlock(pthread_rwwlock_t *rwwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwwlock_rdlock(rwwlock);
+// }
 
-int
-pthread_rwwlock_wr1lock(pthread_rwwlock_t *rwwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwwlock_wr1lock(rwwlock);
-}
+// int
+// pthread_rwwlock_wr1lock(pthread_rwwlock_t *rwwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwwlock_wr1lock(rwwlock);
+// }
 
-int
-pthread_rwwlock_wr2lock(pthread_rwwlock_t *rwwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwwlock_wr2lock(rwwlock);
-}
+// int
+// pthread_rwwlock_wr2lock(pthread_rwwlock_t *rwwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwwlock_wr2lock(rwwlock);
+// }
 
-int
-pthread_rwwlock_unlock(pthread_rwwlock_t *rwwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwwlock_unlock(rwwlock);
-}
+// int
+// pthread_rwwlock_unlock(pthread_rwwlock_t *rwwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwwlock_unlock(rwwlock);
+// }
 
-int
-pthread_rwwlock_destroy(pthread_rwwlock_t *rwwlock)
-{
-  if(mcmini_enabled) return mc_pthread_rwwlock_destroy(rwwlock);
-}
-#endif
+// int
+// pthread_rwwlock_destroy(pthread_rwwlock_t *rwwlock)
+// {
+//   if(mcmini_enabled) return mc_pthread_rwwlock_destroy(rwwlock);
+// }
 
 
