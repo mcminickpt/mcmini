@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/program.hpp"
 
@@ -11,16 +13,14 @@ namespace model_checking {
  */
 class algorithm {
  public:
-  // TODO: Eventually we may want to pass more information to the callbacks
-  // (e.g. the algorithm itself or the coordinator) to provide detailed printing
-  // information.
-  // TODO:
   struct callbacks {
    public:
-    virtual void encountered_unknown_error_in(const model::program &) {}
-    virtual void encountered_deadlock_in(const model::program &) {}
-    virtual void encountered_crash_in(const model::program &) {}
-    virtual void encountered_data_race_in(const model::program &) {}
+    callbacks() = default;
+    std::function<void(const coordinator &)> crash;
+    std::function<void(const coordinator &)> deadlock;
+    std::function<void(const coordinator &)> data_race;
+    std::function<void(const coordinator &)> unknown_error;
+    std::function<void(const coordinator &)> trace_completed;
   };
 
   /**

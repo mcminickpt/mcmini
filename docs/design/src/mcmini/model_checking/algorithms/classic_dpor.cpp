@@ -70,6 +70,11 @@ void classic_dpor::verify_using(coordinator &coordinator,
       }
     }
 
+    // TODO: Check for deadlock
+    // TODO: Check for the program crashing
+
+    callbacks.trace_completed(coordinator);
+
     // 3. Backtrack phase
     do {
       // Locate a spot that contains backtrack threads

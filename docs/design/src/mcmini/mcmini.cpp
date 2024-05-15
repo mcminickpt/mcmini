@@ -1,6 +1,7 @@
 #include "mcmini/mcmini.hpp"
 
 #include "mcmini/coordinator/coordinator.hpp"
+#include "mcmini/lib/shared_transition.h"
 #include "mcmini/mem.h"
 #include "mcmini/misc/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
@@ -9,6 +10,7 @@
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"
 #include "mcmini/model/transitions/mutex/mutex_lock.hpp"
 #include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
+#include "mcmini/model/transitions/thread/thread_exit.hpp"
 #include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
@@ -23,6 +25,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <utility>
 
 using namespace extensions;
@@ -32,6 +35,24 @@ using namespace real_world;
 void display_usage() {
   std::cout << "mcmini [options] <program>" << std::endl;
   std::exit(EXIT_FAILURE);
+}
+
+void finished_trace_classic_dpor(const coordinator& c) {
+  static uint32_t trace_id = 0;
+
+  std::stringstream ss;
+  const auto& program_model = c.get_current_program_model();
+  ss << "TRACE " << trace_id << "\n";
+  for (const auto& t : program_model.get_trace()) {
+    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  }
+  ss << "\nNEXT THREAD OPERATIONS\n";
+  for (const auto& tpair : program_model.get_pending_transitions()) {
+    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
+  }
+  std::cout << ss.str();
+  std::cout.flush();
+  trace_id++;
 }
 
 std::unique_ptr<model::transition> mutex_init_callback(
@@ -63,7 +84,13 @@ std::unique_ptr<model::transition> mutex_unlock_callback(
   memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
   state::objid_t mut =
       m.observe_remote_process_handle(remote_mut, objects::mutex::make());
-  return make_unique<transitions::mutex_lock>(p, mut);
+  return make_unique<transitions::mutex_unlock>(p, mut);
+}
+
+std::unique_ptr<model::transition> thread_exit_callback(
+    state::runner_id_t p, const volatile runner_mailbox& rmb,
+    model_to_system_map& m) {
+  return make_unique<transitions::thread_exit>(p);
 }
 
 void do_model_checking(
@@ -86,9 +113,10 @@ void do_model_checking(
   // beginning).
   auto process_source = make_unique<fork_process_source>("hello-world");
 
-  tr.register_transition(&mutex_init_callback);
-  tr.register_transition(&mutex_lock_callback);
-  tr.register_transition(&mutex_unlock_callback);
+  tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
+  tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
+  tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
+  tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr), std::move(process_source));
@@ -96,7 +124,10 @@ void do_model_checking(
   std::unique_ptr<model_checking::algorithm> classic_dpor_checker =
       make_unique<model_checking::classic_dpor>();
 
-  classic_dpor_checker->verify_using(coordinator);
+  model_checking::algorithm::callbacks c;
+  c.trace_completed = &finished_trace_classic_dpor;
+
+  classic_dpor_checker->verify_using(coordinator, c);
   std::cout << "Model checking completed!" << std::endl;
 }
 

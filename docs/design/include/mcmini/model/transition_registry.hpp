@@ -38,7 +38,8 @@ class transition_registry final {
    * associate with the returned id
    * @returns a positive integer which conceptually represents the transition.
    */
-  runtime_type_id register_transition(transition_discovery_callback callback) {
+  void register_transition(rttid rttid,
+                           transition_discovery_callback callback) {
     // TODO: Mapping between types and the serialization
     // function pointers. For plugins loaded by McMini, each will have the
     // chance to register the transitions it defines. Here the RTTI needs to
@@ -46,8 +47,7 @@ class transition_registry final {
     // here. See the `ld` man page and specifically the two linker flags
     // `--dynamic-list-cpp-typeinfo` and `-E` for details. `-E` is definitely
     // sufficient it seems in my small testing
-    runtime_callbacks.push_back(callback);
-    return runtime_callbacks.size() - 1;
+    runtime_callbacks.insert({rttid, callback});
   }
 
   /**
@@ -73,12 +73,12 @@ class transition_registry final {
    * assigned id `rttid`, or `nullptr` if no such `rttid` has been registered.
    */
   transition_discovery_callback get_callback_for(runtime_type_id rttid) {
-    if (this->runtime_callbacks.size() <= rttid) return nullptr;
+    if (this->runtime_callbacks.count(rttid) == 0) return nullptr;
     return this->runtime_callbacks.at(rttid);
   }
 
  private:
-  std::vector<transition_discovery_callback> runtime_callbacks;
+  std::unordered_map<rttid, transition_discovery_callback> runtime_callbacks;
 };
 
 }  // namespace model

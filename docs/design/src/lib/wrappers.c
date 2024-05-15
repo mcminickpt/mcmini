@@ -52,6 +52,12 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
 }
 
 void mc_exit_main_thread(void) {
+  // IMPORTANT: This is NOT a typo!
+  // 1. In the first case, McMini models the thread as alive
+  // but about to exit
+  // 2. In the second case, McMini models the thread as having exited.
+  thread_get_mailbox()->type = THREAD_EXIT_TYPE;
+  thread_await_scheduler();
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
   thread_await_scheduler();
 }

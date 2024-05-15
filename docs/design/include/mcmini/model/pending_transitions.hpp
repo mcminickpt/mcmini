@@ -1,7 +1,7 @@
 #pragma once
 
+#include <map>
 #include <memory>
-#include <unordered_map>
 
 #include "mcmini/model/defines.hpp"
 #include "mcmini/model/transition.hpp"
@@ -20,7 +20,7 @@ namespace model {
 struct pending_transitions final {
  private:
   using runner_id_t = ::runner_id_t;
-  std::unordered_map<runner_id_t, std::unique_ptr<const transition>> _contents;
+  std::map<runner_id_t, std::unique_ptr<const transition>> _contents;
 
  public:
   auto begin() -> decltype(_contents.begin()) { return _contents.begin(); }
