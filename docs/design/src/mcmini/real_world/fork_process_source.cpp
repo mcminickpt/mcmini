@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/personality.h>
+#include <sys/prctl.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -149,7 +150,15 @@ void fork_process_source::make_new_template_process() {
     char* args[] = {const_cast<char*>(this->target_program.c_str()),
                     NULL /*TODO: Add additional arguments here if needed */};
     setenv("libmcmini-template-loop", "1", 1);
+
+    // Ensures that addresses in the template process remain "stable"
     personality(ADDR_NO_RANDOMIZE);
+
+    // Ensures that the template process is sent a SIGTERM if THIS THREAD ever
+    // exits. Since McMini is currently single-threaded, this is equivalent to
+    // saying if McMini ever exits. Note that this `prctl(2)` persists across
+    // `execvp(2)`.
+    prctl(PR_SET_PDEATHSIG, SIGTERM);
     execvp(this->target_program.c_str(), args);
     unsetenv("libmcmini-template-loop");
 
@@ -161,19 +170,21 @@ void fork_process_source::make_new_template_process() {
 
     // @note: We invoke `quick_exit()` here to ensure that C++ static
     // objects are NOT destroyed. `std::exit()` will invoke the destructors
-    // of such static objects. This is only intended to happen exactly once
-    // however; bad things likely would happen to a program which called the
-    // destructor on an object that already cleaned up its resources.
+    // of such static objects, among other cleanup. This is only intended to
+    // happen exactly once however; bad things likely would happen to a program
+    // which called the destructor on an object that already cleaned up its
+    // resources.
     //
     // We must remember that this child is in a completely separate process with
     // a completely separate address space, but the shared resources that the
     // McMini process holds onto will also (inadvertantly) be shared with the
-    // child. To get C++ to play nicely, this is how we do it.
+    // child. We want the resources to be destroyed in the MCMINI process, NOT
+    // this (failed) child fork(). To get C++ to play nicely, this is how we do
+    // it.
     std::quick_exit(EXIT_FAILURE);
     // ******************
     // Child process case
     // ******************
-
   } else {
     // *******************
     // Parent process case
