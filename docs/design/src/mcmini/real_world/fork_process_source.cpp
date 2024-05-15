@@ -80,7 +80,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   // process and then wait for it to successfully call `fork(2)` to tell us
   // about its new child.
   const volatile template_process_t* tstruct =
-      rw_region->as<template_process_t>();
+      &(rw_region->as<mcmini_shm_file>()->tpt);
 
   if (sem_post((sem_t*)&tstruct->libmcmini_sem) != 0) {
     throw process_source::process_creation_exception(
@@ -219,8 +219,7 @@ void fork_process_source::reset_binary_semaphores_for_new_process() {
   //
   // INVARIANT: Only one `local_linux_process` is in existence at any given
   // time.
-  volatile runner_mailbox* mbp =
-      rw_region->as_array_of<runner_mailbox>(0, THREAD_SHM_OFFSET);
+  volatile runner_mailbox* mbp = (rw_region->as<mcmini_shm_file>()->mailboxes);
   const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
   for (int i = 0; i < max_total_threads; i++) {
     mc_runner_mailbox_destroy(mbp + i);

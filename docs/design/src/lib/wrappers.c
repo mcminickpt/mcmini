@@ -5,8 +5,7 @@
 #include "mcmini/mcmini.h"
 
 volatile runner_mailbox *thread_get_mailbox() {
-  return ((volatile runner_mailbox *)(global_shm_start + THREAD_SHM_OFFSET)) +
-         tid_self;
+  return &((volatile struct mcmini_shm_file *)(global_shm_start))->mailboxes[tid_self];
 }
 
 void thread_await_scheduler() {

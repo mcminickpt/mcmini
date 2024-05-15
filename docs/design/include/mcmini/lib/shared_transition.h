@@ -1,6 +1,9 @@
-#ifndef INCLUDE_SHARED_TRANSITION_H
-#define INCLUDE_SHARED_TRANSITION_H
+#pragma once
 #include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef uint64_t tid_t;
 typedef enum {
@@ -24,4 +27,6 @@ struct shared_transition {
   transition_type type;
 };
 
-#endif
+#ifdef __cplusplus
+}
+#endif  // extern "C"

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <mutex>
 
-#include "mcmini/defines.h"
+#include "mcmini/common/shm_config.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
@@ -38,7 +38,7 @@ local_linux_process::~local_linux_process() {
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   volatile runner_mailbox *rmb =
-      shm_slice.as_array_of<runner_mailbox>(id, THREAD_SHM_OFFSET);
+      &(shm_slice.as_array_of<mcmini_shm_file>()->mailboxes[id]);
 
   // TODO: As a sanity check, a `waitpid()` to check if the process is still
   // alive is probably warranted. This would prevent a deadlock in _most_ cases.

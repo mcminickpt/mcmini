@@ -81,7 +81,8 @@ void mc_exit(int status) {
 }
 
 void mc_template_process_loop_forever(void) {
-  volatile struct template_process_t *tpt = global_shm_start;
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
   while (1) {
     // Before creating any more children, ensure that the previous one has
     // definitely stopped execution
