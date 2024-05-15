@@ -15,6 +15,14 @@ int pthread_mutex_init(pthread_mutex_t *mutex,
 int pthread_mutex_lock(pthread_mutex_t *mutex);
 int pthread_mutex_unlock(pthread_mutex_t *mutex);
 
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                  void *(*routine)(void *), void *arg);
+int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                  void *(*routine)(void *), void *arg);
+
+int libpthread_sem_init(sem_t*, int, int);
+int libpthread_sem_post(sem_t*);
+int libpthread_sem_wait(sem_t*);
 
 void exit(int);
 MCMINI_NO_RETURN void libc_exit(int);

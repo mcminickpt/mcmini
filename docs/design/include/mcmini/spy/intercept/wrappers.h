@@ -14,6 +14,8 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *mutexattr);
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex);
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex);
+int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                    void *(*routine)(void *), void *arg);
 
 /*
   An `atexit()` handler is installed in libmcmini.so with this function.

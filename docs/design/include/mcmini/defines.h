@@ -28,8 +28,8 @@
 
 #define THREAD_SHM_OFFSET (128)
 
+typedef uint32_t runner_id_t;
 typedef uint64_t tid_t;
-typedef uint64_t mutid_t;
 typedef uint64_t trid_t;
 #define TID_MAIN_THREAD (0ul)
 #define TID_INVALID (-1ul)                // ULONG_MAX

@@ -53,10 +53,30 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex) {
   return mc_pthread_mutex_unlock(mutex);
 }
 
-void exit(int status) { mc_transparent_exit(status); }
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                  void *(*routine)(void *), void *arg) {
+                    return mc_pthread_create(thread, attr, routine, arg);
+                  }
 
+
+void exit(int status) { mc_transparent_exit(status); }
 void abort(void) { mc_transparent_abort(); }
 
-MCMINI_NO_RETURN void libc_abort(void) { (*abort_ptr)(); }
 
+// Forwarding methods to the underlying libraries
+MCMINI_NO_RETURN void libc_abort(void) { (*abort_ptr)(); }
 MCMINI_NO_RETURN void libc_exit(int status) { (*exit_ptr)(status); }
+
+int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                  void *(*routine)(void *), void *arg) {
+  return (*pthread_create_ptr)(thread, attr, routine, arg);
+}
+int libpthread_sem_init(sem_t* sem, int pshared, int value) {
+  return (*sem_init_ptr)(sem, pshared, value);
+}
+int libpthread_sem_post(sem_t*sem) {
+  return (*sem_post_ptr)(sem);
+}
+int libpthread_sem_wait(sem_t*sem) {
+  return (*sem_wait_ptr)(sem);
+}

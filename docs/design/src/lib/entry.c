@@ -23,6 +23,14 @@ volatile void *global_shm_start = NULL;
 MCMINI_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 
 tid_t mc_register_this_thread(void) {
+  // NOTE: It is an internal error for more than one thread
+  // to be executing this function. If the model checker maintains
+  // control over each thread, it will only enable a single
+  // thread to execute this function at once. Anything else
+  // is undefined behavior
+  //
+  // NOTE: If `McMini` introduces parallelism into the
+  // model-checking process, this would have to be adjusted.
   static tid_t tid_next = 0;
   tid_self = tid_next++;
   return tid_self;
@@ -81,7 +89,7 @@ void mc_exit(int status) {
   _Exit(status);
 }
 
-void mc_prepare_new_child_process_spawned(pid_t ppid_before_fork) {
+void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // This is important to handle the case when the
   // main thread hits return 0; in that case, we
   // keep the process alive to allow the model checker to
@@ -120,7 +128,7 @@ void mc_template_process_loop_forever(void) {
       tpt->cpid = TEMPLATE_FORK_FAILED;
     } else if (cpid == 0) {
       // Child case: Simply return and escape into the child process.
-      mc_prepare_new_child_process_spawned(ppid_before_fork);
+      mc_prepare_new_child_process(ppid_before_fork);
       return;
     }
     // `libmcmini.so` acting as a template process.
