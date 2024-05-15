@@ -20,4 +20,10 @@ ConditionVariableArbitraryPolicy::receive_signal_message()
   }
 }
 
+bool
+ConditionVariableArbitraryPolicy::has_waiters() const
+{
+  return ! this->wait_queue.empty();
+}
+
 } // namespace mcmini

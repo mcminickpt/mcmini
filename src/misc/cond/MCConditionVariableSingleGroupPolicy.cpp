@@ -39,4 +39,10 @@ ConditionVariableSingleGroupPolicy::add_waiter(tid_t tid)
   this->wait_queue.push_back(tid);
 }
 
+bool
+ConditionVariableSingleGroupPolicy::has_waiters() const
+{
+  return ! this->wait_queue.empty();
+}
+
 } // namespace mcmini

@@ -18,6 +18,16 @@ ConditionVariableDefaultPolicy::receive_broadcast_message()
 }
 
 bool
+ConditionVariableDefaultPolicy::has_waiters() const
+{
+  // broadcast_eligiblle_threads are those threads that were
+  //   blocked, but were around during the last broadcast.
+  // wake_groups are the groups that are available to wake.
+  return ! this->broadcast_eligible_threads.empty() ||
+         ! this->wake_groups.empty();
+}
+
+bool
 ConditionVariableDefaultPolicy::thread_can_exit(tid_t tid) const
 {
   // Either you're eligible to wake up because:

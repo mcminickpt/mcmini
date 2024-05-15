@@ -22,6 +22,7 @@ struct ConditionVariableDefaultPolicy :
   virtual void receive_broadcast_message() override;
   virtual bool thread_can_exit(tid_t tid) const override;
   virtual void wake_thread(tid_t tid) override;
+  virtual bool has_waiters() const;
 
 protected:
 

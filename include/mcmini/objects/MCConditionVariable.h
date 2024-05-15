@@ -54,8 +54,9 @@ public:
   // This value may be NULL before the condition variable has received
   // a pthread_cond_wait call
   //
-  // Note it is undefined to access a single condition variable with
-  // two different locks
+  // NOTE:  See MCCondWait.cpp:MCCondWait::applyToState() for a
+  //   comment on a single condition variable being successively
+  //   bound to two different mutexes.
   std::shared_ptr<MCMutex> mutex;
 
   ConditionVariable(Shadow shadow,
@@ -90,6 +91,7 @@ public:
   void destroy();
 
   void addWaiter(tid_t tid);
+  bool hasWaiters();
   void removeWaiter(tid_t tid);
   bool waiterCanExit(tid_t tid);
   void sendSignalMessage();
