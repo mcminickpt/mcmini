@@ -52,6 +52,12 @@ MCConditionVariable::addWaiter(tid_t tid)
   this->policy->add_waiter(tid);
 }
 
+bool
+MCConditionVariable::hasWaiters()
+{
+  return this->policy->has_waiters();
+}
+
 void
 MCConditionVariable::removeWaiter(tid_t tid)
 {

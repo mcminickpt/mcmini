@@ -75,6 +75,13 @@ ConditionVariableGLibcPolicy::add_waiter(tid_t tid)
   this->group2.push_back(tid);
 }
 
+
+bool
+ConditionVariableGLibcPolicy::has_waiters() const
+{
+  return !group1.empty() || !group2.empty();
+}
+
 std::unique_ptr<ConditionVariablePolicy>
 ConditionVariableGLibcPolicy::clone() const
 {
