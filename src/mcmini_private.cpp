@@ -16,6 +16,7 @@ extern "C" {
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -408,6 +409,7 @@ mc_fork_new_trace()
   trace_pid = childpid;
 
   if (FORK_IS_CHILD_PID(childpid)) {
+    prctl(PR_SET_PDEATHSIG, SIGUSR1, 0, 0); // In McMini, SIGUSR1 to kill child
     if (getenv(ENV_QUIET) != NULL) {
       close(0); assert(open("/dev/null", O_RDONLY) == 0);
       close(1); assert(open("/dev/null", O_WRONLY) == 1);
