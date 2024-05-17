@@ -42,6 +42,9 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
  * up into more manageable chunks
  */
 class MCStack {
+public:
+  std::shared_ptr<MCVisibleObject> getObjectWithId(objid_t);
+
 private:
 
   /**

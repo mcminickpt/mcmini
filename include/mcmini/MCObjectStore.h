@@ -29,6 +29,12 @@ struct PointersEqual {
  * since the object's creation
  */
 class MCObjectStore {
+public:
+
+  inline std::shared_ptr<MCVisibleObject> getObjectWithId(objid_t objectId) {
+    return storage[objectId]->current;
+  }
+
 private:
 
   /**
