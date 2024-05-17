@@ -57,8 +57,8 @@ static void addResult(const char *result) {
 }
 static void printResults() {
   mcprintf(resultString);
-  mcprintf("Number of transitions: %lu\n", transitionId);
   mcprintf("Number of traces: %lu\n", traceId);
+  mcprintf("Total number of transitions: %lu\n", transitionId);
 }
 
 /*
@@ -594,7 +594,6 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
     if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
       printResults();
-      mcprintf("Number of transitions: %lu\n", transitionId);
       mc_exit(EXIT_SUCCESS);
     }
   }
