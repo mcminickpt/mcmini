@@ -4,6 +4,8 @@
 #include <stack>
 #include <stdexcept>
 
+// FIXME:  The only instantiation of MCSortedStack is for Index = unint32.
+//         TWhy do we need this obfuscation?
 template<typename Index>
 struct MCSortedStack final {
 private:

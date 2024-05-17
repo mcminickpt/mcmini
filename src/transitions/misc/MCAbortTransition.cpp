@@ -6,7 +6,6 @@ MCReadAbortTransition(const MCSharedTransition *shmTransition,
 {
   auto executor =
     programState->getThreadWithId(shmTransition->executor);
-  auto exitCode = *(int *)shmStart;
   return new MCAbortTransition(executor);
 }
 

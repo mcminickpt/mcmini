@@ -381,14 +381,14 @@ mc_initialize_shared_memory_globals()
 void
 mc_initialize_trace_sleep_list()
 {
-  for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
+  for (unsigned int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
     mc_shared_sem_init(&(*trace_sleep_list)[i]);
 }
 
 void
 mc_reset_cv_locks()
 {
-  for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
+  for (unsigned int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
     mc_shared_sem_destroy(&(*trace_sleep_list)[i]);
     mc_shared_sem_init(&(*trace_sleep_list)[i]);
   }
