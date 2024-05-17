@@ -156,6 +156,10 @@ MCCondSignal::dependentWith(const MCTransition *other) const
 void
 MCCondSignal::print() const
 {
-  printf("thread %lu: pthread_cond_signal(cond:%u)\n", this->thread->tid,
-         countVisibleObjectsOfType(this->conditionVariable->getObjectId()));
+  const char * isLostWakeup = " [No thread waiting on cond; lost wakeup?]";
+  if (hadWaiters) { isLostWakeup = ""; }
+
+  printf("thread %lu: pthread_cond_signal(cond:%u)%s\n", this->thread->tid,
+         countVisibleObjectsOfType(this->conditionVariable->getObjectId()),
+         isLostWakeup);
 }

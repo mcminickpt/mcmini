@@ -8,10 +8,12 @@ struct MCCondTransition : public MCTransition {
 public:
 
   std::shared_ptr<MCConditionVariable> conditionVariable;
+  bool hadWaiters;
   MCCondTransition(
     std::shared_ptr<MCThread> running,
     std::shared_ptr<MCConditionVariable> conditionVariable)
-    : MCTransition(running), conditionVariable(conditionVariable)
+    : MCTransition(running), conditionVariable(conditionVariable),
+      hadWaiters(false)
   {}
 };
 
