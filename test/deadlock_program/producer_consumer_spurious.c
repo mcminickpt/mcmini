@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#undef assert(x)
+#undef assert
 #define assert(x)                 \
   do {                            \
     if (!(x)) { raise(SIGUSR2); } \
@@ -31,17 +31,18 @@ do_consume()
   pthread_mutex_unlock(&mut);
 }
 
-void
-consumer(void)
+void *
+consumer(void *)
 {
   while (1) {
     do_consume();
     number_consumed++;
   }
+  return NULL;
 }
 
-void
-producer()
+void *
+producer(void *)
 {
   while (1) {
     pthread_mutex_lock(&mut);
@@ -49,6 +50,7 @@ producer()
     pthread_cond_signal(&cond);
     pthread_mutex_unlock(&mut);
   }
+  return NULL;
 }
 
 int

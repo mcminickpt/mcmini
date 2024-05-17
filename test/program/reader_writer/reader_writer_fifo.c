@@ -52,6 +52,7 @@ reader(void *notused)
   num_readers--;
   pthread_cond_broadcast(&cond);
   pthread_mutex_unlock(&mutex);
+  return NULL;
 }
 
 void *
@@ -73,6 +74,7 @@ writer(void *notused)
   next_ticket_to_be_served++;
   pthread_cond_broadcast(&cond);
   pthread_mutex_unlock(&mutex);
+  return NULL;
 }
 
 int
@@ -83,7 +85,7 @@ main(int argc, char* argv[])
     return 1;
   }
 
-  
+
   int NUM_READERS = atoi(argv[1]);
   int NUM_WRITERS = atoi(argv[2]);
   DEBUG = atoi(argv[3]);

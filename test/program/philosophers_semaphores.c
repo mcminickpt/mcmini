@@ -21,7 +21,7 @@ void * philosopher_doit(void *forks_arg) {
 
     if(DEBUG)
         printf("Philosopher %d is eating.\n", forks->philosopher);
-        
+
     pthread_mutex_unlock(forks->left_fork);
     pthread_mutex_unlock(forks->right_fork);
     sem_post(forks->sem_dining);

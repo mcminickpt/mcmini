@@ -1,5 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 
+#define _DEFAULT_SOURCE
+
 #include <pthread.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -21,6 +23,7 @@ int main(int argc, char* argv[]) {
 
     pthread_t *threads = malloc(sizeof(pthread_t) * thread_num);
 
+    srand48(42); // arbitrary seed value
     for(int i = 0; i < thread_num; i++) {
         pthread_create(&threads[i], NULL, &thread_doit, NULL);
     }

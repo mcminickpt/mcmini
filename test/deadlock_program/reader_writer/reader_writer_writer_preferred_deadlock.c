@@ -21,7 +21,8 @@ int write_condition() {
 }
 
 void *reader(void *NUM_LOOP) {
-    for(int i=0; i< (int)NUM_LOOP; i++) {
+    int num_loop = *(int *)NUM_LOOP;
+    for(int i=0; i < num_loop; i++) {
         pthread_mutex_lock(&mutex);
         num_readers++;
         while (! read_condition()) {
@@ -43,7 +44,8 @@ void *reader(void *NUM_LOOP) {
 
 
 void *writer(void *NUM_LOOP) {
-    for(int i=0; i< (int)NUM_LOOP; i++) {
+    int num_loop = *(int *)NUM_LOOP;
+    for(int i=0; i < num_loop; i++) {
         pthread_mutex_lock(&mutex);
         num_writers++;
         while (! write_condition()) {
@@ -76,16 +78,16 @@ int main(int argc, char* argv[]) {
 
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
-    
+
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cond, NULL);
 
     int i;
     for (i = 0; i < NUM_READERS; i++) {
-        pthread_create(&read_thread[i], NULL, reader, (void*)NUM_LOOP);
+        pthread_create(&read_thread[i], NULL, reader, &NUM_LOOP);
     }
     for (i = 0; i < NUM_WRITERS; i++) {
-        pthread_create(&write_thread[i], NULL, writer, (void*)NUM_LOOP);
+        pthread_create(&write_thread[i], NULL, writer, &NUM_LOOP);
     }
 
     for (i = 0; i < NUM_READERS; i++) {

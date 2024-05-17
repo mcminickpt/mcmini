@@ -19,7 +19,7 @@ void * philosopher_doit(void *forks_arg) {
     pthread_mutex_lock(forks->right_fork);
 
     if(DEBUG) printf("Philosopher %d just ate.\n", forks->philosopher);
-    
+
     pthread_mutex_unlock(forks->left_fork);
     pthread_mutex_unlock(forks->right_fork);
     return NULL;
