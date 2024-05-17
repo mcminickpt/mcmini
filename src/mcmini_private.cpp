@@ -234,8 +234,8 @@ mc_create_global_state_object()
 int countVisibleObjectsOfType(int objectId) {
   int count = 0;
   for (int i = 0; i <= objectId; i++) {
-    if (typeid(programState->getTransitionAtIndex(i)) ==
-        typeid(programState->getTransitionAtIndex(objectId))) {
+    if (typeid(*(programState->getObjectWithId(i))) ==
+        typeid(*(programState->getObjectWithId(objectId)))) {
       count++;
     }
   }

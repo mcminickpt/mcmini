@@ -865,6 +865,11 @@ MCStack::registerVisibleObjectWithSystemIdentity(
   this->objectStorage.mapSystemAddressToShadow(systemId, id);
 }
 
+std::shared_ptr<MCVisibleObject>
+MCStack::getObjectWithId(objid_t objectId) {
+  return objectStorage.getObjectWithId(objectId);
+}
+
 void
 MCStack::printThreadSchedule() const
 {
