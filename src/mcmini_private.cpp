@@ -20,6 +20,7 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include <ucontext.h>
 }
@@ -29,6 +30,11 @@ using namespace std;
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t trace_pid                = -1;
 
+trid_t traceId      = 0;
+trid_t transitionId = 0;
+
+time_t mcmini_start_time = 0;
+
 /**
  * The process id of the scheduler
  */
@@ -36,9 +42,6 @@ pid_t scheduler_pid = -1;
 mc_shared_sem (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
   nullptr;
 sem_t mc_pthread_create_binary_sem;
-
-trid_t traceId      = 0;
-trid_t transitionId = 0;
 
 static char resultString[1000] = "***** Model checking completed! *****\n";
 static void addResult(const char *result) {
@@ -59,6 +62,7 @@ static void printResults() {
   mcprintf(resultString);
   mcprintf("Number of traces: %lu\n", traceId);
   mcprintf("Total number of transitions: %lu\n", transitionId);
+  mcprintf("Elapsed time: %lu seconds\n", time(NULL) - mcmini_start_time);
 }
 
 /*
@@ -111,6 +115,8 @@ ucontext_t mcmini_scheduler_main_context;
 MC_CONSTRUCTOR void
 mcmini_main()
 {
+  mcmini_start_time = time(NULL);
+
   getcontext(&mcmini_scheduler_main_context);
 
   if (getenv("MCMINI_PROCESS") == NULL) {
@@ -270,6 +276,13 @@ mc_explore_branch(int curBranchPoint)
   mc_run_next_trace_for_debugger();
 
   traceId++;
+  if (traceId % 1000 == 0) {
+    static time_t last_time_reported = mcmini_start_time;
+    if (time(NULL) - last_time_reported > 10) {
+      last_time_reported = time(NULL);
+      mcprintf("... %d traces analyzed so far ...\n", traceId);
+    }
+  }
   return programState->getDeepestDPORBranchPoint();
 }
 

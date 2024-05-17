@@ -154,6 +154,9 @@ main(int argc, char *argv[])
   setenv("LD_PRELOAD", buf, 1);
   printf("About to exec into %s\n", cur_arg[0]);
   fflush(stdout);
+  // We execute target application as "template", and then fork traces.
+  // McMini next appears as a constructor in mcmini_private.cpp:mcmini_main().
+  // This is a constructor in libmcmini.so, loaded using LD_PRELOAD.
   execvp(cur_arg[0], cur_arg);
   fprintf(stderr, "Executable '%s' not found.\n", cur_arg[0]);
   perror("mcmini");
