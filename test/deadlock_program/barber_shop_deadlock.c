@@ -1,4 +1,6 @@
-#define _REENTRANT
+#ifndef _REENTRANT
+# define _REENTRANT /* FIXME: Add comment about why we're using _REENTRANT */
+#endif
 
 #include <stdio.h>
 #include <unistd.h>
@@ -38,6 +40,7 @@ void *customer(void *number) {
 
     sem_post(&barberChair);
     if(DEBUG) printf("Customer %d leaving barber shop.\n", num);
+    return NULL;
 }
 
 void *barber(void *junk) {
@@ -54,6 +57,7 @@ void *barber(void *junk) {
             if(DEBUG) printf("The barber is going home for the day.\n");
         }
     }
+    return NULL;
 }
 
 int main(int argc, char *argv[]) {

@@ -1,4 +1,4 @@
-#include "mcmini/CustomConditionVariable.h"
+#include "CustomConditionVariable.h"
 
 int
 custom_cond_init(custom_cond *cond)
@@ -29,7 +29,7 @@ custom_cond_signal(custom_cond *cond)
     cond->numWaiters--;
     sem_post(&cond->internalSem);
   }
-  pthread_mutex_lock(&cond->internalMut);
+  pthread_mutex_unlock(&cond->internalMut);
   return 0;
 }
 
@@ -43,6 +43,15 @@ custom_cond_broadcast(custom_cond *cond)
     sem_post(&cond->internalSem);
   }
 
+  pthread_mutex_unlock(&cond->internalMut);
+  return 0;
+}
+
+int
+custom_cond_destroy(custom_cond *cond)
+{
   pthread_mutex_lock(&cond->internalMut);
+  pthread_mutex_destroy(&cond->internalMut);
+  pthread_mutex_unlock(&cond->internalMut);
   return 0;
 }

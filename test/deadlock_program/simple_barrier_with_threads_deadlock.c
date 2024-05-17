@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-int THREAD_NUM; 
+int THREAD_NUM;
 int DEBUG = 0;
 
 pthread_barrier_t barrier;

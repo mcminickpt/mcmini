@@ -3,32 +3,34 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-pthread_mutex_t rw, read;
+pthread_mutex_t rw, readOnly;
 
 int num_readers = 0;
 int DEBUG = 0;
 
-void *reader(void *notused) {
-    for(int i = 0; i < notused; i++) {
-        pthread_mutex_lock(&read);
+void *reader(void *NUM_LOOP) {
+    int num_loop = *(int *)NUM_LOOP;
+    for(int i = 0; i < num_loop; i++) {
+        pthread_mutex_lock(&readOnly);
         num_readers++;
         if(num_readers == 1)
             pthread_mutex_lock(&rw);
-        pthread_mutex_unlock(&read);
+        pthread_mutex_unlock(&readOnly);
 
         if(DEBUG) printf("reader is reading\n");
 
-        pthread_mutex_lock(&read);
+        pthread_mutex_lock(&readOnly);
         num_readers--;
         if(num_readers == 0)
             pthread_mutex_unlock(&rw);
-        pthread_mutex_unlock(&read);
+        pthread_mutex_unlock(&readOnly);
     }
     return NULL;
 }
 
-void *writer(void *notused) {
-    for(int i = 0; i < notused; i++) {
+void *writer(void *NUM_LOOP) {
+    int num_loop = *(int *)NUM_LOOP;
+    for(int i = 0; i < num_loop; i++) {
         pthread_mutex_lock(&rw);
 
         if(DEBUG) printf("writer is writing\n");
@@ -52,15 +54,15 @@ int main(int argc, char* argv[]) {
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
 
-    pthread_mutex_init(&read, NULL);
+    pthread_mutex_init(&readOnly, NULL);
     pthread_mutex_init(&rw, NULL);
-    
+
     int i;
     for (i = 0; i < NUM_READERS; i++) {
-        pthread_create(&read_thread[i], NULL, reader, (void*)NUM_LOOP);
+        pthread_create(&read_thread[i], NULL, reader, &NUM_LOOP);
     }
     for (i = 0; i < NUM_WRITERS; i++) {
-        pthread_create(&write_thread[i], NULL, writer, (void*)NUM_LOOP);
+        pthread_create(&write_thread[i], NULL, writer, &NUM_LOOP);
     }
 
     for (i = 0; i < NUM_READERS; i++) {
