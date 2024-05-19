@@ -53,11 +53,14 @@ struct model_to_system_map final {
    * process handles dynamically during each new re-execution scheduled by
    * the coordinator to handle aliasing etc.
    */
+  using runner_generation_function =
+      std::function<std::unique_ptr<const model::transition>(
+          model::state::runner_id_t)>;
   model::state::objid_t observe_remote_process_handle(
       real_world::remote_address<void>,
       std::unique_ptr<model::visible_object_state>);
-  model::state::objid_t observe_remote_process_runner(
+  model::state::runner_id_t observe_remote_process_runner(
       real_world::remote_address<void>,
       std::unique_ptr<model::visible_object_state>,
-      std::unique_ptr<model::transition>);
+      runner_generation_function f);
 };

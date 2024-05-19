@@ -14,7 +14,7 @@ struct thread_exit : public model::transition {
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
     auto* thread_state = s.get_state_of_runner<thread>(executor);
-    if (!thread_state->is_running()) {
+    if (!thread_state->is_running() || executor == TID_MAIN_THREAD) {
       return status::disabled;
     }
     s.add_state_for_runner(executor, thread::make(thread::exited));

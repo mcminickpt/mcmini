@@ -14,13 +14,32 @@ using namespace model;
 using namespace model_checking;
 
 struct classic_dpor::dpor_context {
+  ::coordinator &coordinator;
   std::vector<model_checking::stack_item> stack;
-  std::unordered_map<runner_id_t, runner_item> per_runner_clocks;
+  std::array<runner_item, MAX_TOTAL_THREADS_IN_PROGRAM> per_runner_clocks;
+
+  dpor_context(::coordinator &c) : coordinator(c) {}
 
   const transition *get_transition(int i) const {
     return stack.at(i).get_out_transition();
   }
 };
+
+clock_vector classic_dpor::accumulate_max_clock_vector_against(
+    const model::transition &t, const dpor_context &context) const {
+  // The last state in the stack does NOT have an out transition, hence the
+  // `nullptr` check. Note that `s_i.get_out_transition()` refers to `S_i`
+  // (case-sensitive) in the paper, viz. the transition between states `s_i` and
+  // `s_{i+1}`.
+  clock_vector result;
+  for (const stack_item &s_i : context.stack) {
+    if (s_i.get_out_transition() != nullptr &&
+        this->are_dependent(*s_i.get_out_transition(), t)) {
+      result = clock_vector::max(result, s_i.get_clock_vector());
+    }
+  }
+  return result;
+}
 
 void classic_dpor::verify_using(coordinator &coordinator,
                                 const callbacks &callbacks) {
@@ -34,7 +53,7 @@ void classic_dpor::verify_using(coordinator &coordinator,
   ///
   /// The initial entry into the stack represents the information DPOR tracks
   /// for state `s_0`.
-  dpor_context context;
+  dpor_context context(coordinator);
   auto &dpor_stack = context.stack;
   dpor_stack.emplace_back(
       clock_vector(),
@@ -54,20 +73,12 @@ void classic_dpor::verify_using(coordinator &coordinator,
             "to limit how far into a trace McMini can go\n");
       }
 
-      {  // 2a. Execute the runner in the model and in the real world
-        // For deterministic results, always choose the smallest runner
-        const auto &enabled_runners = dpor_stack.back().get_enabled_runners();
-        runner_id_t venturer = *enabled_runners.begin();
-        for (const runner_id_t rid : enabled_runners)
-          venturer = std::min(rid, venturer);
-        coordinator.execute_runner(venturer);
-      }
-
-      {  // 2b. Update DPOR data structures (per-thread data, clock vectors,
-         // backtrack sets)
-        this->grow_stack_after_running(coordinator, context);
-        this->dynamically_update_backtrack_sets(coordinator, context);
-      }
+      // Execute the runner in the model and in the real world
+      // For deterministic results, always choose the "first" enabled runner.
+      // A runner precedes another runner in being enabled iff it has a smaller
+      // id.
+      this->continue_dpor_by_expanding_trace_with(
+          dpor_stack.back().get_first_enabled_runner(), context);
     }
 
     // TODO: Check for deadlock
@@ -81,30 +92,26 @@ void classic_dpor::verify_using(coordinator &coordinator,
       if (dpor_stack.back().backtrack_set_empty()) {
         dpor_stack.pop_back();
       } else {
-        break;
+        // Select one thread to backtrack upon.
+
+        // At this point, the model checker's data structures are valid for
+        // `dpor_stack.size()` states; however, the model and the associated
+        // process(es) that the model represent do not yet correspond after
+        // backtracking.
+        coordinator.return_to_depth(dpor_stack.size() - 1);
       }
     } while (!dpor_stack.empty());
   }
 }
 
-clock_vector classic_dpor::accumulate_max_clock_vector_against(
-    const model::transition &t, const dpor_context &context) const {
-  // The last state in the stack does NOT have an out transition, hence the
-  // `nullptr` check. Note that `s_i.get_out_transition()` refers to `S_i`
-  // (case-sensitive) in the paper, viz. the transition between states `s_i` and
-  // `s_{i+1}`.
-  clock_vector result;
-  for (const stack_item &s_i : context.stack) {
-    if (s_i.get_out_transition() != nullptr &&
-        this->are_dependent(*s_i.get_out_transition(), t)) {
-      result = clock_vector::max(result, s_i.get_clock_vector());
-    }
-  }
-  return result;
+void classic_dpor::continue_dpor_by_expanding_trace_with(
+    runner_id_t p, dpor_context &context) {
+  context.coordinator.execute_runner(p);
+  this->grow_stack_after_running(context);
+  this->dynamically_update_backtrack_sets(context);
 }
 
-void classic_dpor::grow_stack_after_running(const coordinator &coordinator,
-                                            dpor_context &context) {
+void classic_dpor::grow_stack_after_running(dpor_context &context) {
   // In this method, the following invariants are assumed to hold:
   //
   // 1. `n` := `stack.size()`.
@@ -115,6 +122,7 @@ void classic_dpor::grow_stack_after_running(const coordinator &coordinator,
   // After this method is executed, the stack will have size `n + 1`. Each entry
   // will correspond to the information DPOR cares about for each state in the
   // `coordinator`'s state sequence.
+  const coordinator &coordinator = context.coordinator;
   assert(coordinator.get_depth_into_program() == context.stack.size());
   const model::transition *t_n =
       coordinator.get_current_program_model().get_trace().back();
@@ -157,8 +165,7 @@ void classic_dpor::grow_stack_after_running(const coordinator &coordinator,
   s_n.mark_searched(t_n->get_executor());
 }
 
-void classic_dpor::dynamically_update_backtrack_sets(
-    const coordinator &coordinator, dpor_context &context) {
+void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
   /*
    * Updating the backtrack sets is accomplished as follows
    * (under the given assumptions)
@@ -204,12 +211,13 @@ void classic_dpor::dynamically_update_backtrack_sets(
    *  to determine if a backtrack point is needed anywhere for
    *  thread `i`
    */
+  const coordinator &coordinator = context.coordinator;
   const size_t num_threads =
       coordinator.get_current_program_model().get_num_runners();
 
-  std::unordered_set<tid_t> thread_ids;
+  std::unordered_set<runner_id_t> thread_ids;
   thread_ids.reserve(num_threads);
-  for (tid_t i = 0; i < num_threads; i++) thread_ids.insert(i);
+  for (runner_id_t i = 0; i < num_threads; i++) thread_ids.insert(i);
 
   const ssize_t tStackTop = (ssize_t)(context.stack.size()) - 1;
   const runner_id_t last_runner_to_execute =
@@ -271,7 +279,7 @@ bool classic_dpor::happens_before(const dpor_context &context, int i,
 bool classic_dpor::happens_before_thread(const dpor_context &context, int i,
                                          runner_id_t p) const {
   const runner_id_t rid = context.get_transition(i)->get_executor();
-  const clock_vector &cv = context.per_runner_clocks.at(p).get_clock_vector();
+  const clock_vector &cv = context.per_runner_clocks[p].get_clock_vector();
   return i <= cv.value_for(rid);
 }
 
@@ -295,12 +303,9 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
 
   // If there exists i such that ...
   if (has_reversible_race) {
-    std::unordered_set<tid_t> E;
+    std::unordered_set<runner_id_t> E;
 
-    const std::unordered_set<runner_id_t> &enabled_at_preSi =
-        preSi.get_enabled_runners();
-
-    for (runner_id_t q : enabled_at_preSi) {
+    for (runner_id_t q : preSi.get_enabled_runners()) {
       const bool inE = q == p || this->threads_race_after(context, i, q, p);
 
       // If E != empty set
@@ -309,11 +314,11 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
 
     if (E.empty()) {
       // E is the empty set -> add every enabled thread at pre(S, i)
-      for (tid_t q : enabled_at_preSi)
+      for (runner_id_t q : preSi.get_enabled_runners())
         if (!preSi.sleep_set_contains(q))
           preSi.insert_into_backtrack_set_unless_completed(q);
     } else {
-      for (tid_t q : E) {
+      for (runner_id_t q : E) {
         // If there is a thread in preSi that we
         // are already backtracking AND which is contained
         // in the set E, chose that thread to backtrack

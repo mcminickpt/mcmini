@@ -150,6 +150,9 @@ class transition {
   // coordinator::context::model_to_system_map&) const = 0;`
 
   virtual std::string to_string() const = 0;
+  std::string debug_string() const {
+    return "thread " + std::to_string(this->executor) + ": " + to_string();
+  }
   virtual ~transition() = default;
 
  protected:

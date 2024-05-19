@@ -1,9 +1,9 @@
 #pragma once
-
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include "mcmini/defines.h"
 #include "mcmini/model_checking/algorithms/classic_dpor/clock_vector.hpp"
 
 namespace model_checking {
@@ -188,6 +188,13 @@ struct stack_item final {
   }
 
   clock_vector get_clock_vector() const { return this->cv; }
+  runner_id_t get_first_enabled_runner() const {
+    runner_id_t r = RUNNER_ID_MAX;
+    for (runner_id_t p : this->enabled_runners) {
+      r = std::min(r, p);
+    }
+    return r;
+  }
   const std::unordered_set<runner_id_t> &get_enabled_runners() const {
     return this->enabled_runners;
   }

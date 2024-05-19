@@ -23,7 +23,7 @@ struct mutex_unlock : public model::transition {
   }
 
   std::string to_string() const override {
-    return "mutex_unlock(mutex:" + std::to_string(mutex_id) + ")";
+    return "pthread_mutex_unlock(mutex:" + std::to_string(mutex_id) + ")";
   }
 };
 }  // namespace transitions

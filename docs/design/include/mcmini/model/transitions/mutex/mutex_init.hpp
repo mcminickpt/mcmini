@@ -22,7 +22,7 @@ struct mutex_init : public model::transition {
   }
 
   std::string to_string() const override {
-    return "mutex_init(mutex:" + std::to_string(mutex_id) + ")";
+    return "pthread_mutex_init(mutex:" + std::to_string(mutex_id) + ")";
   }
 };
 }  // namespace transitions

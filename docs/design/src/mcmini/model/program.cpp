@@ -1,5 +1,7 @@
 #include "mcmini/model/program.hpp"
 
+#include <algorithm>
+
 using namespace model;
 
 program::program(const state &initial_state,
@@ -68,7 +70,8 @@ void program::model_execution_of(runner_id_t p,
   transition::status status = this->state_seq.follow(*next_s_p);
   if (status == transition::status::disabled) {
     throw std::runtime_error(
-        "Attempted to model the execution of a disabled transition.");
+        "Attempted to model the execution of a disabled transition(" +
+        next_s_p->debug_string() + ")");
   }
   trace.push(next_steps.displace_transition_for(p, std::move(new_transition)));
 }
@@ -80,8 +83,15 @@ state::objid_t program::discover_object(
 
 state::runner_id_t program::discover_runner(
     std::unique_ptr<visible_object_state> initial_state,
-    std::unique_ptr<transition> initial_transition) {
+    runner_generation_function f) {
   state::runner_id_t id = this->state_seq.add_runner(std::move(initial_state));
-  this->next_steps.displace_transition_for(id, std::move(initial_transition));
+  this->next_steps.displace_transition_for(id, f(id));
   return id;
+}
+
+bool program::is_in_deadlock() const {
+  for (const auto &t : this->get_pending_transitions()) {
+    if (t.second->is_enabled_in(this->state_seq)) return false;
+  }
+  return true;
 }

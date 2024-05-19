@@ -90,10 +90,10 @@ model::state::objid_t model_to_system_map::observe_remote_process_handle(
   }
 }
 
-model::state::objid_t model_to_system_map::observe_remote_process_runner(
+model::state::runner_id_t model_to_system_map::observe_remote_process_runner(
     real_world::remote_address<void> remote_process_visible_object_handle,
     std::unique_ptr<model::visible_object_state> fallback_initial_state,
-    std::unique_ptr<model::transition> fallback_initial_transition) {
+    runner_generation_function f) {
   model::state::objid_t existing_obj =
       this->get_object_for_remote_process_handle(
           remote_process_visible_object_handle);
@@ -102,15 +102,12 @@ model::state::objid_t model_to_system_map::observe_remote_process_runner(
   } else {
     model::state::runner_id_t new_runner_id =
         _coordinator.current_program_model.discover_runner(
-            std::move(fallback_initial_state),
-            std::move(fallback_initial_transition));
-
+            std::move(fallback_initial_state), std::move(f));
     model::state::objid_t new_objid = _coordinator.get_current_program_model()
                                           .get_state_sequence()
                                           .get_objid_for_runner(new_runner_id);
-
     _coordinator.system_address_mapping.insert(
         {remote_process_visible_object_handle, new_objid});
-    return new_objid;
+    return new_runner_id;
   }
 }

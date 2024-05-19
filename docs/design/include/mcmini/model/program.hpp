@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <unordered_set>
 
 #include "mcmini/model/defines.hpp"
@@ -58,6 +59,8 @@ class program {
   program(program &&) = default;
   program(const program &) = delete;
 
+  std::unordered_set<runner_id_t> get_enabled_runners() const;
+  size_t get_num_runners() const { return next_steps.size(); }
   const state_sequence &get_state_sequence() const { return this->state_seq; }
   const transition_sequence &get_trace() const { return this->trace; }
   const pending_transitions &get_pending_transitions() const {
@@ -67,12 +70,23 @@ class program {
     return next_steps.get_transition_for_runner(rid);
   }
 
-  size_t get_num_runners() const { return next_steps.size(); }
-  std::unordered_set<runner_id_t> get_enabled_runners() const;
+  using runner_generation_function =
+      std::function<std::unique_ptr<const model::transition>(
+          model::state::runner_id_t)>;
 
-  state::objid_t discover_object(std::unique_ptr<visible_object_state>);
-  state::runner_id_t discover_runner(std::unique_ptr<visible_object_state>,
-                                     std::unique_ptr<transition>);
+  /// @brief Introduce a new object into the model with initial state `s`
+  /// @param s the initial state of the new object to add to the model
+  /// @return the id assigned to the object in the model
+  state::objid_t discover_object(std::unique_ptr<visible_object_state> s);
+
+  /// @brief Introduce a new object into the model with initial state `s`
+  /// @param s the initial state of the new object to add to the model
+  /// @param f a function which, when passed the id that will be vended to the
+  /// runner, produces the first transition that runner is executing in the
+  /// model (i.e. the very first pending operation).
+  /// @return the id assigned to the runner.
+  state::runner_id_t discover_runner(std::unique_ptr<visible_object_state> s,
+                                     runner_generation_function f);
 
   /// @brief Model the execution of runner `p` and replace its next operation
   /// with `next_pending_operation`.
@@ -94,6 +108,9 @@ class program {
   /// t_(n-1), ..., t_k` is contained in the current trace, then the state after
   /// this method is called will be `s_(n+1)` or `s_0` is `n = 0`.
   void restore_model_at_depth(uint32_t n);
+
+  // MARK: Program State
+  bool is_in_deadlock() const;
 };
 //
 

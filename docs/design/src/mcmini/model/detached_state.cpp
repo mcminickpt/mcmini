@@ -50,6 +50,9 @@ state::runner_id_t detached_state::add_runner(
 
 void detached_state::add_state_for_obj(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
+  if (id == invalid_objid) {
+    throw std::runtime_error("Attempted to insert an invalid object id");
+  }
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
   this->visible_objects.at(id).push_state(std::move(new_state));

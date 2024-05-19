@@ -106,6 +106,9 @@ state::runner_id_t state_sequence::add_runner(
 
 void state_sequence::add_state_for_obj(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
+  if (id == invalid_objid) {
+    throw std::runtime_error("Attempted to insert an invalid object id");
+  }
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
   this->get_representative_state().point_to_state_for(id, new_state.get());
@@ -168,7 +171,8 @@ bool state_sequence::element::contains_object_with_id(state::objid_t id) const {
   return id < this->visible_object_states.size();
 }
 
-bool state_sequence::element::contains_runner_with_id(state::objid_t id) const {
+bool state_sequence::element::contains_runner_with_id(
+    state::runner_id_t id) const {
   return id < max_visible_runner_id;
 }
 

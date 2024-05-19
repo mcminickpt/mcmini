@@ -15,7 +15,7 @@ bool diff_state::contains_object_with_id(objid_t id) const {
          this->base_state.contains_object_with_id(id);
 }
 
-bool diff_state::contains_runner_with_id(objid_t id) const {
+bool diff_state::contains_runner_with_id(runner_id_t id) const {
   return this->new_runners.count(id) > 0 ||
          this->base_state.contains_runner_with_id(id);
 }
@@ -59,6 +59,9 @@ state::runner_id_t diff_state::add_runner(
 
 void diff_state::add_state_for_obj(
     objid_t id, std::unique_ptr<visible_object_state> new_state) {
+  if (id == invalid_objid) {
+    throw std::runtime_error("Attempted to insert an invalid object id");
+  }
   // Here we seek to insert all new states into the local cache instead of
   // forwarding them onto the underlying base state.
   visible_object &vobj = new_object_states[id];

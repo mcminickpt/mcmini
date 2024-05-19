@@ -10,6 +10,7 @@
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"
 #include "mcmini/model/transitions/mutex/mutex_lock.hpp"
 #include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
+#include "mcmini/model/transitions/thread/thread_create.hpp"
 #include "mcmini/model/transitions/thread/thread_exit.hpp"
 #include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
@@ -87,6 +88,20 @@ std::unique_ptr<model::transition> mutex_unlock_callback(
   return make_unique<transitions::mutex_unlock>(p, mut);
 }
 
+std::unique_ptr<model::transition> thread_create_callback(
+    state::runner_id_t p, const volatile runner_mailbox& rmb,
+    model_to_system_map& m) {
+  pthread_t new_thread;
+  memcpy_v(&new_thread, static_cast<const volatile void*>(&rmb.cnts),
+           sizeof(pthread_t));
+  runner_id_t new_thread_id = m.observe_remote_process_runner(
+      (void*)new_thread, objects::thread::make(objects::thread::state::running),
+      [](runner_id_t id) {
+        return make_unique<transitions::thread_start>(id);
+      });
+  return make_unique<transitions::thread_create>(p, new_thread_id);
+}
+
 std::unique_ptr<model::transition> thread_exit_callback(
     state::runner_id_t p, const volatile runner_mailbox& rmb,
     model_to_system_map& m) {
@@ -116,6 +131,7 @@ void do_model_checking(
   tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
   tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
   tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
+  tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),

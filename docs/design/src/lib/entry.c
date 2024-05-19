@@ -20,9 +20,9 @@
 #include "mcmini/mcmini.h"
 
 volatile void *global_shm_start = NULL;
-MCMINI_THREAD_LOCAL tid_t tid_self = TID_INVALID;
+MCMINI_THREAD_LOCAL runner_id_t tid_self = TID_INVALID;
 
-tid_t mc_register_this_thread(void) {
+runner_id_t mc_register_this_thread(void) {
   // NOTE: It is an internal error for more than one thread
   // to be executing this function. If the model checker maintains
   // control over each thread, it will only enable a single
@@ -31,7 +31,7 @@ tid_t mc_register_this_thread(void) {
   //
   // NOTE: If `McMini` introduces parallelism into the
   // model-checking process, this would have to be adjusted.
-  static tid_t tid_next = 0;
+  static runner_id_t tid_next = 0;
   tid_self = tid_next++;
   return tid_self;
 }

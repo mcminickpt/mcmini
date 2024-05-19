@@ -28,12 +28,12 @@
 
 #define THREAD_SHM_OFFSET (128)
 
-typedef uint32_t runner_id_t;
-typedef uint64_t tid_t;
+typedef uint16_t runner_id_t;
 typedef uint64_t trid_t;
-#define TID_MAIN_THREAD (0ul)
-#define TID_INVALID (-1ul)                // ULONG_MAX
-#define TID_PTHREAD_CREATE_FAILED (-2ul)  // ULONG_MAX - 1
+#define RUNNER_ID_MAX UINT16_MAX
+#define TID_MAIN_THREAD ((runner_id_t)0)
+#define TID_INVALID ((runner_id_t)-1)
+#define TID_PTHREAD_CREATE_FAILED ((runner_id_t)-2)
 
 #define FORK_IS_CHILD_PID(pid) ((pid) == 0)
 #define FORK_IS_PARENT_PID(pid) (!(FORK_IS_CHILD_PID(pid)))

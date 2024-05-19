@@ -113,11 +113,13 @@ mc_thread_routine_wrapper(void *arg)
   libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
 
   // Simulates THREAD_START for this thread NOTE:
-  // Don't write into shared memory here! The
-  // scheduler already knows how to handle the case of thread creation
+  // We don't need to write into shared memory here. The
+  // scheduler already knows how to handle the case
+  // of thread creation
   thread_await_scheduler_for_thread_start_transition();
   void *return_value = unwrapped_arg->routine(unwrapped_arg->arg);
 
+  free(arg);
   mc_exit_thread();
   return return_value;
 }
@@ -128,21 +130,21 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                   void *(*routine)(void *), void *arg)
 {
   // TODO: add support for thread attributes
-  struct mc_thread_routine_arg libmcmini_controlled_thread_arg;
-  libmcmini_controlled_thread_arg.arg     = arg;
-  libmcmini_controlled_thread_arg.routine = routine;
-  libpthread_sem_init(&libmcmini_controlled_thread_arg.mc_pthread_create_binary_sem, 0, 0);
+  struct mc_thread_routine_arg *libmcmini_controlled_thread_arg = malloc(sizeof(struct mc_thread_routine_arg));
+  libmcmini_controlled_thread_arg->arg     = arg;
+  libmcmini_controlled_thread_arg->routine = routine;
+  libpthread_sem_init(&libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0, 0);
 
   errno = 0;
   const int return_value = libpthread_pthread_create(
-    thread, attr, &mc_thread_routine_wrapper, &libmcmini_controlled_thread_arg);
+    thread, attr, &mc_thread_routine_wrapper, libmcmini_controlled_thread_arg);
   const int pthread_errno = errno;
 
   // IMPORTANT: We need to ensure that the thread that is
   // created has been assigned an; otherwise, there is a race condition
   // in which two thread creates in the child might
   // not be scheduled to run until *two* steps of the scheduler
-  libpthread_sem_wait(&libmcmini_controlled_thread_arg.mc_pthread_create_binary_sem);
+  libpthread_sem_wait(&libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
 
   memcpy_v(thread_get_mailbox()->cnts, &pthread_errno, sizeof(int));
   thread_get_mailbox()->type = THREAD_CREATE_TYPE;

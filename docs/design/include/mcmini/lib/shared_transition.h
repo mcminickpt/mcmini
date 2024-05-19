@@ -4,8 +4,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "mcmini/defines.h"
 
-typedef uint64_t tid_t;
 typedef enum {
   MUTEX_INIT_TYPE,
   MUTEX_LOCK_TYPE,
@@ -23,7 +23,7 @@ typedef enum {
 } transition_type;
 
 struct shared_transition {
-  tid_t executor;
+  runner_id_t executor;
   transition_type type;
 };
 

@@ -22,7 +22,7 @@ struct thread_create : public model::transition {
   }
 
   std::string to_string() const override {
-    return "pthread_join(thread: " + std::to_string(target) + ")";
+    return "pthread_create(thread: " + std::to_string(target) + ")";
   }
 };
 

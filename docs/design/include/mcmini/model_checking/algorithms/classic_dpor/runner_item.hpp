@@ -18,6 +18,7 @@ struct runner_item final {
   clock_vector cv;
 
  public:
+  runner_item() = default;
   uint32_t get_execution_depth() const;
   void increment_execution_depth() { executionDepth++; }
   void decrement_execution_depth_if_possible() {

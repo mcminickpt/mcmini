@@ -124,8 +124,8 @@ class coordinator {
    * number of steps into execution.
    *
    * The coordinator can be scheduled to restore the model and the external
-   * world to correspond to how it looked in the past. This is useful for model
-   * checkers that want to.
+   * world to correspond to how it looked in the past. This is used by model
+   * checkers to restore previously modeled states.
    *
    * The method has no effect if `n == get_depth_into_program()`.
    *
@@ -182,10 +182,11 @@ class coordinator {
     // the assignment, which means that there will be TWO processes at the same
     // time for a brief moment in between the right-hand evaluation, the
     // assignment, and the destruction of the previous process handle. This has
-    // the potential to introduce a race condition which is bad. By splitting
-    // the statement into two, we ensure that C++ first destroys the current
-    // handle and THEN creates the new one, but not concurrently (see C++
-    // evaluation ordering on cppreference for more details).
+    // the potential to introduce a race condition between these shared
+    // resources. By splitting the statement into two, we ensure that C++ first
+    // calls the destructor for the current process handle and THEN creates the
+    // new one, but not concurrently (see C++ evaluation ordering on
+    // cppreference for more details).
     this->current_process_handle = nullptr;
     this->current_process_handle = this->process_source->force_new_process();
   }

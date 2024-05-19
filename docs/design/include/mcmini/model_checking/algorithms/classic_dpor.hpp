@@ -48,8 +48,9 @@ class classic_dpor final : public algorithm {
   clock_vector accumulate_max_clock_vector_against(const model::transition &,
                                                    const dpor_context &) const;
 
-  void grow_stack_after_running(const coordinator &, dpor_context &);
-  void dynamically_update_backtrack_sets(const coordinator &, dpor_context &);
+  void continue_dpor_by_expanding_trace_with(runner_id_t p, dpor_context &);
+  void grow_stack_after_running(dpor_context &);
+  void dynamically_update_backtrack_sets(dpor_context &);
 
   bool dynamically_update_backtrack_sets_at_index(
       const dpor_context &, const model::transition &S_i,
