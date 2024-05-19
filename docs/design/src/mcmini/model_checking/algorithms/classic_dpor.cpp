@@ -72,35 +72,37 @@ void classic_dpor::verify_using(coordinator &coordinator,
             "running mcmini with the \"--max-depth-per-thread\" flag\n"
             "to limit how far into a trace McMini can go\n");
       }
-
-      // Execute the runner in the model and in the real world
-      // For deterministic results, always choose the "first" enabled runner.
-      // A runner precedes another runner in being enabled iff it has a smaller
-      // id.
+      // NOTE: For deterministic results, always choose the "first" enabled
+      // runner. A runner precedes another runner in being enabled iff it has a
+      // smaller id.
       this->continue_dpor_by_expanding_trace_with(
           dpor_stack.back().get_first_enabled_runner(), context);
     }
-
     // TODO: Check for deadlock
     // TODO: Check for the program crashing
 
     callbacks.trace_completed(coordinator);
+    // if (coordinator.get_current_program_model().is_in_deadlock()) {
+    //   callbacks.deadlock(coordinator);
+    // }
 
     // 3. Backtrack phase
-    do {
-      // Locate a spot that contains backtrack threads
-      if (dpor_stack.back().backtrack_set_empty()) {
-        dpor_stack.pop_back();
-      } else {
-        // Select one thread to backtrack upon.
+    while (!dpor_stack.empty() && dpor_stack.back().backtrack_set_empty())
+      dpor_stack.pop_back();
 
-        // At this point, the model checker's data structures are valid for
-        // `dpor_stack.size()` states; however, the model and the associated
-        // process(es) that the model represent do not yet correspond after
-        // backtracking.
-        coordinator.return_to_depth(dpor_stack.size() - 1);
-      }
-    } while (!dpor_stack.empty());
+    if (!dpor_stack.empty()) {
+      // At this point, the model checker's data structures are valid for
+      // `dpor_stack.size()` states; however, the model and the associated
+      // process(es) that the model represent do not yet correspond after
+      // backtracking.
+      coordinator.return_to_depth(dpor_stack.size() - 1);
+
+      // The first step of the NEXT exploration phase begins with following
+      // one of the backtrack threads. Select one thread to backtrack upon and
+      // follow it before continuing onto the exploration phase.
+      this->continue_dpor_by_expanding_trace_with(
+          dpor_stack.back().backtrack_set_pop_first(), context);
+    }
   }
 }
 

@@ -3,13 +3,18 @@
 #include <pthread.h>
 #include <stdlib.h>
 
+pthread_mutex_t mut;
+
+void *test(void* unused) {
+    pthread_mutex_lock(&mut);
+}
+
 int main(int argc, char* argv[])
 {
-    pthread_mutex_t mut;
+    pthread_t child;
     pthread_mutex_init(&mut, NULL);
+    pthread_create(&child, NULL, &test, NULL);
     pthread_mutex_lock(&mut);
-    // printf("Hello world!\n");
     pthread_mutex_unlock(&mut);
-    // pthread_mutex_destroy(&mut);
     return 0;
 }

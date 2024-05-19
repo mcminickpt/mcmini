@@ -173,12 +173,20 @@ struct stack_item final {
     for (const runner_id_t rid : runners) this->enabled_runners.insert(rid);
   }
 
-  // NOTE: We arbitrarily always pick the smallest thread to provide a
-  // determinism
   runner_id_t backtrack_set_pop() {
     if (backtrack_set_empty())
       throw std::runtime_error("There are no more threads to backtrack on");
+    runner_id_t backtrack_thread = *this->backtrack_set.begin();
+    this->mark_searched(backtrack_thread);
+    return backtrack_thread;
+  }
 
+  runner_id_t backtrack_set_pop_first() {
+    if (backtrack_set_empty())
+      throw std::runtime_error("There are no more threads to backtrack on");
+
+    // NOTE: We arbitrarily always pick the smallest thread to provide a
+    // determinism
     runner_id_t backtrack_thread = *this->backtrack_set.begin();
     for (const runner_id_t rid : this->backtrack_set)
       backtrack_thread = std::min(rid, backtrack_thread);
