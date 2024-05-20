@@ -20,7 +20,7 @@ namespace model {
 struct pending_transitions final {
  private:
   using runner_id_t = ::runner_id_t;
-  std::map<runner_id_t, std::unique_ptr<const transition>> _contents;
+  std::map<runner_id_t, const transition *> _contents;
 
  public:
   auto begin() -> decltype(_contents.begin()) { return _contents.begin(); }
@@ -42,22 +42,22 @@ struct pending_transitions final {
    */
   const transition *get_transition_for_runner(runner_id_t id) const {
     if (_contents.count(id) > 0) {
-      return _contents.at(id).get();
+      return _contents.at(id);
     }
     return nullptr;
   }
 
   std::unique_ptr<const transition> displace_transition_for(
-      runner_id_t id, std::unique_ptr<const transition> new_transition) {
+      runner_id_t id, const transition *new_transition) {
     if (id != new_transition->get_executor()) {
       throw std::runtime_error(
           "Attempting to insert a transition executed by a different runner (" +
           std::to_string(id) +
           " != " + std::to_string(new_transition->get_executor()) + ")");
     }
-    auto old_transition = std::move(_contents[id]);
-    _contents[id] = std::move(new_transition);
-    return old_transition;
+    const transition *old_transition = _contents[id];
+    _contents[id] = new_transition;
+    return make_unique<const transition>(old_transition);
   }
 };
 

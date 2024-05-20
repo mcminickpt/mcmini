@@ -55,7 +55,7 @@ void detached_state::add_state_for_obj(
   }
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
-  this->visible_objects.at(id).push_state(std::move(new_state));
+  this->visible_objects.at(id).push_state(new_state.release());
 }
 
 void detached_state::add_state_for_runner(

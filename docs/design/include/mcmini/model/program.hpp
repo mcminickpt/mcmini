@@ -92,14 +92,13 @@ class program {
   /// with `next_pending_operation`.
   ///
   /// @param p the id of the runner whose next transition should be simulated.
-  /// @param next_pending_operation the next transition this is pending after
-  /// `p` executes; that is, this is the transition that `p` will run in the
-  /// state modeled _after_ `next_s_p` is executed.
+  /// @param npo (short for `next_pending_operation`) the next transition this
+  /// is pending after `p` executes; that is, this is the transition that `p`
+  /// will run in the state modeled _after_ `next_s_p` is executed.
   /// @throws an runtime exception is raised if the transition replacing
   /// `next_s_p` is not executed by `p` or if `p` is not currently known to the
   /// model.
-  void model_execution_of(runner_id_t p,
-                          std::unique_ptr<transition> next_pending_operation);
+  void model_execution_of(runner_id_t p, const transition *npo);
 
   /// @brief Restore the model as if it were `n` steps into execution.
   ///

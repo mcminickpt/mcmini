@@ -26,13 +26,12 @@ namespace model {
  */
 class visible_object final {
  private:
-  std::vector<std::unique_ptr<const visible_object_state>> history;
+  std::vector<const visible_object_state *> history;
 
   /**
-   *@brief Construct a visible object with the given history _history_.
+   * @brief Construct a visible object with the given history _history_.
    */
-  visible_object(
-      std::vector<std::unique_ptr<const visible_object_state>> history)
+  visible_object(std::vector<const visible_object_state *> history)
       : history(std::move(history)) {}
 
   visible_object(const visible_object &other, size_t num_states) {
@@ -44,7 +43,7 @@ class visible_object final {
   visible_object(visible_object &&) = default;
   visible_object &operator=(visible_object &&) = default;
   visible_object(std::unique_ptr<const visible_object_state> &&initial_state) {
-    push_state(std::move(initial_state));
+    push_state(initial_state.release());
   }
   visible_object(const visible_object &other) {
     *this = other.slice(other.get_num_states());
@@ -52,16 +51,17 @@ class visible_object final {
   visible_object &operator=(const visible_object &other) {
     return *this = *other.clone();
   }
+  ~visible_object();
 
  public:
   size_t get_num_states() const { return history.size(); }
   const visible_object_state *state_at(size_t i) const {
-    return this->history.at(i).get();
+    return this->history.at(i);
   }
   const visible_object_state *get_current_state() const {
-    return this->history.back().get();
+    return this->history.back();
   }
-  void push_state(std::unique_ptr<const visible_object_state> s) {
+  void push_state(const visible_object_state *s) {
     history.push_back(std::move(s));
   }
   /**
@@ -74,12 +74,10 @@ class visible_object final {
    * the first `num_states` states.
    */
   visible_object slice(size_t num_states) const {
-    auto sliced_states =
-        std::vector<std::unique_ptr<const visible_object_state>>();
+    std::vector<const visible_object_state *> sliced_states;
     sliced_states.reserve(num_states);
     for (int j = 0; j < num_states; j++) {
-      sliced_states.push_back(
-          extensions::to_const_unique_ptr(history.at(j)->clone()));
+      sliced_states.push_back(history.at(j)->clone().release());
     }
     return visible_object(std::move(sliced_states));
   }
@@ -91,7 +89,7 @@ class visible_object final {
     if (history.empty()) {
       return nullptr;
     }
-    return std::move(history.back());
+    return std::unique_ptr<const visible_object_state>(history.back());
   }
 
   std::unique_ptr<visible_object> clone() const {

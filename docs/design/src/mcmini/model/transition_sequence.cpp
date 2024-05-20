@@ -10,5 +10,12 @@ void transition_sequence::consume_into_subsequence(uint32_t depth) {
 }
 
 std::unique_ptr<const transition> transition_sequence::extract_at(size_t i) {
-  return std::move(this->contents.at(i));
+  auto result = std::unique_ptr<const transition>(this->contents.at(i));
+  this->contents.at(i) = nullptr;
+  return result;
+}
+
+transition_sequence::~transition_sequence() {
+  for (const transition* t : contents)
+    if (t) delete t;
 }

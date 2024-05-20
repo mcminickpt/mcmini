@@ -46,14 +46,12 @@ void program::restore_model_at_depth(uint32_t n) {
   trace.consume_into_subsequence(n);
 }
 
-void program::model_execution_of(runner_id_t p,
-                                 std::unique_ptr<transition> new_transition) {
-  if (p != new_transition->get_executor()) {
+void program::model_execution_of(runner_id_t p, const transition *npo) {
+  if (p != npo->get_executor()) {
     throw std::runtime_error(
         "The next incoming transition replacing `next_s_p` in the model must "
         "be run by the same runner (" +
-        std::to_string(p) +
-        " != " + std::to_string(new_transition->get_executor()) + ")");
+        std::to_string(p) + " != " + std::to_string(npo->get_executor()) + ")");
   }
 
   const transition *next_s_p = next_steps.get_transition_for_runner(p);
@@ -73,7 +71,7 @@ void program::model_execution_of(runner_id_t p,
         "Attempted to model the execution of a disabled transition(" +
         next_s_p->debug_string() + ")");
   }
-  trace.push(next_steps.displace_transition_for(p, std::move(new_transition)));
+  trace.push(next_steps.displace_transition_for(p, npo));
 }
 
 state::objid_t program::discover_object(

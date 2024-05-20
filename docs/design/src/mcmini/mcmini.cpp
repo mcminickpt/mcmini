@@ -61,8 +61,6 @@ std::unique_ptr<model::transition> mutex_init_callback(
     model_to_system_map& m) {
   pthread_mutex_t* remote_mut;
   memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-
-  // how do we get the runner???
   state::objid_t mut =
       m.observe_remote_process_handle(remote_mut, objects::mutex::make());
   return make_unique<transitions::mutex_init>(p, mut);
@@ -118,7 +116,7 @@ void do_model_checking(
   state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       objects::thread::make(objects::thread::state::running));
   initial_first_steps.displace_transition_for(
-      0, make_unique<transitions::thread_start>(main_thread_id));
+      0, new transitions::thread_start(main_thread_id));
 
   program model_for_program_starting_at_main(state_of_program_at_main,
                                              std::move(initial_first_steps));
