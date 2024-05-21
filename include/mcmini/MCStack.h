@@ -113,7 +113,7 @@ private:
    * @invariant For elements e_i and e_j at indices
    * i and j, e_i < e_j <--> i < j
    */
-  MCSortedStack<int> irreversibleStatesStack;
+  MCSortedStack irreversibleStatesStack;
 
 private:
 
