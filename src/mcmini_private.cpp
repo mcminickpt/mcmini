@@ -574,10 +574,13 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     transitionId++;
 
     const tid_t tid = nextTransition->getThreadId();
+    // Execute in target application
     mc_run_thread_to_next_visible_operation(tid);
 
+    // Execute model ("simulate" transition means to update model w/ transition)
     programState->simulateRunningTransition(
       *nextTransition, shmTransitionTypeInfo, shmTransitionData);
+    // Record the transition in the "history", for later backtracking
     programState->dynamicallyUpdateBacktrackSets();
 
     /* Check for data races */
@@ -666,8 +669,11 @@ void
 mc_exit_with_trace_if_necessary(trid_t trid)
 {
   if (programState->isTargetTraceIdForStackContents(trid)) {
+    mcprintf("*** -p or --print-at-trace requested.  Printing trace:\n");
     programState->printTransitionStack();
     programState->printNextTransitions();
+    traceId++; // We stopped at -p<trid>, but Number of traces shuld be trid+1.
+    printResults();
     mc_stop_model_checking(EXIT_SUCCESS);
   }
 }

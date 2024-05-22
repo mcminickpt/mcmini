@@ -88,19 +88,30 @@ main(int argc, char *argv[])
       setenv(ENV_LONG_TEST, "1", 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--print-at-traceId") == 0 ||
-             strcmp(cur_arg[0], "-p") == 0) {
-      setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[1], 1);
+    else if (strncmp(cur_arg[0], "--print-at-trace", strlen("--print-at-trace")) == 0 ||
+             strncmp(cur_arg[0], "-p", strlen("-p")) == 0) {
+      char *value;
+      if (strcmp(cur_arg[0], "--print-at-trace") == 0 ||
+          strcmp(cur_arg[0], "-p") == 0) {
+        value = cur_arg[1];
+        cur_arg += 2;
+      } else if (strncmp(cur_arg[0], "--print-at-trace=", strlen("--print-at-trace=")) == 0) {
+        value = cur_arg[0] + strlen("--print-at-trace=");
+        cur_arg++;
+      } else if (strncmp(cur_arg[0], "-p", strlen("-p")) == 0) {
+        value = cur_arg[0] + strlen("-p");
+        cur_arg++;
+      }
       char *endptr;
-      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
-        fprintf(stderr, "%s: illegal value\n", "--print-at-traceId");
+      strtol(value, &endptr, 10);
+      if (endptr[0] == '\0') { // if Single integer
+        setenv(ENV_PRINT_AT_TRACE_ID, value, 1);
+      } else if ( isdigit(*value) || isspace(*value) ) { // if array of integers
+        setenv(ENV_PRINT_AT_TRACE_SEQ, value, 1);
+      } else {
+        fprintf(stderr, "%s: illegal value\n", "--print-at-trace");
         exit(1);
       }
-      cur_arg += 2;
-    }
-    else if (cur_arg[0][1] == 'p' && isdigit(cur_arg[0][2])) {
-      setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[0] + 2, 1);
-      cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--quiet") == 0 ||
              strcmp(cur_arg[0], "-q") == 0) {
@@ -112,11 +123,13 @@ main(int argc, char *argv[])
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
                       "              [--first-deadlock|--first|-f]\n"
                       "              [--quiet|-q]\n"
-                      "              [--print-at-traceId|-p <num>]\n"
+                      "              [--print-at-trace|-p <num>|<traceSeq>]\n"
                       "              [--debug-at-traceId|-d <num>]\n"
                       "              [--verbose|-v] [-v -v]\n"
                       "              [--help|-h]\n"
-                      "              target_executable\n");
+                      "              target_executable\n"
+                      "       mcmini-gdb ...<same as mcmini args>...\n"
+             );
       exit(1);
     }
     else {
