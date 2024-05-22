@@ -8,9 +8,95 @@
 extern "C" {
 #include "mcmini/MCCommon.h"
 }
+#include "mcmini/mcmini_private.h"
 
 using namespace std;
 
+static int traceSeq[1000] = {-1};
+static int lastEndOfTraceId = -1;
+
+static void trace_string_to_int_array(char *str, int *traceArray,
+                                      long traceArrayLen) {
+  for (int i = 0; str[i] != '\0'; i++) {
+    if (str[i] == ',') {
+      str[i] = ' ';
+    }
+  }
+
+  unsigned int traceArrayIdx = 0;
+  while (1) {
+    if (!isdigit(*str) && *str != ' ' && *str != '\0') {
+      mcprintf("\n*** Input traceSeq contains delimiiter"
+               " not in ',' or ' ': %c\n\n", *str);
+      mc_stop_model_checking(EXIT_FAILURE);
+    }
+
+    long num = strtol(str, &str, 10);
+    char *str2 = str;
+    for (; *str2 == ' '; str2++);
+    if (num == 0 && *str2 == '\0') {
+      break; // We've seen all the numbers in the array.
+    }
+
+    traceArray[traceArrayIdx++] = num;
+    if (traceArrayIdx >= traceArrayLen) {
+      mcprintf("\n*** traceSeq string too long;"
+               " Raise size of 'traceSeq' array\n\n");
+      mc_stop_model_checking(EXIT_FAILURE);
+    }
+    traceArray[traceArrayIdx] = -1;
+  }
+}
+
+static int getNextTraceSeqEntry(int traceSeqIdx) {
+  if (lastEndOfTraceId == static_cast<int>(traceId)) {
+    // We have gone past traceSeq.
+    return -1;
+  }
+  static bool print_at_trace_seq = (getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL);
+  if (!print_at_trace_seq) {
+    // This triggers. Why?  It's the same process; same ENV_PRINT_AT_TRACE_SEQ
+    print_at_trace_seq = (getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL);
+  }
+  if (print_at_trace_seq) {
+    int buflen = sizeof(traceSeq) / sizeof(traceSeq[0]);
+    static bool initialized = false;
+    static int traceSeqLen = -1;
+    if (! initialized) {
+      trace_string_to_int_array(getenv(ENV_PRINT_AT_TRACE_SEQ), traceSeq, buflen);
+      for (int i = 0; i < buflen; i++) {
+        if (traceSeq[i] == -1) {
+          traceSeqLen = i;
+          break;
+        }
+      }
+      initialized = true;
+    }
+    if (lastEndOfTraceId < static_cast<int>(traceId) &&
+        traceSeqIdx < buflen && traceSeq[traceSeqIdx] == -1) {
+      if (getenv(ENV_VERBOSE)) {
+        mcprintf(
+           "**************************************************************\n"
+           "*** END OF trace sequence                                    *\n"
+           "*** ... continuing beyond trace sequence: At transition # %d%s *\n"
+           "**************************************************************\n\n",
+           traceSeqLen, (traceSeqLen>=10 ? "" : " "));
+      }
+      print_at_trace_seq = false;
+      lastEndOfTraceId = traceId;
+      return -1; // -1 means end of traceSeq; Continue as mormal.
+    } else {
+      return traceSeq[traceSeqIdx];
+    }
+  } else {
+    return -2; // -2 means no ENV_PRINT_AT_TRACE_SEQ; Continue as normal
+  }
+}
+
+// =====================================================================
+/************************************************************************
+ * Below here, we are choosing the next enabled transitions to explore. *
+ ************************************************************************/
 bool
 MCStack::transitionIsEnabled(const MCTransition &transition)
 {
@@ -210,9 +296,47 @@ MCStack::getDeepestDPORBranchPoint()
   return FIRST_BRANCH;
 }
 
+// Extend current branch by exploring first enabled transition.
 const MCTransition *
 MCStack::getFirstEnabledTransition()
 {
+  // FIXME:  This code for ENV_PRINT_AT_TRACE_SEQ exists twice because
+  //         we already had duplicate "paragraph".  We should merge this
+  //         into common code in a future, single utility function,
+  //         and we return traceSeq[traceSeqIdx++] from the "else" branch
+  //         of this code, to be used in the following paragraph.
+  static bool print_at_trace_seq = (getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL);
+  if (print_at_trace_seq) {
+    static int traceSeqIdx = 1; // traceSeq[0] is for thread 0 'starts'. Skip it.
+    if (traceSeqIdx <= 1) {
+      trace_string_to_int_array(getenv(ENV_PRINT_AT_TRACE_SEQ), traceSeq,
+                                sizeof(traceSeq) / sizeof(traceSeq[0]));
+    }
+    if (traceSeq[traceSeqIdx] == -1) {
+      mcprintf("*** END OF trace sequence\n");
+      mcprintf("*** ... continuing beyond trace sequence\n");
+      print_at_trace_seq = false;
+      assert(traceId == 0);
+      setenv(ENV_PRINT_AT_TRACE_ID, "0", 1); // but his was also set earlier
+    } else {
+      // This is more C++ obfuscation.
+      //   We use '&' to convert from 'reference variable' to 'ptr'.
+      // This happens because we're using 'reference variables' instead of ptrs.
+      // The normal C++ rule is that if we can return nullptr, then the
+      //   type should be 'ptr', and _not_ 'reference variable'.
+      // We were forced to use a ptr return value for this function, because
+      //   this function can return nullptr.  But now, we're doing a dance
+      //   with reference variables in order to "pretend" that we will
+      //   never return 'nullptr', when in fact we can return 'nullptr'.
+      //   It would be better to use ptrs everywhere instead of a
+      //   mixture of ptr and reference variable, with little dances to convert.
+      return &(this->getNextTransitionForThread(traceSeq[traceSeqIdx++]));
+    }
+  }
+
+  // NOTE:  This "paragraph" is essentially the same as a "paragraph" for
+  //        MCStack::getCurrentlyEnabledThreads().  We should merge the
+  //        common code in a single utility function.
   const uint64_t threadsInProgram = this->getNumProgramThreads();
   const MCStackItem &sTop    = getStateStackTop();
   for (uint64_t i = 0; i < threadsInProgram; i++) {
@@ -228,15 +352,62 @@ MCStack::getFirstEnabledTransition()
     // their state members on
     const bool transitionIsInSleepSet = sTop.threadIsInSleepSet(i);
     if (transitionIsEnabled && !transitionIsInSleepSet)
+      // FIXME:  We are returning an address from this local call frame.
+      //         This is dangerous, since '&nextTransitionForI' is a ptr.
+      //         Did we intend that the return type here should be
+      //         'const MCTransition &' ?
+      //         See discussion "This is more C++ obfuscation.", above.
       return &nextTransitionForI;
   }
   return nullptr;
 }
 
+// =====================================================================
+/*****************************************************************
+ * Below here, we are computing the enabled sets to be stored in *
+ * backtrack sets in the history (the stack).                    *
+ *****************************************************************/
 std::unordered_set<tid_t>
 MCStack::getCurrentlyEnabledThreads()
 {
   std::unordered_set<tid_t> enabledThreadsInState;
+  // FIXME:  We are returning an unordered set.
+  //         An address to it might be more performant.
+
+  // FIXME:  This code for ENV_PRINT_AT_TRACE_SEQ exists twice because
+  //         we already had duplicate "paragraph".  We should merge this
+  //         into common code in a future, single utility function,
+  //         and we return traceSeq[traceSeqIdx++] from the "else" branch
+  //         of this code, to be used in the following paragraph.
+  static bool print_at_trace_seq = (getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL);
+  if (print_at_trace_seq) {
+    static int traceSeqIdx = 1; // traceSeq[0] is for thread 0 'starts'. Skip it.
+    if (traceSeqIdx <= 1) {
+      trace_string_to_int_array(getenv(ENV_PRINT_AT_TRACE_SEQ), traceSeq,
+                                sizeof(traceSeq) / sizeof(traceSeq[0]));
+    }
+    if (traceSeq[traceSeqIdx] == -1) {
+      mcprintf("*** END OF trace sequence\n");
+      mcprintf("*** ... continuing beyond trace sequence\n");
+      print_at_trace_seq = false;
+      assert(traceId == 0);
+      setenv(ENV_PRINT_AT_TRACE_ID, "0", 1); // but his was also set earlier
+    } else {
+      enabledThreadsInState.insert(traceSeq[traceSeqIdx++]);
+      return enabledThreadsInState;
+    }
+  }
+#else
+  int nextTraceEntry = getNextTraceSeqEntry(traceSeqIdx);
+  if (nextTraceEntry >= 0) {
+    enabledThreadsInState.insert(nextTraceEntry);
+    return enabledThreadsInState;
+  }
+#endif
+
+  // NOTE:  This "paragraph" is essentially the same as a "paragraph" for
+  //        MCStack::getCurrentlyEnabledThreads().  We should merge the
+  //        common code in a single utility function.
   const uint32_t numThreads = this->getNumProgramThreads();
   for (uint32_t i = 0; i < numThreads; i++) {
     MCTransition &next = this->getNextTransitionForThread(i);
