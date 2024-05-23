@@ -34,39 +34,34 @@ const visible_object_state *detached_state::get_state_of_runner(
 }
 
 state::objid_t detached_state::add_object(
-    std::unique_ptr<const visible_object_state> initial_state) {
+    const visible_object_state *initial_state) {
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new object, as this element effectively represents this state
-  visible_objects.push_back(std::move(initial_state));
+  visible_objects.push_back(initial_state);
   return visible_objects.size() - 1;
 }
 
 state::runner_id_t detached_state::add_runner(
-    std::unique_ptr<const visible_object_state> new_state) {
-  objid_t id = this->add_object(std::move(new_state));
+    const visible_object_state *new_state) {
+  objid_t id = this->add_object(new_state);
   this->runner_to_obj_map.push_back(id);
   return this->runner_to_obj_map.size() - 1;
 }
 
-void detached_state::add_state_for_obj(
-    objid_t id, std::unique_ptr<visible_object_state> new_state) {
+void detached_state::add_state_for_obj(objid_t id,
+                                       const visible_object_state *new_state) {
   if (id == invalid_objid) {
-    throw std::runtime_error("Attempted to insert an invalid object id");
+    throw std::runtime_error(
+        "Attempted to insert a state for an invalid object id");
   }
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
-  this->visible_objects.at(id).push_state(new_state.release());
+  this->visible_objects.at(id).push_state(new_state);
 }
 
 void detached_state::add_state_for_runner(
-    runner_id_t id, std::unique_ptr<visible_object_state> new_state) {
-  return this->add_state_for_obj(this->get_objid_for_runner(id),
-                                 std::move(new_state));
-}
-
-std::unique_ptr<const visible_object_state> detached_state::consume_obj(
-    objid_t id) && {
-  return std::move(visible_objects.at(id)).consume_into_current_state();
+    runner_id_t id, const visible_object_state *new_state) {
+  return this->add_state_for_obj(this->get_objid_for_runner(id), new_state);
 }
 
 std::unique_ptr<mutable_state> detached_state::mutable_clone() const {

@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <memory>
+#include <stdexcept>
 
 #include "mcmini/model/defines.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"

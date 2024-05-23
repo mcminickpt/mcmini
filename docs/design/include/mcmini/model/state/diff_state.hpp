@@ -30,7 +30,7 @@ class diff_state : public mutable_state {
   /* `mutable_state` overrrides */
   size_t count() const override {
     size_t count = this->new_object_states.size() + base_state.count();
-    for (const auto p : new_object_states) {
+    for (const auto &p : new_object_states) {
       // Each item in `new_object_states` that is also in `base_state` defines
       // states for _previously existing_ objects. These objects are accounted
       // for in `count` (double-counted), hence the `--`
@@ -47,16 +47,11 @@ class diff_state : public mutable_state {
   const visible_object_state *get_state_of_object(objid_t id) const override;
   const visible_object_state *get_state_of_runner(
       runner_id_t id) const override;
-  objid_t add_object(
-      std::unique_ptr<const visible_object_state> initial_state) override;
-  runner_id_t add_runner(
-      std::unique_ptr<const visible_object_state> initial_state) override;
-  void add_state_for_obj(
-      objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  void add_state_for_runner(
-      runner_id_t id, std::unique_ptr<visible_object_state> new_state) override;
-  std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
-      override;
+  objid_t add_object(const visible_object_state *) override;
+  runner_id_t add_runner(const visible_object_state *) override;
+  void add_state_for_obj(objid_t id, const visible_object_state *) override;
+  void add_state_for_runner(runner_id_t id,
+                            const visible_object_state *) override;
   std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 }  // namespace model

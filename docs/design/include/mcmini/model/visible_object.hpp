@@ -42,9 +42,11 @@ class visible_object final {
   visible_object() = default;
   visible_object(visible_object &&) = default;
   visible_object &operator=(visible_object &&) = default;
-  visible_object(std::unique_ptr<const visible_object_state> &&initial_state) {
-    push_state(initial_state.release());
+  visible_object(const visible_object_state *initial_state) {
+    push_state(initial_state);
   }
+  visible_object(std::unique_ptr<const visible_object_state> initial_state)
+      : visible_object(initial_state.release()) {}
   visible_object(const visible_object &other) {
     *this = other.slice(other.get_num_states());
   }
@@ -76,7 +78,7 @@ class visible_object final {
   visible_object slice(size_t num_states) const {
     std::vector<const visible_object_state *> sliced_states;
     sliced_states.reserve(num_states);
-    for (int j = 0; j < num_states; j++) {
+    for (size_t j = 0; j < num_states; j++) {
       sliced_states.push_back(history.at(j)->clone().release());
     }
     return visible_object(std::move(sliced_states));
@@ -84,12 +86,15 @@ class visible_object final {
 
   /// @brief Extracts the current state from this object.
   /// @return a pointer to the current state of this object, or `nullptr` is the
-  /// object contains no states.
+  /// object contains no states. After calling this method, the visible object
+  /// should be considered destroyed
   std::unique_ptr<const visible_object_state> consume_into_current_state() {
     if (history.empty()) {
       return nullptr;
     }
-    return std::unique_ptr<const visible_object_state>(history.back());
+    auto result = std::unique_ptr<const visible_object_state>(history.back());
+    history.pop_back();
+    return result;
   }
 
   std::unique_ptr<visible_object> clone() const {

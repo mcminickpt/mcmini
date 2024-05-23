@@ -12,7 +12,7 @@ struct thread_join : public model::transition {
 
  public:
   thread_join(state::runner_id_t executor, state::runner_id_t target)
-      : target(target), transition(executor) {}
+      : transition(executor), target(target) {}
   ~thread_join() = default;
 
   status modify(model::mutable_state& s) const override {

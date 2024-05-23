@@ -19,10 +19,6 @@ struct mutex : public model::visible_object_state {
   ~mutex() = default;
   mutex(const mutex &) = default;
   mutex(state_type state) : current_state(state) {}
-  static std::unique_ptr<mutex> make(state_type state = uninitialized) {
-    return extensions::make_unique<mutex>(state);
-  }
-
   // ---- State Observation --- //
   bool operator==(const mutex &other) const {
     return this->current_state == other.current_state;

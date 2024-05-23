@@ -17,7 +17,7 @@ struct thread_exit : public model::transition {
     if (!thread_state->is_running() || executor == TID_MAIN_THREAD) {
       return status::disabled;
     }
-    s.add_state_for_runner(executor, thread::make(thread::exited));
+    s.add_state_for_runner(executor, new thread(thread::exited));
     return status::exists;
   }
 

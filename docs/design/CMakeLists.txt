@@ -50,7 +50,10 @@ set(LIBMCMINI_C_SRC
   src/lib/wrappers.c
 )
 
-# -Wall -> be strict with warnings
+set(MCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
+set(MCMINI_EXTRA_COMPILER_DEFINITIONS "")
+set(MCMINI_EXTRA_LINK_FLAGS "")
+
 set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
 set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
 
@@ -62,7 +65,6 @@ set(LIBMCMINI_EXTRA_LINK_FLAGS -lrt -pthread -lm -ldl)
 
 # libmcmini.so -> the dylib which is loaded
 add_library(libmcmini SHARED "${LIBMCMINI_C_SRC}")
-add_library(McMini::Dylib ALIAS libmcmini)
 set_target_properties(libmcmini PROPERTIES OUTPUT_NAME "mcmini")
 
 target_include_directories(libmcmini PUBLIC "${MCMINI_INCLUDE_DIR}")
@@ -78,6 +80,14 @@ target_link_libraries(libmcmini
 
 add_executable(mcmini "${MCMINI_CPP_SRC}" "${MCMINI_C_SRC}")
 target_include_directories(mcmini PUBLIC "${MCMINI_INCLUDE_DIR}")
+target_compile_definitions(mcmini
+  PUBLIC
+    "${MCMINI_EXTRA_COMPILER_DEFINITIONS}")
+target_compile_options(mcmini
+  PRIVATE
+    "${MCMINI_EXTRA_COMPILER_FLAGS}")
+target_link_libraries(mcmini
+  PUBLIC
+    "${MCMINI_EXTRA_LINK_FLAGS}")
 
-# Compile examples
 add_subdirectory(src/examples)

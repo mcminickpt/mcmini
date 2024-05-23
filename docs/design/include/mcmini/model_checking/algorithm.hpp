@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "mcmini/coordinator/coordinator.hpp"
+#include "mcmini/model/exception.hpp"
 #include "mcmini/model/program.hpp"
 
 namespace model_checking {
@@ -21,6 +22,9 @@ class algorithm {
     std::function<void(const coordinator &)> data_race;
     std::function<void(const coordinator &)> unknown_error;
     std::function<void(const coordinator &)> trace_completed;
+    std::function<void(const coordinator &,
+                       const model::undefined_behavior_exception &)>
+        undefined_behavior;
   };
 
   /**

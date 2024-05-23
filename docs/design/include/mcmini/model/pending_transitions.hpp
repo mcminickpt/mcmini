@@ -3,6 +3,7 @@
 #include <map>
 #include <memory>
 
+#include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/defines.hpp"
 #include "mcmini/model/transition.hpp"
 
@@ -23,6 +24,8 @@ struct pending_transitions final {
   std::map<runner_id_t, const transition *> _contents;
 
  public:
+  pending_transitions() = default;
+  ~pending_transitions() {}
   auto begin() -> decltype(_contents.begin()) { return _contents.begin(); }
   auto end() -> decltype(_contents.end()) { return _contents.end(); }
   auto begin() const -> decltype(_contents.cbegin()) {
@@ -47,17 +50,16 @@ struct pending_transitions final {
     return nullptr;
   }
 
-  std::unique_ptr<const transition> displace_transition_for(
-      runner_id_t id, const transition *new_transition) {
-    if (id != new_transition->get_executor()) {
-      throw std::runtime_error(
-          "Attempting to insert a transition executed by a different runner (" +
-          std::to_string(id) +
-          " != " + std::to_string(new_transition->get_executor()) + ")");
-    }
+  const transition *release(const transition *new_transition) noexcept {
+    runner_id_t id = new_transition->get_executor();
     const transition *old_transition = _contents[id];
     _contents[id] = new_transition;
-    return make_unique<const transition>(old_transition);
+    return old_transition;
+  }
+
+  std::unique_ptr<const transition> set_transition(
+      const transition *new_transition) noexcept {
+    return std::unique_ptr<const transition>(release(new_transition));
   }
 };
 

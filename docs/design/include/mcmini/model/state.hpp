@@ -10,10 +10,6 @@
 #include "mcmini/model/visible_object.hpp"
 
 namespace model {
-/**
- * @brief A particular snapshot in time of a program undergoing verification
- * from the perspective of McMini.
- */
 class state {
  public:
   using objid_t = uint32_t;
@@ -28,8 +24,6 @@ class state {
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
   virtual const visible_object_state *get_state_of_runner(
       runner_id_t id) const = 0;
-  virtual std::unique_ptr<const visible_object_state> consume_obj(
-      objid_t id) && = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
 
   // TODO: Potentially provide an interface here that conforms to C++11's
@@ -37,29 +31,6 @@ class state {
   // Each subclass can return the same `state_iterator` type that
   // is defined elsewhere which should provide a pair of objid_t
   // and const visible_object_state* associated with that id.
-
-  template <typename StateType, typename ForwardIter, typename... Args>
-  static std::unique_ptr<StateType> from_visible_object_states(
-      ForwardIter begin, ForwardIter end, Args &&...args) {
-    auto state =
-        extensions::make_unique<StateType>(std::forward<Args>(args)...);
-    for (auto elem = begin; elem != end; elem++) {
-      state->add_object((*elem)->clone());
-    }
-    return state;
-  }
-
-  template <typename StateType, typename ForwardIter, typename... Args>
-  static std::unique_ptr<StateType> from_visible_objects(ForwardIter begin,
-                                                         ForwardIter end,
-                                                         Args &&...args) {
-    auto state =
-        extensions::make_unique<StateType>(std::forward<Args>(args)...);
-    for (auto elem = begin; elem != end; elem++) {
-      state->add_object((*elem).get_current_state()->clone());
-    }
-    return state;
-  }
 
   template <typename concrete_visible_object_state>
   const concrete_visible_object_state *get_state_of_object(objid_t id) const {
@@ -88,12 +59,11 @@ class mutable_state : public state {
   /**
    * @brief Begin tracking a new visible object _obj_ to this state.
    *
-   * @param initial_state the initial state of the object
+   * @param initial_state the initial state of the object.
    * @return the new id that is assigned to the object. This id is unique from
    * every other id assigned to the objects in this state.
    */
-  virtual objid_t add_object(
-      std::unique_ptr<const visible_object_state> initial_state) = 0;
+  virtual objid_t add_object(const visible_object_state *initial_state) = 0;
 
   /**
    * @brief Begin tracking a new visible object, but consider it as the state of
@@ -102,8 +72,7 @@ class mutable_state : public state {
    * @return the id of the runner that was just added. This is NOT the same as
    * the runner's object id.
    */
-  virtual runner_id_t add_runner(
-      std::unique_ptr<const visible_object_state> initial_state) = 0;
+  virtual runner_id_t add_runner(const visible_object_state *initial_state) = 0;
 
   /**
    * @brief Adds the given state _state_ for the object with id _id_.
@@ -112,8 +81,8 @@ class mutable_state : public state {
    * of type `visible_object_state_type`, the behavior of this function is
    * undefined.
    */
-  virtual void add_state_for_obj(
-      objid_t id, std::unique_ptr<visible_object_state> new_state) = 0;
+  virtual void add_state_for_obj(objid_t id,
+                                 const visible_object_state *new_state) = 0;
 
   /**
    * @brief Adds the given state _state_ for the runner with id _id_.
@@ -121,8 +90,8 @@ class mutable_state : public state {
    * This is equivalent to first retrieving the object id of the runner in this
    * state and then asking for that object's state.
    */
-  virtual void add_state_for_runner(
-      runner_id_t id, std::unique_ptr<visible_object_state> new_state) = 0;
+  virtual void add_state_for_runner(runner_id_t id,
+                                    const visible_object_state *new_state) = 0;
 
   /**
    * @brief Creates a copy of the given state.

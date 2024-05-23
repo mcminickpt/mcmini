@@ -71,13 +71,12 @@ class program {
   }
 
   using runner_generation_function =
-      std::function<std::unique_ptr<const model::transition>(
-          model::state::runner_id_t)>;
+      std::function<const model::transition *(model::state::runner_id_t)>;
 
   /// @brief Introduce a new object into the model with initial state `s`
   /// @param s the initial state of the new object to add to the model
   /// @return the id assigned to the object in the model
-  state::objid_t discover_object(std::unique_ptr<visible_object_state> s);
+  state::objid_t discover_object(const visible_object_state *s);
 
   /// @brief Introduce a new object into the model with initial state `s`
   /// @param s the initial state of the new object to add to the model
@@ -85,7 +84,7 @@ class program {
   /// runner, produces the first transition that runner is executing in the
   /// model (i.e. the very first pending operation).
   /// @return the id assigned to the runner.
-  state::runner_id_t discover_runner(std::unique_ptr<visible_object_state> s,
+  state::runner_id_t discover_runner(const visible_object_state *s,
                                      runner_generation_function f);
 
   /// @brief Model the execution of runner `p` and replace its next operation

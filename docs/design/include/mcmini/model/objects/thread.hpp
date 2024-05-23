@@ -21,10 +21,6 @@ struct thread : public model::visible_object_state {
   ~thread() = default;
   thread(const thread &) = default;
   thread(state state) : current_state(state) {}
-  static std::unique_ptr<thread> make(state state = embryo) {
-    return extensions::make_unique<thread>(state);
-  }
-
   // ---- State Observation --- //
   bool operator==(const thread &other) const {
     return this->current_state == other.current_state;

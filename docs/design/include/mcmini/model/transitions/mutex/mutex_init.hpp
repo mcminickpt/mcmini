@@ -12,12 +12,12 @@ struct mutex_init : public model::transition {
 
  public:
   mutex_init(runner_id_t executor, state::objid_t mutex_id)
-      : mutex_id(mutex_id), transition(executor) {}
+      : transition(executor), mutex_id(mutex_id) {}
   ~mutex_init() = default;
 
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
-    s.add_state_for_obj(mutex_id, mutex::make(mutex::unlocked));
+    s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked));
     return status::exists;
   }
 

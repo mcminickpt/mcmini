@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 #include "mcmini/defines.h"
+#include "mcmini/model/exception.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/signal.hpp"
 
@@ -75,16 +76,21 @@ void classic_dpor::verify_using(coordinator &coordinator,
       // NOTE: For deterministic results, always choose the "first" enabled
       // runner. A runner precedes another runner in being enabled iff it has a
       // smaller id.
-      this->continue_dpor_by_expanding_trace_with(
-          dpor_stack.back().get_first_enabled_runner(), context);
+      try {
+        this->continue_dpor_by_expanding_trace_with(
+            dpor_stack.back().get_first_enabled_runner(), context);
+      } catch (const model::undefined_behavior_exception &ube) {
+        callbacks.undefined_behavior(coordinator, ube);
+        return;
+      }
     }
     // TODO: Check for deadlock
     // TODO: Check for the program crashing
 
     callbacks.trace_completed(coordinator);
-    // if (coordinator.get_current_program_model().is_in_deadlock()) {
-    //   callbacks.deadlock(coordinator);
-    // }
+    if (coordinator.get_current_program_model().is_in_deadlock()) {
+      callbacks.deadlock(coordinator);
+    }
 
     // 3. Backtrack phase
     while (!dpor_stack.empty() && dpor_stack.back().backtrack_set_empty())
@@ -100,8 +106,13 @@ void classic_dpor::verify_using(coordinator &coordinator,
       // The first step of the NEXT exploration phase begins with following
       // one of the backtrack threads. Select one thread to backtrack upon and
       // follow it before continuing onto the exploration phase.
-      this->continue_dpor_by_expanding_trace_with(
-          dpor_stack.back().backtrack_set_pop_first(), context);
+      try {
+        this->continue_dpor_by_expanding_trace_with(
+            dpor_stack.back().backtrack_set_pop_first(), context);
+      } catch (const model::undefined_behavior_exception &ube) {
+        callbacks.undefined_behavior(coordinator, ube);
+        return;
+      }
     }
   }
 }
@@ -270,22 +281,22 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
   }
 }
 
-bool classic_dpor::happens_before(const dpor_context &context, int i,
-                                  int j) const {
+bool classic_dpor::happens_before(const dpor_context &context, size_t i,
+                                  size_t j) const {
   const runner_id_t rid =
       context.stack.at(i).get_out_transition()->get_executor();
   const clock_vector &cv = context.stack.at(i).get_clock_vector();
   return i <= cv.value_for(rid);
 }
 
-bool classic_dpor::happens_before_thread(const dpor_context &context, int i,
+bool classic_dpor::happens_before_thread(const dpor_context &context, size_t i,
                                          runner_id_t p) const {
   const runner_id_t rid = context.get_transition(i)->get_executor();
   const clock_vector &cv = context.per_runner_clocks[p].get_clock_vector();
   return i <= cv.value_for(rid);
 }
 
-bool classic_dpor::threads_race_after(const dpor_context &context, int i,
+bool classic_dpor::threads_race_after(const dpor_context &context, size_t i,
                                       runner_id_t q, runner_id_t p) const {
   const size_t transitionStackHeight = context.stack.size();
   for (size_t j = (size_t)i + 1; j < transitionStackHeight; j++) {
@@ -298,7 +309,8 @@ bool classic_dpor::threads_race_after(const dpor_context &context, int i,
 
 bool classic_dpor::dynamically_update_backtrack_sets_at_index(
     const dpor_context &context, const model::transition &S_i,
-    const model::transition &nextSP, stack_item &preSi, int i, int p) {
+    const model::transition &nextSP, stack_item &preSi, size_t i,
+    runner_id_t p) {
   // TODO: add in co-enabled conditions
   const bool has_reversible_race = this->are_dependent(nextSP, S_i) &&
                                    !this->happens_before_thread(context, i, p);

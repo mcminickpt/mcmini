@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+
 #include "mcmini/real_world/process.hpp"
 
 namespace real_world {

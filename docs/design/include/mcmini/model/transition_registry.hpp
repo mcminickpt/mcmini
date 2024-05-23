@@ -27,8 +27,9 @@ class transition_registry final {
  public:
   using runtime_type_id = uint32_t;
   using rttid = runtime_type_id;
-  using transition_discovery_callback = std::unique_ptr<transition> (*)(
-      state::runner_id_t, const volatile runner_mailbox&, model_to_system_map&);
+  using transition_discovery_callback =
+      transition *(*)(state::runner_id_t, const volatile runner_mailbox &,
+                      model_to_system_map &);
 
   /**
    * @brief Marks the specified transition subclass as possible to encounter at

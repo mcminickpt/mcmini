@@ -12,12 +12,12 @@ struct thread_create : public model::transition {
 
  public:
   thread_create(state::runner_id_t executor, state::runner_id_t target)
-      : target(target), transition(executor) {}
+      : transition(executor), target(target) {}
   ~thread_create() = default;
 
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
-    s.add_state_for_runner(target, thread::make(thread::running));
+    s.add_state_for_runner(target, new thread(thread::running));
     return status::exists;
   }
 

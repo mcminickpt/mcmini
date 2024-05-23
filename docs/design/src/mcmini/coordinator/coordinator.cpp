@@ -39,15 +39,14 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         "libmcmini.so with this message.");
   }
   model_to_system_map remote_address_mapping = model_to_system_map(*this);
-  auto pending_operation =
+  model::transition *pending_operation =
       callback_function(runner_id, *mb, remote_address_mapping);
   if (!pending_operation) {
     throw real_world::process::execution_exception(
         "Failed to translate the data written into the mailbox of runner " +
         std::to_string(runner_id));
   }
-  this->current_program_model.model_execution_of(runner_id,
-                                                 std::move(pending_operation));
+  this->current_program_model.model_execution_of(runner_id, pending_operation);
 }
 
 void coordinator::return_to_depth(uint32_t n) {
@@ -59,12 +58,12 @@ void coordinator::return_to_depth(uint32_t n) {
   // sequence; hence to ensure the model and the real world correspond, we must
   // re-execute the threads in the order specified in the transition sequence.
   assert(this->current_program_model.get_trace().count() == n);
-  for (const auto &t : this->current_program_model.get_trace()) {
+  for (const model::transition *t : this->current_program_model.get_trace()) {
     this->current_process_handle->execute_runner(t->get_executor());
   }
 }
 
-model::state::objid_t model_to_system_map::get_object_for_remote_process_handle(
+model::state::objid_t model_to_system_map::get_model_of(
     remote_address<void> handle) const {
   if (_coordinator.system_address_mapping.count(handle) > 0) {
     return _coordinator.system_address_mapping[handle];
@@ -72,42 +71,35 @@ model::state::objid_t model_to_system_map::get_object_for_remote_process_handle(
   return model::invalid_objid;
 }
 
-model::state::objid_t model_to_system_map::observe_remote_process_handle(
-    remote_address<void> remote_process_visible_object_handle,
-    std::unique_ptr<model::visible_object_state> fallback_initial_state) {
-  model::state::objid_t existing_obj =
-      this->get_object_for_remote_process_handle(
-          remote_process_visible_object_handle);
-  if (existing_obj != model::invalid_objid) {
-    return existing_obj;
-  } else {
-    model::state::objid_t new_objid =
-        _coordinator.current_program_model.discover_object(
-            std::move(fallback_initial_state));
-    _coordinator.system_address_mapping.insert(
-        {remote_process_visible_object_handle, new_objid});
-    return new_objid;
+model::state::objid_t model_to_system_map::observe_object(
+    real_world::remote_address<void> rp_vobj_handle,
+    const model::visible_object_state *vobs) {
+  if (contains(rp_vobj_handle)) {
+    throw std::runtime_error(
+        "Attempting to rebind a remote address to an object that already "
+        "exists in the model. Did you check that the object doesn't already "
+        "exist?");
   }
+  model::state::objid_t new_objid =
+      _coordinator.current_program_model.discover_object(vobs);
+  _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
+  return new_objid;
 }
 
-model::state::runner_id_t model_to_system_map::observe_remote_process_runner(
-    real_world::remote_address<void> remote_process_visible_object_handle,
-    std::unique_ptr<model::visible_object_state> fallback_initial_state,
-    runner_generation_function f) {
-  model::state::objid_t existing_obj =
-      this->get_object_for_remote_process_handle(
-          remote_process_visible_object_handle);
-  if (existing_obj != model::invalid_objid) {
-    return existing_obj;
-  } else {
-    model::state::runner_id_t new_runner_id =
-        _coordinator.current_program_model.discover_runner(
-            std::move(fallback_initial_state), std::move(f));
-    model::state::objid_t new_objid = _coordinator.get_current_program_model()
-                                          .get_state_sequence()
-                                          .get_objid_for_runner(new_runner_id);
-    _coordinator.system_address_mapping.insert(
-        {remote_process_visible_object_handle, new_objid});
-    return new_runner_id;
+model::state::runner_id_t model_to_system_map::observe_runner(
+    real_world::remote_address<void> rp_vobj_handle,
+    const model::visible_object_state *vobs, runner_generation_function f) {
+  if (contains(rp_vobj_handle)) {
+    throw std::runtime_error(
+        "Attempting to rebind a remote address to an object that already "
+        "exists in the model. Did you check that the object doesn't already "
+        "exist?");
   }
+  model::state::runner_id_t new_runner_id =
+      _coordinator.current_program_model.discover_runner(vobs, std::move(f));
+  model::state::objid_t new_objid = _coordinator.get_current_program_model()
+                                        .get_state_sequence()
+                                        .get_objid_for_runner(new_runner_id);
+  _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
+  return new_runner_id;
 }

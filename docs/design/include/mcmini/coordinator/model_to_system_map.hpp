@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
@@ -18,6 +19,13 @@
  * `pthread_mutex_lock()`). McMini therefore needs to maintain a
  * correspondence between these addresses and the identifiers in McMini's
  * model used to represent those objects to the model checker.
+ *
+ * @important: Handles are assumed to remain valid _across process source
+ * invocations_. In the future, we could support the ability to _remap_
+ * process handles dynamically during each new re-execution scheduled by
+ * the coordinator to handle aliasing etc. by using the trace as a total
+ * ordering on object-creation events. Until we run into this issue, we leave it
+ * for future development.
  */
 struct model_to_system_map final {
  private:
@@ -31,15 +39,19 @@ struct model_to_system_map final {
   friend coordinator;
 
  public:
-  /* Prevent external construction */
   model_to_system_map() = delete;
 
   /**
    * @brief Retrieve the object that corresponds to the given remote address, or
-   * `model::invalid_objid` if the address is not known to this mapping.
+   * `model::invalid_objid` if the address is not contained in this mapping.
    */
-  model::state::objid_t get_object_for_remote_process_handle(
-      real_world::remote_address<void>) const;
+  model::state::objid_t get_model_of(real_world::remote_address<void>) const;
+  bool contains(real_world::remote_address<void> addr) const {
+    return get_model_of(addr) != model::invalid_objid;
+  }
+
+  using runner_generation_function =
+      std::function<const model::transition *(model::state::runner_id_t)>;
 
   /**
    * @brief Record the presence of a new visible object that is
@@ -47,20 +59,11 @@ struct model_to_system_map final {
    *
    * @param remote_process_visible_object_handle the address containing
    * the data for the new visible object across process handles of the
-   *
-   * TODO: Handles are assumed to remain valid _across process source
-   * invocations_. In the future we could support the ability to _remap_
-   * process handles dynamically during each new re-execution scheduled by
-   * the coordinator to handle aliasing etc.
+   * `real_world::process_source` in the coordinator
    */
-  using runner_generation_function =
-      std::function<std::unique_ptr<const model::transition>(
-          model::state::runner_id_t)>;
-  model::state::objid_t observe_remote_process_handle(
-      real_world::remote_address<void>,
-      std::unique_ptr<model::visible_object_state>);
-  model::state::runner_id_t observe_remote_process_runner(
-      real_world::remote_address<void>,
-      std::unique_ptr<model::visible_object_state>,
-      runner_generation_function f);
+  model::state::objid_t observe_object(real_world::remote_address<void>,
+                                       const model::visible_object_state *);
+  model::state::runner_id_t observe_runner(real_world::remote_address<void>,
+                                           const model::visible_object_state *,
+                                           runner_generation_function f);
 };

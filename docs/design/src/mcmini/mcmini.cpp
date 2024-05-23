@@ -31,6 +31,7 @@
 
 using namespace extensions;
 using namespace model;
+using namespace objects;
 using namespace real_world;
 
 void display_usage() {
@@ -56,67 +57,80 @@ void finished_trace_classic_dpor(const coordinator& c) {
   trace_id++;
 }
 
-std::unique_ptr<model::transition> mutex_init_callback(
-    state::runner_id_t p, const volatile runner_mailbox& rmb,
-    model_to_system_map& m) {
+model::transition* mutex_init_callback(state::runner_id_t p,
+                                       const volatile runner_mailbox& rmb,
+                                       model_to_system_map& m) {
+  // Fetch the remote object
   pthread_mutex_t* remote_mut;
   memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-  state::objid_t mut =
-      m.observe_remote_process_handle(remote_mut, objects::mutex::make());
-  return make_unique<transitions::mutex_init>(p, mut);
+
+  // Locate the corresponding model of this object
+  if (!m.contains(remote_mut))
+    m.observe_object(remote_mut, new mutex(mutex::state_type::uninitialized));
+
+  state::objid_t mut = m.get_model_of(remote_mut);
+  return new transitions::mutex_init(p, mut);
 }
 
-std::unique_ptr<model::transition> mutex_lock_callback(
-    state::runner_id_t p, const volatile runner_mailbox& rmb,
-    model_to_system_map& m) {
+model::transition* mutex_lock_callback(state::runner_id_t p,
+                                       const volatile runner_mailbox& rmb,
+                                       model_to_system_map& m) {
   pthread_mutex_t* remote_mut;
   memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-  state::objid_t mut =
-      m.observe_remote_process_handle(remote_mut, objects::mutex::make());
-  return make_unique<transitions::mutex_lock>(p, mut);
+
+  // TODO: add code from Gene's PR here
+  if (!m.contains(remote_mut))
+    throw undefined_behavior_exception(
+        "Attempting to lock an uninitialized mutex");
+
+  state::objid_t mut = m.get_model_of(remote_mut);
+  return new transitions::mutex_lock(p, mut);
 }
 
-std::unique_ptr<model::transition> mutex_unlock_callback(
-    state::runner_id_t p, const volatile runner_mailbox& rmb,
-    model_to_system_map& m) {
+model::transition* mutex_unlock_callback(state::runner_id_t p,
+                                         const volatile runner_mailbox& rmb,
+                                         model_to_system_map& m) {
   pthread_mutex_t* remote_mut;
   memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-  state::objid_t mut =
-      m.observe_remote_process_handle(remote_mut, objects::mutex::make());
-  return make_unique<transitions::mutex_unlock>(p, mut);
+
+  // TODO: add code from Gene's PR here
+  if (!m.contains(remote_mut))
+    throw undefined_behavior_exception(
+        "Attempting to lock an uninitialized mutex");
+
+  state::objid_t mut = m.get_model_of(remote_mut);
+  return new transitions::mutex_unlock(p, mut);
 }
 
-std::unique_ptr<model::transition> thread_create_callback(
-    state::runner_id_t p, const volatile runner_mailbox& rmb,
-    model_to_system_map& m) {
+model::transition* thread_create_callback(state::runner_id_t p,
+                                          const volatile runner_mailbox& rmb,
+                                          model_to_system_map& m) {
   pthread_t new_thread;
   memcpy_v(&new_thread, static_cast<const volatile void*>(&rmb.cnts),
            sizeof(pthread_t));
-  runner_id_t new_thread_id = m.observe_remote_process_runner(
-      (void*)new_thread, objects::thread::make(objects::thread::state::running),
-      [](runner_id_t id) {
-        return make_unique<transitions::thread_start>(id);
-      });
-  return make_unique<transitions::thread_create>(p, new_thread_id);
+  runner_id_t new_thread_id = m.observe_runner(
+      (void*)new_thread, new objects::thread(objects::thread::embryo),
+      [](runner_id_t id) { return new transitions::thread_start(id); });
+  return new transitions::thread_create(p, new_thread_id);
 }
 
-std::unique_ptr<model::transition> thread_exit_callback(
-    state::runner_id_t p, const volatile runner_mailbox& rmb,
-    model_to_system_map& m) {
-  return make_unique<transitions::thread_exit>(p);
+model::transition* thread_exit_callback(state::runner_id_t p,
+                                        const volatile runner_mailbox& rmb,
+                                        model_to_system_map& m) {
+  return new transitions::thread_exit(p);
 }
 
 void do_model_checking(
     /* Pass arguments here or rearrange to configure the checker at
     runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
-  state_sequence state_of_program_at_main;
+  detached_state state_of_program_at_main;
   pending_transitions initial_first_steps;
   transition_registry tr;
 
   state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
-      objects::thread::make(objects::thread::state::running));
-  initial_first_steps.displace_transition_for(
-      0, new transitions::thread_start(main_thread_id));
+      new objects::thread(objects::thread::state::running));
+  initial_first_steps.set_transition(
+      new transitions::thread_start(main_thread_id));
 
   program model_for_program_starting_at_main(state_of_program_at_main,
                                              std::move(initial_first_steps));
@@ -197,13 +211,14 @@ int main_cpp(int argc, const char** argv) {
 }
 
 int main(int argc, const char** argv) {
-  try {
-    return main_cpp(argc, argv);
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
-    return EXIT_FAILURE;
-  } catch (...) {
-    std::cerr << "ERROR: Unknown error occurred" << std::endl;
-    return EXIT_FAILURE;
-  }
+  // try {
+
+  // } catch (const std::exception& e) {
+  //   std::cerr << "ERROR: " << e.what() << std::endl;
+  //   return EXIT_FAILURE;
+  // } catch (...) {
+  //   std::cerr << "ERROR: Unknown error occurred" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  return main_cpp(argc, argv);
 }

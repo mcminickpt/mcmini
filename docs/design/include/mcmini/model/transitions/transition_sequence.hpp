@@ -37,9 +37,9 @@ class transition_sequence final {
   size_t count() const { return contents.size(); }
   const transition* at(size_t i) const { return contents.at(i); }
   const transition* back() const { return contents.back(); }
+  std::unique_ptr<const transition> extract_at(size_t i);
   void push(const transition* t) { contents.push_back(t); }
   void consume_into_subsequence(uint32_t depth);
-  std::unique_ptr<const transition> extract_at(size_t i);
 };
 
 }  // namespace model

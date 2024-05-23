@@ -18,7 +18,7 @@ class detached_state : public model::mutable_state {
   append_only<model::visible_object> visible_objects;
 
   // INVARIANT: Runner ids are assigned sequentially. A runner with id `id` is
-  // mapped to the object id at index `id - 1`.
+  // mapped to the object id at index `id `.
   append_only<state::objid_t> runner_to_obj_map;
 
  public:
@@ -39,16 +39,11 @@ class detached_state : public model::mutable_state {
   const visible_object_state *get_state_of_object(objid_t id) const override;
   const visible_object_state *get_state_of_runner(
       runner_id_t id) const override;
-  objid_t add_object(
-      std::unique_ptr<const visible_object_state> initial_state) override;
-  runner_id_t add_runner(
-      std::unique_ptr<const visible_object_state> initial_state) override;
-  void add_state_for_obj(
-      objid_t id, std::unique_ptr<visible_object_state> new_state) override;
-  void add_state_for_runner(
-      runner_id_t id, std::unique_ptr<visible_object_state> new_state) override;
-  std::unique_ptr<const visible_object_state> consume_obj(objid_t id) &&
-      override;
+  objid_t add_object(const visible_object_state *) override;
+  runner_id_t add_runner(const visible_object_state *) override;
+  void add_state_for_obj(objid_t id, const visible_object_state *) override;
+  void add_state_for_runner(runner_id_t id,
+                            const visible_object_state *) override;
   std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 

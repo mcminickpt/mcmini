@@ -25,6 +25,18 @@ namespace model_checking {
 struct stack_item final {
  private:
   /**
+   * @brief The clock vector associated with the
+   * transition _resulting_ in this state
+   */
+  const clock_vector cv;
+
+  /// @brief The transition which DPOR decided to schedule from this state.
+  ///
+  /// @note the item does not own this transition; it is instead owned by the
+  /// trace of the model which the DPOR algorithm manipulates. It is up to the
+  const model::transition *out_transition = nullptr;
+
+  /**
    * @brief A collection of threads that are scheduled to be run from this state
    * to continune to state-space search
    *
@@ -87,18 +99,6 @@ struct stack_item final {
    * further. Thus, we opt for the latter choice.
    */
   std::unordered_set<runner_id_t> enabled_runners;
-
-  /**
-   * @brief The clock vector associated with the
-   * transition _resulting_ in this state
-   */
-  const clock_vector cv;
-
-  /// @brief The transition which DPOR decided to schedule from this state.
-  ///
-  /// @note the item does not own this transition; it is instead owned by the
-  /// trace of the model which the DPOR algorithm manipulates. It is up to the
-  const model::transition *out_transition = nullptr;
 
  public:
   stack_item() : stack_item(clock_vector()) {}

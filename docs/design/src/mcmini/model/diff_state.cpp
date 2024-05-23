@@ -38,18 +38,18 @@ const visible_object_state *diff_state::get_state_of_runner(
 }
 
 state::objid_t diff_state::add_object(
-    std::unique_ptr<const visible_object_state> initial_state) {
+    const visible_object_state *initial_state) {
   // The next id that would be assigned is one more than
   // the largest id available. The last id of the base it `size() - 1` and
   // we are `new_object_state.size()` elements in
   state::objid_t next_id = base_state.count() + new_object_states.size();
-  new_object_states[next_id] = visible_object(std::move(initial_state));
+  new_object_states[next_id] = initial_state;
   return next_id;
 }
 
 state::runner_id_t diff_state::add_runner(
-    std::unique_ptr<const visible_object_state> initial_state) {
-  objid_t objid = this->add_object(std::move(initial_state));
+    const visible_object_state *initial_state) {
+  objid_t objid = this->add_object(initial_state);
 
   // The next runner id would be the current size.
   state::objid_t next_runner_id = runner_count();
@@ -57,25 +57,21 @@ state::runner_id_t diff_state::add_runner(
   return next_runner_id;
 }
 
-void diff_state::add_state_for_obj(
-    objid_t id, std::unique_ptr<visible_object_state> new_state) {
+void diff_state::add_state_for_obj(objid_t id,
+                                   const visible_object_state *new_state) {
   if (id == invalid_objid) {
-    throw std::runtime_error("Attempted to insert an invalid object id");
+    throw std::runtime_error(
+        "Attempted to insert a state for an invalid object id");
   }
   // Here we seek to insert all new states into the local cache instead of
   // forwarding them onto the underlying base state.
   visible_object &vobj = new_object_states[id];
-  vobj.push_state(std::move(new_state));
+  vobj.push_state(new_state);
 }
 
-void diff_state::add_state_for_runner(
-    runner_id_t id, std::unique_ptr<visible_object_state> new_state) {
-  this->add_state_for_obj(this->get_objid_for_runner(id), std::move(new_state));
-}
-
-std::unique_ptr<const visible_object_state> diff_state::consume_obj(
-    objid_t id) && {
-  throw std::runtime_error("Consumption is not permitted on diff states");
+void diff_state::add_state_for_runner(runner_id_t id,
+                                      const visible_object_state *new_state) {
+  this->add_state_for_obj(this->get_objid_for_runner(id), new_state);
 }
 
 std::unique_ptr<mutable_state> diff_state::mutable_clone() const {

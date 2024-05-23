@@ -6,7 +6,7 @@ using namespace model;
 
 program::program(const state &initial_state,
                  pending_transitions &&initial_first_steps)
-    : next_steps(std::move(initial_first_steps)), state_seq(initial_state) {}
+    : state_seq(initial_state), next_steps(std::move(initial_first_steps)) {}
 
 std::unordered_set<state::runner_id_t> program::get_enabled_runners() const {
   std::unordered_set<runner_id_t> enabled_runners;
@@ -39,8 +39,8 @@ void program::restore_model_at_depth(uint32_t n) {
   for (int32_t i = (trace.count() - 1); i >= (int32_t)(n); i--)
     runner_to_index_from_top[trace.at(i)->get_executor()] = i;
 
-  for (const std::pair<runner_id_t, uint32_t> &e : runner_to_index_from_top)
-    next_steps.displace_transition_for(e.first, trace.extract_at(e.second));
+  for (const std::pair<runner_id_t, uint32_t> e : runner_to_index_from_top)
+    next_steps.set_transition(trace.extract_at(e.second).release());
 
   state_seq.consume_into_subsequence(n);
   trace.consume_into_subsequence(n);
@@ -71,25 +71,24 @@ void program::model_execution_of(runner_id_t p, const transition *npo) {
         "Attempted to model the execution of a disabled transition(" +
         next_s_p->debug_string() + ")");
   }
-  trace.push(next_steps.displace_transition_for(p, npo));
+  trace.push(next_steps.release(npo));
 }
 
 state::objid_t program::discover_object(
-    std::unique_ptr<visible_object_state> initial_state) {
-  return this->state_seq.add_object(std::move(initial_state));
+    const visible_object_state *initial_state) {
+  return this->state_seq.add_object(initial_state);
 }
 
 state::runner_id_t program::discover_runner(
-    std::unique_ptr<visible_object_state> initial_state,
-    runner_generation_function f) {
-  state::runner_id_t id = this->state_seq.add_runner(std::move(initial_state));
-  this->next_steps.displace_transition_for(id, f(id));
+    const visible_object_state *initial_state, runner_generation_function f) {
+  state::runner_id_t id = this->state_seq.add_runner(initial_state);
+  this->next_steps.set_transition(f(id));
   return id;
 }
 
 bool program::is_in_deadlock() const {
-  for (const auto &t : this->get_pending_transitions()) {
-    if (t.second->is_enabled_in(this->state_seq)) return false;
+  for (const auto &p : this->get_pending_transitions()) {
+    if (p.second->is_enabled_in(this->state_seq)) return false;
   }
   return true;
 }

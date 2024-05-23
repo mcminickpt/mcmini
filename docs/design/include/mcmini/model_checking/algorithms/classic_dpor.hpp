@@ -40,9 +40,10 @@ class classic_dpor final : public algorithm {
 
   struct dpor_context;
 
-  bool happens_before(const dpor_context &, int i, int j) const;
-  bool happens_before_thread(const dpor_context &, int i, runner_id_t p) const;
-  bool threads_race_after(const dpor_context &context, int i, runner_id_t q,
+  bool happens_before(const dpor_context &, size_t i, size_t j) const;
+  bool happens_before_thread(const dpor_context &, size_t i,
+                             runner_id_t p) const;
+  bool threads_race_after(const dpor_context &context, size_t i, runner_id_t q,
                           runner_id_t p) const;
 
   clock_vector accumulate_max_clock_vector_against(const model::transition &,
@@ -54,7 +55,8 @@ class classic_dpor final : public algorithm {
 
   bool dynamically_update_backtrack_sets_at_index(
       const dpor_context &, const model::transition &S_i,
-      const model::transition &nextSP, stack_item &preSi, int i, int p);
+      const model::transition &nextSP, stack_item &preSi, size_t i,
+      runner_id_t p);
 };
 
 }  // namespace model_checking

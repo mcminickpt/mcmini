@@ -12,7 +12,7 @@ struct mutex_lock : public model::transition {
 
  public:
   mutex_lock(runner_id_t executor, state::objid_t mutex_id)
-      : mutex_id(mutex_id), transition(executor) {}
+      : transition(executor), mutex_id(mutex_id) {}
   ~mutex_lock() = default;
 
   status modify(model::mutable_state& s) const override {
@@ -23,7 +23,7 @@ struct mutex_lock : public model::transition {
     if (ms->is_locked()) {
       return status::disabled;
     }
-    s.add_state_for_obj(mutex_id, mutex::make(mutex::locked));
+    s.add_state_for_obj(mutex_id, new mutex(mutex::locked));
     return status::exists;
   }
 
