@@ -5,7 +5,6 @@
 #include "mcmini/mem.h"
 #include "mcmini/misc/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
-#include "mcmini/misc/volatile_mem_streambuf.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"
 #include "mcmini/model/transitions/mutex/mutex_lock.hpp"

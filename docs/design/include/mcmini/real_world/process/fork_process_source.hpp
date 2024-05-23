@@ -5,7 +5,6 @@
 
 #include "mcmini/defines.h"
 #include "mcmini/forwards.hpp"
-#include "mcmini/misc/volatile_mem_streambuf.hpp"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/real_world/shm.hpp"
 
