@@ -1,8 +1,9 @@
 #pragma once
 
+#include <functional>
+
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/forwards.hpp"
-#include "mcmini/misc/optional.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/real_world/remote_address.hpp"
 

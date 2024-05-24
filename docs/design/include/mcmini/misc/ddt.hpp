@@ -7,8 +7,6 @@
 #include <typeinfo>
 #include <unordered_map>
 
-#include "mcmini/misc/optional.hpp"
-
 template <typename InterfaceType, typename FunctionType>
 struct double_dispatch_member_function_table;
 
