@@ -1,6 +1,11 @@
 #include "mcmini/model/transitions/transition_sequence.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+
 #include "mcmini/misc/extensions/memory.hpp"
+#include "mcmini/model/transition.hpp"
 
 using namespace model;
 

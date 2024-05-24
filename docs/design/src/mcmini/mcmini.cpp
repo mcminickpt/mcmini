@@ -1,27 +1,35 @@
-#include "mcmini/mcmini.hpp"
+#include <cstdint>
+#include <memory>
+#include <string>
 
 #include "mcmini/coordinator/coordinator.hpp"
+#include "mcmini/coordinator/model_to_system_map.hpp"
+#include "mcmini/defines.h"
 #include "mcmini/lib/shared_transition.h"
 #include "mcmini/mem.h"
-#include "mcmini/misc/ddt.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/model/exception.hpp"
+#include "mcmini/model/objects/mutex.hpp"
+#include "mcmini/model/objects/thread.hpp"
+#include "mcmini/model/pending_transitions.hpp"
+#include "mcmini/model/program.hpp"
+#include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
+#include "mcmini/model/transition.hpp"
+#include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/transitions/mutex/mutex_init.hpp"
 #include "mcmini/model/transitions/mutex/mutex_lock.hpp"
 #include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
 #include "mcmini/model/transitions/thread/thread_create.hpp"
 #include "mcmini/model/transitions/thread/thread_exit.hpp"
 #include "mcmini/model/transitions/thread/thread_start.hpp"
+#include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
+#include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
-#include "mcmini/real_world/shm.hpp"
+#include "mcmini/signal.hpp"
 
 #define _XOPEN_SOURCE_EXTENDED 1
-
-#include <libgen.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <unistd.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -67,7 +75,7 @@ model::transition* mutex_init_callback(state::runner_id_t p,
   if (!m.contains(remote_mut))
     m.observe_object(remote_mut, new mutex(mutex::state_type::uninitialized));
 
-  state::objid_t mut = m.get_model_of(remote_mut);
+  state::objid_t const mut = m.get_model_of(remote_mut);
   return new transitions::mutex_init(p, mut);
 }
 
@@ -82,7 +90,7 @@ model::transition* mutex_lock_callback(state::runner_id_t p,
     throw undefined_behavior_exception(
         "Attempting to lock an uninitialized mutex");
 
-  state::objid_t mut = m.get_model_of(remote_mut);
+  state::objid_t const mut = m.get_model_of(remote_mut);
   return new transitions::mutex_lock(p, mut);
 }
 
@@ -97,7 +105,7 @@ model::transition* mutex_unlock_callback(state::runner_id_t p,
     throw undefined_behavior_exception(
         "Attempting to lock an uninitialized mutex");
 
-  state::objid_t mut = m.get_model_of(remote_mut);
+  state::objid_t const mut = m.get_model_of(remote_mut);
   return new transitions::mutex_unlock(p, mut);
 }
 
@@ -107,7 +115,7 @@ model::transition* thread_create_callback(state::runner_id_t p,
   pthread_t new_thread;
   memcpy_v(&new_thread, static_cast<const volatile void*>(&rmb.cnts),
            sizeof(pthread_t));
-  runner_id_t new_thread_id = m.observe_runner(
+  runner_id_t const new_thread_id = m.observe_runner(
       (void*)new_thread, new objects::thread(objects::thread::embryo),
       [](runner_id_t id) { return new transitions::thread_start(id); });
   return new transitions::thread_create(p, new_thread_id);
@@ -126,7 +134,7 @@ void do_model_checking(
   pending_transitions initial_first_steps;
   transition_registry tr;
 
-  state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
+  state::runner_id_t const main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));
   initial_first_steps.set_transition(
       new transitions::thread_start(main_thread_id));
@@ -159,7 +167,7 @@ void do_model_checking(
 }
 
 void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
-  model::detached_state state_of_program_at_main;
+  model::detached_state const state_of_program_at_main;
   model::pending_transitions initial_first_steps;  // TODO: Create initializer
                                                    // or else add other methods
 
@@ -167,13 +175,13 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   // // single thread "main" that is alive and then running the transition
 
   {
-      // Read that information from the linked list __inside the restarted
-      // image__
-      // while (! not all information read yet) {}
-      // read(...);
+    // Read that information from the linked list __inside the restarted
+    // image__
+    // while (! not all information read yet) {}
+    // read(...);
 
-      // auto state_of_some_object_in_the_ckpt_image = new mutex();
-      // state_of_program_at_main.add_state_for();
+    // auto state_of_some_object_in_the_ckpt_image = new mutex();
+    // state_of_program_at_main.add_state_for();
   }
 
   {

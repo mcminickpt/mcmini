@@ -4,7 +4,6 @@
 #include <type_traits>
 #include <unordered_map>
 
-#include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 

@@ -1,8 +1,22 @@
 #include "mcmini/coordinator/coordinator.hpp"
 
 #include <cassert>
+#include <cstdint>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
+#include "mcmini/coordinator/model_to_system_map.hpp"
+#include "mcmini/model/program.hpp"
+#include "mcmini/model/state.hpp"
+#include "mcmini/model/transition.hpp"
+#include "mcmini/model/transition_registry.hpp"
+#include "mcmini/model/visible_object_state.hpp"
+#include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process.hpp"
+#include "mcmini/real_world/process_source.hpp"
+#include "mcmini/real_world/remote_address.hpp"
 
 using namespace real_world;
 
@@ -24,7 +38,7 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
   }
   volatile runner_mailbox *mb =
       this->current_process_handle->execute_runner(runner_id);
-  model::transition_registry::runtime_type_id rttid = mb->type;
+  model::transition_registry::runtime_type_id const rttid = mb->type;
 
   model::transition_registry::transition_discovery_callback callback_function =
       runtime_transition_mapping.get_callback_for(rttid);
@@ -80,7 +94,7 @@ model::state::objid_t model_to_system_map::observe_object(
         "exists in the model. Did you check that the object doesn't already "
         "exist?");
   }
-  model::state::objid_t new_objid =
+  model::state::objid_t const new_objid =
       _coordinator.current_program_model.discover_object(vobs);
   _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
   return new_objid;
@@ -95,11 +109,12 @@ model::state::runner_id_t model_to_system_map::observe_runner(
         "exists in the model. Did you check that the object doesn't already "
         "exist?");
   }
-  model::state::runner_id_t new_runner_id =
+  model::state::runner_id_t const new_runner_id =
       _coordinator.current_program_model.discover_runner(vobs, std::move(f));
-  model::state::objid_t new_objid = _coordinator.get_current_program_model()
-                                        .get_state_sequence()
-                                        .get_objid_for_runner(new_runner_id);
+  model::state::objid_t const new_objid =
+      _coordinator.get_current_program_model()
+          .get_state_sequence()
+          .get_objid_for_runner(new_runner_id);
   _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
   return new_runner_id;
 }

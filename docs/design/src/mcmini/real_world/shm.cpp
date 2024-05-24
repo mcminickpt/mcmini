@@ -3,10 +3,12 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
 
+#include <cerrno>
+#include <cstdio>
 #include <cstdlib>
+#include <string>
 
 using namespace real_world;
 
@@ -14,7 +16,8 @@ shared_memory_region::shared_memory_region(const std::string &shm_file_name,
                                            size_t region_size)
     : shm_file_name(shm_file_name), region_size(region_size) {
   // This creates a file in /dev/shm/
-  int fd = shm_open(shm_file_name.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  int const fd =
+      shm_open(shm_file_name.c_str(), O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) {
     if (errno == EACCES) {
       std::fprintf(stderr,
@@ -25,7 +28,7 @@ shared_memory_region::shared_memory_region(const std::string &shm_file_name,
     }
     std::exit(EXIT_FAILURE);
   }
-  int rc = ftruncate(fd, size());
+  int const rc = ftruncate(fd, size());
   if (rc == -1) {
     std::perror("ftruncate");
     std::exit(EXIT_FAILURE);

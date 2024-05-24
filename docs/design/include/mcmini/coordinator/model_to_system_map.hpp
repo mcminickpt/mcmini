@@ -27,7 +27,7 @@
  * ordering on object-creation events. Until we run into this issue, we leave it
  * for future development.
  */
-struct model_to_system_map final {
+class model_to_system_map final {
  private:
   coordinator &_coordinator;
 

@@ -1,20 +1,104 @@
-Checks: '-*,clang-diagnostic-*,llvm-*,misc-*,-misc-unused-parameters-misc-non-private-member-variables-in-classes,readability-identifier-naming'
+---
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,clang-diagnostic-*,llvm-*,misc-*,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,readability-identifier-naming'
+WarningsAsErrors: ''
+HeaderFileExtensions:
+  - ''
+  - h
+  - hh
+  - hpp
+  - hxx
+ImplementationFileExtensions:
+  - c
+  - cc
+  - cpp
+  - cxx
+HeaderFilterRegex: ''
+FormatStyle:     none
+User:            maxwellpirtle
 CheckOptions:
-  - key:             readability-identifier-naming.ClassCase
-    value:           CamelCase
-  - key:             readability-identifier-naming.EnumCase
-    value:           CamelCase
-  - key:             readability-identifier-naming.FunctionCase
-    value:           camelBack
-  - key:             readability-identifier-naming.MemberCase
-    value:           camelBack
-  - key:             readability-identifier-naming.ParameterCase
-    value:           camelBack
-  - key:             readability-identifier-naming.UnionCase
-    value:           CamelCase
-  - key:             readability-identifier-naming.VariableCase
-    value:           camelBack
-  - key:             readability-identifier-naming.NamespaceCase
-    value:           lower_case
-  - key:             readability-identifier-naming.InlineNamespaceCase
-    value:           lower_case
+  cert-dcl16-c.NewSuffixes: 'L;LL;LU;LLU'
+  cert-err33-c.AllowCastToVoid: 'true'
+  cert-err33-c.CheckedFunctions: '::aligned_alloc;::asctime_s;::at_quick_exit;::atexit;::bsearch;::bsearch_s;::btowc;::c16rtomb;::c32rtomb;::calloc;::clock;::cnd_broadcast;::cnd_init;::cnd_signal;::cnd_timedwait;::cnd_wait;::ctime_s;::fclose;::fflush;::fgetc;::fgetpos;::fgets;::fgetwc;::fopen;::fopen_s;::fprintf;::fprintf_s;::fputc;::fputs;::fputwc;::fputws;::fread;::freopen;::freopen_s;::fscanf;::fscanf_s;::fseek;::fsetpos;::ftell;::fwprintf;::fwprintf_s;::fwrite;::fwscanf;::fwscanf_s;::getc;::getchar;::getenv;::getenv_s;::gets_s;::getwc;::getwchar;::gmtime;::gmtime_s;::localtime;::localtime_s;::malloc;::mbrtoc16;::mbrtoc32;::mbsrtowcs;::mbsrtowcs_s;::mbstowcs;::mbstowcs_s;::memchr;::mktime;::mtx_init;::mtx_lock;::mtx_timedlock;::mtx_trylock;::mtx_unlock;::printf_s;::putc;::putwc;::raise;::realloc;::remove;::rename;::scanf;::scanf_s;::setlocale;::setvbuf;::signal;::snprintf;::snprintf_s;::sprintf;::sprintf_s;::sscanf;::sscanf_s;::strchr;::strerror_s;::strftime;::strpbrk;::strrchr;::strstr;::strtod;::strtof;::strtoimax;::strtok;::strtok_s;::strtol;::strtold;::strtoll;::strtoul;::strtoull;::strtoumax;::strxfrm;::swprintf;::swprintf_s;::swscanf;::swscanf_s;::thrd_create;::thrd_detach;::thrd_join;::thrd_sleep;::time;::timespec_get;::tmpfile;::tmpfile_s;::tmpnam;::tmpnam_s;::tss_create;::tss_get;::tss_set;::ungetc;::ungetwc;::vfprintf;::vfprintf_s;::vfscanf;::vfscanf_s;::vfwprintf;::vfwprintf_s;::vfwscanf;::vfwscanf_s;::vprintf_s;::vscanf;::vscanf_s;::vsnprintf;::vsnprintf_s;::vsprintf;::vsprintf_s;::vsscanf;::vsscanf_s;::vswprintf;::vswprintf_s;::vswscanf;::vswscanf_s;::vwprintf_s;::vwscanf;::vwscanf_s;::wcrtomb;::wcschr;::wcsftime;::wcspbrk;::wcsrchr;::wcsrtombs;::wcsrtombs_s;::wcsstr;::wcstod;::wcstof;::wcstoimax;::wcstok;::wcstok_s;::wcstol;::wcstold;::wcstoll;::wcstombs;::wcstombs_s;::wcstoul;::wcstoull;::wcstoumax;::wcsxfrm;::wctob;::wctrans;::wctype;::wmemchr;::wprintf_s;::wscanf;::wscanf_s;'
+  cert-oop54-cpp.WarnOnlyIfThisHasSuspiciousField: 'false'
+  cert-str34-c.DiagnoseSignedUnsignedCharComparisons: 'false'
+  cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: 'true'
+  google-readability-braces-around-statements.ShortStatementLines: '1'
+  google-readability-function-size.StatementThreshold: '800'
+  google-readability-namespace-comments.ShortNamespaceLines: '10'
+  google-readability-namespace-comments.SpacesBeforeComments: '2'
+  llvm-else-after-return.WarnOnConditionVariables: 'false'
+  llvm-else-after-return.WarnOnUnfixable: 'false'
+  llvm-header-guard.HeaderFileExtensions: ';h;hh;hpp;hxx'
+  llvm-namespace-comment.ShortNamespaceLines: '1'
+  llvm-namespace-comment.SpacesBeforeComments: '1'
+  llvm-qualified-auto.AddConstToQualified: 'false'
+  misc-const-correctness.AnalyzeReferences: 'true'
+  misc-const-correctness.AnalyzeValues: 'true'
+  misc-const-correctness.TransformPointersAsValues: 'false'
+  misc-const-correctness.TransformReferences: 'true'
+  misc-const-correctness.TransformValues: 'true'
+  misc-const-correctness.WarnPointersAsValues: 'false'
+  misc-coroutine-hostile-raii.RAIITypesList: 'std::lock_guard;std::scoped_lock'
+  misc-coroutine-hostile-raii.SafeAwaitableList: ''
+  misc-definitions-in-headers.HeaderFileExtensions: ';h;hh;hpp;hxx'
+  misc-definitions-in-headers.UseHeaderFileExtension: 'true'
+  misc-header-include-cycle.IgnoredFilesList: ''
+  misc-include-cleaner.DeduplicateFindings: 'true'
+  misc-include-cleaner.IgnoreHeaders: ''
+  misc-throw-by-value-catch-by-reference.CheckThrowTemporaries: 'true'
+  misc-throw-by-value-catch-by-reference.MaxSize: '1'
+  misc-throw-by-value-catch-by-reference.WarnOnLargeObjects: 'false'
+  misc-uniqueptr-reset-release.IncludeStyle: llvm
+  misc-use-anonymous-namespace.HeaderFileExtensions: ';h;hh;hpp;hxx'
+  readability-identifier-naming.AggressiveDependentMemberLookup: 'false'
+  readability-identifier-naming.CheckAnonFieldInParent: 'false'
+  readability-identifier-naming.ClassCase: lower_case
+  readability-identifier-naming.ClassHungarianPrefix: Off
+  readability-identifier-naming.ClassIgnoredRegexp: ''
+  readability-identifier-naming.ClassPrefix: ''
+  readability-identifier-naming.ClassSuffix: ''
+  readability-identifier-naming.EnumCase: lower_case
+  readability-identifier-naming.EnumHungarianPrefix: Off
+  readability-identifier-naming.EnumIgnoredRegexp: ''
+  readability-identifier-naming.EnumPrefix: ''
+  readability-identifier-naming.EnumSuffix: ''
+  readability-identifier-naming.FunctionCase: lower_case
+  readability-identifier-naming.FunctionHungarianPrefix: Off
+  readability-identifier-naming.FunctionIgnoredRegexp: ''
+  readability-identifier-naming.FunctionPrefix: ''
+  readability-identifier-naming.FunctionSuffix: ''
+  readability-identifier-naming.GetConfigPerFile: 'true'
+  readability-identifier-naming.IgnoreFailedSplit: 'false'
+  readability-identifier-naming.IgnoreMainLikeFunctions: 'false'
+  readability-identifier-naming.InlineNamespaceCase: lower_case
+  readability-identifier-naming.InlineNamespaceHungarianPrefix: Off
+  readability-identifier-naming.InlineNamespaceIgnoredRegexp: ''
+  readability-identifier-naming.InlineNamespacePrefix: ''
+  readability-identifier-naming.InlineNamespaceSuffix: ''
+  readability-identifier-naming.MemberCase: lower_case
+  readability-identifier-naming.MemberHungarianPrefix: Off
+  readability-identifier-naming.MemberIgnoredRegexp: ''
+  readability-identifier-naming.MemberPrefix: ''
+  readability-identifier-naming.MemberSuffix: ''
+  readability-identifier-naming.NamespaceCase: lower_case
+  readability-identifier-naming.NamespaceHungarianPrefix: Off
+  readability-identifier-naming.NamespaceIgnoredRegexp: ''
+  readability-identifier-naming.NamespacePrefix: ''
+  readability-identifier-naming.NamespaceSuffix: ''
+  readability-identifier-naming.ParameterCase: lower_case
+  readability-identifier-naming.ParameterHungarianPrefix: Off
+  readability-identifier-naming.ParameterIgnoredRegexp: ''
+  readability-identifier-naming.ParameterPrefix: ''
+  readability-identifier-naming.ParameterSuffix: ''
+  readability-identifier-naming.UnionCase: lower_case
+  readability-identifier-naming.UnionHungarianPrefix: Off
+  readability-identifier-naming.UnionIgnoredRegexp: ''
+  readability-identifier-naming.UnionPrefix: ''
+  readability-identifier-naming.UnionSuffix: ''
+  readability-identifier-naming.VariableCase: lower_case
+  readability-identifier-naming.VariableHungarianPrefix: Off
+  readability-identifier-naming.VariableIgnoredRegexp: ''
+  readability-identifier-naming.VariablePrefix: ''
+  readability-identifier-naming.VariableSuffix: ''
+SystemHeaders:   false
+...

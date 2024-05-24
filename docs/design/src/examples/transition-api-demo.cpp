@@ -386,21 +386,21 @@
 
 #include <iostream>
 
-class Base {
+class base {
  public:
-  bool operator==(const Base &other) { return false; }
+  bool operator==(const base &other) { return false; }
   virtual void func() { std::cout << "Base::func\n"; }
 };
 
-class Derived : public Base {
+class derived : public base {
  public:
   void func() override { std::cout << "Derived::func\n"; }
 };
 
 int main() {
-  void (Base::*ptrToFunc)() = &Base::func;
-  Derived d;
+  void (base::*const ptr_to_func)() = &base::func;
+  derived const d;
 
   // This will call Derived::func because d is an instance of Derived.
-  (d.*ptrToFunc)();
+  (d.*ptr_to_func)();
 }

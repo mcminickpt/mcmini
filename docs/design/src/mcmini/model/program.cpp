@@ -1,6 +1,16 @@
 #include "mcmini/model/program.hpp"
 
-#include <algorithm>
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+
+#include "mcmini/model/pending_transitions.hpp"
+#include "mcmini/model/state.hpp"
+#include "mcmini/model/transition.hpp"
+#include "mcmini/model/visible_object_state.hpp"
 
 using namespace model;
 
@@ -65,7 +75,7 @@ void program::model_execution_of(runner_id_t p, const transition *npo) {
         "the ");
   }
 
-  transition::status status = this->state_seq.follow(*next_s_p);
+  transition::status const status = this->state_seq.follow(*next_s_p);
   if (status == transition::status::disabled) {
     throw std::runtime_error(
         "Attempted to model the execution of a disabled transition(" +
@@ -81,7 +91,7 @@ state::objid_t program::discover_object(
 
 state::runner_id_t program::discover_runner(
     const visible_object_state *initial_state, runner_generation_function f) {
-  state::runner_id_t id = this->state_seq.add_runner(initial_state);
+  state::runner_id_t const id = this->state_seq.add_runner(initial_state);
   this->next_steps.set_transition(f(id));
   return id;
 }

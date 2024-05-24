@@ -1,13 +1,20 @@
 #include "mcmini/model/state/diff_state.hpp"
 
+#include <memory>
+#include <stdexcept>
+
+#include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/model/state.hpp"
+#include "mcmini/model/visible_object.hpp"
+#include "mcmini/model/visible_object_state.hpp"
+
 using namespace model;
 
 state::objid_t diff_state::get_objid_for_runner(runner_id_t id) const {
   if (this->new_runners.count(id) > 0) {
     return this->new_runners.at(id);
-  } else {
-    return this->base_state.get_objid_for_runner(id);
   }
+  return this->base_state.get_objid_for_runner(id);
 }
 
 bool diff_state::contains_object_with_id(objid_t id) const {
@@ -23,18 +30,16 @@ bool diff_state::contains_runner_with_id(runner_id_t id) const {
 const visible_object_state *diff_state::get_state_of_object(objid_t id) const {
   if (this->new_object_states.count(id) > 0) {
     return this->new_object_states.at(id).get_current_state();
-  } else {
-    return this->base_state.get_state_of_object(id);
   }
+  return this->base_state.get_state_of_object(id);
 }
 
 const visible_object_state *diff_state::get_state_of_runner(
     runner_id_t id) const {
   if (this->new_runners.count(id) > 0) {
     return this->get_state_of_object(this->new_runners.at(id));
-  } else {
-    return this->base_state.get_state_of_runner(id);
   }
+  return this->base_state.get_state_of_runner(id);
 }
 
 state::objid_t diff_state::add_object(
@@ -42,17 +47,17 @@ state::objid_t diff_state::add_object(
   // The next id that would be assigned is one more than
   // the largest id available. The last id of the base it `size() - 1` and
   // we are `new_object_state.size()` elements in
-  state::objid_t next_id = base_state.count() + new_object_states.size();
+  state::objid_t const next_id = base_state.count() + new_object_states.size();
   new_object_states[next_id] = initial_state;
   return next_id;
 }
 
 state::runner_id_t diff_state::add_runner(
     const visible_object_state *initial_state) {
-  objid_t objid = this->add_object(initial_state);
+  objid_t const objid = this->add_object(initial_state);
 
   // The next runner id would be the current size.
-  state::objid_t next_runner_id = runner_count();
+  state::objid_t const next_runner_id = runner_count();
   this->new_runners.insert({next_runner_id, objid});
   return next_runner_id;
 }

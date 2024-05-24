@@ -1,5 +1,17 @@
 #include "mcmini/signal.hpp"
 
+#include <bits/sigaction.h>
+#include <bits/types/siginfo_t.h>
+#include <signal.h>
+
+#include <atomic>
+#include <csignal>
+#include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <string>
+#include <unordered_map>
+
 const std::unordered_map<signo_t, const char *> sig_to_str = {
     {SIGINT, "SIGINT"},
     {SIGCHLD, "SIGCHLD"},
@@ -41,8 +53,8 @@ void install_process_wide_signal_handlers() {
 }
 
 signal_tracker &signal_tracker::instance() {
-  static signal_tracker _instance;
-  return _instance;
+  static signal_tracker instance;
+  return instance;
 }
 
 void signal_tracker::set_signal(int sig) {

@@ -2,22 +2,38 @@
 
 #include <fcntl.h>
 #include <libgen.h>
+#include <linux/prctl.h>
+#include <semaphore.h>
+#include <signal.h>
+#include <stdlib.h>
 #include <sys/personality.h>
 #include <sys/prctl.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
+#include <atomic>
+#include <cerrno>
 #include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <mutex>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 #include "mcmini/common/shm_config.h"
 #include "mcmini/defines.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
+#include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/process/local_linux_process.hpp"
 #include "mcmini/real_world/process/template_process.h"
+#include "mcmini/real_world/process_source.hpp"
+#include "mcmini/real_world/shm.hpp"
 #include "mcmini/signal.hpp"
 
 using namespace real_world;
@@ -130,13 +146,14 @@ void fork_process_source::make_new_template_process() {
   }
 
   errno = 0;
-  pid_t child_pid = fork();
+  pid_t const child_pid = fork();
   if (child_pid == -1) {
     // fork(2) failed
     throw process_source::process_creation_exception(
         "Failed to create a new process (fork(2) failed): " +
         std::string(strerror(errno)));
-  } else if (child_pid == 0) {
+  }
+  if (child_pid == 0) {
     // ******************
     // Child process case
     // ******************

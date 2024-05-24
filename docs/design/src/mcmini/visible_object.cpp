@@ -1,5 +1,7 @@
 #include "mcmini/model/visible_object.hpp"
 
+#include "mcmini/model/visible_object_state.hpp"
+
 using namespace model;
 
 visible_object::~visible_object() {

@@ -1,20 +1,18 @@
 #include "mcmini/real_world/process/local_linux_process.hpp"
 
 #include <errno.h>
-#include <sys/wait.h>
+#include <signal.h>
 
-#include <cassert>
+#include <atomic>
 #include <cstring>
 #include <iostream>
-#include <mutex>
 
 #include "mcmini/common/shm_config.h"
-#include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
+#include "mcmini/real_world/shm.hpp"
 
 using namespace real_world;
-using namespace extensions;
 
 local_linux_process::local_linux_process(pid_t pid,
                                          shared_memory_region &shm_slice)

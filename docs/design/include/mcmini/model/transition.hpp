@@ -120,7 +120,7 @@ class transition {
                ? std::make_pair(s_prime, status::exists)
                : std::make_pair(diff_state{s}, status::disabled);
   }
-  constexpr bool is_enabled_in(const state& s) const {
+  bool is_enabled_in(const state& s) const {
     return apply_to(s).second == status::exists;
   }
   constexpr bool is_disabled_in(const state& s) const {

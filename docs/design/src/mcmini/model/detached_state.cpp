@@ -1,7 +1,15 @@
 #include "mcmini/model/state/detached_state.hpp"
 
-#include "mcmini/misc/asserts.hpp"
+#include <memory>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+
+#include "mcmini/misc/append-only.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/model/state.hpp"
+#include "mcmini/model/visible_object.hpp"
+#include "mcmini/model/visible_object_state.hpp"
 
 using namespace model;
 
@@ -43,7 +51,7 @@ state::objid_t detached_state::add_object(
 
 state::runner_id_t detached_state::add_runner(
     const visible_object_state *new_state) {
-  objid_t id = this->add_object(new_state);
+  objid_t const id = this->add_object(new_state);
   this->runner_to_obj_map.push_back(id);
   return this->runner_to_obj_map.size() - 1;
 }

@@ -1,14 +1,20 @@
 #include "mcmini/model/state/state_sequence.hpp"
 
-#include <algorithm>
-#include <iterator>
-#include <numeric>
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "mcmini/misc/append-only.hpp"
-#include "mcmini/misc/asserts.hpp"
 #include "mcmini/misc/extensions/memory.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
+#include "mcmini/model/transition.hpp"
+#include "mcmini/model/visible_object.hpp"
+#include "mcmini/model/visible_object_state.hpp"
 
 using namespace model;
 
@@ -129,14 +135,14 @@ const visible_object_state *state_sequence::get_state_of_runner(
 state::objid_t state_sequence::add_object(const visible_object_state *s) {
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new object, as this element effectively represents this state
-  objid_t id = visible_objects.size();
+  objid_t const id = visible_objects.size();
   this->get_representative_state().point_to_state_for(id, s);
   visible_objects.push_back(s);
   return id;
 }
 
 state::runner_id_t state_sequence::add_runner(const visible_object_state *s) {
-  objid_t id = this->add_object(s);
+  objid_t const id = this->add_object(s);
   this->runner_to_obj_map.push_back(id);
   this->get_representative_state().record_new_runner();
   return this->runner_to_obj_map.size() - 1;
@@ -156,7 +162,7 @@ void state_sequence::add_state_for_obj(objid_t id,
 
 void state_sequence::add_state_for_runner(
     runner_id_t id, const visible_object_state *new_state) {
-  objid_t objid = this->get_objid_for_runner(id);
+  objid_t const objid = this->get_objid_for_runner(id);
   if (objid == invalid_objid) {
     throw std::runtime_error(
         "Attempted to insert a state for a runner that does not exist in "

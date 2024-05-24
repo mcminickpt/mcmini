@@ -1,15 +1,23 @@
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 
-#include <cassert>
-#include <iostream>
-#include <stack>
-#include <unordered_map>
-#include <unordered_set>
+#include <sys/types.h>
 
+#include <array>
+#include <cassert>
+#include <cstddef>
+#include <stdexcept>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+#include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/defines.h"
 #include "mcmini/model/exception.hpp"
 #include "mcmini/model/program.hpp"
-#include "mcmini/signal.hpp"
+#include "mcmini/model/transition.hpp"
+#include "mcmini/model_checking/algorithms/classic_dpor/clock_vector.hpp"
+#include "mcmini/model_checking/algorithms/classic_dpor/runner_item.hpp"
+#include "mcmini/model_checking/algorithms/classic_dpor/stack_item.hpp"
 
 using namespace model;
 using namespace model_checking;
@@ -232,7 +240,7 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
   thread_ids.reserve(num_threads);
   for (runner_id_t i = 0; i < num_threads; i++) thread_ids.insert(i);
 
-  const ssize_t tStackTop = (ssize_t)(context.stack.size()) - 1;
+  const ssize_t t_stack_top = (ssize_t)(context.stack.size()) - 1;
   const runner_id_t last_runner_to_execute =
       coordinator.get_current_program_model()
           .get_trace()
@@ -242,15 +250,16 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
 
   // O(# threads)
   {
-    const model::transition &S_n =
+    const model::transition &s_n =
         *coordinator.get_current_program_model().get_trace().back();
 
     for (runner_id_t rid = 0; rid < num_threads; rid++) {
-      const model::transition &nextSP = *coordinator.get_current_program_model()
-                                             .get_pending_transitions()
-                                             .get_transition_for_runner(rid);
+      const model::transition &next_sp =
+          *coordinator.get_current_program_model()
+               .get_pending_transitions()
+               .get_transition_for_runner(rid);
       dynamically_update_backtrack_sets_at_index(
-          context, S_n, nextSP, context.stack.back(), tStackTop, rid);
+          context, s_n, next_sp, context.stack.back(), t_stack_top, rid);
     }
   }
 
@@ -265,18 +274,18 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
     // points for thread `last_runner_to_execute`. We start at one step elow the
     // top since we know that transition to not be co-enabled (since it was, by
     // assumption, run by `last_runner_to_execute`)
-    for (int i = tStackTop - 1; i >= 0; i--) {
-      const model::transition &S_i =
+    for (int i = t_stack_top - 1; i >= 0; i--) {
+      const model::transition &s_i =
           *coordinator.get_current_program_model().get_trace().at(i);
-      const bool shouldStop = dynamically_update_backtrack_sets_at_index(
-          context, S_i, next_s_p_for_latest_runner, context.stack.at(i), i,
+      const bool should_stop = dynamically_update_backtrack_sets_at_index(
+          context, s_i, next_s_p_for_latest_runner, context.stack.at(i), i,
           last_runner_to_execute);
       /*
        * Stop when we find the _first_ such i; this
        * will be the maxmimum `i` since we're searching
        * backwards
        */
-      if (shouldStop) break;
+      if (should_stop) break;
     }
   }
 }
@@ -298,8 +307,8 @@ bool classic_dpor::happens_before_thread(const dpor_context &context, size_t i,
 
 bool classic_dpor::threads_race_after(const dpor_context &context, size_t i,
                                       runner_id_t q, runner_id_t p) const {
-  const size_t transitionStackHeight = context.stack.size();
-  for (size_t j = (size_t)i + 1; j < transitionStackHeight; j++) {
+  const size_t transition_stack_height = context.stack.size();
+  for (size_t j = (size_t)i + 1; j < transition_stack_height; j++) {
     if (q == context.get_transition(j)->get_executor() &&
         this->happens_before_thread(context, j, p))
       return true;
@@ -308,41 +317,41 @@ bool classic_dpor::threads_race_after(const dpor_context &context, size_t i,
 }
 
 bool classic_dpor::dynamically_update_backtrack_sets_at_index(
-    const dpor_context &context, const model::transition &S_i,
-    const model::transition &nextSP, stack_item &preSi, size_t i,
+    const dpor_context &context, const model::transition &s_i,
+    const model::transition &next_sp, stack_item &pre_si, size_t i,
     runner_id_t p) {
   // TODO: add in co-enabled conditions
-  const bool has_reversible_race = this->are_dependent(nextSP, S_i) &&
+  const bool has_reversible_race = this->are_dependent(next_sp, s_i) &&
                                    !this->happens_before_thread(context, i, p);
 
   // If there exists i such that ...
   if (has_reversible_race) {
-    std::unordered_set<runner_id_t> E;
+    std::unordered_set<runner_id_t> e;
 
-    for (runner_id_t q : preSi.get_enabled_runners()) {
-      const bool inE = q == p || this->threads_race_after(context, i, q, p);
+    for (runner_id_t const q : pre_si.get_enabled_runners()) {
+      const bool in_e = q == p || this->threads_race_after(context, i, q, p);
 
       // If E != empty set
-      if (inE && !preSi.sleep_set_contains(q)) E.insert(q);
+      if (in_e && !pre_si.sleep_set_contains(q)) e.insert(q);
     }
 
-    if (E.empty()) {
+    if (e.empty()) {
       // E is the empty set -> add every enabled thread at pre(S, i)
-      for (runner_id_t q : preSi.get_enabled_runners())
-        if (!preSi.sleep_set_contains(q))
-          preSi.insert_into_backtrack_set_unless_completed(q);
+      for (runner_id_t const q : pre_si.get_enabled_runners())
+        if (!pre_si.sleep_set_contains(q))
+          pre_si.insert_into_backtrack_set_unless_completed(q);
     } else {
-      for (runner_id_t q : E) {
+      for (runner_id_t const q : e) {
         // If there is a thread in preSi that we
         // are already backtracking AND which is contained
         // in the set E, chose that thread to backtrack
         // on. This is equivalent to not having to do
         // anything
-        if (preSi.backtrack_set_contains(q)) return true;
+        if (pre_si.backtrack_set_contains(q)) return true;
       }
 
       // Otherwise select an arbitrary thread to backtrack upon.
-      preSi.insert_into_backtrack_set_unless_completed(*E.begin());
+      pre_si.insert_into_backtrack_set_unless_completed(*e.begin());
     }
   }
   return has_reversible_race;
