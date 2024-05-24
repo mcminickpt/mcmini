@@ -8,7 +8,7 @@
 namespace model {
 namespace objects {
 
-struct thread : public model::visible_object_state {
+struct thread : public model::runner_state {
  public:
   /* The four possible states for a mutex */
   enum state { embryo, running, exited, killed };
@@ -32,7 +32,7 @@ struct thread : public model::visible_object_state {
   bool is_running() const { return this->current_state == running; }
   bool has_exited() const { return this->current_state == exited; }
   bool is_killed() const { return this->current_state == killed; }
-
+  bool is_active() const override { return this->is_running(); }
   std::unique_ptr<visible_object_state> clone() const override {
     return extensions::make_unique<thread>(*this);
   }

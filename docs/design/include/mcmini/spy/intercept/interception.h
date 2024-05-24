@@ -20,6 +20,9 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                   void *(*routine)(void *), void *arg);
 
+int pthread_join(pthread_t thread, void**);
+int libpthread_pthread_join(pthread_t thread, void**);
+
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);

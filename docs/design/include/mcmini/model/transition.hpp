@@ -121,7 +121,8 @@ class transition {
                : std::make_pair(diff_state{s}, status::disabled);
   }
   bool is_enabled_in(const state& s) const {
-    return apply_to(s).second == status::exists;
+    return s.get_state_of_runner(executor)->is_active() &&
+           apply_to(s).second == status::exists;
   }
   constexpr bool is_disabled_in(const state& s) const {
     return !is_enabled_in(s);

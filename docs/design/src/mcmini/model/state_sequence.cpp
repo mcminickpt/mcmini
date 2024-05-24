@@ -52,12 +52,14 @@ class state_sequence::element : public state {
   }
   size_t count() const override { return visible_object_states.size(); }
   size_t runner_count() const override { return max_visible_runner_id; }
+
   objid_t get_objid_for_runner(runner_id_t id) const override;
+  runner_id_t get_runner_id_for_obj(objid_t id) const override;
+  bool is_runner(objid_t id) const override;
   bool contains_object_with_id(state::objid_t id) const override;
   bool contains_runner_with_id(runner_id_t id) const override;
   const visible_object_state *get_state_of_object(objid_t id) const override;
-  const visible_object_state *get_state_of_runner(
-      runner_id_t id) const override;
+  const runner_state *get_state_of_runner(runner_id_t id) const override;
   std::unique_ptr<mutable_state> mutable_clone() const override;
 };
 
@@ -72,7 +74,7 @@ state_sequence::state_sequence(const state &s) {
   const size_t num_runners = s.runner_count();
   for (runner_id_t p = 0; p < (runner_id_t)num_runners; p++) {
     this->get_representative_state().record_new_runner();
-    this->runner_to_obj_map.push_back(s.get_objid_for_runner(p));
+    this->runner_to_obj_map[p] = s.get_objid_for_runner(p);
   }
 }
 
@@ -110,8 +112,16 @@ void state_sequence::push_state_snapshot() {
   this->states_in_sequence.push_back(new element(this));
 }
 
+bool state_sequence::is_runner(objid_t id) const {
+  return this->get_representative_state().is_runner(id);
+}
+
 state::objid_t state_sequence::get_objid_for_runner(runner_id_t id) const {
   return this->get_representative_state().get_objid_for_runner(id);
+}
+
+runner_id_t state_sequence::get_runner_id_for_obj(objid_t id) const {
+  return this->get_representative_state().get_runner_id_for_obj(id);
 }
 
 bool state_sequence::contains_object_with_id(objid_t id) const {
@@ -127,8 +137,7 @@ const visible_object_state *state_sequence::get_state_of_object(
   return this->get_representative_state().get_state_of_object(id);
 }
 
-const visible_object_state *state_sequence::get_state_of_runner(
-    runner_id_t id) const {
+const runner_state *state_sequence::get_state_of_runner(runner_id_t id) const {
   return this->get_representative_state().get_state_of_runner(id);
 }
 
@@ -141,11 +150,12 @@ state::objid_t state_sequence::add_object(const visible_object_state *s) {
   return id;
 }
 
-state::runner_id_t state_sequence::add_runner(const visible_object_state *s) {
-  objid_t const id = this->add_object(s);
-  this->runner_to_obj_map.push_back(id);
+state::runner_id_t state_sequence::add_runner(const runner_state *s) {
+  const objid_t runner_objid = this->add_object(s);
+  const runner_id_t next_runner_id = this->runner_to_obj_map.size();
+  this->runner_to_obj_map[next_runner_id] = runner_objid;
   this->get_representative_state().record_new_runner();
-  return this->runner_to_obj_map.size() - 1;
+  return next_runner_id;
 }
 
 void state_sequence::add_state_for_obj(objid_t id,
@@ -160,8 +170,8 @@ void state_sequence::add_state_for_obj(objid_t id,
   this->visible_objects.at(id).push_state(new_state);
 }
 
-void state_sequence::add_state_for_runner(
-    runner_id_t id, const visible_object_state *new_state) {
+void state_sequence::add_state_for_runner(runner_id_t id,
+                                          const runner_state *new_state) {
   objid_t const objid = this->get_objid_for_runner(id);
   if (objid == invalid_objid) {
     throw std::runtime_error(
@@ -220,6 +230,16 @@ state_sequence::element::element(const state_sequence *owner) : owner(owner) {
   this->max_visible_runner_id = owner->runner_to_obj_map.size();
 }
 
+runner_id_t state_sequence::element::get_runner_id_for_obj(objid_t id) const {
+  return this->is_runner(id) ? owner->runner_to_obj_map.range_at(id)
+                             : model::invalid_rid;
+}
+
+bool state_sequence::element::is_runner(objid_t id) const {
+  return this->contains_object_with_id(id) &&
+         owner->runner_to_obj_map.count_range(id) > 0;
+}
+
 state::objid_t state_sequence::element::get_objid_for_runner(
     runner_id_t id) const {
   return this->contains_runner_with_id(id) ? owner->runner_to_obj_map.at(id)
@@ -232,7 +252,8 @@ bool state_sequence::element::contains_object_with_id(state::objid_t id) const {
 
 bool state_sequence::element::contains_runner_with_id(
     state::runner_id_t id) const {
-  return id < max_visible_runner_id;
+  return id < max_visible_runner_id &&
+         owner->runner_to_obj_map.count_domain(id) > 0;
 }
 
 const visible_object_state *state_sequence::element::get_state_of_object(
@@ -240,9 +261,10 @@ const visible_object_state *state_sequence::element::get_state_of_object(
   return this->visible_object_states.at(id);
 }
 
-const visible_object_state *state_sequence::element::get_state_of_runner(
+const runner_state *state_sequence::element::get_state_of_runner(
     runner_id_t id) const {
-  return this->get_state_of_object(this->get_objid_for_runner(id));
+  return static_cast<const runner_state *>(
+      this->get_state_of_object(this->get_objid_for_runner(id)));
 }
 
 std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {

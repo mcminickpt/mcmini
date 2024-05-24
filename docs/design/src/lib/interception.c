@@ -58,6 +58,13 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                     return mc_pthread_create(thread, attr, routine, arg);
                   }
 
+int pthread_join(pthread_t thread, void**rv) {
+  return mc_pthread_join(thread, rv);
+}
+int libpthread_pthread_join(pthread_t thread, void**rv)  {
+  return (*pthread_join_ptr)(thread, rv);
+}
+
 
 void exit(int status) { mc_transparent_exit(status); }
 void abort(void) { mc_transparent_abort(); }

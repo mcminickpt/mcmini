@@ -65,6 +65,6 @@ class model_to_system_map final {
   model::state::objid_t observe_object(real_world::remote_address<void>,
                                        const model::visible_object_state *);
   model::state::runner_id_t observe_runner(real_world::remote_address<void>,
-                                           const model::visible_object_state *,
+                                           const model::runner_state *,
                                            runner_generation_function f);
 };

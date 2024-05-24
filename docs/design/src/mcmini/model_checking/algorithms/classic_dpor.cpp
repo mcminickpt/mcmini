@@ -92,13 +92,11 @@ void classic_dpor::verify_using(coordinator &coordinator,
         return;
       }
     }
-    // TODO: Check for deadlock
-    // TODO: Check for the program crashing
+    if (callbacks.trace_completed) callbacks.trace_completed(coordinator);
 
-    callbacks.trace_completed(coordinator);
-    if (coordinator.get_current_program_model().is_in_deadlock()) {
+    if (callbacks.deadlock &&
+        coordinator.get_current_program_model().is_in_deadlock())
       callbacks.deadlock(coordinator);
-    }
 
     // 3. Backtrack phase
     while (!dpor_stack.empty() && dpor_stack.back().backtrack_set_empty())
@@ -118,7 +116,8 @@ void classic_dpor::verify_using(coordinator &coordinator,
         this->continue_dpor_by_expanding_trace_with(
             dpor_stack.back().backtrack_set_pop_first(), context);
       } catch (const model::undefined_behavior_exception &ube) {
-        callbacks.undefined_behavior(coordinator, ube);
+        if (callbacks.undefined_behavior)
+          callbacks.undefined_behavior(coordinator, ube);
         return;
       }
     }

@@ -89,16 +89,25 @@ state::objid_t program::discover_object(
   return this->state_seq.add_object(initial_state);
 }
 
-state::runner_id_t program::discover_runner(
-    const visible_object_state *initial_state, runner_generation_function f) {
+state::runner_id_t program::discover_runner(const runner_state *initial_state,
+                                            runner_generation_function f) {
   state::runner_id_t const id = this->state_seq.add_runner(initial_state);
   this->next_steps.set_transition(f(id));
   return id;
 }
 
 bool program::is_in_deadlock() const {
-  for (const auto &p : this->get_pending_transitions()) {
-    if (p.second->is_enabled_in(this->state_seq)) return false;
+  // If any transition is enabled, we are not in deadlock
+  for (const auto &pair : this->get_pending_transitions()) {
+    if (pair.second->is_enabled_in(this->state_seq)) return false;
   }
-  return true;
+  // If there are NO enabled transitions, we need to check if this is because
+  // all runners are no longer active, i.e. whether they even have more
+  // transitions to execute. If they do, then then it would be a deadlock in
+  // the traditional sense since there are threads which haven't completed but
+  // are blocked.
+  for (runner_id_t p = 0; p < get_num_runners(); p++) {
+    if (this->state_seq.get_state_of_runner(p)->is_active()) return true;
+  }
+  return false;
 }

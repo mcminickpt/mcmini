@@ -22,6 +22,7 @@
 #include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
 #include "mcmini/model/transitions/thread/thread_create.hpp"
 #include "mcmini/model/transitions/thread/thread_exit.hpp"
+#include "mcmini/model/transitions/thread/thread_join.hpp"
 #include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
@@ -127,6 +128,18 @@ model::transition* thread_exit_callback(state::runner_id_t p,
   return new transitions::thread_exit(p);
 }
 
+// model::transition* thread_join_callback(state::runner_id_t p,
+//                                         const volatile runner_mailbox& rmb,
+//                                         model_to_system_map& m) {
+//   // pthread_t target;
+//   // memcpy_v(&target, static_cast<const volatile void*>(&rmb.cnts),
+//   //          sizeof(pthread_t));
+//   // runner_id_t target_id = m.get_model_of(); if (m.contains((void*)target))
+
+//   //                             return new transitions::thread_join();
+//   return nullptr;
+// }
+
 void do_model_checking(
     /* Pass arguments here or rearrange to configure the checker at
     runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
@@ -152,6 +165,7 @@ void do_model_checking(
   tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
   tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
+  // tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr), std::move(process_source));
@@ -175,13 +189,13 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   // // single thread "main" that is alive and then running the transition
 
   {
-    // Read that information from the linked list __inside the restarted
-    // image__
-    // while (! not all information read yet) {}
-    // read(...);
+      // Read that information from the linked list __inside the restarted
+      // image__
+      // while (! not all information read yet) {}
+      // read(...);
 
-    // auto state_of_some_object_in_the_ckpt_image = new mutex();
-    // state_of_program_at_main.add_state_for();
+      // auto state_of_some_object_in_the_ckpt_image = new mutex();
+      // state_of_program_at_main.add_state_for();
   }
 
   {
@@ -218,14 +232,13 @@ int main_cpp(int argc, const char** argv) {
 }
 
 int main(int argc, const char** argv) {
-  // try {
-
-  // } catch (const std::exception& e) {
-  //   std::cerr << "ERROR: " << e.what() << std::endl;
-  //   return EXIT_FAILURE;
-  // } catch (...) {
-  //   std::cerr << "ERROR: Unknown error occurred" << std::endl;
-  //   return EXIT_FAILURE;
-  // }
-  return main_cpp(argc, argv);
+  try {
+    return main_cpp(argc, argv);
+  } catch (const std::exception& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  } catch (...) {
+    std::cerr << "ERROR: Unknown error occurred" << std::endl;
+    return EXIT_FAILURE;
+  }
 }

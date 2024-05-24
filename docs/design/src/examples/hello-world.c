@@ -16,5 +16,6 @@ int main(int argc, char* argv[])
     pthread_create(&child, NULL, &test, NULL);
     pthread_mutex_lock(&mut);
     pthread_mutex_unlock(&mut);
+    // pthread_join(child, NULL);
     return 0;
 }

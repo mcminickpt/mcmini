@@ -7,6 +7,7 @@
 #include "mcmini/forwards.hpp"
 #include "mcmini/misc/asserts.hpp"
 #include "mcmini/model/defines.hpp"
+#include "mcmini/model/runner_state.hpp"
 #include "mcmini/model/visible_object.hpp"
 
 namespace model {
@@ -18,12 +19,13 @@ class state {
   virtual ~state() = default;
   virtual size_t count() const = 0;
   virtual size_t runner_count() const = 0;
+  virtual bool is_runner(objid_t id) const = 0;
   virtual bool contains_object_with_id(objid_t id) const = 0;
   virtual bool contains_runner_with_id(runner_id_t id) const = 0;
   virtual objid_t get_objid_for_runner(runner_id_t id) const = 0;
+  virtual runner_id_t get_runner_id_for_obj(objid_t id) const = 0;
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
-  virtual const visible_object_state *get_state_of_runner(
-      runner_id_t id) const = 0;
+  virtual const runner_state *get_state_of_runner(runner_id_t id) const = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
 
   // TODO: Potentially provide an interface here that conforms to C++11's
@@ -72,7 +74,7 @@ class mutable_state : public state {
    * @return the id of the runner that was just added. This is NOT the same as
    * the runner's object id.
    */
-  virtual runner_id_t add_runner(const visible_object_state *initial_state) = 0;
+  virtual runner_id_t add_runner(const runner_state *initial_state) = 0;
 
   /**
    * @brief Adds the given state _state_ for the object with id _id_.
@@ -81,8 +83,7 @@ class mutable_state : public state {
    * of type `visible_object_state_type`, the behavior of this function is
    * undefined.
    */
-  virtual void add_state_for_obj(objid_t id,
-                                 const visible_object_state *new_state) = 0;
+  virtual void add_state_for_obj(objid_t id, const visible_object_state *) = 0;
 
   /**
    * @brief Adds the given state _state_ for the runner with id _id_.
@@ -90,8 +91,7 @@ class mutable_state : public state {
    * This is equivalent to first retrieving the object id of the runner in this
    * state and then asking for that object's state.
    */
-  virtual void add_state_for_runner(runner_id_t id,
-                                    const visible_object_state *new_state) = 0;
+  virtual void add_state_for_runner(runner_id_t id, const runner_state *) = 0;
 
   /**
    * @brief Creates a copy of the given state.
@@ -120,5 +120,7 @@ class mutable_state : public state {
 
 constexpr static auto invalid_objid =
     std::numeric_limits<state::objid_t>::max();
+constexpr static auto invalid_rid =
+    std::numeric_limits<state::runner_id_t>::max();
 
 }  // namespace model

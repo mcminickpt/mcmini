@@ -84,7 +84,7 @@ class program {
   /// runner, produces the first transition that runner is executing in the
   /// model (i.e. the very first pending operation).
   /// @return the id assigned to the runner.
-  state::runner_id_t discover_runner(const visible_object_state *s,
+  state::runner_id_t discover_runner(const runner_state *s,
                                      runner_generation_function f);
 
   /// @brief Model the execution of runner `p` and replace its next operation

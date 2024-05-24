@@ -102,7 +102,7 @@ model::state::objid_t model_to_system_map::observe_object(
 
 model::state::runner_id_t model_to_system_map::observe_runner(
     real_world::remote_address<void> rp_vobj_handle,
-    const model::visible_object_state *vobs, runner_generation_function f) {
+    const model::runner_state *vobs, runner_generation_function f) {
   if (contains(rp_vobj_handle)) {
     throw std::runtime_error(
         "Attempting to rebind a remote address to an object that already "
