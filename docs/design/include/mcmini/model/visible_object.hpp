@@ -63,9 +63,7 @@ class visible_object final {
   const visible_object_state *get_current_state() const {
     return this->history.back();
   }
-  void push_state(const visible_object_state *s) {
-    history.push_back(std::move(s));
-  }
+  void push_state(const visible_object_state *s) { history.push_back(s); }
   /**
    * @brief Produces a visible object with the first `num_states` states of this
    * visible object.
