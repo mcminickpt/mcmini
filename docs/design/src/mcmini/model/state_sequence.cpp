@@ -74,7 +74,7 @@ state_sequence::state_sequence(const state &s) {
   const size_t num_runners = s.runner_count();
   for (runner_id_t p = 0; p < (runner_id_t)num_runners; p++) {
     this->get_representative_state().record_new_runner();
-    this->runner_to_obj_map[p] = s.get_objid_for_runner(p);
+    this->runner_to_obj_map.insert({p, s.get_objid_for_runner(p)});
   }
 }
 
@@ -153,7 +153,7 @@ state::objid_t state_sequence::add_object(const visible_object_state *s) {
 state::runner_id_t state_sequence::add_runner(const runner_state *s) {
   const objid_t runner_objid = this->add_object(s);
   const runner_id_t next_runner_id = this->runner_to_obj_map.size();
-  this->runner_to_obj_map[next_runner_id] = runner_objid;
+  this->runner_to_obj_map.insert({next_runner_id, runner_objid});
   this->get_representative_state().record_new_runner();
   return next_runner_id;
 }

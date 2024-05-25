@@ -81,7 +81,7 @@ void program::model_execution_of(runner_id_t p, const transition *npo) {
         "Attempted to model the execution of a disabled transition(" +
         next_s_p->debug_string() + ")");
   }
-  trace.push(next_steps.release(npo));
+  trace.push(next_steps.replace(npo));
 }
 
 state::objid_t program::discover_object(

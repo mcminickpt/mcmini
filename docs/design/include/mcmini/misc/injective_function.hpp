@@ -1,18 +1,25 @@
 #pragma once
 
+#include <exception>
+#include <stdexcept>
 #include <unordered_map>
 
 template <typename DomainType, typename RangeType>
 struct injective_function {
  private:
+  struct invalid_insertion : public std::runtime_error {
+    invalid_insertion(const char* msg) : std::runtime_error(msg) {}
+  };
+
   // INVARIANT: `forward` and `backward` are mirrors of one another. The keys of
   // one are the values of the other.
   std::unordered_map<DomainType, RangeType> forward;
   std::unordered_map<RangeType, DomainType> backward;
 
  public:
-  using size_type =
-      typename std::unordered_map<DomainType, RangeType>::size_type;
+  using value_type = typename decltype(forward)::value_type;
+  using iterator = typename decltype(forward)::iterator;
+  using size_type = typename decltype(forward)::size_type;
 
   auto begin() -> decltype(forward.begin()) { return forward.begin(); }
   auto end() -> decltype(forward.end()) { return forward.end(); }
@@ -39,9 +46,16 @@ struct injective_function {
   size_type count_range(const RangeType& key) const {
     return this->backward.count(key);
   }
-  RangeType& operator[](const DomainType& key) {
-    RangeType& rt = this->forward[key];
-    this->backward[rt] = key;
-    return rt;
+
+  std::pair<iterator, bool> insert(const value_type& vt) {
+    std::pair<iterator, bool> result = this->forward.insert(vt);
+    if (result.second && this->count_range(vt.second))
+      throw invalid_insertion(
+          "A value in the domain already maps to this value. This would break "
+          "the one-to-one invariance of this mapping");
+    if (result.second) {
+      this->backward.insert({vt.second, vt.first});
+    }
+    return result;
   }
 };

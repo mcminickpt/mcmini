@@ -27,6 +27,7 @@ class state {
   virtual const visible_object_state *get_state_of_object(objid_t id) const = 0;
   virtual const runner_state *get_state_of_runner(runner_id_t id) const = 0;
   virtual std::unique_ptr<mutable_state> mutable_clone() const = 0;
+  virtual std::string debug_string() const { return ""; }
 
   // TODO: Potentially provide an interface here that conforms to C++11's
   // iteration (a begin() and end() as virtual functions perhaps).

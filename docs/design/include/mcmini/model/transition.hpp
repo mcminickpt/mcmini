@@ -116,13 +116,13 @@ class transition {
    */
   std::pair<diff_state, status> apply_to(const state& s) const {
     diff_state s_prime{s};
-    return modify(s_prime) == status::exists
+    return s.get_state_of_runner(executor)->is_active() &&
+                   modify(s_prime) == status::exists
                ? std::make_pair(s_prime, status::exists)
                : std::make_pair(diff_state{s}, status::disabled);
   }
   bool is_enabled_in(const state& s) const {
-    return s.get_state_of_runner(executor)->is_active() &&
-           apply_to(s).second == status::exists;
+    return apply_to(s).second == status::exists;
   }
   constexpr bool is_disabled_in(const state& s) const {
     return !is_enabled_in(s);

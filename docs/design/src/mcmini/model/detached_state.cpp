@@ -61,7 +61,7 @@ state::objid_t detached_state::add_object(
 state::runner_id_t detached_state::add_runner(const runner_state *new_state) {
   const objid_t runner_objid = this->add_object(new_state);
   const runner_id_t next_runner_id = this->runner_to_obj_map.size();
-  this->runner_to_obj_map[next_runner_id] = runner_objid;
+  this->runner_to_obj_map.insert({next_runner_id, runner_objid});
   return next_runner_id;
 }
 

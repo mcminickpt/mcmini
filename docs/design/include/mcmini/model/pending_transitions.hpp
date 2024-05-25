@@ -50,7 +50,7 @@ struct pending_transitions final {
     return nullptr;
   }
 
-  const transition *release(const transition *new_transition) noexcept {
+  const transition *replace(const transition *new_transition) noexcept {
     runner_id_t id = new_transition->get_executor();
     const transition *old_transition = _contents[id];
     _contents[id] = new_transition;
@@ -59,7 +59,7 @@ struct pending_transitions final {
 
   std::unique_ptr<const transition> set_transition(
       const transition *new_transition) noexcept {
-    return std::unique_ptr<const transition>(release(new_transition));
+    return std::unique_ptr<const transition>(replace(new_transition));
   }
 };
 

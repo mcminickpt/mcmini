@@ -69,7 +69,7 @@ state::runner_id_t diff_state::add_runner(const runner_state *initial_state) {
 
   // The next runner id would be the current size.
   state::objid_t const next_runner_id = runner_count();
-  this->new_runners[next_runner_id] = objid;
+  this->new_runners.insert({next_runner_id, objid});
   return next_runner_id;
 }
 
