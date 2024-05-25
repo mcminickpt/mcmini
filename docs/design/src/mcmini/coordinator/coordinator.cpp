@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -29,6 +30,8 @@ coordinator::coordinator(
       process_source(std::move(process_source)) {
   this->assign_new_process_handle();
 }
+
+#include <iostream>
 
 void coordinator::execute_runner(process::runner_id_t runner_id) {
   if (!current_process_handle) {
@@ -61,6 +64,17 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         std::to_string(runner_id));
   }
   this->current_program_model.model_execution_of(runner_id, pending_operation);
+
+  // std::cerr
+  //     << "\n\n**************** AFTER MODEL EXEC *********************\n\n\n"
+  //     << current_program_model.get_trace().back()->debug_string()
+  //     << " just executed\n\n"
+  //     << pending_operation->debug_string() << " will execute next "
+  //     << "\n\n"
+  //     <<
+  //     this->current_program_model.get_state_sequence().back().debug_string()
+  //     << "\n\n**************** AFTER MODEL EXEC *********************\n\n"
+  //     << std::endl;
 }
 
 void coordinator::return_to_depth(uint32_t n) {
@@ -75,6 +89,26 @@ void coordinator::return_to_depth(uint32_t n) {
   for (const model::transition *t : this->current_program_model.get_trace()) {
     this->current_process_handle->execute_runner(t->get_executor());
   }
+
+  // std::cerr
+  //     << "\n\n**************** AFTER RESTORATION *********************\n\n"
+  //     <<
+  //     this->current_program_model.get_state_sequence().back().debug_string();
+
+  // std::stringstream ss;
+  // const auto &program_model = get_current_program_model();
+  // for (const auto &t : program_model.get_trace()) {
+  //   ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  // }
+  // ss << "\nNEXT THREAD OPERATIONS\n";
+  // for (const auto &tpair : program_model.get_pending_transitions()) {
+  //   ss << "thread " << tpair.first << ": " << tpair.second->to_string() <<
+  //   "\n";
+  // }
+  // std::cerr << ss.str()
+  //           << "\n\n**************** AFTER RESTORATION  "
+  //              "*********************\n\n";
+  // std::cerr.flush();
 }
 
 model::state::objid_t model_to_system_map::get_model_of(

@@ -138,7 +138,7 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
   errno = 0;
   const int return_value = libpthread_pthread_create(
     thread, attr, &mc_thread_routine_wrapper, libmcmini_controlled_thread_arg);
-  const int pthread_errno = errno;
+  // const int pthread_errno = errno;
 
   // IMPORTANT: We need to ensure that the thread that is
   // created has been assigned an; otherwise, there is a race condition
@@ -146,7 +146,7 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
   // not be scheduled to run until *two* steps of the scheduler
   libpthread_sem_wait(&libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
 
-  memcpy_v(thread_get_mailbox()->cnts, &pthread_errno, sizeof(int));
+  memcpy_v(thread_get_mailbox()->cnts, thread, sizeof(pthread_t));
   thread_get_mailbox()->type = THREAD_CREATE_TYPE;
   thread_await_scheduler();
   return return_value;

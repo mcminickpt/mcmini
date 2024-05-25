@@ -232,13 +232,14 @@ int main_cpp(int argc, const char** argv) {
 }
 
 int main(int argc, const char** argv) {
-  try {
-    return main_cpp(argc, argv);
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
-    return EXIT_FAILURE;
-  } catch (...) {
-    std::cerr << "ERROR: Unknown error occurred" << std::endl;
-    return EXIT_FAILURE;
-  }
+  // try {
+
+  // } catch (const std::exception& e) {
+  //   std::cerr << "ERROR: " << e.what() << std::endl;
+  //   return EXIT_FAILURE;
+  // } catch (...) {
+  //   std::cerr << "ERROR: Unknown error occurred" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
+  return main_cpp(argc, argv);
 }

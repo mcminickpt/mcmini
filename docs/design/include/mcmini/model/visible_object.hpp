@@ -35,7 +35,7 @@ class visible_object final {
       : history(std::move(history)) {}
 
   visible_object(const visible_object &other, size_t num_states) {
-    *this = other.slice(num_states);
+    *this = other.copy_slice(num_states);
   }
 
  public:
@@ -48,7 +48,7 @@ class visible_object final {
   visible_object(std::unique_ptr<const visible_object_state> initial_state)
       : visible_object(initial_state.release()) {}
   visible_object(const visible_object &other) {
-    *this = other.slice(other.get_num_states());
+    *this = other.copy_slice(other.get_num_states());
   }
   visible_object &operator=(const visible_object &other) {
     return *this = *other.clone();
@@ -57,6 +57,7 @@ class visible_object final {
 
  public:
   size_t get_num_states() const { return history.size(); }
+  size_t get_last_state_index() const { return history.size() - 1; }
   const visible_object_state *state_at(size_t i) const {
     return this->history.at(i);
   }
@@ -68,12 +69,20 @@ class visible_object final {
    * @brief Produces a visible object with the first `num_states` states of this
    * visible object.
    *
+   * The object will be left with the states `[0, index]` (inclusive).
+   */
+  void slice(size_t index);
+
+  /**
+   * @brief Produces a visible object with the first `num_states` states of this
+   * visible object.
+   *
    * @param num_states the number of states that should be copied into the
    * resulting visible object.
    * @returns a visible object with identical states as this visible object for
    * the first `num_states` states.
    */
-  visible_object slice(size_t num_states) const {
+  visible_object copy_slice(size_t num_states) const {
     std::vector<const visible_object_state *> sliced_states;
     sliced_states.reserve(num_states);
     for (size_t j = 0; j < num_states; j++) {

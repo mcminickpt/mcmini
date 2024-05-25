@@ -104,7 +104,7 @@ class program {
   /// @param n the number of transitions to consider executed to result in the
   /// program model after the method has executed. Formally, if `t_0, t_1, ...,
   /// t_(n-1), ..., t_k` is contained in the current trace, then the state after
-  /// this method is called will be `s_(n+1)` or `s_0` is `n = 0`.
+  /// this method is called will be `s_(n+1)` or `s_0` if `n = 0`.
   void restore_model_at_depth(uint32_t n);
 
   // MARK: Program State

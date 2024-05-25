@@ -46,14 +46,15 @@ void program::restore_model_at_depth(uint32_t n) {
    * executing the `thread_start()` transition, but this will be in the trace
    */
   std::unordered_map<runner_id_t, uint32_t> runner_to_index_from_top;
-  for (int32_t i = (trace.count() - 1); i >= (int32_t)(n); i--)
+  for (uint32_t i = (trace.count() - 1);
+       i > (uint32_t)(n - 1) && !trace.empty(); i--)
     runner_to_index_from_top[trace.at(i)->get_executor()] = i;
 
   for (const std::pair<runner_id_t, uint32_t> e : runner_to_index_from_top)
     next_steps.set_transition(trace.extract_at(e.second).release());
 
-  state_seq.consume_into_subsequence(n);
   trace.consume_into_subsequence(n);
+  state_seq.consume_into_subsequence(n + 1);
 }
 
 void program::model_execution_of(runner_id_t p, const transition *npo) {

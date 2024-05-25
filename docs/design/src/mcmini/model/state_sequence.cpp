@@ -1,7 +1,10 @@
 #include "mcmini/model/state/state_sequence.hpp"
 
+#include <cassert>
 #include <cstddef>
+#include <map>
 #include <memory>
+#include <sstream>
 #include <stdexcept>
 #include <unordered_map>
 #include <utility>
@@ -33,9 +36,12 @@ class state_sequence::element : public state {
   /// @brief A collection of references to states in the sequence
   /// _owning_sequence_ to which this element belongs.
   ///
-  /// Each state is a view into a `visible_object` owned by `owner`
-  std::unordered_map<state::objid_t, const visible_object_state *>
-      visible_object_states;
+  /// Each state is a view into a `visible_object` owned by `owner`.
+  // INTERPRETATION: For an object with id `id`, the value `n` it is mapped to
+  // represents the `n`th state of the visible object in the owner that this
+  // element represents. In other words, this element represents object `id` in
+  // state `n`.
+  std::unordered_map<state::objid_t, size_t> visible_object_indices;
 
   // The largest index into the owning state_sequence's runner mapping. That
   // this element is aware of.
@@ -47,10 +53,13 @@ class state_sequence::element : public state {
  public:
   element() = default;
   void record_new_runner() { max_visible_runner_id++; }
-  void point_to_state_for(objid_t id, const visible_object_state *new_state) {
-    this->visible_object_states[id] = new_state;
+  void point_to_next_state_for(objid_t id) {
+    if (this->visible_object_indices.count(id))
+      this->visible_object_indices[id]++;
+    else
+      this->visible_object_indices[id] = 0;
   }
-  size_t count() const override { return visible_object_states.size(); }
+  size_t count() const override { return visible_object_indices.size(); }
   size_t runner_count() const override { return max_visible_runner_id; }
 
   objid_t get_objid_for_runner(runner_id_t id) const override;
@@ -61,6 +70,7 @@ class state_sequence::element : public state {
   const visible_object_state *get_state_of_object(objid_t id) const override;
   const runner_state *get_state_of_runner(runner_id_t id) const override;
   std::unique_ptr<mutable_state> mutable_clone() const override;
+  std::string debug_string() const override;
 };
 
 state_sequence::state_sequence() { this->push_state_snapshot(); }
@@ -145,7 +155,7 @@ state::objid_t state_sequence::add_object(const visible_object_state *s) {
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new object, as this element effectively represents this state
   objid_t const id = visible_objects.size();
-  this->get_representative_state().point_to_state_for(id, s);
+  this->get_representative_state().point_to_next_state_for(id);
   visible_objects.push_back(s);
   return id;
 }
@@ -166,7 +176,7 @@ void state_sequence::add_state_for_obj(objid_t id,
   }
   // INVARIANT: The current element needs to update at index `id` to reflect
   // this new state, as this element effectively represents this state
-  this->get_representative_state().point_to_state_for(id, new_state);
+  this->get_representative_state().point_to_next_state_for(id);
   this->visible_objects.at(id).push_state(new_state);
 }
 
@@ -182,12 +192,21 @@ void state_sequence::add_state_for_runner(runner_id_t id,
 }
 
 void state_sequence::consume_into_subsequence(size_t num_states) {
-  if (num_states <= this->states_in_sequence.size()) {
-    extensions::destroy(this->states_in_sequence.begin() + num_states,
-                        this->states_in_sequence.end());
-    this->states_in_sequence.erase(
-        this->states_in_sequence.begin() + num_states,
-        this->states_in_sequence.end());
+  if (num_states >= this->states_in_sequence.size()) return;
+  extensions::destroy(this->states_in_sequence.begin() + num_states,
+                      this->states_in_sequence.end());
+  this->states_in_sequence.erase(this->states_in_sequence.begin() + num_states,
+                                 this->states_in_sequence.end());
+  assert(this->states_in_sequence.size() == num_states);
+
+  const element &current_state = this->get_representative_state();
+  for (objid_t i = 0; i < this->visible_objects.size(); i++) {
+    if (current_state.contains_object_with_id(i)) {
+      const size_t idx = current_state.visible_object_indices.at(i);
+      this->visible_objects.at(i).slice(idx);
+    } else {
+      this->visible_objects.at(i).slice(0);
+    }
   }
 }
 
@@ -224,9 +243,10 @@ state_sequence::~state_sequence() {
 
 state_sequence::element::element(const state_sequence *owner) : owner(owner) {
   for (objid_t i = 0; i < owner->visible_objects.size(); i++) {
-    this->visible_object_states[i] =
-        owner->visible_objects.at(i).get_current_state();
+    const size_t idx = owner->visible_objects.at(i).get_last_state_index();
+    this->visible_object_indices[i] = idx;
   }
+
   this->max_visible_runner_id = owner->runner_to_obj_map.size();
 }
 
@@ -247,7 +267,7 @@ state::objid_t state_sequence::element::get_objid_for_runner(
 }
 
 bool state_sequence::element::contains_object_with_id(state::objid_t id) const {
-  return id < this->visible_object_states.size();
+  return id < this->visible_object_indices.size();
 }
 
 bool state_sequence::element::contains_runner_with_id(
@@ -258,7 +278,8 @@ bool state_sequence::element::contains_runner_with_id(
 
 const visible_object_state *state_sequence::element::get_state_of_object(
     state::objid_t id) const {
-  return this->visible_object_states.at(id);
+  return owner->visible_objects.at(id).state_at(
+      this->visible_object_indices.at(id));
 }
 
 const runner_state *state_sequence::element::get_state_of_runner(
@@ -268,18 +289,32 @@ const runner_state *state_sequence::element::get_state_of_runner(
 }
 
 std::unique_ptr<mutable_state> state_sequence::element::mutable_clone() const {
-  auto state = extensions::make_unique<detached_state>();
-  for (objid_t i = 0; i < this->visible_object_states.size(); i++)
-    state->add_object(this->visible_object_states.at(i)->clone().release());
-  return state;
+  throw std::runtime_error(
+      "TODO: Implement state cloning for state_sequence::element");
+}
+
+std::string state_sequence::element::debug_string() const {
+  std::ostringstream ss;
+
+  std::map<state::objid_t, size_t> vobjs(this->visible_object_indices.begin(),
+                                         this->visible_object_indices.end());
+
+  for (const auto &os : vobjs) {
+    ss << "Object " << std::to_string(os.first);
+    if (is_runner(os.first)) {
+      ss << " (runner [" << std::boolalpha
+         << this->get_state_of_runner(this->get_runner_id_for_obj(os.first))
+                ->is_active()
+         << std::noboolalpha << "])";
+    }
+    ss << ": "
+       << owner->visible_objects.at(os.first).state_at(os.second)->to_string()
+       << "\n";
+  }
+  return ss.str();
 }
 
 std::unique_ptr<mutable_state> state_sequence::mutable_clone() const {
-  // auto detached_ss = extensions::make_unique<detached_state>(*this);
-  // for (const auto &robjid : runner_to_obj_map) {
-  //   detached_ss->add_runner(get_state_of_object(robjid)->clone().release());
-  // }
-  // return detached_ss;
   throw std::runtime_error("TODO: Implement state cloning for state_sequence");
 }
 

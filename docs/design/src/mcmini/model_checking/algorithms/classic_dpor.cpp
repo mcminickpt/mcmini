@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -325,7 +326,7 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
 
   // If there exists i such that ...
   if (has_reversible_race) {
-    std::unordered_set<runner_id_t> e;
+    std::set<runner_id_t> e;
 
     for (runner_id_t const q : pre_si.get_enabled_runners()) {
       const bool in_e = q == p || this->threads_race_after(context, i, q, p);
