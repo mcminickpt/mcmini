@@ -25,7 +25,13 @@ struct pending_transitions final {
 
  public:
   pending_transitions() = default;
-  ~pending_transitions() {}
+  pending_transitions(pending_transitions &&) = default;
+  pending_transitions(const pending_transitions &) = delete;
+  pending_transitions &operator=(pending_transitions &&) = default;
+  pending_transitions &operator=(const pending_transitions &) = delete;
+  ~pending_transitions() {
+    for (const auto &p : _contents) delete p.second;
+  }
   auto begin() -> decltype(_contents.begin()) { return _contents.begin(); }
   auto end() -> decltype(_contents.end()) { return _contents.end(); }
   auto begin() const -> decltype(_contents.cbegin()) {
@@ -50,16 +56,25 @@ struct pending_transitions final {
     return nullptr;
   }
 
-  const transition *replace(const transition *new_transition) noexcept {
+  std::unique_ptr<const transition> replace_managed(
+      const transition *new_transition) noexcept {
+    return std::unique_ptr<const transition>(replace_unowned(new_transition));
+  }
+
+  /// @brief Replace the pending operation for `new_transition->get_executor()`
+  /// @param new_transition the transition that will be used to replace any
+  /// current transition in the struct (ownership is acquired)
+  /// @return a pointer to the old transition. This pointer must be freed using
+  /// `delete`.
+  const transition *replace_unowned(const transition *new_transition) noexcept {
     runner_id_t id = new_transition->get_executor();
     const transition *old_transition = _contents[id];
     _contents[id] = new_transition;
     return old_transition;
   }
 
-  std::unique_ptr<const transition> set_transition(
-      const transition *new_transition) noexcept {
-    return std::unique_ptr<const transition>(replace(new_transition));
+  void set_transition(const transition *new_transition) noexcept {
+    delete replace_unowned(new_transition);
   }
 };
 

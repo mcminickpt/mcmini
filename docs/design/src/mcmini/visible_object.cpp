@@ -5,7 +5,8 @@
 using namespace model;
 
 void visible_object::slice(size_t index) {
-  extensions::destroy(this->history.begin() + index + 1, this->history.end());
+  extensions::delete_all(this->history.begin() + index + 1,
+                         this->history.end());
   this->history.erase(this->history.begin() + index + 1, this->history.end());
 }
 

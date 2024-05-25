@@ -13,12 +13,23 @@ void thread_await_scheduler() {
   assert(tid_self != TID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
   mc_wake_scheduler(thread_mailbox);
-  mc_wait_for_scheduler(thread_mailbox);
+
+  errno = 0;
+  int rc = mc_wait_for_scheduler(thread_mailbox);
+  while (rc != 0 && errno == EINTR) {
+    rc = mc_wait_for_scheduler(thread_mailbox);
+  }
 }
 
 void thread_await_scheduler_for_thread_start_transition() {
   assert(tid_self != TID_INVALID);
-  mc_wait_for_scheduler(thread_get_mailbox());
+  volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
+
+  errno = 0;
+  int rc = mc_wait_for_scheduler(thread_mailbox);
+  while (rc != 0 && errno == EINTR) {
+    rc = mc_wait_for_scheduler(thread_mailbox);
+  }
 }
 
 void thread_awake_scheduler_for_thread_finish_transition() {

@@ -13,7 +13,7 @@ void transition_sequence::consume_into_subsequence(uint32_t depth) {
   // For depths greater than the size of the sequence, this method has no
   // effect.
   if (depth <= contents.size()) {
-    extensions::destroy(contents.begin() + depth, contents.end());
+    extensions::delete_all(contents.begin() + depth, contents.end());
     contents.erase(contents.begin() + depth, contents.end());
   }
 }
@@ -25,5 +25,5 @@ std::unique_ptr<const transition> transition_sequence::extract_at(size_t i) {
 }
 
 transition_sequence::~transition_sequence() {
-  extensions::destroy(contents.begin(), contents.end());
+  extensions::delete_all(contents.begin(), contents.end());
 }

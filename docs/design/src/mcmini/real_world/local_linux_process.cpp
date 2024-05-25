@@ -45,6 +45,11 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   // `sem_timedwait()` with a sufficiently long wait value (perhaps 1 second)
   // and poll for existence if we haven't heard from the child in a long time.
   mc_wake_thread(rmb);
-  mc_wait_for_thread(rmb);
+
+  errno = 0;
+  int rc = mc_wait_for_thread(rmb);
+  while (rc != 0 && errno == EINTR) {
+    rc = mc_wait_for_thread(rmb);
+  }
   return rmb;
 }

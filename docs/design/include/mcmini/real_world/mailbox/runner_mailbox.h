@@ -17,10 +17,10 @@ typedef struct {
 
 void mc_runner_mailbox_init(volatile runner_mailbox *);
 void mc_runner_mailbox_destroy(volatile runner_mailbox *);
-void mc_wait_for_thread(volatile runner_mailbox *);
-void mc_wait_for_scheduler(volatile runner_mailbox *);
-void mc_wake_thread(volatile runner_mailbox *);
-void mc_wake_scheduler(volatile runner_mailbox *);
+int mc_wait_for_thread(volatile runner_mailbox *);
+int mc_wait_for_scheduler(volatile runner_mailbox *);
+int mc_wake_thread(volatile runner_mailbox *);
+int mc_wake_scheduler(volatile runner_mailbox *);
 
 #ifdef __cplusplus
 }

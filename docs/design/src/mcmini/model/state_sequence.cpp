@@ -193,8 +193,8 @@ void state_sequence::add_state_for_runner(runner_id_t id,
 
 void state_sequence::consume_into_subsequence(size_t num_states) {
   if (num_states >= this->states_in_sequence.size()) return;
-  extensions::destroy(this->states_in_sequence.begin() + num_states,
-                      this->states_in_sequence.end());
+  extensions::delete_all(this->states_in_sequence.begin() + num_states,
+                         this->states_in_sequence.end());
   this->states_in_sequence.erase(this->states_in_sequence.begin() + num_states,
                                  this->states_in_sequence.end());
   assert(this->states_in_sequence.size() == num_states);

@@ -49,6 +49,9 @@ class model_to_system_map final {
   bool contains(real_world::remote_address<void> addr) const {
     return get_model_of_object(addr) != model::invalid_objid;
   }
+  bool contains_runner(real_world::remote_address<void> addr) const {
+    return get_model_of_runner(addr) != model::invalid_rid;
+  }
 
   using runner_generation_function =
       std::function<const model::transition *(model::state::runner_id_t)>;

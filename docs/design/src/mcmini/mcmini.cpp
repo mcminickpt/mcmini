@@ -43,11 +43,6 @@ using namespace model_checking;
 using namespace objects;
 using namespace real_world;
 
-void display_usage() {
-  std::cout << "mcmini [options] <program>" << std::endl;
-  std::exit(EXIT_FAILURE);
-}
-
 void finished_trace_classic_dpor(const coordinator& c) {
   static uint32_t trace_id = 0;
 
@@ -117,9 +112,11 @@ model::transition* thread_create_callback(state::runner_id_t p,
   pthread_t new_thread;
   memcpy_v(&new_thread, static_cast<const volatile void*>(&rmb.cnts),
            sizeof(pthread_t));
-  runner_id_t const new_thread_id = m.observe_runner(
-      (void*)new_thread, new objects::thread(objects::thread::embryo),
-      [](runner_id_t id) { return new transitions::thread_start(id); });
+  if (!m.contains_runner((void*)new_thread))
+    m.observe_runner(
+        (void*)new_thread, new objects::thread(objects::thread::embryo),
+        [](runner_id_t id) { return new transitions::thread_start(id); });
+  const runner_id_t new_thread_id = m.get_model_of_runner((void*)new_thread);
   return new transitions::thread_create(p, new_thread_id);
 }
 
@@ -177,8 +174,6 @@ void do_model_checking(
   dr.register_dd_entry<const mutex_lock, const mutex_init>(
       &mutex_lock::depends);
   dr.register_dd_entry<const mutex_lock, const mutex_lock>(
-      &mutex_lock::depends);
-  dr.register_dd_entry<const mutex_lock, const mutex_unlock>(
       &mutex_lock::depends);
   c.trace_completed = &finished_trace_classic_dpor;
 
