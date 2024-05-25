@@ -9,7 +9,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <exception>
+#include <iostream>
 #include <string>
+#include <thread>
 #include <unordered_map>
 
 const std::unordered_map<signo_t, const char *> sig_to_str = {
@@ -21,6 +23,30 @@ const std::unordered_map<signo_t, const char *> sig_to_str = {
 
 void signal_tracker_sig_handler(int sig, siginfo_t *, void *) {
   signal_tracker::instance().set_signal(sig);
+}
+
+static void handle_incoming_signals(const sigset_t blocking_set) {
+  sigset_t accept_all;
+  sigemptyset(&accept_all);
+  pthread_sigmask(SIG_SETMASK, &accept_all, NULL);
+
+  struct sigaction action;
+  action.sa_flags = SA_SIGINFO;
+  action.sa_sigaction = &signal_tracker_sig_handler;
+  sigemptyset(&action.sa_mask);
+  sigaction(SIGCHLD, &action, NULL);
+  sigaction(SIGINT, &action, NULL);
+  sigaction(SIGUSR1, &action, NULL);
+  sigaction(SIGUSR2, &action, NULL);
+
+  while (true) {
+    int sig;
+    sigwait(&blocking_set, &sig);
+
+    if (sig == SIGINT) {
+      std::exit(EXIT_FAILURE);
+    }
+  }
 }
 
 void install_process_wide_signal_handlers() {
@@ -42,14 +68,16 @@ void install_process_wide_signal_handlers() {
   // a POF used as a signal handler in a C++ program is
   // implementation-defined.
   // """
-  struct sigaction action;
-  action.sa_flags = SA_SIGINFO;
-  action.sa_sigaction = &signal_tracker_sig_handler;
-  sigemptyset(&action.sa_mask);
-  sigaction(SIGCHLD, &action, NULL);
-  sigaction(SIGINT, &action, NULL);
-  sigaction(SIGUSR1, &action, NULL);
-  sigaction(SIGUSR2, &action, NULL);
+
+  // The main thread blocks the reception of all signals and instead delegates
+  // this to a background thread.
+  //
+  // NOTE: This thread will not be present when `fork()`-ing this process (see
+  // the man page) which is the intended behavior.
+  sigset_t all_signals;
+  sigfillset(&all_signals);
+  pthread_sigmask(SIG_SETMASK, &all_signals, NULL);
+  std::thread(&handle_incoming_signals, all_signals).detach();
 }
 
 signal_tracker &signal_tracker::instance() {

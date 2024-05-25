@@ -11,6 +11,7 @@
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
 #include "mcmini/real_world/shm.hpp"
+#include "mcmini/signal.hpp"
 
 using namespace real_world;
 

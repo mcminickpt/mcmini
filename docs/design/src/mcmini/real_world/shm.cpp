@@ -26,18 +26,18 @@ shared_memory_region::shared_memory_region(const std::string &shm_file_name,
     } else {
       std::perror("shm_open");
     }
-    std::exit(EXIT_FAILURE);
+    return;
   }
   int const rc = ftruncate(fd, size());
   if (rc == -1) {
     std::perror("ftruncate");
-    std::exit(EXIT_FAILURE);
+    return;
   }
   void *handle =
       mmap(nullptr, size(), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (handle == MAP_FAILED) {
     std::perror("mmap");
-    std::exit(EXIT_FAILURE);
+    return;
   }
   fsync(fd);
   close(fd);

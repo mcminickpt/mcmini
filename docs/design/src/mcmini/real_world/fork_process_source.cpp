@@ -176,6 +176,21 @@ void fork_process_source::make_new_template_process() {
     // saying if McMini ever exits. Note that this `prctl(2)` persists across
     // `execvp(2)`.
     prctl(PR_SET_PDEATHSIG, SIGTERM);
+
+    // Ensures that the child will accept the reception of all signals (see
+    // `install_process_wide_signal_handlers()` where we explicitly block the
+    // reception of signals from the main thread i.e. this thread which is
+    // calling `fork()`)
+    //
+    // The man page for `sigprocmask(2)` reads:
+    //
+    // "A child created via fork(2) inherits a copy of its parent's signal mask;
+    // the signal mask is preserved across execve(2)."
+    //
+    // hence why we clear it about before `execvp()`
+    sigset_t empty_set;
+    sigemptyset(&empty_set);
+    sigprocmask(SIG_SETMASK, &empty_set, NULL);
     execvp(this->target_program.c_str(), args);
     unsetenv("libmcmini-template-loop");
 
