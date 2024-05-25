@@ -111,7 +111,18 @@ void coordinator::return_to_depth(uint32_t n) {
   // std::cerr.flush();
 }
 
-model::state::objid_t model_to_system_map::get_model_of(
+model::state::runner_id_t model_to_system_map::get_model_of_runner(
+    remote_address<void> handle) const {
+  model::state::objid_t objid = get_model_of_object(handle);
+  if (objid != model::invalid_objid) {
+    return _coordinator.get_current_program_model()
+        .get_state_sequence()
+        .get_runner_id_for_obj(objid);
+  }
+  return model::invalid_rid;
+}
+
+model::state::objid_t model_to_system_map::get_model_of_object(
     remote_address<void> handle) const {
   if (_coordinator.system_address_mapping.count(handle) > 0) {
     return _coordinator.system_address_mapping[handle];

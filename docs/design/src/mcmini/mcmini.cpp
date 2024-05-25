@@ -39,6 +39,7 @@
 
 using namespace extensions;
 using namespace model;
+using namespace model_checking;
 using namespace objects;
 using namespace real_world;
 
@@ -76,7 +77,7 @@ model::transition* mutex_init_callback(state::runner_id_t p,
   if (!m.contains(remote_mut))
     m.observe_object(remote_mut, new mutex(mutex::state_type::uninitialized));
 
-  state::objid_t const mut = m.get_model_of(remote_mut);
+  state::objid_t const mut = m.get_model_of_object(remote_mut);
   return new transitions::mutex_init(p, mut);
 }
 
@@ -91,7 +92,7 @@ model::transition* mutex_lock_callback(state::runner_id_t p,
     throw undefined_behavior_exception(
         "Attempting to lock an uninitialized mutex");
 
-  state::objid_t const mut = m.get_model_of(remote_mut);
+  state::objid_t const mut = m.get_model_of_object(remote_mut);
   return new transitions::mutex_lock(p, mut);
 }
 
@@ -106,7 +107,7 @@ model::transition* mutex_unlock_callback(state::runner_id_t p,
     throw undefined_behavior_exception(
         "Attempting to lock an uninitialized mutex");
 
-  state::objid_t const mut = m.get_model_of(remote_mut);
+  state::objid_t const mut = m.get_model_of_object(remote_mut);
   return new transitions::mutex_unlock(p, mut);
 }
 
@@ -128,55 +129,62 @@ model::transition* thread_exit_callback(state::runner_id_t p,
   return new transitions::thread_exit(p);
 }
 
-// model::transition* thread_join_callback(state::runner_id_t p,
-//                                         const volatile runner_mailbox& rmb,
-//                                         model_to_system_map& m) {
-//   // pthread_t target;
-//   // memcpy_v(&target, static_cast<const volatile void*>(&rmb.cnts),
-//   //          sizeof(pthread_t));
-//   // runner_id_t target_id = m.get_model_of(); if (m.contains((void*)target))
-
-//   //                             return new transitions::thread_join();
-//   return nullptr;
-// }
+model::transition* thread_join_callback(state::runner_id_t p,
+                                        const volatile runner_mailbox& rmb,
+                                        model_to_system_map& m) {
+  pthread_t target;
+  memcpy_v(&target, static_cast<const volatile void*>(&rmb.cnts),
+           sizeof(pthread_t));
+  const state::runner_id_t target_id = m.get_model_of_runner((void*)target);
+  return new transitions::thread_join(p, target_id);
+}
 
 void do_model_checking(
     /* Pass arguments here or rearrange to configure the checker at
     runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
-  detached_state state_of_program_at_main;
-  pending_transitions initial_first_steps;
-  transition_registry tr;
-
-  state::runner_id_t const main_thread_id = state_of_program_at_main.add_runner(
-      new objects::thread(objects::thread::state::running));
-  initial_first_steps.set_transition(
-      new transitions::thread_start(main_thread_id));
-
-  program model_for_program_starting_at_main(state_of_program_at_main,
-                                             std::move(initial_first_steps));
-
   // For "vanilla" model checking where we start at the beginning of the
   // program, a `fork_process_source suffices` (fork() + exec() brings us to the
   // beginning).
-  auto process_source = make_unique<fork_process_source>("hello-world");
+
+  using namespace transitions;
+
+  algorithm::callbacks c;
+  transition_registry tr;
+  detached_state state_of_program_at_main;
+  pending_transitions initial_first_steps;
+  classic_dpor::dependency_relation_type dr;
+
+  const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
+      new objects::thread(objects::thread::state::running));
+  initial_first_steps.set_transition(new thread_start(main_thread_id));
+
+  program model_for_program_starting_at_main(state_of_program_at_main,
+                                             std::move(initial_first_steps));
 
   tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
   tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
   tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
   tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
-  // tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
+  tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),
-                          std::move(tr), std::move(process_source));
+                          std::move(tr),
+                          make_unique<fork_process_source>("hello-world"));
 
-  std::unique_ptr<model_checking::algorithm> classic_dpor_checker =
-      make_unique<model_checking::classic_dpor>();
-
-  model_checking::algorithm::callbacks c;
+  dr.register_dd_entry<const thread_join>(&thread_join::depends);
+  dr.register_dd_entry<const thread_create>(&thread_create::depends);
+  dr.register_dd_entry<const mutex_lock, const mutex_init>(
+      &mutex_lock::depends);
+  dr.register_dd_entry<const mutex_lock, const mutex_lock>(
+      &mutex_lock::depends);
+  dr.register_dd_entry<const mutex_lock, const mutex_unlock>(
+      &mutex_lock::depends);
   c.trace_completed = &finished_trace_classic_dpor;
 
-  classic_dpor_checker->verify_using(coordinator, c);
+  model_checking::classic_dpor classic_dpor_checker(std::move(dr));
+  classic_dpor_checker.verify_using(coordinator, c);
+
   std::cout << "Model checking completed!" << std::endl;
 }
 

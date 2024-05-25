@@ -156,5 +156,5 @@ int mc_pthread_join(pthread_t t, void**rv) {
   memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
   thread_get_mailbox()->type = THREAD_JOIN_TYPE;
   thread_await_scheduler();
-  return libpthread_pthread_join(t, rv);
+  return 0;
 }

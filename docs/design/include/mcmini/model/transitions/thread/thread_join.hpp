@@ -20,9 +20,14 @@ struct thread_join : public model::transition {
     auto* target_state = s.get_state_of_runner<thread>(target);
     return target_state->has_exited() ? status::exists : status::disabled;
   }
-
+  state::runner_id_t get_target() const { return target; }
   std::string to_string() const override {
     return "pthread_join(thread: " + std::to_string(target) + ")";
+  }
+
+  // MARK: Dependencies
+  bool depends(const model::transition* t) const {
+    return this->target == t->get_executor();
   }
 };
 

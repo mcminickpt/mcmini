@@ -42,13 +42,12 @@ class model_to_system_map final {
  public:
   model_to_system_map() = delete;
 
-  /**
-   * @brief Retrieve the object that corresponds to the given remote address, or
-   * `model::invalid_objid` if the address is not contained in this mapping.
-   */
-  model::state::objid_t get_model_of(real_world::remote_address<void>) const;
+  model::state::objid_t get_model_of_object(
+      real_world::remote_address<void>) const;
+  model::state::runner_id_t get_model_of_runner(
+      real_world::remote_address<void>) const;
   bool contains(real_world::remote_address<void> addr) const {
-    return get_model_of(addr) != model::invalid_objid;
+    return get_model_of_object(addr) != model::invalid_objid;
   }
 
   using runner_generation_function =

@@ -8,7 +8,7 @@ namespace transitions {
 
 struct mutex_unlock : public model::transition {
  private:
-  state::objid_t mutex_id; /* The mutex this transition unlocks */
+  const state::objid_t mutex_id; /* The mutex this transition unlocks */
 
  public:
   mutex_unlock(runner_id_t executor, state::objid_t mutex_id)
@@ -23,7 +23,7 @@ struct mutex_unlock : public model::transition {
     s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked));
     return status::exists;
   }
-
+  state::objid_t get_id() const { return this->mutex_id; }
   std::string to_string() const override {
     return "pthread_mutex_unlock(mutex:" + std::to_string(mutex_id) + ")";
   }

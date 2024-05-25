@@ -236,11 +236,10 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
   const size_t num_threads =
       coordinator.get_current_program_model().get_num_runners();
 
-  std::unordered_set<runner_id_t> thread_ids;
-  thread_ids.reserve(num_threads);
+  std::set<runner_id_t> thread_ids;
   for (runner_id_t i = 0; i < num_threads; i++) thread_ids.insert(i);
 
-  const ssize_t t_stack_top = (ssize_t)(context.stack.size()) - 1;
+  const ssize_t t_stack_top = (ssize_t)(context.stack.size()) - 2;
   const runner_id_t last_runner_to_execute =
       coordinator.get_current_program_model()
           .get_trace()
@@ -250,16 +249,17 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
 
   // O(# threads)
   {
-    const model::transition &s_n =
+    const model::transition &S_n =
         *coordinator.get_current_program_model().get_trace().back();
 
-    for (runner_id_t rid = 0; rid < num_threads; rid++) {
+    for (runner_id_t rid : thread_ids) {
       const model::transition &next_sp =
           *coordinator.get_current_program_model()
                .get_pending_transitions()
                .get_transition_for_runner(rid);
-      dynamically_update_backtrack_sets_at_index(
-          context, s_n, next_sp, context.stack.back(), t_stack_top, rid);
+      dynamically_update_backtrack_sets_at_index(context, S_n, next_sp,
+                                                 context.stack.at(t_stack_top),
+                                                 t_stack_top, rid);
     }
   }
 
@@ -275,10 +275,10 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
     // top since we know that transition to not be co-enabled (since it was, by
     // assumption, run by `last_runner_to_execute`)
     for (int i = t_stack_top - 1; i >= 0; i--) {
-      const model::transition &s_i =
+      const model::transition &S_i =
           *coordinator.get_current_program_model().get_trace().at(i);
       const bool should_stop = dynamically_update_backtrack_sets_at_index(
-          context, s_i, next_s_p_for_latest_runner, context.stack.at(i), i,
+          context, S_i, next_s_p_for_latest_runner, context.stack.at(i), i,
           last_runner_to_execute);
       /*
        * Stop when we find the _first_ such i; this
@@ -294,7 +294,7 @@ bool classic_dpor::happens_before(const dpor_context &context, size_t i,
                                   size_t j) const {
   const runner_id_t rid =
       context.stack.at(i).get_out_transition()->get_executor();
-  const clock_vector &cv = context.stack.at(i).get_clock_vector();
+  const clock_vector &cv = context.stack.at(j).get_clock_vector();
   return i <= cv.value_for(rid);
 }
 
@@ -307,8 +307,8 @@ bool classic_dpor::happens_before_thread(const dpor_context &context, size_t i,
 
 bool classic_dpor::threads_race_after(const dpor_context &context, size_t i,
                                       runner_id_t q, runner_id_t p) const {
-  const size_t transition_stack_height = context.stack.size();
-  for (size_t j = (size_t)i + 1; j < transition_stack_height; j++) {
+  const size_t transition_stack_height = context.stack.size() - 1;
+  for (size_t j = i + 1; j < transition_stack_height; j++) {
     if (q == context.get_transition(j)->get_executor() &&
         this->happens_before_thread(context, j, p))
       return true;
@@ -355,4 +355,10 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
     }
   }
   return has_reversible_race;
+}
+
+bool classic_dpor::are_dependent(const model::transition &t1,
+                                 const model::transition &t2) const {
+  return t1.get_executor() == t2.get_executor() ||
+         this->dependency_relation.call_or(false, &t1, &t2);
 }

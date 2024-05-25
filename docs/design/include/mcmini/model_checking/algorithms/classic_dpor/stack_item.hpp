@@ -185,7 +185,7 @@ struct stack_item final {
     if (backtrack_set_empty())
       throw std::runtime_error("There are no more threads to backtrack on");
 
-    // NOTE: We arbitrarily always pick the smallest thread to provide a
+    // NOTE: We arbitrarily always pick the smallest thread to provide
     // determinism
     runner_id_t backtrack_thread = *this->backtrack_set.begin();
     for (const runner_id_t rid : this->backtrack_set)
@@ -208,6 +208,9 @@ struct stack_item final {
   }
   const std::unordered_set<runner_id_t> &get_sleep_set() const {
     return this->sleep_set;
+  }
+  const std::unordered_set<runner_id_t> &get_backtrack_set() const {
+    return this->backtrack_set;
   }
   const model::transition *get_out_transition() const {
     return this->out_transition;

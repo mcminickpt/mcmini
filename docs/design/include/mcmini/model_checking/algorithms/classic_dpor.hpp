@@ -13,22 +13,26 @@ namespace model_checking {
  */
 class classic_dpor final : public algorithm {
  public:
-  void verify_using(coordinator &, const callbacks &) override;
+  using dependency_relation_type =
+      double_dispatch_member_function_table<const model::transition,
+                                            bool(void)>;
 
+  void verify_using(coordinator &, const callbacks &) override;
   void verify_using(coordinator &coordinator) {
     callbacks no_callbacks;
     this->verify_using(coordinator, no_callbacks);
   }
+
+  classic_dpor() : classic_dpor(dependency_relation_type()) {}
+  classic_dpor(dependency_relation_type dependency_relation)
+      : dependency_relation(std::move(dependency_relation)) {}
 
  private:
   double_dispatch_member_function_table<const model::transition, bool(void)>
       dependency_relation;
 
   bool are_dependent(const model::transition &t1,
-                     const model::transition &t2) const {
-    return t1.get_executor() == t2.get_executor() ||
-           this->dependency_relation.call_or(true, &t1, &t2);
-  }
+                     const model::transition &t2) const;
 
   bool are_independent(const model::transition &t1,
                        const model::transition &t2) const {
