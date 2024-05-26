@@ -10,7 +10,7 @@ volatile runner_mailbox *thread_get_mailbox() {
 }
 
 void thread_await_scheduler() {
-  assert(tid_self != TID_INVALID);
+  assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
   mc_wake_scheduler(thread_mailbox);
 
@@ -22,7 +22,7 @@ void thread_await_scheduler() {
 }
 
 void thread_await_scheduler_for_thread_start_transition() {
-  assert(tid_self != TID_INVALID);
+  assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
 
   errno = 0;
@@ -33,7 +33,7 @@ void thread_await_scheduler_for_thread_start_transition() {
 }
 
 void thread_awake_scheduler_for_thread_finish_transition() {
-  assert(tid_self != TID_INVALID);
+  assert(tid_self != RID_INVALID);
   mc_wake_scheduler(thread_get_mailbox());
 }
 
@@ -75,7 +75,7 @@ void mc_exit_thread(void) {
 }
 
 void mc_exit_main_thread(void) {
-  if (tid_self != TID_MAIN_THREAD) libc_abort();
+  if (tid_self != RID_MAIN_THREAD) libc_abort();
   // IMPORTANT: This is NOT a typo!
   // 1. `thread_await_scheduler()` is called when the
   // main thread is known to be _alive_ to the model

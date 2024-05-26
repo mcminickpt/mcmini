@@ -20,7 +20,7 @@
 #include "mcmini/mcmini.h"
 
 volatile void *global_shm_start = NULL;
-MCMINI_THREAD_LOCAL runner_id_t tid_self = TID_INVALID;
+MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
 runner_id_t mc_register_this_thread(void) {
   // NOTE: It is an internal error for more than one thread

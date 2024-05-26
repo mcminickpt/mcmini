@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mcmini/defines.h"
 #include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/transition.hpp"
 
@@ -14,7 +15,7 @@ struct thread_exit : public model::transition {
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
     auto* thread_state = s.get_state_of_runner<thread>(executor);
-    if (!thread_state->is_running() || executor == TID_MAIN_THREAD) {
+    if (!thread_state->is_running() || executor == RID_MAIN_THREAD) {
       return status::disabled;
     }
     s.add_state_for_runner(executor, new thread(thread::exited));

@@ -17,13 +17,8 @@
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/model/transition_registry.hpp"
-#include "mcmini/model/transitions/mutex/mutex_init.hpp"
-#include "mcmini/model/transitions/mutex/mutex_lock.hpp"
-#include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
-#include "mcmini/model/transitions/thread/thread_create.hpp"
-#include "mcmini/model/transitions/thread/thread_exit.hpp"
-#include "mcmini/model/transitions/thread/thread_join.hpp"
-#include "mcmini/model/transitions/thread/thread_start.hpp"
+#include "mcmini/model/transitions/mutex/callbacks.hpp"
+#include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
@@ -59,81 +54,6 @@ void finished_trace_classic_dpor(const coordinator& c) {
   std::cout << ss.str();
   std::cout.flush();
   trace_id++;
-}
-
-model::transition* mutex_init_callback(state::runner_id_t p,
-                                       const volatile runner_mailbox& rmb,
-                                       model_to_system_map& m) {
-  // Fetch the remote object
-  pthread_mutex_t* remote_mut;
-  memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-
-  // Locate the corresponding model of this object
-  if (!m.contains(remote_mut))
-    m.observe_object(remote_mut, new mutex(mutex::state_type::uninitialized));
-
-  state::objid_t const mut = m.get_model_of_object(remote_mut);
-  return new transitions::mutex_init(p, mut);
-}
-
-model::transition* mutex_lock_callback(state::runner_id_t p,
-                                       const volatile runner_mailbox& rmb,
-                                       model_to_system_map& m) {
-  pthread_mutex_t* remote_mut;
-  memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-
-  // TODO: add code from Gene's PR here
-  if (!m.contains(remote_mut))
-    throw undefined_behavior_exception(
-        "Attempting to lock an uninitialized mutex");
-
-  state::objid_t const mut = m.get_model_of_object(remote_mut);
-  return new transitions::mutex_lock(p, mut);
-}
-
-model::transition* mutex_unlock_callback(state::runner_id_t p,
-                                         const volatile runner_mailbox& rmb,
-                                         model_to_system_map& m) {
-  pthread_mutex_t* remote_mut;
-  memcpy_v(&remote_mut, (volatile void*)rmb.cnts, sizeof(pthread_mutex_t*));
-
-  // TODO: add code from Gene's PR here
-  if (!m.contains(remote_mut))
-    throw undefined_behavior_exception(
-        "Attempting to lock an uninitialized mutex");
-
-  state::objid_t const mut = m.get_model_of_object(remote_mut);
-  return new transitions::mutex_unlock(p, mut);
-}
-
-model::transition* thread_create_callback(state::runner_id_t p,
-                                          const volatile runner_mailbox& rmb,
-                                          model_to_system_map& m) {
-  pthread_t new_thread;
-  memcpy_v(&new_thread, static_cast<const volatile void*>(&rmb.cnts),
-           sizeof(pthread_t));
-  if (!m.contains_runner((void*)new_thread))
-    m.observe_runner(
-        (void*)new_thread, new objects::thread(objects::thread::embryo),
-        [](runner_id_t id) { return new transitions::thread_start(id); });
-  const runner_id_t new_thread_id = m.get_model_of_runner((void*)new_thread);
-  return new transitions::thread_create(p, new_thread_id);
-}
-
-model::transition* thread_exit_callback(state::runner_id_t p,
-                                        const volatile runner_mailbox& rmb,
-                                        model_to_system_map& m) {
-  return new transitions::thread_exit(p);
-}
-
-model::transition* thread_join_callback(state::runner_id_t p,
-                                        const volatile runner_mailbox& rmb,
-                                        model_to_system_map& m) {
-  pthread_t target;
-  memcpy_v(&target, static_cast<const volatile void*>(&rmb.cnts),
-           sizeof(pthread_t));
-  const state::runner_id_t target_id = m.get_model_of_runner((void*)target);
-  return new transitions::thread_join(p, target_id);
 }
 
 void do_model_checking(

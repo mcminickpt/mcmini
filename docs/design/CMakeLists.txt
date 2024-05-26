@@ -16,6 +16,7 @@ option(VERBOSE_TESTING OFF)
 set(MCMINI_DIR "${CMAKE_SOURCE_DIR}")
 set(MCMINI_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/include")
 set(MCMINI_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake")
+set(MCMINI_WITH_DMTCP OFF)
 
 # Project source files
 set(MCMINI_C_SRC
@@ -34,6 +35,8 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/program.cpp
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model/transition_sequence.cpp
+  src/mcmini/model/transitions/mutex.cpp
+  src/mcmini/model/transitions/thread.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
   src/mcmini/model_checking/algorithms/clock_vector.cpp
   src/mcmini/real_world/fork_process_source.cpp
@@ -52,7 +55,7 @@ set(LIBMCMINI_C_SRC
 
 set(MCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
 set(MCMINI_EXTRA_COMPILER_DEFINITIONS "")
-set(MCMINI_EXTRA_LINK_FLAGS "")
+set(MCMINI_EXTRA_LINK_FLAGS -lrt -pthread)
 
 set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
 set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
