@@ -150,6 +150,7 @@ void do_model_checking(
   detached_state state_of_program_at_main;
   pending_transitions initial_first_steps;
   classic_dpor::dependency_relation_type dr;
+  classic_dpor::coenabled_relation_type cr;
 
   const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));
@@ -169,15 +170,22 @@ void do_model_checking(
                           std::move(tr),
                           make_unique<fork_process_source>("hello-world"));
 
-  dr.register_dd_entry<const thread_join>(&thread_join::depends);
   dr.register_dd_entry<const thread_create>(&thread_create::depends);
+  dr.register_dd_entry<const thread_join>(&thread_join::depends);
+
   dr.register_dd_entry<const mutex_lock, const mutex_init>(
       &mutex_lock::depends);
   dr.register_dd_entry<const mutex_lock, const mutex_lock>(
       &mutex_lock::depends);
-  c.trace_completed = &finished_trace_classic_dpor;
+  cr.register_dd_entry<const thread_create>(&thread_create::coenabled_with);
+  cr.register_dd_entry<const thread_join>(&thread_join::coenabled_with);
+  cr.register_dd_entry<const mutex_lock, const mutex_unlock>(
+      &mutex_lock::coenabled_with);
 
-  model_checking::classic_dpor classic_dpor_checker(std::move(dr));
+  model_checking::classic_dpor classic_dpor_checker(std::move(dr),
+                                                    std::move(cr));
+
+  c.trace_completed = &finished_trace_classic_dpor;
   classic_dpor_checker.verify_using(coordinator, c);
 
   std::cout << "Model checking completed!" << std::endl;

@@ -17,6 +17,10 @@ class classic_dpor final : public algorithm {
       double_dispatch_member_function_table<const model::transition,
                                             bool(void)>;
 
+  using coenabled_relation_type =
+      double_dispatch_member_function_table<const model::transition,
+                                            bool(void)>;
+
   void verify_using(coordinator &, const callbacks &) override;
   void verify_using(coordinator &coordinator) {
     callbacks no_callbacks;
@@ -24,14 +28,23 @@ class classic_dpor final : public algorithm {
   }
 
   classic_dpor() : classic_dpor(dependency_relation_type()) {}
-  classic_dpor(dependency_relation_type dependency_relation)
-      : dependency_relation(std::move(dependency_relation)) {}
+  classic_dpor(
+      dependency_relation_type dependency_relation,
+      coenabled_relation_type coenabled_relation = coenabled_relation_type())
+      : dependency_relation(std::move(dependency_relation)),
+        coenabled_relation(std::move(coenabled_relation)) {}
 
  private:
   double_dispatch_member_function_table<const model::transition, bool(void)>
       dependency_relation;
 
+  double_dispatch_member_function_table<const model::transition, bool(void)>
+      coenabled_relation;
+
   bool are_dependent(const model::transition &t1,
+                     const model::transition &t2) const;
+
+  bool are_coenabled(const model::transition &t1,
                      const model::transition &t2) const;
 
   bool are_independent(const model::transition &t1,

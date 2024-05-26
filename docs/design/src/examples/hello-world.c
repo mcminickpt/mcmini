@@ -52,8 +52,7 @@ int main(int argc, char* argv[]) {
     //     printf("Usage: %s NUM_PHILOSOPHERS DEBUG\n", argv[0]);
     //     return 1;
     // }
-
-    int NUM_THREADS = 2;
+    int NUM_THREADS = 9;
     DEBUG = 0;
 
     pthread_t thread[NUM_THREADS];

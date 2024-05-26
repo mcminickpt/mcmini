@@ -39,6 +39,9 @@ struct mutex_lock : public model::transition {
   bool depends(const mutex_lock* ml) const {
     return this->mutex_id == ml->get_id();
   }
+  bool coenabled_with(const mutex_unlock* mu) const {
+    return this->mutex_id != mu->get_id();
+  }
 };
 }  // namespace transitions
 }  // namespace model

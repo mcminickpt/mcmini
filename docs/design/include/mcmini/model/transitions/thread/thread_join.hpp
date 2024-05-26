@@ -29,6 +29,9 @@ struct thread_join : public model::transition {
   bool depends(const model::transition* t) const {
     return this->target == t->get_executor();
   }
+  bool coenabled_with(const model::transition* t) const {
+    return this->target != t->get_executor();
+  }
 };
 
 }  // namespace transitions

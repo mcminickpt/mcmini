@@ -25,8 +25,12 @@ struct thread_create : public model::transition {
     return "pthread_create(thread: " + std::to_string(target) + ")";
   }
 
+  // MARK: DPOR Methods
   bool depends(const model::transition* t) const {
     return this->target == t->get_executor();
+  }
+  bool coenabled_with(const model::transition *t) const {
+    return this->target != t->get_executor();
   }
 };
 

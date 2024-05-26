@@ -51,6 +51,44 @@ clock_vector classic_dpor::accumulate_max_clock_vector_against(
   return result;
 }
 
+bool classic_dpor::are_coenabled(const model::transition &t1,
+                                 const model::transition &t2) const {
+  return t1.get_executor() != t2.get_executor() &&
+         this->coenabled_relation.call_or(true, &t1, &t2);
+}
+
+bool classic_dpor::are_dependent(const model::transition &t1,
+                                 const model::transition &t2) const {
+  return t1.get_executor() == t2.get_executor() ||
+         this->dependency_relation.call_or(false, &t1, &t2);
+}
+
+bool classic_dpor::happens_before(const dpor_context &context, size_t i,
+                                  size_t j) const {
+  const runner_id_t rid =
+      context.stack.at(i).get_out_transition()->get_executor();
+  const clock_vector &cv = context.stack.at(j).get_clock_vector();
+  return i <= cv.value_for(rid);
+}
+
+bool classic_dpor::happens_before_thread(const dpor_context &context, size_t i,
+                                         runner_id_t p) const {
+  const runner_id_t rid = context.get_transition(i)->get_executor();
+  const clock_vector &cv = context.per_runner_clocks[p].get_clock_vector();
+  return i <= cv.value_for(rid);
+}
+
+bool classic_dpor::threads_race_after(const dpor_context &context, size_t i,
+                                      runner_id_t q, runner_id_t p) const {
+  const size_t transition_stack_height = context.stack.size() - 1;
+  for (size_t j = i + 1; j < transition_stack_height; j++) {
+    if (q == context.get_transition(j)->get_executor() &&
+        this->happens_before_thread(context, j, p))
+      return true;
+  }
+  return false;
+}
+
 void classic_dpor::verify_using(coordinator &coordinator,
                                 const callbacks &callbacks) {
   // The code below is an implementation of the model-checking algorithm of
@@ -290,38 +328,13 @@ void classic_dpor::dynamically_update_backtrack_sets(dpor_context &context) {
   }
 }
 
-bool classic_dpor::happens_before(const dpor_context &context, size_t i,
-                                  size_t j) const {
-  const runner_id_t rid =
-      context.stack.at(i).get_out_transition()->get_executor();
-  const clock_vector &cv = context.stack.at(j).get_clock_vector();
-  return i <= cv.value_for(rid);
-}
-
-bool classic_dpor::happens_before_thread(const dpor_context &context, size_t i,
-                                         runner_id_t p) const {
-  const runner_id_t rid = context.get_transition(i)->get_executor();
-  const clock_vector &cv = context.per_runner_clocks[p].get_clock_vector();
-  return i <= cv.value_for(rid);
-}
-
-bool classic_dpor::threads_race_after(const dpor_context &context, size_t i,
-                                      runner_id_t q, runner_id_t p) const {
-  const size_t transition_stack_height = context.stack.size() - 1;
-  for (size_t j = i + 1; j < transition_stack_height; j++) {
-    if (q == context.get_transition(j)->get_executor() &&
-        this->happens_before_thread(context, j, p))
-      return true;
-  }
-  return false;
-}
-
 bool classic_dpor::dynamically_update_backtrack_sets_at_index(
-    const dpor_context &context, const model::transition &s_i,
+    const dpor_context &context, const model::transition &S_i,
     const model::transition &next_sp, stack_item &pre_si, size_t i,
     runner_id_t p) {
   // TODO: add in co-enabled conditions
-  const bool has_reversible_race = this->are_dependent(next_sp, s_i) &&
+  const bool has_reversible_race = this->are_dependent(next_sp, S_i) &&
+                                   this->are_coenabled(next_sp, S_i) &&
                                    !this->happens_before_thread(context, i, p);
 
   // If there exists i such that ...
@@ -355,10 +368,4 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
     }
   }
   return has_reversible_race;
-}
-
-bool classic_dpor::are_dependent(const model::transition &t1,
-                                 const model::transition &t2) const {
-  return t1.get_executor() == t2.get_executor() ||
-         this->dependency_relation.call_or(false, &t1, &t2);
 }
