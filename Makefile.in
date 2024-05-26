@@ -74,5 +74,6 @@ distclean: clean
 	rm -f Makefile mcmini-gdb config.log config.status
 
 dist: distclean
-	dir=`basename $$PWD` && cd .. && tar zcvf $$dir.tar.gz ./$$dir
+	dir=`basename $$PWD` && cd .. && \
+	  tar zcvf $$dir.tar.gz --exclude='.git*' --exclude='*.png'  ./$$dir
 	dir=`basename $$PWD` && ls -l ../$$dir.tar.gz
