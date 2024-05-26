@@ -22,11 +22,6 @@ typedef enum {
   //...
 } transition_type;
 
-struct shared_transition {
-  runner_id_t executor;
-  transition_type type;
-};
-
 #ifdef __cplusplus
 }
 #endif  // extern "C"

@@ -68,13 +68,13 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   return 0;
 }
 
-void mc_exit_thread(void) {
+void mc_exit_thread_in_child(void) {
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
   thread_await_scheduler();
   thread_awake_scheduler_for_thread_finish_transition();
 }
 
-void mc_exit_main_thread(void) {
+void mc_exit_main_thread_in_child(void) {
   if (tid_self != RID_MAIN_THREAD) libc_abort();
   // IMPORTANT: This is NOT a typo!
   // 1. `thread_await_scheduler()` is called when the
@@ -131,7 +131,7 @@ mc_thread_routine_wrapper(void *arg)
   void *return_value = unwrapped_arg->routine(unwrapped_arg->arg);
 
   free(arg);
-  mc_exit_thread();
+  mc_exit_thread_in_child();
   return return_value;
 }
 

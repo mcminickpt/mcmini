@@ -51,6 +51,8 @@ set(LIBMCMINI_C_SRC
   src/lib/entry.c
   src/lib/interception.c
   src/lib/wrappers.c
+  src/lib/template/loop.c
+  src/lib/template/sig.c
 )
 
 set(MCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)

@@ -2,10 +2,10 @@
 #include <memory>
 #include <string>
 
+#include "mcmini/common/transitions.h"
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/coordinator/model_to_system_map.hpp"
 #include "mcmini/defines.h"
-#include "mcmini/lib/shared_transition.h"
 #include "mcmini/mem.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/exception.hpp"

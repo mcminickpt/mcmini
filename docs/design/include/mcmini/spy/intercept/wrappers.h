@@ -23,6 +23,6 @@ int mc_pthread_join(pthread_t, void**);
   This ensures that if the main thread exits the model checker still maintains
   control.
 */
-void mc_exit_main_thread(void);
+void mc_exit_main_thread_in_child(void);
 MCMINI_NO_RETURN void mc_transparent_abort();
 MCMINI_NO_RETURN void mc_transparent_exit(int status);
