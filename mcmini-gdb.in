@@ -7,4 +7,12 @@ if test "$1" = ""; then
   exit 1
 fi
 
-gdb -x $MCMINI_ROOT/gdbinit --args $MCMINI_ROOT/mcmini $*
+# We need to quote arguments, since '-p <traceSeq>' has spaces.
+newargs=""
+while [ "$1" != "" ]; do
+  newargs="$newargs '$1'"
+  echo $newargs
+  shift
+done
+
+eval gdb -x $MCMINI_ROOT/gdbinit --args $MCMINI_ROOT/mcmini $newargs
