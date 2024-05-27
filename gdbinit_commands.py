@@ -10,7 +10,7 @@
 ##   # Invoke with count of 3 and 'True' (default: fromTtty; for all commands)
 ##   (gdb) python nextTransitionCmd().invoke("3",True)
 
-## EXAMPE USAGE of Python API breakpoints:
+## EXAMPLE USAGE of Python API breakpoints:
 ##   bkptMain = gdb.Breakpoint("main")
 ##   bkptMain.silent = True
 ##   bkptMain.enabled = False
@@ -19,13 +19,6 @@
 
 ## FIXME:
 ## mcmini nextTrace <count> fails, when using optional <count> argument.
-
-## FIXME:
-## Newer GDBs can use "tui disable" to undo "layout src"
-## We should test if "tui disable" works, and then turn on "layout src"
-##   after 'nextTransition' or when in lower half.
-## As a stopgap, could use 'shell reset', 'shell setenv TERM=vt100'
-##   followed by 'mcmini printTransitions' and then 'layout src'.
 
 ## TODO:
 ## 1. mcmini printTransitions => McMini print:  Number the transitions,
@@ -40,11 +33,9 @@
 ##    GDB API will correctly show the new transitionId
 ## 3. 'assert()' and '_exit()' should be handled gracefully. (Especially assert)
 ##    As a stopgap, in case McMini crashes, just print every traceId before that
-## 4. Whan McMini stops at "bad" trace (e.g., deadlock), print traceId,
-##    and print something besides "Model checking completed!" at the end.
-## 5. In WSL, the arguments of the target program are getting lost. WHY?
+## 4. In WSL, the arguments of the target program are getting lost. WHY?
 ##    As a result, producer_consumer doesn't recognize its '--quiet' flag.
-## 6. I'm not a fan of using 'operator' widely for the same reason that
+## 5. I'm not a fan of using 'operator' widely for the same reason that
 ##    I'm not a fan of using global variables widely.  It becomes very
 ##    difficult to read the code locally, since absolutely any use
 ##    of '[]' or '()' might be an operator with unknown semantics.
@@ -65,6 +56,69 @@
 ##  Bug:  If we continue to do 'mcmini forward' until end of trace, it crashes.
 
 # ===========================================================
+# NEW for use with:  ./mcmini -p <traceSeq>
+
+def is_tui_active():
+  return "The TUI is not active." not in gdb.execute("info win", to_string=True)
+
+def total_frames():
+  frame = gdb.newest_frame()
+  while frame.older(): # Get oldest frame
+    frame = frame.older()
+  return frame.level() + 1
+
+def select_user_frame():
+  gdb.invalidate_cached_frames()
+  frame = gdb.newest_frame()
+  while frame.older(): # Get oldest frame
+    frame = frame.older()
+  while True:
+    # Search from oldest to newest for a call frame whose _next_ (newer) frame
+    #   would be a McMini call frame.
+    if frame.name() and not frame.newer(): # This must be user main, at start.
+      frame.select()
+      break
+    if frame.find_sal().symtab and not frame.newer().find_sal().symtab:
+      frame.select() # Maybe newer is McMini frame not compiled with '-g'.
+      break
+    if not frame.find_sal().symtab and frame.newer().find_sal().symtab:
+      frame.select() # This could be start_thread(), with McMini frame as newer
+      break
+    if not frame.find_sal().symtab and not frame.newer().find_sal().symtab:
+      frame = frame.newer()
+      continue # Probably this is:  clone3; start_thread; ...
+    assert frame.find_sal().symtab and frame.newer().find_sal().symtab
+    if ( frame.name() and
+         frame.newer().find_sal().symtab and  # always true of McMini frames
+         # If this is "starts" transition of new thread., ignore _newer_ frames
+         ( frame.newer().name() == "mc_thread_routine_wrapper"
+           and
+           frame.newer().newer().find_sal().symtab
+           and
+           frame.newer().newer().name() ==
+           "thread_await_scheduler_for_thread_start_transition") or
+         ( frame.newer().name() != "mc_thread_routine_wrapper" and
+           ( "src/transitions/" in frame.newer().find_sal().symtab.filename or
+             "src/mcmini_private.cpp" in frame.newer().find_sal().symtab.filename))):
+      frame.select() # This is a user call frame or else the start of a new thread.
+      break
+    frame = frame.newer()
+  frame.select()
+  # gdb.execute("refresh")
+  # Why is this necessary, to update the tui display?
+  # Why doesn't "(gdb) refresh" work? (It resumes tui if disabled.)
+  if is_tui_active():
+    # gdb.execute("update")
+    # gdb.execute("down"); gdb.execute("up")
+    ## Unfortunately, the 'frame' cmd prints to middle of screen.
+    ## But otherwise, the tui refuses to display the correct frame.
+    #gdb.execute("tui disable")
+    # If we knew where the TUI looks for its current call frame, then
+    #   we could simply set it and do:  "tui disable" and "tui enable"
+    gdb.execute("frame " + str( gdb.selected_frame().level() ))
+    # gdb.execute("tui enable")
+
+# ===========================================================
 # Print statistics
 
 transitionId = 0
@@ -82,27 +136,12 @@ def print_user_frames_in_stack():
   if gdb.selected_inferior().num == 1:
     print("Internal error: print_user_frames_in_stack called " +
                            "outside user program\n")
-  level = 0
-  mcmini_num_frame_levels = 0
-  frame = gdb.newest_frame()
-  while True:
-    frame = frame.older()
-    if not frame:
-      break
-    level += 1
-    if (frame.name() and
-         (frame.name().startswith("mc_") or
-          frame.name().startswith("__real_") or
-          frame.name() == "thread_await_scheduler" or
-          frame.name() == "thread_await_scheduler_for_thread_start_transition")
-        and
-         (frame.name() != "mc_thread_routine_wrapper" or
-          frame.newer().name() ==
-                          "thread_await_scheduler_for_thread_start_transition")
-       ):
-      mcmini_num_frame_levels = level
-      frame.older().select() # Keep setting older frame as the user frame
-  gdb.execute("bt " + str(- (level - mcmini_num_frame_levels)))
+  select_user_frame()
+  # gdb.execute would print newline, but not carriage return:
+  printout = gdb.execute("bt " + str(- (total_frames() -
+                                        gdb.selected_frame().level())),
+                         to_string=True)
+  print(printout)
 def find_call_frame(name):
   frame = gdb.newest_frame()
   while frame:
@@ -115,7 +154,7 @@ def find_call_frame(name):
 # Set up breakpoint utilities
 
 def continue_until(function, thread_id=None):
-  ## We would have preferrd a temporary breakpoint.
+  ## We would have preferred a temporary breakpoint.
   ## gdb 7.6 doesn't seem to implement "temporary" optional argument.
   ## Optional arguments:  internal=False, temporary=True
   ## bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE.
@@ -138,6 +177,12 @@ def continue_beyond(function):
   while bkpt.isValid:
     gdb.execute("continue")
   # Continue until pre-existing breakpoint
+  gdb.execute("continue")
+
+def finish():
+  # GDB "finish" would write to screen even when trying to make it silent.
+  bkpt = gdb.FinishBreakpoint(internal=True)
+  bkpt.silent = True
   gdb.execute("continue")
 
 # gdb.Breakpoint.stop() can be defined to do anything arbitrary when
@@ -169,9 +214,9 @@ mcminiHelpString=(
 * Consider using ctrl-Xa ('ctrl-X' and 'x') to toggle source display on or off.*
 *   In 'ctrl-Xa' mode in WSL, you may need to type 'ctrl-L' to refresh screen. *
 * Use GDB commands 'up' and 'down' to view other call frames.                  *
-* But in source display, cursor keys only browse the source code, and          *
+* By default, cursor keys browse the source code, not the command history.     *
+* Type 'focus cmd' or 'focus src' to change the focus to cmd, & back to src.. *
 *   you cannot scroll back to see previous command output.                     *
-* Turn off source display to re-execute commands or to scroll backward.        *
 *                                                                              *
 * Note that for certain technical reasons in the implementation of McMini,     *
 * certain thread functions (e.g., sem_wait, pthread_cond_wait)                 *
@@ -250,11 +295,26 @@ class forwardCmd(gdb.Command):
       gdb.execute("set build-id-verbose 0")
     except:
       pass
-    continue_until("mc_shared_sem_wait_for_scheduler")
+    continue_until("mc_shared_sem_wait_for_scheduler_done")
+    finish()
     transitionId += 1
     if "quiet" not in args:
-      print_user_frames_in_stack()
+      select_user_frame()  # This will print.  Don't call if "quiet" in args.
+      frame = gdb.selected_frame()
       print_mcmini_stats()
+      if frame.find_sal().symtab:
+        source_line = frame.find_sal().symtab.filename.split('/')[-1] + ":" + \
+                    str(frame.find_sal().line)
+        source_function_call = extract_fnc_call(frame.newer().name(), source_line)
+        print("> Inside " + frame.name() + "() [" +
+              frame.find_sal().symtab.filename.split('/')[-1] + ":" +
+              str(frame.find_sal().line) + "]: " + source_function_call)
+      else:
+        print_mcmini_stats()
+        print("> Thr " + str(gdb.selected_thread().num - 1) + ": Inside " +
+              frame.name() + "() [" +
+              "No source file info; Was it compiled with '-g'?]")
+      select_user_frame()
 forwardCmd()
 
 class backCmd(gdb.Command):
@@ -278,10 +338,11 @@ class backCmd(gdb.Command):
     print("DEBUGGING: " + "mcmini forward " + str(iterationsForward) + " quiet")
     print_user_frames_in_stack()
     print_mcmini_stats()
-backCmd()
+    select_user_frame()
+# backCmd()  # Not working with '-p <traceSeq>'
 
 class whereCmd(gdb.Command):
-  """Execute where, while hiding McMini internal call framces"""
+  """Execute where, while hiding McMini internal call frames"""
   def __init__(self):
     super(whereCmd, self).__init__(
         "mcmini where", gdb.COMMAND_USER
@@ -290,6 +351,7 @@ class whereCmd(gdb.Command):
     print("STACK FOR THREAD: " + str(gdb.selected_thread().num))
     print_user_frames_in_stack()
     print_mcmini_stats()
+    select_user_frame()
 whereCmd()
 
 class finishTraceCmd(gdb.Command):
@@ -325,7 +387,7 @@ class finishTraceCmd(gdb.Command):
     if "quiet" not in args:
       print_mcmini_stats()
     transitionId = 0
-finishTraceCmd()
+# finishTraceCmd()  # Not working with '-p <traceSeq>'
 
 class nextTraceCmd(gdb.Command):
   """Execute to next trace; Accepts optional <count> arg"""
@@ -352,7 +414,7 @@ class nextTraceCmd(gdb.Command):
     # We should now be in the next child process.
     if "quiet" not in args:
       print_mcmini_stats()
-nextTraceCmd()
+# nextTraceCmd()  # Not working with '-p <traceSeq>'
 
 class gotoTraceCmd(gdb.Command):
   """gotoTrace <traceId>: Execute until reaching trace <traceId>"""
@@ -386,7 +448,7 @@ class gotoTraceCmd(gdb.Command):
     gdb.execute("set detach-on-fork off")
     gdb.execute("mcmini nextTrace quiet")
     print_mcmini_stats()
-gotoTraceCmd()
+# gotoTraceCmd()  # Not working with '-p <traceSeq>'
 
 developerHelp = ("""\
 Executes:
