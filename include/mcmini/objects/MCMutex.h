@@ -1,7 +1,6 @@
 #ifndef INCLUDE_MCMINI_OBJECTS_MCMUTEX_HPP
 #define INCLUDE_MCMINI_OBJECTS_MCMUTEX_HPP
 
-#include "mcmini/misc/MCOptional.h"
 #include "mcmini/objects/MCVisibleObject.h"
 
 struct MCMutexShadow {
