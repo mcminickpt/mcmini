@@ -1,0 +1,9 @@
+python
+for i in range(1000):
+  try:
+    gdb.execute("mcmini forward")
+  except:
+    gdb.execute("set confirm off")
+    gdb.execute("quit")
+    pass
+end

@@ -137,8 +137,7 @@ def select_user_frame():
 transitionId = 0
 def print_mcmini_stats():
   global transitionId
-  print("*** traceId: " + str(gdb.parse_and_eval("traceId")) + "; " +
-        "transition: " + str(transitionId) + "; "
+  print("*** transition: " + str(transitionId) + "; "
         "thread: " + str(gdb.selected_inferior().num) + "." +
                      str(gdb.selected_thread().num) +
                  " (thread " + str(gdb.selected_thread().num) +
@@ -284,6 +283,51 @@ class printPendingTransitionsCmd(gdb.Command):
    gdb.execute("inferior " + str(current_inferior))
 printPendingTransitionsCmd()
 
+import re
+def extract_fnc_call(fnc_name, source_line):
+  file, line = source_line.split(':')
+  source_line2 = file + ":" + str(int(line)+1)
+  list_cmd = "list " + source_line + ", " + source_line2
+  if "output styling is enabled." in gdb.execute("show style enabled",
+                                                 to_string=True):
+    gdb.execute("set style enabled off")
+    extract = gdb.execute(list_cmd, to_string=True)
+    gdb.execute("set style enabled on")
+  else:
+    extract = gdb.execute(list_cmd, to_string=True)
+  # reg = r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]' # remove ANSCO terminal chars
+  # extract = re.sub(reg, '', extract)
+  if fnc_name not in extract:
+    return fnc_name + "(...)"
+  idx = extract.index(fnc_name)
+  count = 0
+  idx2 = idx
+  for i in range(idx + len(fnc_name), len(extract)):
+    idx2 = i+1
+    if extract[i] == '(': count += 1
+    if extract[i] == ')': count -= 1
+    if count == 0: break
+  return extract[idx : idx2].replace('\n', "")
+
+def print_current_frame_verbose():
+  select_user_frame()
+  frame = gdb.selected_frame()
+  print_mcmini_stats()
+  if frame.find_sal().symtab:
+    source_line = frame.find_sal().symtab.filename.split('/')[-1] + ":" + \
+                str(frame.find_sal().line)
+    if frame.newer(): # This must be user main, at start.
+      source_function_call = extract_fnc_call(frame.newer().name(), source_line)
+    else: # This must be user main, at start.
+      source_function_call = "** START **"
+    print("> Thr " + str(gdb.selected_thread().num - 1) + ": Inside " +
+          frame.name() + "() [" +
+          frame.find_sal().symtab.filename.split('/')[-1] + ":" +
+          str(frame.find_sal().line) + "]: " + source_function_call)
+  else:
+    print("> Thr " + str(gdb.selected_thread().num - 1) + ": Inside " +
+          frame.name() + "() [" + "??" + "]: " + "??")
+
 class forwardCmd(gdb.Command):
   """Execute until next transition; Accepts optional <count> arg"""
   def __init__(self):
@@ -301,7 +345,10 @@ class forwardCmd(gdb.Command):
       print("GDB is in scheduler, not target process:" +
             "  Can't go to next transition\n")
       return
-    # GDB based on Red Hat uses debuginfo files.  This will suppress
+    if iterations == 0:
+      print_current_frame_verbose()
+      return
+    # GDB on top of Red Hat uses debuginfo files.  This will suppress
     # the warning.  However, this GDB command fails on Debian-based distros,
     # and anyway, no warning about missing debug files issued.
     try:
@@ -312,16 +359,10 @@ class forwardCmd(gdb.Command):
     finish()
     transitionId += 1
     if "quiet" not in args:
-      select_user_frame()  # This will print.  Don't call if "quiet" in args.
+      select_user_frame()
       frame = gdb.selected_frame()
-      print_mcmini_stats()
       if frame.find_sal().symtab:
-        source_line = frame.find_sal().symtab.filename.split('/')[-1] + ":" + \
-                    str(frame.find_sal().line)
-        source_function_call = extract_fnc_call(frame.newer().name(), source_line)
-        print("> Inside " + frame.name() + "() [" +
-              frame.find_sal().symtab.filename.split('/')[-1] + ":" +
-              str(frame.find_sal().line) + "]: " + source_function_call)
+        print_current_frame_verbose()
       else:
         print_mcmini_stats()
         print("> Thr " + str(gdb.selected_thread().num - 1) + ": Inside " +
