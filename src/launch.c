@@ -129,6 +129,7 @@ main(int argc, char *argv[])
                       "              [--help|-h]\n"
                       "              target_executable\n"
                       "       mcmini-gdb ...<same as mcmini args>...\n"
+                      "       python3 mcmini-annotate.py -p <traceSeq> ...<same as mcmini args>...\n"
              );
       exit(1);
     }
@@ -142,7 +143,7 @@ main(int argc, char *argv[])
   if (cur_arg[0] == NULL || stat(cur_arg[0], &stat_buf) == -1) {
     fprintf(stderr,
             "*** Missing target_executable or no such file.\n\n");
-    exit(1);
+    exit(101); // Same as exit code 0145
   }
 
   assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
