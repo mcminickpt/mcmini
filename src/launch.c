@@ -40,7 +40,7 @@ main(int argc, char *argv[])
         strcmp(cur_arg[0], "-m") == 0) {
       setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[1], 1);
       char *endptr;
-      if (strtol(cur_arg[1], &endptr, 10) == 0 || endptr[0] != '\0') {
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
         fprintf(stderr, "%s: illegal value\n", "--max-depth-per-thread");
         exit(1);
       }
@@ -54,7 +54,7 @@ main(int argc, char *argv[])
              strcmp(cur_arg[0], "-d") == 0) {
       setenv(ENV_DEBUG_AT_TRACE_ID, cur_arg[1], 1);
       char *endptr;
-      if (strtol(cur_arg[1], &endptr, 10) == 0 || endptr[0] != '\0') {
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
         fprintf(stderr, "%s: illegal value\n", "--debug-at-traceId");
         exit(1);
       }
@@ -92,7 +92,7 @@ main(int argc, char *argv[])
              strcmp(cur_arg[0], "-p") == 0) {
       setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[1], 1);
       char *endptr;
-      if (strtol(cur_arg[1], &endptr, 10) == 0 || endptr[0] != '\0') {
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
         fprintf(stderr, "%s: illegal value\n", "--print-at-traceId");
         exit(1);
       }
