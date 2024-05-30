@@ -137,7 +137,7 @@ main(int argc, char *argv[])
              strlen(cur_arg[0]) - strlen("mcmini") - 1 :
              strlen(cur_arg[0]);
   // idx points to 'X' when cur_arg[0] == "...Xmcmini"
-  if (strcmp(cur_arg[0], "mcmini") == 0 || cur_arg[0][idx] == '/') {
+  if (strcmp(cur_arg[0], "mcmini") == 0 ||  strcmp(cur_arg[0] + idx, "/mcmini") == 0) {
     fprintf(stderr,
             "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
     exit(1);
