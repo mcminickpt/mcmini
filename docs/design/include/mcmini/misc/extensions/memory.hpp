@@ -5,7 +5,7 @@
 namespace extensions {
 
 template <class ForwardIt>
-constexpr void delete_all(ForwardIt first, ForwardIt last) {
+void delete_all(ForwardIt first, ForwardIt last) {
   for (; first != last; ++first) delete *first;
 }
 

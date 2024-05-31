@@ -79,7 +79,7 @@ state_sequence::state_sequence(const state &s) {
   this->push_state_snapshot();
   const size_t num_objs = s.count();
   for (objid_t i = 0; i < (objid_t)num_objs; i++)
-    add_object(s.get_state_of_object(i)->clone().release());
+    this->add_object(s.get_state_of_object(i)->clone().release());
 
   const size_t num_runners = s.runner_count();
   for (runner_id_t p = 0; p < (runner_id_t)num_runners; p++) {

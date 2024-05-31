@@ -26,7 +26,7 @@ namespace model {
  * represented by the final state in the sequence. A state sequence is never
  * empty,
  */
-class state_sequence : public mutable_state {
+class state_sequence final : public mutable_state {
  private:
   class element;
   injective_function<runner_id_t, state::objid_t> runner_to_obj_map;

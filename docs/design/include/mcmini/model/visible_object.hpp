@@ -51,7 +51,10 @@ class visible_object final {
     *this = other.copy_slice(other.get_num_states());
   }
   visible_object &operator=(const visible_object &other) {
-    return *this = *other.clone();
+    this->history.reserve(other.get_num_states());
+    for (size_t j = 0; j < other.get_num_states(); j++)
+      this->history.push_back(other.history.at(j)->clone().release());
+    return *this;
   }
   ~visible_object();
 

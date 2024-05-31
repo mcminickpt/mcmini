@@ -110,10 +110,9 @@ bool signal_tracker::try_consume_signal(int sig) {
 struct signal_tracker::interrupted_error : public std::exception {
  private:
   std::string msg;
-  signo_t sig;
 
  public:
-  explicit interrupted_error(signo_t sig) : sig(sig) {
+  explicit interrupted_error(signo_t sig) {
     msg = "Interrupted with signal " + std::to_string(sig);
     if (sig_to_str.count(sig) != 0) {
       msg += " (";
