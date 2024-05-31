@@ -1,12 +1,14 @@
 #include <assert.h>
-#include <stdio.h>
-#include <string.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "mcmini/mcmini.h"
 
 volatile runner_mailbox *thread_get_mailbox() {
-  return &((volatile struct mcmini_shm_file *)(global_shm_start))->mailboxes[tid_self];
+  return &((volatile struct mcmini_shm_file *)(global_shm_start))
+              ->mailboxes[tid_self];
 }
 
 void thread_await_scheduler() {
@@ -108,19 +110,16 @@ MCMINI_NO_RETURN void mc_transparent_abort(void) {
   libc_abort();
 }
 
-
-struct mc_thread_routine_arg  {
+struct mc_thread_routine_arg {
   void *arg;
   thread_routine routine;
   sem_t mc_pthread_create_binary_sem;
 };
 
-void *
-mc_thread_routine_wrapper(void *arg)
-{
+void *mc_thread_routine_wrapper(void *arg) {
   mc_register_this_thread();
 
-  struct mc_thread_routine_arg * unwrapped_arg = arg;
+  struct mc_thread_routine_arg *unwrapped_arg = arg;
   libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
 
   // Simulates THREAD_START for this thread NOTE:
@@ -135,27 +134,28 @@ mc_thread_routine_wrapper(void *arg)
   return return_value;
 }
 
-
-int
-mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                  void *(*routine)(void *), void *arg)
-{
+int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                      void *(*routine)(void *), void *arg) {
   // TODO: add support for thread attributes
-  struct mc_thread_routine_arg *libmcmini_controlled_thread_arg = malloc(sizeof(struct mc_thread_routine_arg));
-  libmcmini_controlled_thread_arg->arg     = arg;
+  struct mc_thread_routine_arg *libmcmini_controlled_thread_arg =
+      malloc(sizeof(struct mc_thread_routine_arg));
+  libmcmini_controlled_thread_arg->arg = arg;
   libmcmini_controlled_thread_arg->routine = routine;
-  libpthread_sem_init(&libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0, 0);
+  libpthread_sem_init(
+      &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0, 0);
 
   errno = 0;
-  const int return_value = libpthread_pthread_create(
-    thread, attr, &mc_thread_routine_wrapper, libmcmini_controlled_thread_arg);
+  const int return_value =
+      libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
+                                libmcmini_controlled_thread_arg);
   // const int pthread_errno = errno;
 
   // IMPORTANT: We need to ensure that the thread that is
   // created has been assigned an; otherwise, there is a race condition
   // in which two thread creates in the child might
   // not be scheduled to run until *two* steps of the scheduler
-  libpthread_sem_wait(&libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
+  libpthread_sem_wait(
+      &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
 
   memcpy_v(thread_get_mailbox()->cnts, thread, sizeof(pthread_t));
   thread_get_mailbox()->type = THREAD_CREATE_TYPE;
@@ -163,7 +163,7 @@ mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
   return return_value;
 }
 
-int mc_pthread_join(pthread_t t, void**rv) {
+int mc_pthread_join(pthread_t t, void **rv) {
   memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
   thread_get_mailbox()->type = THREAD_JOIN_TYPE;
   thread_await_scheduler();

@@ -6,8 +6,8 @@ volatile void *memset_v(volatile void *dst, int ch, size_t n) {
   return dst;
 }
 
-volatile void *memcpy_v(volatile void *dst,
-                        const volatile void *src, size_t n) {
+volatile void *memcpy_v(volatile void *dst, const volatile void *src,
+                        size_t n) {
   // From cppreference on the use of restrict pointers in the C language:
   //
   // | Restricted pointers can be assigned to unrestricted pointers freely, the
