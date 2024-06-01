@@ -207,8 +207,24 @@ class printTransitionsCmd(gdb.Command):
    gdb.execute("inferior 1")  # inferior 1 is scheduler process
    transition_stack = gdb.execute("call programState->printTransitionStack()")
    print(transition_stack)
+   pending_transitions = gdb.execute("call programState->printNextTransitions()")
+   print(pending_transitions)
    gdb.execute("inferior " + str(current_inferior))
 printTransitionsCmd()
+
+class printPendingTransitionsCmd(gdb.Command):
+  """Prints the next (pending) transition for each thread"""
+  def __init__(self):
+    super(printPendingTransitionsCmd, self).__init__(
+        "mcmini printPendingTransitions", gdb.COMMAND_USER
+    )
+  def invoke(self, args, from_tty):
+   current_inferior = gdb.selected_inferior().num
+   gdb.execute("inferior 1")  # inferior 1 is scheduler process
+   pending_transitions = gdb.execute("call programState->printNextTransitions()")
+   print(pending_transitions)
+   gdb.execute("inferior " + str(current_inferior))
+printPendingTransitionsCmd()
 
 class forwardCmd(gdb.Command):
   """Execute until next transition; Accepts optional <count> arg"""
