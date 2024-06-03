@@ -61,6 +61,26 @@
 def is_tui_active():
   return "The TUI is not active." not in gdb.execute("info win", to_string=True)
 
+# This version of gdb.execute() checks if the inferior is no longer running.
+def mcmini_execute(command, to_string=False):
+  # Other possible tests:  is_valid() and len(inferior.threads()) != 0
+  try:
+    ### This code should also work.  But instead, it creates recursion error.
+    ###   even for a simple "mcmini execute".  Why?
+    ## inferior = [inf for inf in gdb.inferiors() if inf.num == 2][0]
+    ## if inferior.pid != 0:
+    ##   while (1): print("HI\n"); True
+    ##   raise gdb.error
+    return gdb.execute(command, to_string=to_string)
+  except gdb.error:
+    print("\n*** The program is not being run anymore.")
+    print("*** The last transition id was: *** "+str(transitionId)+" ***")
+    print("*** mcmini-gdb is now exiting.\n")
+    if is_tui_active():
+      gdb.execute("refresh") # This makes TUI active and refreshes
+    gdb.execute("set confirm off")
+    gdb.execute("quit")
+
 def total_frames():
   frame = gdb.newest_frame()
   while frame.older(): # Get oldest frame
@@ -104,19 +124,12 @@ def select_user_frame():
       break
     frame = frame.newer()
   frame.select()
-  # gdb.execute("refresh")
-  # Why is this necessary, to update the tui display?
-  # Why doesn't "(gdb) refresh" work? (It resumes tui if disabled.)
   if is_tui_active():
-    # gdb.execute("update")
-    # gdb.execute("down"); gdb.execute("up")
-    ## Unfortunately, the 'frame' cmd prints to middle of screen.
-    ## But otherwise, the tui refuses to display the correct frame.
-    #gdb.execute("tui disable")
-    # If we knew where the TUI looks for its current call frame, then
-    #   we could simply set it and do:  "tui disable" and "tui enable"
+    # We've selected the frame, but the GDB 'frame' cmd will now tell the TUI.
+    # For forcing TUI redisplay, alternatives to the GDB 'frame' cmd might be
+    # "tui disable; tui enable", or GDB "update" cmd, or GDB "down; up".
     gdb.execute("frame " + str( gdb.selected_frame().level() ))
-    # gdb.execute("tui enable")
+    gdb.execute("refresh")
 
 # ===========================================================
 # Print statistics
@@ -165,7 +178,7 @@ def continue_until(function, thread_id=None):
   if thread_id:
     bkpt.thread = thread_id
   while bkpt.hit_count == 0:
-    gdb.execute("continue")
+    mcmini_execute("continue")
   bkpt.delete()
 
 def continue_beyond(function):
@@ -175,9 +188,9 @@ def continue_beyond(function):
   bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE)
   bkpt.silent = True
   while bkpt.isValid:
-    gdb.execute("continue")
+    mcmini_execute("continue")
   # Continue until pre-existing breakpoint
-  gdb.execute("continue")
+  mcmini_execute("continue")
 
 def finish():
   # GDB "finish" would write to screen even when trying to make it silent.
@@ -215,8 +228,8 @@ mcminiHelpString=(
 *   In 'ctrl-Xa' mode in WSL, you may need to type 'ctrl-L' to refresh screen. *
 * Use GDB commands 'up' and 'down' to view other call frames.                  *
 * By default, cursor keys browse the source code, not the command history.     *
-* Type 'focus cmd' or 'focus src' to change the focus to cmd, & back to src.. *
-*   you cannot scroll back to see previous command output.                     *
+* Type 'focus cmd' or 'focus src' to change the focus to cmd, & back to src.   *
+*   (Or use ^Xo)  Note: You cannot scroll back to see previous command output. *
 *                                                                              *
 * Note that for certain technical reasons in the implementation of McMini,     *
 * certain thread functions (e.g., sem_wait, pthread_cond_wait)                 *
@@ -282,7 +295,7 @@ class forwardCmd(gdb.Command):
     args = args.split()
     iterations = int(args[0]) if args and args[0].isdigit() else 1
     if iterations > 1:
-      gdb.execute("mcmini forward " + str(iterations-1) + " quiet")
+      mcmini_execute("mcmini forward " + str(iterations-1) + " quiet")
     # else iterations == 1
     if gdb.selected_inferior().num == 1:
       print("GDB is in scheduler, not target process:" +
