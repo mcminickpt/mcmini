@@ -6,12 +6,28 @@
 
 #include "mcmini/mcmini.h"
 
+MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
+
+runner_id_t mc_register_this_thread(void) {
+  // NOTE: It is an internal error for more than one thread
+  // to be executing this function. If the model checker maintains
+  // control over each thread, it will only enable a single
+  // thread to execute this function at once. Anything else
+  // is undefined behavior
+  //
+  // NOTE: If `McMini` introduces parallelism into the
+  // model-checking process, this would have to be adjusted.
+  static runner_id_t tid_next = 0;
+  tid_self = tid_next++;
+  return tid_self;
+}
+
 volatile runner_mailbox *thread_get_mailbox() {
   return &((volatile struct mcmini_shm_file *)(global_shm_start))
               ->mailboxes[tid_self];
 }
 
-void thread_await_scheduler() {
+void thread_await_scheduler(void) {
   assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
   mc_wake_scheduler(thread_mailbox);
@@ -23,7 +39,7 @@ void thread_await_scheduler() {
   }
 }
 
-void thread_await_scheduler_for_thread_start_transition() {
+void thread_await_scheduler_for_thread_start_transition(void) {
   assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
 
@@ -34,7 +50,7 @@ void thread_await_scheduler_for_thread_start_transition() {
   }
 }
 
-void thread_awake_scheduler_for_thread_finish_transition() {
+void thread_awake_scheduler_for_thread_finish_transition(void) {
   assert(tid_self != RID_INVALID);
   mc_wake_scheduler(thread_get_mailbox());
 }

@@ -4,8 +4,7 @@
 extern "C" {
 #endif
 
-void mc_exit(int);
-void mc_exit_mt(int status);
+void mc_set_thread_name(const char *);
 
 #ifdef __cplusplus
 }
