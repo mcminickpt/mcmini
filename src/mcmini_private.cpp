@@ -34,6 +34,7 @@ trid_t traceId      = 0;
 trid_t transitionId = 0;
 
 time_t mcmini_start_time = 0;
+volatile bool mc_reset = false;
 
 /**
  * The process id of the scheduler
@@ -276,6 +277,7 @@ mc_explore_branch(int curBranchPoint)
   mc_run_next_trace_for_debugger();
 
   traceId++;
+  resetTraceSeqArray();
   if (traceId % 1000 == 0) {
     static time_t last_time_reported = mcmini_start_time;
     if (time(NULL) - last_time_reported > 10) {
@@ -546,6 +548,12 @@ void mc_trace_panic() {
   waitpid(schedpid, nullptr, 0);
 }
 
+void mc_restore_initial_trace() {
+  programState->restoreInitialTrace();
+  mc_terminate_trace();
+  mc_fork_next_trace_at_current_state();
+}
+
 void
 mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 {
@@ -596,10 +604,17 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       }
     }
 
+    if (mc_reset) {
+      mc_restore_initial_trace();
+      depth = 0;
+      transitionId = 0;
+      mc_reset = false;
+    }
+
     nextTransition = programState->getFirstEnabledTransition();
   } while (nextTransition != nullptr);
 
-  const bool hasDeadlock        = programState->isInDeadlock();
+  const bool hasDeadlock = programState->isInDeadlock();
   const bool programHasNoErrors = !hasDeadlock;
 
   if (hasDeadlock) {
