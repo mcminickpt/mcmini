@@ -50,8 +50,8 @@ continue
 python if (not gdb.selected_inferior().threads()): sys.exit(1)
 
 # Stop if about to exit:
-break _exit
-set variable $bpnum_exit = $bpnum
+# break _exit
+# set variable $bpnum_exit = $bpnum
 
 tbreak 'mcmini_main()'
 continue

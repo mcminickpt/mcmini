@@ -260,10 +260,8 @@ class printTransitionsCmd(gdb.Command):
   def invoke(self, args, from_tty):
    current_inferior = gdb.selected_inferior().num
    gdb.execute("inferior 1")  # inferior 1 is scheduler process
-   transition_stack = gdb.execute("call programState->printTransitionStack()")
-   print(transition_stack)
-   pending_transitions = gdb.execute("call programState->printNextTransitions()")
-   print(pending_transitions)
+   gdb.execute("call programState->printTransitionStack()")
+   gdb.execute("call programState->printNextTransitions()")
    gdb.execute("inferior " + str(current_inferior))
 printTransitionsCmd()
 
@@ -276,8 +274,7 @@ class printPendingTransitionsCmd(gdb.Command):
   def invoke(self, args, from_tty):
    current_inferior = gdb.selected_inferior().num
    gdb.execute("inferior 1")  # inferior 1 is scheduler process
-   pending_transitions = gdb.execute("call programState->printNextTransitions()")
-   print(pending_transitions)
+   gdb.execute("call programState->printNextTransitions()")
    gdb.execute("inferior " + str(current_inferior))
 printPendingTransitionsCmd()
 
@@ -382,16 +379,29 @@ class backCmd(gdb.Command):
             "  Can't go to previous transition\n")
       return
     iterationsForward = transitionId - 1
-    gdb.execute("mcmini finishTrace quiet")
-    gdb.execute("set rerunCurrentTraceForDebugger = 1")
-    gdb.execute("mcmini nextTrace quiet")
-    gdb.execute("mcmini forward " + str(iterationsForward) + " quiet")
-    gdb.execute("set rerunCurrentTraceForDebugger = 0")
-    print("DEBUGGING: " + "mcmini forward " + str(iterationsForward) + " quiet")
-    print_user_frames_in_stack()
-    print_mcmini_stats()
-    select_user_frame()
-# backCmd()  # Not working with '-p <traceSeq>'
+    transitionId = 0
+    inferior_num = gdb.selected_inferior().num
+    if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+    gdb.execute("set mc_reset = 1")
+    # After finishing, this kills the current child, and interrupts
+    # with the sigchld_handler_scheduler.
+    continue_until("mc_restore_initial_trace")
+    finish() # finish() is interrupted by signal:  sigchld_handler_scheduler
+    # Continue to kill off the old inferior and create a new one.
+    if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+    while gdb.newest_frame().name() != "mc_search_dpor_branch_with_thread":
+      if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+      finish()
+      if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+    gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
+    continue_until("mc_shared_sem_wait_for_scheduler_done")
+    # We're now at the beginning of the trace (user: "mcmini_main") constructor.
+    continue_until("main")
+    # We're now at the beginning of the trace (user: "main").
+    # After this, stap at mc_shared_sem_wait_for_scheduler_done for transition.
+    gdb.execute("mcmini forward " + str(iterationsForward))
+    print("*** Still need to implement 'mcmini back <count>'")
+backCmd()
 
 class whereCmd(gdb.Command):
   """Execute where, while hiding McMini internal call frames"""
@@ -428,7 +438,7 @@ class finishTraceCmd(gdb.Command):
         "__GI___wait4"):
       # Wait for zombie child, or we hit GDB bug.
       gdb.execute("finish")
-    gdb.execute("enable " + str(gdb.parse_and_eval("$bpnum_exit")))
+    # gdb.execute("enable " + str(gdb.parse_and_eval("$bpnum_exit")))
     # If the target is still in the constructor mcmini_main, then
     #   finishTrace might take us only to the next breakpoint in the target.
     #   So, we detect this and recursively call finishTrace once more.

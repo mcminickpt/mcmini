@@ -13,7 +13,12 @@ extern "C" {
 using namespace std;
 
 static int traceSeq[1000] = {-1};
+static int traceSeqIdx = 1;  // traceSeq[0] is for thread 0 'starts'. Skip it.
 static int lastEndOfTraceId = -1;
+
+void resetTraceSeqArray() {
+  traceSeqIdx = 0;  // traceSeq[0] is for thread 0 'starts'. Skip it.
+}
 
 static void trace_string_to_int_array(char *str, int *traceArray,
                                       long traceArrayLen) {
@@ -59,8 +64,8 @@ static int getNextTraceSeqEntry(int traceSeqIdx) {
     print_at_trace_seq = (getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL);
   }
   if (print_at_trace_seq) {
-    int buflen = sizeof(traceSeq) / sizeof(traceSeq[0]);
     static bool initialized = false;
+    int buflen = sizeof(traceSeq) / sizeof(traceSeq[0]);
     static int traceSeqLen = -1;
     if (! initialized) {
       trace_string_to_int_array(getenv(ENV_PRINT_AT_TRACE_SEQ), traceSeq, buflen);
@@ -186,24 +191,48 @@ MCStack::createNewThread(MCThreadShadow &shadow)
   return newTid;
 }
 
-tid_t
-MCStack::createNewThread()
-{
+tid_t MCStack::createNewThread() {
   auto shadow = MCThreadShadow(nullptr, nullptr, pthread_self());
   return this->createNewThread(shadow);
 }
 
-tid_t
-MCStack::createMainThread()
-{
-  tid_t mainThreadId = this->createNewThread();
+tid_t MCStack::createMainThread() {
+  MCThreadShadow shadow(nullptr, nullptr, pthread_self());
+  shadow.state = MCThreadShadow::alive;
+  tid_t mainThreadId = this->createNewThread(shadow);
   MC_ASSERT(mainThreadId == TID_MAIN_THREAD);
-
-  // Creating the main thread -> bring it into the spawned state
-  auto mainThread = getThreadWithId(mainThreadId);
-  mainThread->spawn();
-
   return mainThreadId;
+}
+
+void MCStack::restoreInitialTrace() {
+  // Reset the modeled state of all objects
+  this->nextThreadId = 0;
+  this->objectStorage = MCObjectStore();
+
+  // Reset what we believe to be the next steps for each thread. In this
+  // case we're starting from the beginning so `thread 0` is executing
+  // the start transition
+  for (unsigned int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
+    this->nextTransitions[i] = nullptr;
+    this->threadData[i] = MCThreadData();
+  }
+
+  this->createMainThread();
+  const auto mainThread = getThreadWithId(TID_MAIN_THREAD);
+  const auto threadStart =
+      MCTransitionFactory::createInitialTransitionForThread(mainThread);
+  this->setNextTransitionForThread(TID_MAIN_THREAD, threadStart);
+
+  // Reset the transition/state stacks. NOTE: Clearing the contents isn't
+  // strictly necessary since these indices determine the bounds
+  traceSeqIdx = 0; // getFirstEnabledTransition will increment before user main()
+  lastEndOfTraceId = -1; // We support 'mcmini back' only for 'traceId == 0'.
+
+  this->nextThreadId = 1;
+  this->stateStackTop = -1;
+  this->transitionStackTop = -1;
+  this->irreversibleStatesStack = MCSortedStack();
+  this->growStateStack();
 }
 
 tid_t
@@ -297,10 +326,7 @@ MCStack::getDeepestDPORBranchPoint()
 }
 
 // Extend current branch by exploring first enabled transition.
-const MCTransition *
-MCStack::getFirstEnabledTransition()
-{
-  static int traceSeqIdx = 1; // traceSeq[0] is for thread 0 'starts'. Skip it.
+const MCTransition *MCStack::getFirstEnabledTransition() {
   int nextTraceEntry = getNextTraceSeqEntry(traceSeqIdx++);
   if (nextTraceEntry >= 0) {
     // FIXME: This is more C++ obfuscation.

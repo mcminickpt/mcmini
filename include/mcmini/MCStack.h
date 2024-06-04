@@ -25,6 +25,12 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <vector>
 
 
+/**
+ * @brief When '-p<traceSeq>' is invoked, then the traceSeq needs to be
+ * reset when a trace is completed.
+ */
+void resetTraceSeqArray();
+
 /* This is returned by getDeepestDPORBranchPoint() if this is the
  * first (origina) branch.  mc_do_model_checking() uses this to detect
  * when we have backtracked to before the beginning of theoriginal branch
@@ -567,6 +573,8 @@ public:
    * last(transition_stack[0...tIndex])
    */
   void reflectStateAtTransitionIndex(uint32_t tIndex);
+
+  void restoreInitialTrace();
 
   // TODO: De-couple priting from the state stack + transitions
   void printThreadSchedule() const;
