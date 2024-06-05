@@ -223,21 +223,19 @@ mcminiHelpString=(
 *   the next transition (the next thread operation)  'mcmini back' also exists.*
 *                                                                              *
 * OTHER HINTS:                                                                 *
-* Consider using ctrl-Xa ('ctrl-X' and 'x') to toggle source display on or off.*
-*   In 'ctrl-Xa' mode in WSL, you may need to type 'ctrl-L' to refresh screen. *
 * Use GDB commands 'up' and 'down' to view other call frames.                  *
 * By default, cursor keys browse the source code, not the command history.     *
-* Type 'focus cmd' or 'focus src' to change the focus to cmd, & back to src.   *
-*   (Or use ^Xo)  Note: You cannot scroll back to see previous command output. *
+* Type 'focus cmd'/'focus src' (or ctrl-Xo) to change the focus for cmd & src. *
+*   Note: You cannot scroll back to see previous command output.               *
 *                                                                              *
 * Note that for certain technical reasons in the implementation of McMini,     *
 * certain thread functions (e.g., sem_wait, pthread_cond_wait)                 *
 * will appear to be executed twice when calling 'mcmini forward'.              *
 *                                                                              *
-* Note that 'mcmini print' can sometimes print future transitions, even before *
-* they have been reached.                                                      '
+* For details of 'mcmini' commands, type 'help user-defined' and the online    *
+* McMini manual.                                                               *
 *                                                                              *
-* For details of 'mcmini' commands, type 'help user-defined'.                  *
+* CONSIDER USING ctrl-Xa ('ctrl-X' and 'a') TO TOGGLE SOURCE DISPLAY ON OR OFF.*
 ********************************************************************************
 """
 )

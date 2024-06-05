@@ -18,7 +18,7 @@ handle SIGUSR1 nostop noprint pass
 handle SIGUSR2 nostop noprint pass
 # Allow the other inferior to continue to execute if not at breakpoint
 set schedule-multiple on
-## Optional for additional modes for threads/inferios:
+## Optional for additional modes for threads/inferiors:
 ## SEE: https://stackoverflow.com/questions/27140941/preventing-debugging-session-from-pausing-after-each-inferior-exits
 # set non-stop on
 # set target-async on
@@ -76,7 +76,7 @@ continue
  # finish
  # break *&sem_init_ptr
  ### The above works with gcc-4.8.  Higher versions of gcc need following:
- ### See abvoe for how to rewrite sem_init_ptr, etc., to avoid this issue.
+ ### See above for how to rewrite sem_init_ptr, etc., to avoid this issue.
  ## break *(long *)&sem_init_ptr
  ## break *(void **)&sem_init_ptr
  # continue
