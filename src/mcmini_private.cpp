@@ -86,8 +86,6 @@ static void printResults() {
  * since it affects the behavior of a rather important function for
  * state regeneration (viz. mc_fork_next_trace_at_current_state())
  */
-bool rerunCurrentTraceForDebugger = false;
-
 /* Data transfer */
 void *shmStart                            = nullptr;
 MCSharedTransition *shmTransitionTypeInfo = nullptr;
@@ -274,7 +272,6 @@ mc_explore_branch(int curBranchPoint)
 
   mc_search_dpor_branch_with_thread(backtrackThread);
   mc_exit_with_trace_if_necessary(traceId);
-  mc_run_next_trace_for_debugger();
 
   traceId++;
   resetTraceSeqArray();
@@ -480,14 +477,6 @@ mc_fork_next_trace_at_current_state()
   const int tStackHeight = programState->getTransitionStackSize();
 
   for (int i = 0; i < tStackHeight; i++) {
-    // If we're currently working with a debugger and we want to
-    // move to a different point in the trace, we can simply break
-    // out of the loop moving the execution forward of the current
-    // trace in order to start a new one.
-    if (rerunCurrentTraceForDebugger) {
-      break;
-    }
-
     // NOTE: This is reliant on the fact
     // that threads are created in the same order
     // when we create them. This will always be consistent,
@@ -690,20 +679,6 @@ mc_exit_with_trace_if_necessary(trid_t trid)
     traceId++; // We stopped at -p<trid>, but Number of traces shuld be trid+1.
     printResults();
     mc_stop_model_checking(EXIT_SUCCESS);
-  }
-}
-
-void
-mc_run_next_trace_for_debugger()
-{
-  while (rerunCurrentTraceForDebugger) {
-    // McMini will only re-execute a trace
-    // once. If a debugger wishes to trigger
-    // McMini to execute more than once, it
-    // could reset this value to `true`.
-    rerunCurrentTraceForDebugger = false;
-    mc_fork_next_trace_at_current_state();
-    mc_terminate_trace();
   }
 }
 
