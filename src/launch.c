@@ -50,16 +50,6 @@ main(int argc, char *argv[])
       setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[0] + 2, 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--debug-at-traceId") == 0 ||
-             strcmp(cur_arg[0], "-d") == 0) {
-      setenv(ENV_DEBUG_AT_TRACE_ID, cur_arg[1], 1);
-      char *endptr;
-      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
-        fprintf(stderr, "%s: illegal value\n", "--debug-at-traceId");
-        exit(1);
-      }
-      cur_arg += 2;
-    }
     else if (cur_arg[0][1] == 'd' && isdigit(cur_arg[0][2])) {
       setenv(ENV_DEBUG_AT_TRACE_ID, cur_arg[0] + 2, 1);
       cur_arg++;
@@ -124,7 +114,6 @@ main(int argc, char *argv[])
                       "              [--first-deadlock|--first|-f]\n"
                       "              [--quiet|-q]\n"
                       "              [--print-at-trace|-p <num>|<traceSeq>]\n"
-                      "              [--debug-at-traceId|-d <num>]\n"
                       "              [--verbose|-v] [-v -v]\n"
                       "              [--help|-h]\n"
                       "              target_executable\n"
