@@ -9,6 +9,8 @@
 ##   Insert:  'import pdb; pdb.set_trace()' or 'breakpoint()'
 ##   # Invoke with count of 3 and 'True' (default: fromTtty; for all commands)
 ##   (gdb) python nextTransitionCmd().invoke("3",True)
+##   Python stack on error is off by defautt:
+##     In Python:  gdb.execute("set python print-stack full")
 
 ## EXAMPLE USAGE of Python API breakpoints:
 ##   bkptMain = gdb.Breakpoint("main")
@@ -57,6 +59,63 @@
 
 # ===========================================================
 # NEW for use with:  ./mcmini -p <traceSeq>
+
+###### Test if '-p 0' already is set.  Otherwise, do this:
+###### We must execute this first, before 'run', so that
+######    we have a chance to change the args for 'run' in 'gdbinit'.
+######   We could execute "(gdb) set args ..." here, and then continue
+######   with 'run' in gdbinit, as usual.
+import os, subprocess, time
+# "MCMINI_ARGS" is set in mcmini-gdb, mcmini-python.py
+assert "MCMINI_ARGS" in os.environ
+mcmini_args = os.getenv("MCMINI_ARGS")
+del os.environ["MCMINI_ARGS"]
+if "-p0" not in mcmini_args and "'-p' '0'" not in mcmini_args:
+  # If "-p0" not in the mcmini arguments, then get the trace sequence first.
+  # We will then add "-p 0 -p <traceSeq>" to the command line before giving
+  #   control to gdb.
+
+  # FIXME: "-v" added only if not already present.  We need "-v" for trace_seq
+  # FIXME: mcmini-gdb will use 'mcmini' as the exec-file for GDB
+  # FIXME:  Extract it this way:
+  exec_file =  gdb.execute("info files", to_string=True).split('\n')[0]
+  exec_file = exec_file.split('"')[1]
+  # FIXME:  If it needs '-m', it won't print.  Check if max-limit reaached.
+  cmd = exec_file + " -v -q " + mcmini_args
+  print("** Generating trace sequence for:\n     " + cmd)
+  print("     (This may take a while ...)")
+  mcmini_output = subprocess.run(cmd, shell=True, capture_output=True,
+                                 timeout=300)
+  mcmini_output = mcmini_output.stdout.decode('utf-8').split('\n')
+  pending_indexes = [idx for idx, line in enumerate(mcmini_output)
+                         if "THREAD PENDING OPERATIONS" in line]
+  if pending_indexes:
+     trace_seq = mcmini_output[pending_indexes[0]-2]
+  else:
+    trace_indexes = [idx for idx, line in enumerate(mcmini_output)
+                         if line.startswith("TraceId ")]
+    if trace_indexes:
+      print("** Found %d traces" % len(trace_indexes))
+      print("     (Choosing the last trace)")
+      trace_seq = mcmini_output[trace_indexes[-1]].split(':')[1].strip()
+    else:
+      error_indexes = [idx for idx, line in enumerate(mcmini_output)
+                           if "McMini ran a trace" in line]
+      if error_indexes:
+        print("\n" + '\n'.join(mcmini_output[error_indexes[0]:]))
+      else:
+        print("******** mcmini-gdb: Internal error:"
+              " can't compute trace sequence")
+      gdb.execute("quit")
+  extra_args = " -p 0 -p'" + trace_seq + "' "
+  mcmini_args = (mcmini_args.rsplit(maxsplit=1)[0] + extra_args +
+                 mcmini_args.rsplit(maxsplit=1)[1])
+  print("** Running: " + exec_file + "-gdb " + mcmini_args)
+  print("** Note:  In order to replay this trace,\n" +
+        "          it is faster to directly run the above command line.\n")
+  time.sleep(2)
+  gdb.execute("set args " + mcmini_args)
+  ### FIXME:  We must now instantiate the new argumnets before '(gdb) run'.
 
 def is_tui_active():
   return "The TUI is not active." not in gdb.execute("info win", to_string=True)

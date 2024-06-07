@@ -11,8 +11,9 @@ fi
 newargs=""
 while [ "$1" != "" ]; do
   newargs="$newargs '$1'"
-  echo $newargs
   shift
 done
+
+export MCMINI_ARGS="$newargs"
 
 eval gdb -x $MCMINI_ROOT/gdbinit --args $MCMINI_ROOT/mcmini $newargs
