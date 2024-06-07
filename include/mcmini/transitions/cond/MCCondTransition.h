@@ -5,16 +5,14 @@
 #include "mcmini/objects/MCConditionVariable.h"
 
 struct MCCondTransition : public MCTransition {
-public:
-
+ public:
   std::shared_ptr<MCConditionVariable> conditionVariable;
   bool hadWaiters;
-  MCCondTransition(
-    std::shared_ptr<MCThread> running,
-    std::shared_ptr<MCConditionVariable> conditionVariable)
-    : MCTransition(running), conditionVariable(conditionVariable),
-      hadWaiters(false)
-  {}
+  MCCondTransition(std::shared_ptr<MCThread> running,
+                   std::shared_ptr<MCConditionVariable> conditionVariable)
+      : MCTransition(running),
+        conditionVariable(conditionVariable),
+        hadWaiters(conditionVariable->hasWaiters()) {}
 };
 
-#endif // MC_MCCONDTRANSITION_H
+#endif  // MC_MCCONDTRANSITION_H
