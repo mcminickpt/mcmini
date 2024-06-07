@@ -17,9 +17,16 @@ else:
 #   path = [ line for line in open(mcmini_root + "/" + mcmini_gdb).readine() if line.startswith("export MCMINI_ROOT=") ]
 #   mcmini_root = (path[0]+"-END$").split('=')[1].replace("/mcmini-gdb-END$", "")
 
+newargs = " -p 0 " + ' '.join(newargs)
+os.environ["MCMINI_ARGS"] = newargs
+
+## Similar to code in gdbinit_commands.py:
 cmd = "gdb -x $MCMINI_ROOT/gdbinit -x $MCMINI_ROOT/gdbinit_annotate " + \
-      "--args $MCMINI_ROOT/mcmini" + " -p 0 " + ' '.join(newargs)
-cmd = cmd.replace("$MCMINI_ROOT", mcmini_root).encode('utf-8')
+      "--args $MCMINI_ROOT/mcmini" + newargs
+cmd = cmd.replace("$MCMINI_ROOT", mcmini_root)
+
+print("** Generating trace sequence for:\n     " + cmd)
+print("     (This may take a while ...)")
 
 output = subprocess.run(cmd, shell=True, capture_output=True, timeout=300).stdout
 output = output.decode('utf-8')

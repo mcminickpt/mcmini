@@ -572,8 +572,8 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         "*** Execution Limit Reached! ***\n\n"
         "McMini ran a trace with %lu transitions which is\n"
         "the most McMini can currently handle in any one trace. Try\n"
-        "running mcmini with the \"--max-depth-per-thread\" flag\n"
-        "to limit how far into a trace McMini can go\n",
+        "running mcmini with the \"--max-depth-per-thread\" flag (\"-m\")\n"
+        "to limit how far into a trace McMini can go.\n",
         depth);
       mc_stop_model_checking(EXIT_FAILURE);
     }
