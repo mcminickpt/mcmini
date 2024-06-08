@@ -1,13 +1,9 @@
 #include "mcmini/real_world/process/fork_process_source.hpp"
 
 #include <fcntl.h>
-#include <libgen.h>
-#include <linux/prctl.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <sys/personality.h>
-#include <sys/prctl.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -56,8 +52,8 @@ void fork_process_source::initialize_shared_memory() {
   for (int i = 0; i < max_total_threads; i++) mc_runner_mailbox_init(mbp + i);
 }
 
-fork_process_source::fork_process_source(std::string target_program)
-    : target_program(std::move(target_program)) {
+fork_process_source::fork_process_source(const real_world::target& target)
+    : target(target) {
   static std::once_flag shm_once_flag;
   std::call_once(shm_once_flag, initialize_shared_memory);
 }
@@ -71,7 +67,6 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   }
 
   // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
-  setup_ld_preload();
   reset_binary_semaphores_for_new_process();
   if (!has_template_process_alive()) {
     make_new_template_process();
@@ -160,38 +155,8 @@ void fork_process_source::make_new_template_process() {
     close(pipefd[0]);
     fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
 
-    // `const_cast<>` is needed to call the C-functions here. A new/delete
-    // or malloc/free _could be_ needed, we'd need to check the man page. As
-    // long as the char * is not actually modified, this is OK and the best way
-    // to interface with the C library routines
-    char* args[] = {const_cast<char*>(this->target_program.c_str()),
-                    NULL /*TODO: Add additional arguments here if needed */};
     setenv("libmcmini-template-loop", "1", 1);
-
-    // Ensures that addresses in the template process remain "stable"
-    personality(ADDR_NO_RANDOMIZE);
-
-    // Ensures that the template process is sent a SIGTERM if THIS THREAD ever
-    // exits. Since McMini is currently single-threaded, this is equivalent to
-    // saying if McMini ever exits. Note that this `prctl(2)` persists across
-    // `execvp(2)`.
-    prctl(PR_SET_PDEATHSIG, SIGTERM);
-
-    // Ensures that the child will accept the reception of all signals (see
-    // `install_process_wide_signal_handlers()` where we explicitly block the
-    // reception of signals from the main thread i.e. this thread which is
-    // calling `fork()`)
-    //
-    // The man page for `sigprocmask(2)` reads:
-    //
-    // "A child created via fork(2) inherits a copy of its parent's signal mask;
-    // the signal mask is preserved across execve(2)."
-    //
-    // hence why we clear it about before `execvp()`
-    sigset_t empty_set;
-    sigemptyset(&empty_set);
-    sigprocmask(SIG_SETMASK, &empty_set, NULL);
-    execvp(this->target_program.c_str(), args);
+    target.execvp();
     unsetenv("libmcmini-template-loop");
 
     // If `execvp()` fails, we signal the error to the parent process by writing
@@ -233,8 +198,9 @@ void fork_process_source::make_new_template_process() {
             std::string(strerror(errno)));
       }
       throw process_source::process_creation_exception(
-          "Failed to create a new process (execvp(2) failed): " +
-          std::string(strerror(err)));
+          "Failed to create a new process of '" + this->target.name() + "'" +
+          " (execvp(2) failed with error code '" + std::to_string(errno) +
+          "'):" + std::string(strerror(err)));
     }
     close(pipefd[0]);
 
@@ -243,15 +209,6 @@ void fork_process_source::make_new_template_process() {
     // *******************
     this->template_pid = child_pid;
   }
-}
-
-void fork_process_source::setup_ld_preload() {
-  char buf[1000];
-  buf[sizeof(buf) - 1] = '\0';
-  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
-           (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
-           dirname(const_cast<char*>(this->target_program.c_str())));
-  setenv("LD_PRELOAD", buf, 1);
 }
 
 void fork_process_source::reset_binary_semaphores_for_new_process() {

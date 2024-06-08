@@ -42,12 +42,14 @@ set(MCMINI_CPP_SRC
   src/mcmini/real_world/fork_process_source.cpp
   src/mcmini/real_world/local_linux_process.cpp
   src/mcmini/real_world/shm.cpp
+  src/mcmini/real_world/target.cpp
 )
 set(LIBMCMINI_C_SRC
   src/common/exit.c
   src/common/mem.c
   src/common/runner_mailbox.c
   src/common/shm_config.c
+  src/lib/dmtcp-callback.c
   src/lib/entry.c
   src/lib/interception.c
   src/lib/main.c
@@ -61,7 +63,7 @@ set(MCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
 set(MCMINI_EXTRA_COMPILER_DEFINITIONS "")
 set(MCMINI_EXTRA_LINK_FLAGS -lrt -pthread)
 
-set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)
+set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror -fPIC)
 set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
 
 # -lrt -> shared memory

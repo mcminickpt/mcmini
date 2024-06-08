@@ -38,20 +38,15 @@ struct forks {
 void *philosopher_doit(void *forks_arg) {
   struct forks *forks = forks_arg;
   pthread_mutex_lock(forks->left_fork);
+  sleep(1);
   pthread_mutex_lock(forks->right_fork);
-
-  // if(DEBUG) printf("Philosopher %d just ate.\n", forks->philosopher);
-
+  sleep(2);
   pthread_mutex_unlock(forks->left_fork);
   pthread_mutex_unlock(forks->right_fork);
   return NULL;
 }
 
 int main(int argc, char *argv[]) {
-  // if(argc != 3){
-  //     printf("Usage: %s NUM_PHILOSOPHERS DEBUG\n", argv[0]);
-  //     return 1;
-  // }
   int NUM_THREADS = 9;
   DEBUG = 0;
 
@@ -72,9 +67,9 @@ int main(int argc, char *argv[]) {
   }
 
   // for (i = 0; i < NUM_THREADS; i++) {
-  //     pthread_join(thread[i], NULL);
+  //   pthread_join(thread[i], NULL);
   // }
 
-  // free(forks);
+  free(forks);
   return 0;
 }

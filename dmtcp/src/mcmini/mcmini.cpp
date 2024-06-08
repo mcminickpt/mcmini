@@ -1,17 +1,12 @@
-#include <cstdint>
-#include <memory>
-#include <string>
-
 #include "mcmini/common/transitions.h"
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/coordinator/model_to_system_map.hpp"
 #include "mcmini/defines.h"
 #include "mcmini/mem.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
-#include "mcmini/model/exception.hpp"
+#include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/thread.hpp"
-#include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
@@ -21,15 +16,23 @@
 #include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
-#include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
 #include "mcmini/signal.hpp"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <cassert>
+#include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <utility>
 
 using namespace extensions;
@@ -56,13 +59,16 @@ void finished_trace_classic_dpor(const coordinator& c) {
   trace_id++;
 }
 
-void do_model_checking(
-    /* Pass arguments here or rearrange to configure the checker at
-    runtime, e.g. to pick an algorithm, set a max depth, etc. */) {
+void found_undefined_behavior(const coordinator& c,
+                              const undefined_behavior_exception& ub) {
+  std::cerr << "UNDEFINED BEHAVIOR:\n" << ub.what() << std::endl;
+  finished_trace_classic_dpor(c);
+}
+
+void do_model_checking(const config& config) {
   // For "vanilla" model checking where we start at the beginning of the
   // program, a `fork_process_source suffices` (fork() + exec() brings us to the
   // beginning).
-
   using namespace transitions;
 
   algorithm::callbacks c;
@@ -86,9 +92,10 @@ void do_model_checking(
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
+  target target(config.target_executable, config.target_executable_args);
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr),
-                          make_unique<fork_process_source>("hello-world"));
+                          make_unique<fork_process_source>(target));
 
   dr.register_dd_entry<const thread_create>(&thread_create::depends);
   dr.register_dd_entry<const thread_join>(&thread_join::depends);
@@ -106,6 +113,7 @@ void do_model_checking(
                                                     std::move(cr));
 
   c.trace_completed = &finished_trace_classic_dpor;
+  c.undefined_behavior = &found_undefined_behavior;
   classic_dpor_checker.verify_using(coordinator, c);
 
   std::cout << "Model checking completed!" << std::endl;
@@ -142,7 +150,7 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   // We'll need to create a different process source that can provide the
   // functionality we need to spawn new processes from the checkpoint image.
   auto process_source =
-      extensions::make_unique<real_world::fork_process_source>("ls");
+      extensions::make_unique<real_world::fork_process_source>(target("ls"));
 
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           model::transition_registry(),
@@ -156,20 +164,121 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
   std::cerr << "Model checking completed!" << std::endl;
 }
 
+void do_recording(const config& config) {
+  // `const_cast<>` is needed to call the C-functions here. A new/delete
+  // or malloc/free _could be_ needed, we'd need to check the man page. As
+  // long as the char * is not actually modified, this is OK and the best way
+  // to interface with the C library routines
+  real_world::target target(config.target_executable,
+                            config.target_executable_args);
+
+  // TODO: setenv(...)
+  target.execvp();
+}
+
 int main_cpp(int argc, const char** argv) {
+  model::config mcmini_config;
+
+  const char** cur_arg = &argv[1];
+  if (argc == 1) {
+    cur_arg[0] = "--help";
+    cur_arg[1] = NULL;
+  }
+
+  // TODO: Use argp.h instead (more options, better descriptions, etc)
+  while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
+    if (strcmp(cur_arg[0], "--max-depth-per-thread") == 0 ||
+        strcmp(cur_arg[0], "-m") == 0) {
+      mcmini_config.max_thread_execution_depth =
+          strtoul(cur_arg[1], nullptr, 10);
+
+      char* endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 || endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--max-depth-per-thread");
+        exit(1);
+      }
+      cur_arg += 2;
+    } else if (strcmp(cur_arg[0], "--record") == 0 ||
+               strcmp(cur_arg[0], "-r") == 0) {
+      mcmini_config.record_target_executable_only = true;
+      cur_arg++;
+    } else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
+      mcmini_config.max_thread_execution_depth =
+          strtoul(cur_arg[1], nullptr, 10);
+      cur_arg++;
+    } else if (strcmp(cur_arg[0], "--first-deadlock") == 0 ||
+               strcmp(cur_arg[0], "--first") == 0 ||
+               strcmp(cur_arg[0], "-f") == 0) {
+      mcmini_config.stop_at_first_deadlock = true;
+      cur_arg++;
+    } else if (strcmp(cur_arg[0], "--print-at-traceId") == 0 ||
+               strcmp(cur_arg[0], "-p") == 0) {
+      mcmini_config.target_trace_id = strtoul(cur_arg[1], nullptr, 10);
+      char* endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 || endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--print-at-traceId");
+        exit(1);
+      }
+      cur_arg += 2;
+    } else if (cur_arg[0][1] == 'p' && isdigit(cur_arg[0][2])) {
+      mcmini_config.target_trace_id = strtoul(cur_arg[2], nullptr, 10);
+      cur_arg++;
+    } else if (strcmp(cur_arg[0], "--help") == 0 ||
+               strcmp(cur_arg[0], "-h") == 0) {
+      fprintf(stderr,
+              "Usage: mcmini (experimental)\n"
+              "              [--record|-r]\n"
+              "              [--max-depth-per-thread|-m <num>]\n"
+              "              [--first-deadlock|--first|-f]\n"
+              "              [--help|-h]\n"
+              "              target_executable\n");
+      exit(1);
+    } else {
+      printf("mcmini: unrecognized option: %s\n", cur_arg[0]);
+      exit(1);
+    }
+  }
+
+  struct stat stat_buf;
+  if (cur_arg[0] == NULL || stat(cur_arg[0], &stat_buf) == -1) {
+    fprintf(stderr, "*** Missing target_executable or no such file.\n\n");
+    exit(1);
+  }
+
+  assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
+  char idx = strlen(cur_arg[0]) - strlen("mcmini") - 1 >= 0
+                 ? strlen(cur_arg[0]) - strlen("mcmini") - 1
+                 : strlen(cur_arg[0]);
+  // idx points to 'X' when cur_arg[0] == "...Xmcmini"
+  if (strcmp(cur_arg[0], "mcmini") == 0 ||
+      strcmp(cur_arg[0] + idx, "/mcmini") == 0) {
+    fprintf(stderr,
+            "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
+    exit(1);
+  }
+  mcmini_config.target_executable = std::string(cur_arg[0]);
   install_process_wide_signal_handlers();
-  do_model_checking();
+
+  if (mcmini_config.record_target_executable_only) {
+    do_recording(mcmini_config);
+  } else {
+    do_model_checking(mcmini_config);
+  }
+
+  // TODO: add else case for DMTCP (e.g. with `--from-dmtcp-file`)
+
   return EXIT_SUCCESS;
 }
 
 int main(int argc, const char** argv) {
-  try {
-    return main_cpp(argc, argv);
-  } catch (const std::exception& e) {
-    std::cerr << "ERROR: " << e.what() << std::endl;
-    return EXIT_FAILURE;
-  } catch (...) {
-    std::cerr << "ERROR: Unknown error occurred" << std::endl;
-    return EXIT_FAILURE;
-  }
+  return main_cpp(argc, argv);
+  // try {
+  //   return main_cpp(argc, argv);
+  // } catch (const std::exception& e) {
+  //   std::cerr << "ERROR: " << e.what() << std::endl;
+  //   return EXIT_FAILURE;
+  // } catch (...) {
+  //   std::cerr << "ERROR: Unknown error occurred" << std::endl;
+  //   return EXIT_FAILURE;
+  // }
 }

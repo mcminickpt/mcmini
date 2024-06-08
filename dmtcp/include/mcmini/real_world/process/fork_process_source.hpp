@@ -2,11 +2,13 @@
 
 #include <atomic>
 #include <string>
+#include <vector>
 
 #include "mcmini/defines.h"
 #include "mcmini/forwards.hpp"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/real_world/shm.hpp"
+#include "mcmini/real_world/target.hpp"
 
 namespace real_world {
 
@@ -22,15 +24,10 @@ namespace real_world {
  */
 class fork_process_source : public process_source {
  private:
-  // The name of the program which we should exec() into with libmcmini.so
-  // preloaded.
-  std::string target_program;  // NOTE: Favor std::filesystem::path if C++17
-  // is eventually supported
-  // Alternatively, have McMini conditionally
-  // compile a std::filesystem::path e.g.
+  target target;
 
-  /// @brief The process id of the template process whose libmcmini performs a
-  /// `sigwait()` loop ad infinitum.
+  /// @brief The process id of the template process whose libmcmini performs
+  /// a `sigwait()` loop ad infinitum.
   ///
   /// This value refers to the process id of the process that is repeatedly
   /// asked to invoke the `fork(2)` system call.
@@ -51,7 +48,6 @@ class fork_process_source : public process_source {
 
   static void initialize_shared_memory();
 
-  void setup_ld_preload();
   void reset_binary_semaphores_for_new_process();
   void make_new_template_process();
   void template_process_sig_handler();
@@ -59,7 +55,7 @@ class fork_process_source : public process_source {
   friend local_linux_process;
 
  public:
-  fork_process_source(std::string target_program);
+  fork_process_source(const real_world::target&);
   ~fork_process_source();
   std::unique_ptr<process> make_new_process() override;
 };
