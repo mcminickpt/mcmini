@@ -67,6 +67,10 @@ int libpthread_pthread_join(pthread_t thread, void **rv) {
 
 void exit(int status) { mc_transparent_exit(status); }
 void abort(void) { mc_transparent_abort(); }
+unsigned int sleep(unsigned int duration) {
+  // Ignore actually putting this thread to sleep: it doesn't affect correctness
+  return 0;
+}
 
 // Forwarding methods to the underlying libraries
 MCMINI_NO_RETURN void libc_abort(void) { (*abort_ptr)(); }

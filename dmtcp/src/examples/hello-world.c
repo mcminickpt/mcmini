@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
     pthread_create(&thread[i], NULL, &philosopher_doit, &forks[i]);
   }
 
-  // for (i = 0; i < NUM_THREADS; i++) {
-  //   pthread_join(thread[i], NULL);
-  // }
+  for (i = 0; i < NUM_THREADS; i++) {
+    pthread_join(thread[i], NULL);
+  }
 
   free(forks);
   return 0;
