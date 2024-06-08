@@ -291,9 +291,21 @@ mc_do_model_checking()
 {
   mc_prepare_to_model_check_new_program();
 
-  int nextBranchPoint = mc_explore_branch(FIRST_BRANCH);
-  while (nextBranchPoint != FIRST_BRANCH) { // while not backtracked to origin
+  int nextBranchPoint = FIRST_BRANCH;
+  while (true) { // while not backtracked to origin
+    if (rerunCurrentTraceForDebugger && traceId == 0) {
+      // FIXME:  Should we just keep current state,and re-initialize it?
+      mc_prepare_to_model_check_new_program();
+      nextBranchPoint = FIRST_BRANCH;
+      traceId--;
+    } else {
+      mcprintf("WARNING:  rerunCurrentTraceForDebugger set with 'tracedId > 0'."
+               "  Ignored.\n");
+    }
+    rerunCurrentTraceForDebugger = false;
+
     nextBranchPoint = mc_explore_branch(nextBranchPoint);
+    // IFXME:  Do we need this?  It seems that it just returns the same value.
     nextBranchPoint = programState->getDeepestDPORBranchPoint();
   }
 }
@@ -568,6 +580,10 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         "to limit how far into a trace McMini can go\n",
         depth);
       mc_stop_model_checking(EXIT_FAILURE);
+    }
+
+    if (rerunCurrentTraceForDebugger) {
+      break;  // Stop this trace.  We'll rerun to it later.
     }
 
     depth++;

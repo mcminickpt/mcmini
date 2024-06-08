@@ -269,12 +269,10 @@ class backCmd(gdb.Command):
       print("GDB is in scheduler, not target process:" +
             "  Can't go to previous transition\n")
       return
-    iterationsForward = transitionId - 1
-    gdb.execute("mcmini finishTrace quiet")
     gdb.execute("set rerunCurrentTraceForDebugger = 1")
-    gdb.execute("mcmini nextTrace quiet")
+    iterationsForward = transitionId - 1
+    transitionId = 0
     gdb.execute("mcmini forward " + str(iterationsForward) + " quiet")
-    gdb.execute("set rerunCurrentTraceForDebugger = 0")
     print("DEBUGGING: " + "mcmini forward " + str(iterationsForward) + " quiet")
     print_user_frames_in_stack()
     print_mcmini_stats()
