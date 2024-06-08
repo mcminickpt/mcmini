@@ -335,10 +335,10 @@ class forwardCmd(gdb.Command):
     iterations = int(args[0]) if args and args[0].isdigit() else 1
     if iterations > 1:
       mcmini_execute("mcmini forward " + str(iterations-1) + " quiet")
-    # else iterations == 1
+    if gdb.selected_inferior().num == 1 and gdb.inferiors()[-1].num > 0:
+      gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
     if gdb.selected_inferior().num == 1:
-      print("GDB is in scheduler, not target process:" +
-            "  Can't go to next transition\n")
+      print("No target available.  Did it exit?")
       return
     if iterations == 0:
       print_current_frame_verbose()
@@ -367,18 +367,24 @@ class forwardCmd(gdb.Command):
 forwardCmd()
 
 class backCmd(gdb.Command):
-  """Go back one transition of current trace, by re-executing"""
+  """Go back <count> transitions, by re-executing; default count=1"""
   def __init__(self):
     super(backCmd, self).__init__(
         "mcmini back", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
     global transitionId
+    count = int(args[0]) if args and args[0].isdigit() else 1
+    if gdb.selected_inferior().num == 1 and gdb.inferiors()[-1].num > 0:
+      gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
     if gdb.selected_inferior().num == 1:
-      print("GDB is in scheduler, not target process:" +
-            "  Can't go to previous transition\n")
+      print("No target available.  Did it exit?")
       return
-    iterationsForward = transitionId - 1
+    iterationsForward = transitionId - count
+    if iterationsForward < 0:
+      print("ERROR: Trying to go back past beginning:" +
+            " transitionId=%d; count=%d" % (transitionId, count))
+      return
     transitionId = 0
     inferior_num = gdb.selected_inferior().num
     if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
@@ -400,7 +406,6 @@ class backCmd(gdb.Command):
     # We're now at the beginning of the trace (user: "main").
     # After this, stap at mc_shared_sem_wait_for_scheduler_done for transition.
     gdb.execute("mcmini forward " + str(iterationsForward))
-    print("*** Still need to implement 'mcmini back <count>'")
 backCmd()
 
 class whereCmd(gdb.Command):
