@@ -243,7 +243,7 @@ class forwardCmd(gdb.Command):
       print("GDB is in scheduler, not target process:" +
             "  Can't go to next transition\n")
       return
-    # GDB based on Red Hat use debuginfo files.  This will suppress
+    # GDB based on Red Hat uses debuginfo files.  This will suppress
     # the warning.  However, this GDB command fails on Debian-based distros,
     # and anyway, no warning about missing debug files issued.
     try:

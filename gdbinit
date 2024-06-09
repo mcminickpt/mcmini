@@ -7,7 +7,12 @@ set pagination off
 # GDB will track both parent and child
 set detach-on-fork off
 set print pretty
-set print address off
+## set print address off
+###############################################
+# Consider this for more silent operation, but add back for developer mode
+## set print frame-info off
+## set print inferior-events off # This appears with new trace; Maybe set it off for 'mcmini back'
+## set print symbol-loading off
 # In McMini, parent sends SIGUSR1 to child on exit.
 handle SIGUSR1 nostop noprint pass
 handle SIGUSR2 nostop noprint pass
@@ -99,4 +104,4 @@ continue
 # Print Python-based GDB commands:
 help user-defined
 echo \n\ \ *** Type 'mcmini help' for usage. ***\n
-echo     \ \ (Do 'set print address on' for more verbose outpus.)\n\n
+echo     \ \ (Do 'set print address off' for less verbose output.)\n\n
