@@ -1069,6 +1069,16 @@ MCStack::printNextTransitions() const
   auto numThreads = this->getNumProgramThreads();
   for (uint64_t i = 0; i < numThreads; i++) {
     this->getNextTransitionForThread(i).print();
+    // Print Enabled, Blocked, or MaxThreadDepth reached:
+    if (this->getThreadDataForThread(i).getExecutionDepth() >=
+        this->configuration.maxThreadExecutionDepth) {
+      mcprintf("           [ MaxThreadDepth reached (%d) ]\n",
+               this->getConfiguration().maxThreadExecutionDepth);
+    } else {
+      mcprintf("           %s\n",
+               ( this->getNextTransitionForThread(i).threadIsEnabled() ?
+                 "[ Enabled ]" : "[ Blocked ]" ));
+    }
   }
   printf("END\n");
   mcflush();
