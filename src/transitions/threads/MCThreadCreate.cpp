@@ -1,4 +1,5 @@
 #include "mcmini/transitions/threads/MCThreadCreate.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadThreadCreate(const MCSharedTransition *shmTransition,
@@ -95,6 +96,6 @@ MCThreadCreate::doesCreateThread(tid_t tid) const
 void
 MCThreadCreate::print() const
 {
-  printf("thread %lu: pthread_create(thr:%lu, _, _, _)\n", this->thread->tid,
-         this->target->tid);
+  mcprintf("thread %lu: pthread_create(thr:%lu, _, _, _)\n", this->thread->tid,
+           this->target->tid);
 }

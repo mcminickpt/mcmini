@@ -101,7 +101,7 @@ MCRWWLockWriter1Lock::dependentWith(const MCTransition *other) const
 void
 MCRWWLockWriter1Lock::print() const
 {
-  printf("thread %lu: pthread_rwlock_wr1lock(rwwl:%u) (lock)\n",
-         this->thread->tid,
-         countVisibleObjectsOfType(this->rwwlock->getObjectId()));
+  mcprintf("thread %lu: pthread_rwlock_wr1lock(rwwl:%u) (lock)\n",
+           this->thread->tid,
+           countVisibleObjectsOfType(this->rwwlock->getObjectId()));
 }

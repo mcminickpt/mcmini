@@ -1,4 +1,5 @@
 #include "mcmini/transitions/threads/MCThreadJoin.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadThreadJoin(const MCSharedTransition *shmTransition,
@@ -115,6 +116,6 @@ MCThreadJoin::joinsOnThread(
 void
 MCThreadJoin::print() const
 {
-  printf("thread %lu: pthread_join(thr:%lu, _)\n", this->thread->tid,
-         this->target->tid);
+  mcprintf("thread %lu: pthread_join(thr:%lu, _)\n", this->thread->tid,
+           this->target->tid);
 }

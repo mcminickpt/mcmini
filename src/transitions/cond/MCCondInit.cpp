@@ -159,6 +159,6 @@ MCCondInit::dependentWith(const MCTransition *other) const
 void
 MCCondInit::print() const
 {
-  printf("thread %lu: pthread_cond_init(cond:%u, _)\n", this->thread->tid,
-         countVisibleObjectsOfType(this->conditionVariable->getObjectId()));
+  mcprintf("thread %lu: pthread_cond_init(cond:%u, _)\n", this->thread->tid,
+           countVisibleObjectsOfType(this->conditionVariable->getObjectId()));
 }

@@ -155,7 +155,7 @@ MCCondBroadcast::print() const
   const char * isLostWakeup = " [Lost wakeup? (No thread waiting on cond) ]";
   if (hadWaiters) { isLostWakeup = ""; }
 
-  printf("thread %lu: pthread_cond_signal(cond:%u)%s\n", this->thread->tid,
-         countVisibleObjectsOfType(this->conditionVariable->getObjectId()),
-         isLostWakeup);
+  mcprintf("thread %lu: pthread_cond_signal(cond:%u)%s\n", this->thread->tid,
+           countVisibleObjectsOfType(this->conditionVariable->getObjectId()),
+           isLostWakeup);
 }
