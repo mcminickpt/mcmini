@@ -73,6 +73,6 @@ MCRWLockInit::dependentWith(const MCTransition *other) const
 void
 MCRWLockInit::print() const
 {
-  printf("thread %lu: pthread_rwlock_init(rwl:%u, _)\n", this->thread->tid,
-         countVisibleObjectsOfType(this->rwlock->getObjectId()));
+  mcprintf("thread %lu: pthread_rwlock_init(rwl:%u, _)\n", this->thread->tid,
+           countVisibleObjectsOfType(this->rwlock->getObjectId()));
 }
