@@ -1,4 +1,5 @@
 #include "mcmini/transitions/misc/MCExitTransition.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadExitTransition(const MCSharedTransition *shmTransition,
@@ -44,7 +45,7 @@ MCExitTransition::enabledInState(const MCStack *) const
 void
 MCExitTransition::print() const
 {
-  printf("thread %lu: exit(%u)\n", this->thread->tid, this->exitCode);
+  mcprintf("thread %lu: exit(%u)\n", this->thread->tid, this->exitCode);
 }
 
 bool
