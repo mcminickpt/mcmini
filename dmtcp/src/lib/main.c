@@ -61,14 +61,19 @@ void mc_deallocate_shared_memory_region(void) {
 }
 
 __attribute__((constructor)) void libmcmini_main() {
+  mc_load_intercepted_pthread_functions();
+  if (getenv("MCMINI_RECORD")) {
+    libmcmini_mode = RECORD;
+    return;
+  }
   mc_prevent_addr_randomization();
   mc_install_sig_handlers();
   mc_register_this_thread();
-  mc_load_intercepted_pthread_functions();
   mc_allocate_shared_memory_region();
   atexit(&mc_deallocate_shared_memory_region);
 
-  if (getenv("libmcmini-template-loop") != NULL) {
+  if (getenv("MCMINI_TEMPLATE_LOOP") != NULL) {
+    libmcmini_mode = TEMPLATE;
     mc_template_process_loop_forever();
   }
   thread_await_scheduler_for_thread_start_transition();

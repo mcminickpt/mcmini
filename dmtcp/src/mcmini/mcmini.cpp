@@ -165,14 +165,18 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
 }
 
 void do_recording(const config& config) {
-  // `const_cast<>` is needed to call the C-functions here. A new/delete
-  // or malloc/free _could be_ needed, we'd need to check the man page. As
-  // long as the char * is not actually modified, this is OK and the best way
-  // to interface with the C library routines
-  real_world::target target(config.target_executable,
-                            config.target_executable_args);
+  std::string dmtcp_launch = "dmtcp_launch";
+  std::vector<std::string> dmtcp_launch_args;
+  dmtcp_launch_args.push_back("-i");
+  dmtcp_launch_args.push_back(std::to_string(config.checkpoint_period.count()));
+  dmtcp_launch_args.push_back(config.target_executable);
+  for (const std::string& target_arg : config.target_executable_args)
+    dmtcp_launch_args.push_back(target_arg);
+  real_world::target target(dmtcp_launch, dmtcp_launch_args);
 
-  // TODO: setenv(...)
+  std::cout << "Recording: " << target << std::endl;
+
+  setenv("MCMINI_RECORD", "1", true);
   target.execvp();
 }
 
@@ -201,7 +205,9 @@ int main_cpp(int argc, const char** argv) {
     } else if (strcmp(cur_arg[0], "--record") == 0 ||
                strcmp(cur_arg[0], "-r") == 0) {
       mcmini_config.record_target_executable_only = true;
-      cur_arg++;
+      mcmini_config.checkpoint_period =
+          std::chrono::seconds(strtoul(cur_arg[1], nullptr, 10));
+      cur_arg += 2;
     } else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
       mcmini_config.max_thread_execution_depth =
           strtoul(cur_arg[1], nullptr, 10);
@@ -227,7 +233,7 @@ int main_cpp(int argc, const char** argv) {
                strcmp(cur_arg[0], "-h") == 0) {
       fprintf(stderr,
               "Usage: mcmini (experimental)\n"
-              "              [--record|-r]\n"
+              "              [--record|-r <seconds>] \n"
               "              [--max-depth-per-thread|-m <num>]\n"
               "              [--first-deadlock|--first|-f]\n"
               "              [--help|-h]\n"

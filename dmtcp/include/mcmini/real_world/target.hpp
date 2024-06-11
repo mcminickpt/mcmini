@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,12 @@ struct target {
   /// @note this function only returns on failure of `execvp(2)` and sets
   /// errno
   void execvp() const;
+
+  friend std::ostream &operator<<(std::ostream &os, const target &target) {
+    os << target.target_program;
+    for (const std::string &arg : target.target_program_args) os << " " << arg;
+    return os;
+  }
 };
 
 }  // namespace real_world

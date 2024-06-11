@@ -10,6 +10,7 @@ typeof(&pthread_join) pthread_join_ptr;
 typeof(&pthread_mutex_init) pthread_mutex_init_ptr;
 typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
 typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
+typeof(&pthread_mutex_destroy) pthread_mutex_destroy_ptr;
 typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
 typeof(&sem_init) sem_init_ptr;
@@ -28,6 +29,7 @@ void mc_load_intercepted_pthread_functions() {
   pthread_mutex_init_ptr = dlsym(RTLD_NEXT, "pthread_mutex_init");
   pthread_mutex_lock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_lock");
   pthread_mutex_unlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_unlock");
+  pthread_mutex_destroy_ptr = dlsym(RTLD_NEXT, "pthread_mutex_destroy");
   sem_wait_ptr = dlsym(RTLD_NEXT, "sem_wait");
   sem_post_ptr = dlsym(RTLD_NEXT, "sem_post");
   sem_init_ptr = dlsym(RTLD_NEXT, "sem_init");
@@ -45,12 +47,29 @@ int pthread_mutex_init(pthread_mutex_t *mutex,
   return mc_pthread_mutex_init(mutex, mutexattr);
 }
 
+int libpthread_mutex_init(pthread_mutex_t *mutex,
+                          const pthread_mutexattr_t *attr) {
+  return (*pthread_mutex_init_ptr)(mutex, attr);
+}
+
 int pthread_mutex_lock(pthread_mutex_t *mutex) {
   return mc_pthread_mutex_lock(mutex);
 }
 
+int libpthread_mutex_lock(pthread_mutex_t *mut) {
+  return (*pthread_mutex_lock_ptr)(mut);
+}
+
 int pthread_mutex_unlock(pthread_mutex_t *mutex) {
   return mc_pthread_mutex_unlock(mutex);
+}
+
+int libpthread_mutex_unlock(pthread_mutex_t *mut) {
+  return (*pthread_mutex_unlock_ptr)(mut);
+}
+
+int libpthread_mutex_destroy(pthread_mutex_t *mut) {
+  return (*pthread_mutex_destroy_ptr)(mut);
 }
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,

@@ -155,9 +155,9 @@ void fork_process_source::make_new_template_process() {
     close(pipefd[0]);
     fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
 
-    setenv("libmcmini-template-loop", "1", 1);
+    setenv("MCMINI_TEMPLATE_LOOP", "1", 1);
     target.execvp();
-    unsetenv("libmcmini-template-loop");
+    unsetenv("MCMINI_TEMPLATE_LOOP");
 
     // If `execvp()` fails, we signal the error to the parent process by writing
     // into the pipe.

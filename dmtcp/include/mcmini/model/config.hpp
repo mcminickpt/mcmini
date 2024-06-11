@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -31,6 +32,12 @@ struct config {
    * libmcmini.so configured in record mode.
    */
   bool record_target_executable_only = false;
+
+  /**
+   * The time between consecutive checkpoint images when `libmcmini.so` is
+   * running in record mode.
+   */
+  std::chrono::seconds checkpoint_period;
 
   std::string target_executable = "";
   std::vector<std::string> target_executable_args;

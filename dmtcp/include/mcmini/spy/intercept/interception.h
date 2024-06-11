@@ -23,6 +23,11 @@ int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 int pthread_join(pthread_t thread, void**);
 int libpthread_pthread_join(pthread_t thread, void**);
 
+int libpthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
+int libpthread_mutex_lock(pthread_mutex_t *);
+int libpthread_mutex_unlock(pthread_mutex_t *);
+int libpthread_mutex_destroy(pthread_mutex_t *);
+
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);

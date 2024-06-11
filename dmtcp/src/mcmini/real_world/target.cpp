@@ -24,11 +24,11 @@ void target::execvp() const {
   // or malloc/free _could be_ needed, we'd need to check the man page. As
   // long as the char * is not actually modified, this is OK and the best way
   // to interface with the C library routines
-  std::vector<char*> args;
+  std::vector<char *> args;
   args.reserve(this->target_program_args.size());
-  args.push_back(const_cast<char*>(this->target_program.c_str()));
-  for (const std::string& arg : this->target_program_args)
-    args.push_back(const_cast<char*>(arg.c_str()));
+  args.push_back(const_cast<char *>(this->target_program.c_str()));
+  for (const std::string &arg : this->target_program_args)
+    args.push_back(const_cast<char *>(arg.c_str()));
   args.push_back(NULL);
 
   // Ensures that addresses in the template process remain "stable"
