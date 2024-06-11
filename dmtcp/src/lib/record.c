@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+pthread_mutex_t rec_list_lock = PTHREAD_MUTEX_INITIALIZER;
 mode libmcmini_mode = TEMPLATE;
 rec_list *head = NULL;
 rec_list *current = NULL;

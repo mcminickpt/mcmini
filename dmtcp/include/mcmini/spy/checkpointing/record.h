@@ -26,7 +26,7 @@ typedef struct rec_list {
 
 extern rec_list *head;
 extern rec_list *current;
-static pthread_mutex_t rec_list_lock = PTHREAD_MUTEX_INITIALIZER;
+extern pthread_mutex_t rec_list_lock;
 
 /// @brief Retrieves the stored state for the given mutex
 /// @return a pointer to the node in the list formed by `head`,
