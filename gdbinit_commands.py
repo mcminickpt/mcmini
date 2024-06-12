@@ -62,7 +62,20 @@ import os, subprocess, time
 assert "MCMINI_ARGS" in os.environ
 mcmini_args = os.getenv("MCMINI_ARGS")
 del os.environ["MCMINI_ARGS"]
-if "-p0" not in mcmini_args and "'-p' '0'" not in mcmini_args:
+
+def insert_extra(args, extra):
+  args = args.split()
+  last_flag_idx = max([ idx for (idx, word) in enumerate(args)
+                            if word.startswith('-') or word.startswith("'-") ],
+                      default = 0)
+  last_word = args[last_flag_idx].replace("'", "")
+  if last_word in [ "--max-depth-per-thread", "--print-at-trace"] or \
+     len(last_word) == 2 and last_word[1] in ['m', 'p']:
+    last_flag_idx += 1
+  args = args[:last_flag_idx] + extra.split() + args[last_flag_idx:]
+  return ' '.join(args)
+
+if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
   # If "-p0" not in the mcmini arguments, then get the trace sequence first.
   # We will then add "-p 0 -p <traceSeq>" to the command line before giving
   #   control to gdb.
@@ -104,9 +117,40 @@ if "-p0" not in mcmini_args and "'-p' '0'" not in mcmini_args:
         print("******** mcmini-gdb: Internal error:"
               " can't compute trace sequence")
       gdb.execute("quit")
-  extra_args = " -p 0 -p'" + trace_seq + "' "
-  mcmini_args = (mcmini_args.rsplit(maxsplit=1)[0] + extra_args +
-                 mcmini_args.rsplit(maxsplit=1)[1])
+  extra_args = " -p0 -p'" + trace_seq + "' "
+
+  mcmini_args = mcmini_args.split()
+  # Strip "'" if it surrounds an arg with no spaces:
+  for i in range(len(mcmini_args)):
+    if len(mcmini_args[i].strip("'"))+2 == len(mcmini_args[i]):
+      mcmini_args[i] = mcmini_args[i].strip("'")
+  # Remove any old prefixes: '-p 0,0, ...' (or variations)
+  for i in range(len(mcmini_args)):
+    if "-p" in mcmini_args[i] and "'" in mcmini_args[i] or \
+       i > 0 and mcmini_args[i-1] == "-p" and "'" in mcmini_args[i]:
+      j =  i if "-p" in mcmini_args[i] else i-1
+      mcmini_args[j] = ""
+      for k in range(j+1, len(mcmini_args)):
+        tmp = mcmini_args[k]
+        mcmini_args[k] = ""
+        if tmp.endswith("'"): # If this is the matching "'":
+          break
+  # Now, rejoin the edited words in mcmini_args
+  def delete_one(elt, args):
+    if len([1 for arg in args if arg == elt]) > 1:
+      args[args.index(elt)] = ""
+  # mcmini-gdb must not use '-f' cmd; Else upon last transition, scheduler exits
+  mcmini_args = [ arg for arg in mcmini_args if "-f" != arg ]
+  delete_one("-q", mcmini_args)
+  delete_one("-v", mcmini_args)
+  tmp = [arg for arg in mcmini_args
+         if arg.startswith("-p") and len(arg) == 3 and arg != "-p0"]
+  if tmp:
+    mcmini_args[ mcmini_args.index(tmp[0]) ] = ""
+  mcmini_args = ' '.join([arg for arg in mcmini_args if arg != ""])
+  mcmini_args = mcmini_args.replace("-p0 ", "").replace("-p 0 ", "")
+
+  mcmini_args = insert_extra(mcmini_args, extra_args)
   print("** Running: " + exec_file + "-gdb " + mcmini_args)
   print("** Note:  In order to replay this trace,\n" +
         "          it is faster to directly run the above command line.\n")
@@ -179,11 +223,15 @@ def select_user_frame():
   frame.select()
   if is_tui_active():
     # We've selected the frame, but the GDB 'frame' cmd will now tell the TUI.
-    # For forcing TUI redisplay, alternatives to the GDB 'frame' cmd might be
-    # "tui disable; tui enable", or GDB "update" cmd, or GDB "down; up".
+    # For forcing TUI redisplay.
     # FIXME:  Don't do this if the TUI already knows about our frame.
     #         For example, 'mcmini where/print' doesn't need to change it.
+    #         GDB commands: up; down;  fix the display, but print to output
+    #                       and leave current line at top.
     gdb.execute("frame " + str( gdb.selected_frame().level() ))
+    ## GDB BUG: 'list <LINE>' should help TUI to center display; but this fails.
+    # if gdb.execute("frame " + str( gdb.selected_frame().level() )):
+    #   gdb.execute("list " + str( gdb.selected_frame().find_sal().line ))
     gdb.execute("refresh")
 
 # ===========================================================
@@ -248,6 +296,84 @@ def finish():
 #                       reaching the breakpoint, such as print a message.
 
 # ===========================================================
+# Redirect output:  gdb-msg -> /dev/null; McMini -> mcprintf_redirect()
+
+dup_stdout = -1 # uninitialized
+output = "REDIRECT UNINTIALIZED"
+user_inferior = -1
+
+def redirect_prolog():
+  # NOTE: This doesn't work for TUI; they output to curses, not stdout. :-(
+  # FIXME: But we can do tui-disable; update; tui-enable to get around it
+  #        We need to capture McMini output and re-print it in tui-enabled in that case.
+  # TODO:  For TUI, prolog should have cmd and args, disable, execute enable, print '(gdb) cmd line; output', enable
+  # TODO:  Could maybe also print last_output before printing output if desired.
+  # Replace original stdout/stderr by /dev/null
+  # Turn pagination off; GDB junk should not go to paginated stream.
+  cur_pagination = gdb.parameter("pagination")
+  gdb.set_parameter("pagination", "off")
+  # GDB 'inferior XXX' normally tries to print filename, and errors and
+  #   and sends to stderr Stop trying to print filename.  This prevents that.
+  cur_frame_info = gdb.execute("show print frame-info", to_string=True)
+  cur_frame_info = cur_frame_info.split('"')[1]
+  gdb.execute("set print frame-info location")
+  ### if not is_tui_active() and not tui_was_initiated:
+  ###   gdb.execute("tui enable")
+  ###   gdb.execute("tui disable")
+  dup_stdout = os.dup(1)
+  os.close(1)
+  cur_stdout = os.open('/dev/null', os.O_WRONLY)
+  assert cur_stdout == 1
+  # GDB messages will now go to /dev/null
+  user_inferior = gdb.selected_inferior().num
+  # FIXME:  We need 'inferior 1' to call 'mcprintf_redirect()'
+  #   But 'inferior 1' cmd sends junk msg to stderr.
+  #   If we temporarily set stderr to /dev/null, as with stdout,
+  #   then GDB freezes after doing 'mcmini printTransitions' twice.
+  gdb.execute("inferior 1")  # inferior 1 is scheduler process
+  gdb.execute("call mcprintf_redirect()")
+  gdb.execute("inferior " + str(user_inferior))
+  # return context
+  return (dup_stdout, user_inferior, cur_pagination, cur_frame_info)
+
+def redirect_epilog(context, print_hack = False):
+  (dup_stdout, user_inferior, cur_pagination, cur_frame_info) = context
+  gdb.execute("inferior 1")  # inferior 1 is scheduler process
+  gdb.execute("call mcprintf_stop_redirect()")
+  output = gdb.parse_and_eval("mcprintf_redirect_output").string()
+  if user_inferior not in [inf.num for inf in gdb.inferiors()]:
+    user_inferior = [inf.num for inf in gdb.inferiors()][-1]
+    if user_inferior == 1: print("WARNING:  program exited??")
+  # Under TUI, this seems to go to curses (or stderr?), not stdout:
+  gdb.execute("set print frame-info " + cur_frame_info)
+  gdb.execute("inferior " + str(user_inferior))
+  select_user_frame()
+  if is_tui_active():
+    gdb.execute("frame " + str(gdb.selected_frame().level()))
+  # Return to original stdout/stderr
+  # FIXME: When is_tui_active(), we can't replace stdout
+  os.close(1)
+  os.dup2(dup_stdout, 1)
+  os.close(dup_stdout)
+  # It's now safe to print
+  gdb.flush()
+  gdb.set_parameter("pagination", "on" if cur_pagination else "off")
+  # We need this hack because GDB TUI doesn't erase part of first line.
+  if is_tui_active() and print_hack:
+    print(" === ")
+    output = "*** " + output
+  print(output)
+  ## gdb.execute('printf "' + output.replace("\n", "\\n") + '"')
+  ## gdb.write(output)
+  gdb.flush()
+  if is_tui_active():
+    # BUG: Doing: mcmini forward 6; mcmini printTransitionss; ^Xa; up-arrow
+    #      then sets TUI src window to "No source available".
+    #      If we type this below manually, it refreshes, but not under Python.
+    gdb.execute("frame " + str( gdb.selected_frame().level() ))
+    gdb.execute("refresh")
+
+# ===========================================================
 # Set up McMini commands
 
 class mcminiPrefixCmd(gdb.Command):
@@ -307,15 +433,19 @@ class printTransitionsCmd(gdb.Command):
   def invoke(self, args, from_tty):
     has_exited = False
     if gdb.newest_frame().name() in ["__GI__exit", "_exit"]:
-      gdb.execute("continue")
       has_exited = True
-    current_inferior = gdb.selected_inferior().num
-    gdb.execute("inferior 1")  # inferior 1 is scheduler process
-    gdb.execute("call programState->printTransitionStack()")
-    gdb.execute("call programState->printNextTransitions()")
     if not has_exited:
-      gdb.execute("inferior " + str(current_inferior))
+      context = redirect_prolog()
+      user_inferior = gdb.selected_inferior().num
+      gdb.execute("inferior 1")  # inferior 1 is scheduler process
+      gdb.execute("call programState->printTransitionStack()")
+      gdb.execute("call programState->printNextTransitions()")
+      ## gdb.execute("set scheduler-locking off")
+      gdb.execute("inferior " + str(user_inferior))
       select_user_frame()
+      redirect_epilog(context, print_hack=True)
+    else:
+      print("Process has exited")
 printTransitionsCmd()
 
 class printPendingTransitionsCmd(gdb.Command):
@@ -325,11 +455,12 @@ class printPendingTransitionsCmd(gdb.Command):
         "mcmini printPendingTransitions", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
-    current_inferior = gdb.selected_inferior().num
+    context = redirect_prolog()
+    user_inferior = gdb.selected_inferior().num
     gdb.execute("inferior 1")  # inferior 1 is scheduler process
     gdb.execute("call programState->printNextTransitions()")
-    gdb.execute("inferior " + str(current_inferior))
-    select_user_frame()
+    gdb.execute("inferior " + str(user_inferior))
+    redirect_epilog(context)
 printPendingTransitionsCmd()
 
 import re
@@ -448,6 +579,7 @@ class backCmd(gdb.Command):
       print("ERROR: Trying to go back past beginning:" +
             " transitionId=%d; count=%d" % (transitionId, count))
       return
+    context = redirect_prolog()
     transitionId = 0
     inferior_num = gdb.selected_inferior().num
     if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
@@ -466,6 +598,7 @@ class backCmd(gdb.Command):
     continue_until("mc_shared_sem_wait_for_scheduler_done")
     # We're now at the beginning of the trace (user: "mcmini_main") constructor.
     continue_until("main")
+    redirect_epilog(context)
     # We're now at the beginning of the trace (user: "main").
     # After this, stap at mc_shared_sem_wait_for_scheduler_done for transition.
     gdb.execute("mcmini forward " + str(iterationsForward))
@@ -609,13 +742,13 @@ class developerModeCmd(gdb.Command):
     print("Breakpoint added at next visible operation in scheduler process.")
     gdb.execute("break mc_run_thread_to_next_visible_operation(unsigned long)")
     ### These commented commands will go away, when it's clear it's not needed.
-    # current_inferior = gdb.selected_inferior().num
+    # user_inferior = gdb.selected_inferior().num
     # gdb.execute("inferior 1") # Set inferior to scheduler
     # scheduler_call_frame_fnc = "mc_shared_sem_wait_for_thread"
     # gdb.execute("break " + scheduler_call_frame_fnc)
     # This next command forces a GDB-internal bug in gdb-12.0
     # gdb.FinishBreakpoint().__init__(find_call_frame_fnc(scheduler_call_frame_fnc))
-    # gdb.execute("inferior " + str(current_inferior))
+    # gdb.execute("inferior " + str(user_inferior))
     gdb.execute("inferior 1")
     gdb.execute("set print address on")
     gdb.execute("set detach-on-fork on")
