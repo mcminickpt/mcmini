@@ -48,6 +48,9 @@ continue
 tbreak main
 continue
 
+# The automated script is done.  It's now safe to turn pagination on.
+set pagination on
+
 # Print Python-based GDB commands:
 help user-defined
 echo \n\ \ *** Type 'mcmini help' for usage. ***\n
