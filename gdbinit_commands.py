@@ -86,6 +86,11 @@ if "-p0" not in mcmini_args and "'-p' '0'" not in mcmini_args:
   print("     (This may take a while ...)")
   mcmini_output = subprocess.run(cmd, shell=True, capture_output=True,
                                  timeout=300)
+  error_output = mcmini_output.stderr.decode('utf-8')
+  if "Missing target_executable" in error_output:
+    print([line for line in error_output.split('\n')
+                if "Missing target_executable" in line][0], file=sys.stderr)
+    sys.exit(1)
   mcmini_output = mcmini_output.stdout.decode('utf-8').split('\n')
   pending_indexes = [idx for idx, line in enumerate(mcmini_output)
                          if "THREAD PENDING OPERATIONS" in line]

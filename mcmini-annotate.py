@@ -14,6 +14,7 @@ if '/' in sys.argv[-1]:
 else:
   mcmini_root = os.getcwd()
 # Could verify mcmini_root with an alternative code:
+#   # Capture "export MCMINI_ROOT=..." from mcmini-gdb shell script
 #   path = [ line for line in open(mcmini_root + "/" + mcmini_gdb).readine() if line.startswith("export MCMINI_ROOT=") ]
 #   mcmini_root = (path[0]+"-END$").split('=')[1].replace("/mcmini-gdb-END$", "")
 
