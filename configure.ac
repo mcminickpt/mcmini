@@ -51,6 +51,49 @@ else
   AC_SUBST([DEBUG], [no])
 fi
 
+AC_MSG_CHECKING([if python3 is available])
+# If Python returns True, that is converted to '1', which is Failure for shell:
+PYTHON=`which python`
+PYTHON3=`which python3`
+if [[ "$PYTHON" != "" ]] && \
+    $PYTHON -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
+  has_python=yes
+elif [[ "$PYTHON3" != "" ]] && \
+    $PYTHON3 -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
+  PYTHON=`which python3`
+  has_python=yes
+else
+  has_python=no
+fi
+AC_MSG_RESULT([$has_python])
+if [[ $has_python == yes ]] && [[ $PYTHON != /usr/bin/python ]]; then
+  # Replacing line 1 ( #!/usr/bin/env python ) with local python
+  sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate.py
+fi
+if [[ $has_python == no ]]; then
+  AC_MSG_FAILURE("python3 not found")
+fi
+
+AC_CHECK_PROG([HAS_GDB],[gdb],[yes],[no])
+if [[ $HAS_GDB == no ]]; then
+  AC_MSG_FAILURE("gdb not found")
+fi
+
+# '[ [' must be doubled to escape the macro.
+GDB_VERSION=`gdb --version | head -1 | sed -e 's%\([[^0-9]]*\)%%' -e 's%[[^0-9]].*$%%'`
+PYTHON_VERSION_MINOR=`$PYTHON -c 'import sys; print("%d" % (sys.version_info.minor))'`
+
+# If Python returns True, True is converted to '1', which is Failure for shell:
+# FIXME: We should test if gdb.Frame.level is present, for GDB's need to patch.
+#        This came into GDB somewhere from GDB-10 to GDB-12.
+#        And capture_output flag came into Python3 in python 3.7.
+# CentOS 8 still uses outdated Python and GDB.
+if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12 and '$PYTHON_VERSION_MINOR' >= 7)'; then
+  echo '*** Python or GDB Python API is older: patching Python code'
+  echo '*** There may be some smaller missing features for mcminig-gdb.'
+  # patch -p1 < mcmini-oldsys.patch
+fi
+
 dnl CMA (Cross Memory Attach) brought in with  Linux 3.2.0 and glibc 2.15
 dnl Around Feb., 2018, Docker forbids process_vm_readv even though it's in
 dnl   libc.so.  So, AC_CHECK_FUNC is not sufficient.  Use AC_RUN_IFELSE([AC_LANG_SOURCE([[]])],[],[],[]).

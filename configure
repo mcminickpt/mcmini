@@ -652,6 +652,7 @@ ac_header_c_list=
 ac_func_c_list=
 ac_subst_vars='LTLIBOBJS
 HAS_PROCESS_VM
+HAS_GDB
 DEBUG
 PWD
 LIBOBJS
@@ -5273,6 +5274,95 @@ printf "%s\n" "#define DEBUG 1" >>confdefs.h
 else
   DEBUG=no
 
+fi
+
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if python3 is available" >&5
+printf %s "checking if python3 is available... " >&6; }
+# If Python returns True, that is converted to '1', which is Failure for shell:
+PYTHON=`which python`
+PYTHON3=`which python3`
+if [ "$PYTHON" != "" ] && \
+    $PYTHON -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
+  has_python=yes
+elif [ "$PYTHON3" != "" ] && \
+    $PYTHON3 -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
+  PYTHON=`which python3`
+  has_python=yes
+else
+  has_python=no
+fi
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $has_python" >&5
+printf "%s\n" "$has_python" >&6; }
+if [ $has_python == yes ] && [ $PYTHON != /usr/bin/python ]; then
+  # Replacing line 1 ( #!/usr/bin/env python ) with local python
+  sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate.py
+fi
+if [ $has_python == no ]; then
+  { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "\"python3 not found\"
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+# Extract the first word of "gdb", so it can be a program name with args.
+set dummy gdb; ac_word=$2
+{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+printf %s "checking for $ac_word... " >&6; }
+if test ${ac_cv_prog_HAS_GDB+y}
+then :
+  printf %s "(cached) " >&6
+else $as_nop
+  if test -n "$HAS_GDB"; then
+  ac_cv_prog_HAS_GDB="$HAS_GDB" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  case $as_dir in #(((
+    '') as_dir=./ ;;
+    */) ;;
+    *) as_dir=$as_dir/ ;;
+  esac
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir$ac_word$ac_exec_ext"; then
+    ac_cv_prog_HAS_GDB="yes"
+    printf "%s\n" "$as_me:${as_lineno-$LINENO}: found $as_dir$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_HAS_GDB" && ac_cv_prog_HAS_GDB="no"
+fi
+fi
+HAS_GDB=$ac_cv_prog_HAS_GDB
+if test -n "$HAS_GDB"; then
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $HAS_GDB" >&5
+printf "%s\n" "$HAS_GDB" >&6; }
+else
+  { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
+printf "%s\n" "no" >&6; }
+fi
+
+
+if [ $HAS_GDB == no ]; then
+  { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "\"gdb not found\"
+See \`config.log' for more details" "$LINENO" 5; }
+fi
+
+# '[ [' must be doubled to escape the macro.
+GDB_VERSION=`gdb --version | head -1 | sed -e 's%\([^0-9]*\)%%' -e 's%[^0-9].*$%%'`
+PYTHON_VERSION_MINOR=`$PYTHON -c 'import sys; print("%d" % (sys.version_info.minor))'`
+
+# If Python returns True, True is converted to '1', which is Failure for shell:
+# FIXME: We should test if gdb.Frame.level is present, for GDB's need to patch.
+if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12 and '$PYTHON_VERSION_MINOR' >= 7)'; then
+  echo '*** Python or GDB Python API is older: patching Python code'
+  patch -p1 < mcmini-oldsys.patch
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if process_vm_readv/process_vm_writev (CMA) available" >&5
