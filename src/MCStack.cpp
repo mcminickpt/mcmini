@@ -225,6 +225,8 @@ void MCStack::restoreInitialTrace() {
 
   // Reset the transition/state stacks. NOTE: Clearing the contents isn't
   // strictly necessary since these indices determine the bounds
+
+  // traceSeqIdx = 1; // getFirstEnabledTransition will already be at user main()
   traceSeqIdx = 0; // getFirstEnabledTransition will increment before user main()
   lastEndOfTraceId = -1; // We support 'mcmini back' only for 'traceId == 0'.
 

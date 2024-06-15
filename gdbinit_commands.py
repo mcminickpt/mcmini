@@ -9,6 +9,7 @@
 ##   Insert:  'import pdb; pdb.set_trace()' or 'breakpoint()'
 ##   # Invoke with count of 3 and 'True' (default: fromTtty; for all commands)
 ##   (gdb) python nextTransitionCmd().invoke("3",True)
+##   (gdb) python print(dir(gdbObject))
 ##   Python stack on error is off by defautt:
 ##     In Python:  gdb.execute("set python print-stack full")
 
@@ -19,7 +20,7 @@
 ##   bkptMain.thread = <Thread>
 ##   gdb.breakpoints()
 
-## FIXME:
+## FIXME (but now obsolete):
 ## mcmini nextTrace <count> fails, when using optional <count> argument.
 
 ## TODO:
@@ -35,9 +36,7 @@
 ##    GDB API will correctly show the new transitionId
 ## 3. 'assert()' and '_exit()' should be handled gracefully. (Especially assert)
 ##    As a stopgap, in case McMini crashes, just print every traceId before that
-## 4. In WSL, the arguments of the target program are getting lost. WHY?
-##    As a result, producer_consumer doesn't recognize its '--quiet' flag.
-## 5. I'm not a fan of using 'operator' widely for the same reason that
+## 4. I'm not a fan of using 'operator' widely for the same reason that
 ##    I'm not a fan of using global variables widely.  It becomes very
 ##    difficult to read the code locally, since absolutely any use
 ##    of '[]' or '()' might be an operator with unknown semantics.
@@ -50,21 +49,14 @@
 ##    semantics to do a deep compare/copy.  But '()' and '[]' is weird.
 
 ## FIXME:
-##  We could set thread name of the McMini scheduler thread:
+##  We could set thread name of the McMini scheduler thread for inferior 1:
 ##    prctl (PR_SET_NAME, "MCMINI_INTERNAL", 0, 0, 0)
 ##  to distinguish it from the user threads.
 
-## FIXME:
-##  Bug:  If we continue to do 'mcmini forward' until end of trace, it crashes.
-
 # ===========================================================
-# NEW for use with:  ./mcmini -p <traceSeq>
+# We now do the setup.  If  '-p <traceSeq>' found, add '-p 0'.
+# Call subprocess with './mcmini' first, to get a full traceSeq.
 
-###### Test if '-p 0' already is set.  Otherwise, do this:
-###### We must execute this first, before 'run', so that
-######    we have a chance to change the args for 'run' in 'gdbinit'.
-######   We could execute "(gdb) set args ..." here, and then continue
-######   with 'run' in gdbinit, as usual.
 import os, subprocess, time
 # "MCMINI_ARGS" is set in mcmini-gdb, mcmini-python.py
 assert "MCMINI_ARGS" in os.environ
@@ -75,12 +67,11 @@ if "-p0" not in mcmini_args and "'-p' '0'" not in mcmini_args:
   # We will then add "-p 0 -p <traceSeq>" to the command line before giving
   #   control to gdb.
 
-  # FIXME: "-v" added only if not already present.  We need "-v" for trace_seq
-  # FIXME: mcmini-gdb will use 'mcmini' as the exec-file for GDB
-  # FIXME:  Extract it this way:
+  # 'mcmini' is the exec-file for GDB
   exec_file =  gdb.execute("info files", to_string=True).split('\n')[0]
   exec_file = exec_file.split('"')[1]
-  # FIXME:  If it needs '-m', it won't print.  Check if max-limit reaached.
+  # FIXME:  If it needs '-m', it won't print.  Check if max-limit reaached,
+  #         and then suggest to user to add '-m'.
   cmd = exec_file + " -v -q " + mcmini_args
   print("** Generating trace sequence for:\n     " + cmd)
   print("     (This may take a while ...)")
@@ -129,12 +120,9 @@ def is_tui_active():
 def mcmini_execute(command, to_string=False):
   # Other possible tests:  is_valid() and len(inferior.threads()) != 0
   try:
-    ### This code should also work.  But instead, it creates recursion error.
-    ###   even for a simple "mcmini execute".  Why?
-    ## inferior = [inf for inf in gdb.inferiors() if inf.num == 2][0]
-    ## if inferior.pid != 0:
-    ##   while (1): print("HI\n"); True
-    ##   raise gdb.error
+    inferior = gdb.inferiors()[-1]
+    if inferior.pid == 0:
+      raise gdb.error
     return gdb.execute(command, to_string=to_string)
   except gdb.error:
     print("\n*** The program is not being run anymore.")
@@ -145,7 +133,7 @@ def mcmini_execute(command, to_string=False):
     gdb.execute("set confirm off")
     gdb.execute("quit")
 
-def total_frames():
+def total_num_frames():
   frame = gdb.newest_frame()
   while frame.older(): # Get oldest frame
     frame = frame.older()
@@ -192,6 +180,8 @@ def select_user_frame():
     # We've selected the frame, but the GDB 'frame' cmd will now tell the TUI.
     # For forcing TUI redisplay, alternatives to the GDB 'frame' cmd might be
     # "tui disable; tui enable", or GDB "update" cmd, or GDB "down; up".
+    # FIXME:  Don't do this if the TUI already knows about our frame.
+    #         For example, 'mcmini where/print' doesn't need to change it.
     gdb.execute("frame " + str( gdb.selected_frame().level() ))
     gdb.execute("refresh")
 
@@ -214,10 +204,10 @@ def print_user_frames_in_stack():
                            "outside user program\n")
   select_user_frame()
   # gdb.execute would print newline, but not carriage return:
-  printout = gdb.execute("bt " + str(- (total_frames() -
-                                        gdb.selected_frame().level())),
-                         to_string=True)
-  print(printout)
+  output = gdb.execute("bt " + str(- (total_num_frames() -
+                                      gdb.selected_frame().level())),
+                       to_string=True)
+  print(output)
 def find_call_frame(name):
   frame = gdb.newest_frame()
   while frame:
@@ -229,13 +219,11 @@ def find_call_frame(name):
 # ===========================================================
 # Set up breakpoint utilities
 
+## This has the nice advantage of skipping over any user breakpoints.
 def continue_until(function, thread_id=None):
-  ## We would have preferred a temporary breakpoint.
-  ## gdb 7.6 doesn't seem to implement "temporary" optional argument.
-  ## Optional arguments:  internal=False, temporary=True
+  ## Could use "temporary" optional argument, but gdb 7.6 doesn'support it.
   ## bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE.
-  ##                       False, True)
-  # Optional argument:  internal=True
+  ##              False, True) # Optional args:  internal=True, temporary=True
   bkpt = gdb.Breakpoint(function, gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
   bkpt.silent = True
   bkpt_exit = gdb.Breakpoint("_exit", gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
@@ -249,25 +237,14 @@ def continue_until(function, thread_id=None):
   bkpt.delete()
   bkpt_exit.delete()
 
-def continue_beyond(function):
-  # Last two arguments:  internal: False; temporary: True
-  ## This variant fails with "bad syntax" in some GDB/Python versions.
-  # bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE. False, True)
-  bkpt = gdb.Breakpoint("main", gdb.BP_BREAKPOINT, gdb.WP_WRITE)
-  bkpt.silent = True
-  while bkpt.isValid:
-    mcmini_execute("continue")
-  # Continue until pre-existing breakpoint
-  mcmini_execute("continue")
-
 def finish():
   # GDB "finish" would write to screen even when trying to make it silent.
   bkpt = gdb.FinishBreakpoint(internal=True)
   bkpt.silent = True
   gdb.execute("continue")
 
-# gdb.Breakpoint.stop() can be defined to do anything arbitrary when
-#                       reaching the breakpoint.
+# NOTE: gdb.Breakpoint.stop() can be defined to do anything arbitrary when
+#                       reaching the breakpoint, such as print a message.
 
 # ===========================================================
 # Set up McMini commands
@@ -347,10 +324,11 @@ class printPendingTransitionsCmd(gdb.Command):
         "mcmini printPendingTransitions", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
-   current_inferior = gdb.selected_inferior().num
-   gdb.execute("inferior 1")  # inferior 1 is scheduler process
-   gdb.execute("call programState->printNextTransitions()")
-   gdb.execute("inferior " + str(current_inferior))
+    current_inferior = gdb.selected_inferior().num
+    gdb.execute("inferior 1")  # inferior 1 is scheduler process
+    gdb.execute("call programState->printNextTransitions()")
+    gdb.execute("inferior " + str(current_inferior))
+    select_user_frame()
 printPendingTransitionsCmd()
 
 import re
@@ -502,9 +480,9 @@ class whereCmd(gdb.Command):
     print("STACK FOR THREAD: " + str(gdb.selected_thread().num))
     print_user_frames_in_stack()
     print_mcmini_stats()
-    select_user_frame()
 whereCmd()
 
+# NOT USED:
 class finishTraceCmd(gdb.Command):
   """Execute until next trace"""
   breakpoint_for_next_transition = None
@@ -539,6 +517,7 @@ class finishTraceCmd(gdb.Command):
     transitionId = 0
 # finishTraceCmd()  # Not working with '-p <traceSeq>'
 
+# NOT USED:
 class nextTraceCmd(gdb.Command):
   """Execute to next trace; Accepts optional <count> arg"""
   def __init__(self):
@@ -566,6 +545,7 @@ class nextTraceCmd(gdb.Command):
       print_mcmini_stats()
 # nextTraceCmd()  # Not working with '-p <traceSeq>'
 
+# NOT USED:
 class gotoTraceCmd(gdb.Command):
   """gotoTrace <traceId>: Execute until reaching trace <traceId>"""
   def __init__(self):
