@@ -16,4 +16,4 @@ done
 
 export MCMINI_ARGS="$newargs"
 
-eval gdb -x $MCMINI_ROOT/gdbinit --args $MCMINI_ROOT/mcmini $newargs
+eval gdb --silent -x $MCMINI_ROOT/gdbinit --args $MCMINI_ROOT/mcmini $newargs

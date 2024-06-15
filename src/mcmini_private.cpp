@@ -489,6 +489,11 @@ mc_fork_next_trace_at_current_state()
 void mc_run_thread_to_next_visible_operation(tid_t tid) {
   MC_ASSERT(tid != TID_INVALID);
   mc_shared_sem_ref sem = &(*trace_sleep_list)[tid];
+  // Slightly dangerous: We're depending on sem FIFO policy.
+  // We post to sem.  Then tid wakes up and runs while we wait on sem.
+  // Then tid reaches next visible operation, posts to us, and waits.
+  // But suppose we post to tid, we wait, and wakeup goes to us, not to tid.
+  // A more careful version would use two semaphores: "tid wait" and "we wait".
   mc_shared_sem_wake_thread(sem);
   mc_shared_sem_wait_for_thread(sem);
 }
