@@ -233,11 +233,16 @@ def continue_until(function, thread_id=None):
   # Optional argument:  internal=True
   bkpt = gdb.Breakpoint(function, gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
   bkpt.silent = True
+  bkpt_exit = gdb.Breakpoint("_exit", gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
+  bkpt_exit.silent = True
   if thread_id:
     bkpt.thread = thread_id
   while bkpt.hit_count == 0:
+    if bkpt_exit.hit_count > 0:
+      return
     mcmini_execute("continue")
   bkpt.delete()
+  bkpt_exit.delete()
 
 def continue_beyond(function):
   # Last two arguments:  internal: False; temporary: True
@@ -317,11 +322,17 @@ class printTransitionsCmd(gdb.Command):
         "mcmini printTransitions", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
-   current_inferior = gdb.selected_inferior().num
-   gdb.execute("inferior 1")  # inferior 1 is scheduler process
-   gdb.execute("call programState->printTransitionStack()")
-   gdb.execute("call programState->printNextTransitions()")
-   gdb.execute("inferior " + str(current_inferior))
+    has_exited = False
+    if gdb.newest_frame().name() in ["__GI__exit", "_exit"]:
+      gdb.execute("continue")
+      has_exited = True
+    current_inferior = gdb.selected_inferior().num
+    gdb.execute("inferior 1")  # inferior 1 is scheduler process
+    gdb.execute("call programState->printTransitionStack()")
+    gdb.execute("call programState->printNextTransitions()")
+    if not has_exited:
+      gdb.execute("inferior " + str(current_inferior))
+      select_user_frame()
 printTransitionsCmd()
 
 class printPendingTransitionsCmd(gdb.Command):
@@ -410,7 +421,16 @@ class forwardCmd(gdb.Command):
     except:
       pass
     continue_until("mc_shared_sem_wait_for_scheduler_done")
-    finish()
+    # FIXME: There can be many aliases for "_exit".  We should use address.
+    if gdb.newest_frame().name() != "__GI__exit":
+      finish()
+    else:
+      # FIXME:  Stop scheduler from exiting, so that 'mcmini back' works.
+      gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
+      gdb.execute("set unwindonsignal on")
+      print("\n*** McMini scheduler has exited." +
+            "  Suggestion: 'mcmini printTransitions'")
+      return
     transitionId += 1
     if "quiet" not in args:
       select_user_frame()
@@ -495,7 +515,6 @@ class finishTraceCmd(gdb.Command):
             "  Try 'mcmini nextTrace' to go to next trace\n")
       return
     gdb.execute("disable " + str(gdb.parse_and_eval("$bpnum_exit")))
-    # This continues until inferior reaches _exit and exits.
     gdb.execute("continue")
     gdb.execute("inferior 1")  # inferior 1 is scheduler process
     if (gdb.selected_frame().name() == "waitpid" or
