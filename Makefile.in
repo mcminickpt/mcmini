@@ -19,7 +19,7 @@ LIBOBJS4=src/transitions/barrier/MCBarrierEnqueue.o src/transitions/barrier/MCBa
 LIBOBJS=${LIBOBJS1} ${LIBOBJS2} ${LIBOBJS3} ${LIBOBJS4} \
        	src/mc_shared_sem.o src/MCCommon.o src/main.o
 
-all: mcmini libmcmini.so mcmini-demo NO-GDB-G3
+all: mcmini libmcmini.so NO-GDB-G3
 
 # If '-g3' is not a part of ${CFLAGS}, then create file NO-GDB-G3
 NO-GDB-G3:
