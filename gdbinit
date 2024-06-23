@@ -53,5 +53,8 @@ set pagination on
 
 # Print Python-based GDB commands:
 help user-defined
-echo \n\ \ *** Type 'mcmini help' for usage. ***\n
-echo     \ \ (Do 'set print address off' for less verbose output.)\n\n
+printf "\n****************************************************************************\n\
+*   *** Type 'mcmini help' for usage. ***                                  *\n\
+*   (Do 'set print address off' for less verbose output.)                  *\n\
+* CONSIDER USING:  ctrl-Xa ('ctrl-X' and 'a'), ctrl-Xo, 'winheight src -5' *\n\
+****************************************************************************\n\n"

@@ -399,7 +399,7 @@ mcminiHelpString=(
 * For details of 'mcmini' commands, type 'help user-defined' and the online    *
 * McMini manual.                                                               *
 *                                                                              *
-* CONSIDER USING ctrl-Xa ('ctrl-X' and 'a') TO TOGGLE SOURCE DISPLAY ON OR OFF.*
+* CONSIDER USING:  ctrl-Xa ('ctrl-X' and 'a'), ctrl-Xo, 'winheight src -5'     *
 ********************************************************************************
 """
 )
@@ -514,7 +514,8 @@ class forwardCmd(gdb.Command):
     if gdb.selected_inferior().num == 1 and gdb.inferiors()[-1].num > 0:
       gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
     if gdb.selected_inferior().num == 1:
-      print("No target available.  Did it exit?")
+      print("\n*** McMini target process has exited." +
+            "  Suggestion: 'mcmini printTransitions'")
       return
     if iterations == 0:
       print_current_frame_verbose()
