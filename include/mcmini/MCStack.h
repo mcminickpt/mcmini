@@ -155,7 +155,7 @@ private:
    * @return whether or not if the given transition can be chosen for
    * execution
    */
-  bool transitionIsEnabled(const MCTransition &);
+  bool transitionIsEnabled(const MCTransition &) const;
 
   /**
    * @brief Determines, given two indices in the transition stack,
