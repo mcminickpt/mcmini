@@ -111,87 +111,69 @@ static int getNextTraceSeqEntry(int index) {
 /************************************************************************
  * Below here, we are choosing the next enabled transitions to explore. *
  ************************************************************************/
-bool
-MCStack::transitionIsEnabled(const MCTransition &transition)
-{
+bool MCStack::transitionIsEnabled(const MCTransition &transition) const {
   // We artificially restrict threads from running that have
   // run for more than their fair share of transitions. Note that
   // in the case that the thread is in a critical section for
   // GOAL() statements this is explicitly ignored
-  const tid_t tid                = transition.getThreadId();
+  const tid_t tid = transition.getThreadId();
   const MCThreadData &threadData = getThreadDataForThread(tid);
-  const unsigned numExecutions   = threadData.getExecutionDepth();
+  const unsigned numExecutions = threadData.getExecutionDepth();
   const bool threadNotRestrictedByThreadExecutionDepth =
-    numExecutions < this->configuration.maxThreadExecutionDepth;
+      numExecutions < this->configuration.maxThreadExecutionDepth;
   return threadNotRestrictedByThreadExecutionDepth &&
          MCTransition::transitionEnabledInState(this, transition);
 }
 
-MCTransition &
-MCStack::getNextTransitionForThread(tid_t thread) const
-{
+MCTransition &MCStack::getNextTransitionForThread(tid_t thread) const {
   return *this->nextTransitions[thread];
 }
 
-objid_t
-MCStack::registerNewObject(
-  const std::shared_ptr<MCVisibleObject> &object)
-{
-  objid_t newObj   = objectStorage.registerNewObject(object);
+objid_t MCStack::registerNewObject(
+    const std::shared_ptr<MCVisibleObject> &object) {
+  objid_t newObj = objectStorage.registerNewObject(object);
   MCSystemID objID = object->getSystemId();
   objectStorage.mapSystemAddressToShadow(objID, newObj);
   return newObj;
 }
 
-std::shared_ptr<MCThread>
-MCStack::getThreadWithId(tid_t tid) const
-{
+std::shared_ptr<MCThread> MCStack::getThreadWithId(tid_t tid) const {
   objid_t threadObjectId = threadIdMap.find(tid)->second;
   return objectStorage.getObjectWithId<MCThread>(threadObjectId);
 }
 
-void
-MCStack::setNextTransitionForThread(
-  MCThread *thread, std::shared_ptr<MCTransition> transition)
-{
+void MCStack::setNextTransitionForThread(
+    MCThread *thread, std::shared_ptr<MCTransition> transition) {
   this->setNextTransitionForThread(thread->tid, transition);
 }
 
-void
-MCStack::setNextTransitionForThread(
-  tid_t tid, std::shared_ptr<MCTransition> transition)
-{
+void MCStack::setNextTransitionForThread(
+    tid_t tid, std::shared_ptr<MCTransition> transition) {
   this->nextTransitions[tid] = transition;
 }
 
-void
-MCStack::setNextTransitionForThread(tid_t tid,
-                                    MCSharedTransition *shmTypeInfo,
-                                    void *shmData)
-{
+void MCStack::setNextTransitionForThread(tid_t tid,
+                                         MCSharedTransition *shmTypeInfo,
+                                         void *shmData) {
   // TODO: Assert when the type doesn't exist
-  auto maybeHandler =
-    this->sharedMemoryHandlerTypeMap.find(shmTypeInfo->type);
+  auto maybeHandler = this->sharedMemoryHandlerTypeMap.find(shmTypeInfo->type);
   if (maybeHandler == this->sharedMemoryHandlerTypeMap.end()) {
     return;
   }
 
   MCSharedMemoryHandler handlerForType = maybeHandler->second;
   MCTransition *newTransitionForThread =
-    handlerForType(shmTypeInfo, shmData, this);
+      handlerForType(shmTypeInfo, shmData, this);
   MC_FATAL_ON_FAIL(newTransitionForThread != nullptr);
 
-  auto sharedPointer =
-    std::shared_ptr<MCTransition>(newTransitionForThread);
+  auto sharedPointer = std::shared_ptr<MCTransition>(newTransitionForThread);
   this->setNextTransitionForThread(tid, sharedPointer);
 }
 
-tid_t
-MCStack::createNewThread(MCThreadShadow &shadow)
-{
-  tid_t newTid     = this->nextThreadId++;
-  auto rawThread   = new MCThread(newTid, shadow);
-  auto thread      = std::shared_ptr<MCThread>(rawThread);
+tid_t MCStack::createNewThread(MCThreadShadow &shadow) {
+  tid_t newTid = this->nextThreadId++;
+  auto rawThread = new MCThread(newTid, shadow);
+  auto thread = std::shared_ptr<MCThread>(rawThread);
   objid_t newObjId = this->registerNewObject(thread);
 
   // TODO: Encapsulate transferring object ids
@@ -1085,26 +1067,23 @@ MCStack::printNextTransitions() const
                this->getConfiguration().maxThreadExecutionDepth);
     } else {
       mcprintf("           %s\n",
-               ( this->getNextTransitionForThread(i).threadIsEnabled() ?
-                 "[ Enabled ]" : "[ Blocked ]" ));
+               (this->transitionIsEnabled(this->getNextTransitionForThread(i))
+                    ? "[ Enabled ]"
+                    : "[ Blocked ]"));
     }
   }
   mcprintf("END\n");
   mcflush();
 }
 
-std::vector<tid_t>
-MCStack::getThreadIdBacktrace() const
-{
-  auto trace                       = std::vector<tid_t>();
+std::vector<tid_t> MCStack::getThreadIdBacktrace() const {
+  auto trace = std::vector<tid_t>();
   const uint64_t transitionStackHeight = this->getTransitionStackSize();
   for (uint64_t i = 0; i < transitionStackHeight; i++)
     trace.push_back(this->getTransitionAtIndex(i).getThreadId());
   return trace;
 }
 
-MCStackConfiguration
-MCStack::getConfiguration() const
-{
+MCStackConfiguration MCStack::getConfiguration() const {
   return this->configuration;
 }
