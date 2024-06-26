@@ -63,73 +63,90 @@ void thread_block_indefinitely() {
 
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *attr) {
-  if (libmcmini_mode == RECORD) {
-    libpthread_mutex_lock(&rec_list_lock);
-    int rc = libpthread_mutex_init(mutex, attr);
-    assert(rc == 0);
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_INIT_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
+      thread_await_scheduler();
+      return 0;
+    }
+    case RECORD: {
+      int rc = libpthread_mutex_init(mutex, attr);
+      assert(rc == 0);
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *mutex_record = find_mutex(mutex);
+      if (mutex_record == NULL)
+        mutex_record = add_rec_entry(mutex, UNINITIALIZED);
 
-    rec_list *mutex_record = find_mutex(mutex);
-    if (mutex_record == NULL)
-      mutex_record = add_rec_entry(mutex, UNINITIALIZED);
-
-    mutex_record->state = UNLOCKED;
-    libpthread_mutex_lock(&rec_list_lock);
-    return rc;
-  } else {
-    volatile runner_mailbox *mb = thread_get_mailbox();
-    mb->type = MUTEX_INIT_TYPE;
-    memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-    thread_await_scheduler();
-    return 0;
+      mutex_record->state = UNLOCKED;
+      libpthread_mutex_unlock(&rec_list_lock);
+      return rc;
+    }
+    default: {
+      return libpthread_mutex_init(mutex, attr);
+    }
   }
 }
 
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
-  if (libmcmini_mode == RECORD) {
-    libpthread_mutex_lock(&rec_list_lock);
-    int rc = libpthread_mutex_lock(mutex);
-    assert(rc == 0);
-
-    rec_list *mutex_record = find_mutex(mutex);
-    if (mutex_record == NULL) {
-      static pthread_mutex_t unused = PTHREAD_MUTEX_INITIALIZER;
-      if (memcmp(mutex, &unused, sizeof(pthread_mutex_t)) != 0) {
-        fprintf(stderr, "Undefined behavior: mutex %p was not initialized\n",
-                mutex);
-        libc_exit(EXIT_FAILURE);
-      }
-      mutex_record = add_rec_entry(mutex, UNINITIALIZED);
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_LOCK_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
+      thread_await_scheduler();
+      return 0;
     }
-    mutex_record->state = LOCKED;
-    libpthread_mutex_lock(&rec_list_lock);
-    return rc;
-  } else {
-    volatile runner_mailbox *mb = thread_get_mailbox();
-    mb->type = MUTEX_LOCK_TYPE;
-    memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-    thread_await_scheduler();
-    return 0;
+    case RECORD: {
+      int rc = libpthread_mutex_lock(mutex);
+      assert(rc == 0);
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *mutex_record = find_mutex(mutex);
+      if (mutex_record == NULL) {
+        // static pthread_mutex_t unused = PTHREAD_MUTEX_INITIALIZER;
+        // if (memcmp(mutex, &unused, sizeof(pthread_mutex_t)) != 0) {
+        //   fprintf(stderr, "Undefined behavior: mutex %p was not
+        //   initialized\n",
+        //           mutex);
+        //   libc_exit(EXIT_FAILURE);
+        // }
+        mutex_record = add_rec_entry(mutex, UNINITIALIZED);
+      }
+      mutex_record->state = LOCKED;
+      libpthread_mutex_unlock(&rec_list_lock);
+      return rc;
+    }
+    default: {
+      return libpthread_mutex_lock(mutex);
+    }
   }
 }
 
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
-  if (libmcmini_mode == RECORD) {
-    libpthread_mutex_lock(&rec_list_lock);
-    int rc = libpthread_mutex_unlock(mutex);
-    assert(rc == 0);
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_UNLOCK_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
+      thread_await_scheduler();
+      return 0;
+    }
+    case RECORD: {
+      int rc = libpthread_mutex_unlock(mutex);
+      assert(rc == 0);
+      libpthread_mutex_lock(&rec_list_lock);
 
-    rec_list *mutex_record = find_mutex(mutex);
-    assert(mutex_record != NULL);
-    mutex_record->state = UNLOCKED;
+      rec_list *mutex_record = find_mutex(mutex);
+      assert(mutex_record != NULL);
+      mutex_record->state = UNLOCKED;
 
-    libpthread_mutex_lock(&rec_list_lock);
-    return rc;
-  } else {
-    volatile runner_mailbox *mb = thread_get_mailbox();
-    mb->type = MUTEX_UNLOCK_TYPE;
-    memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-    thread_await_scheduler();
-    return 0;
+      libpthread_mutex_unlock(&rec_list_lock);
+      return rc;
+    }
+    default: {
+      return libpthread_mutex_unlock(mutex);
+    }
   }
 }
 
@@ -199,39 +216,63 @@ void *mc_thread_routine_wrapper(void *arg) {
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                       void *(*routine)(void *), void *arg) {
-  if (libmcmini_mode == RECORD) {
-    return libpthread_pthread_create(thread, attr, routine, arg);
+  // TODO: Recording eventually will track thread operations
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      // TODO: add support for thread attributes
+      struct mc_thread_routine_arg *libmcmini_controlled_thread_arg =
+          malloc(sizeof(struct mc_thread_routine_arg));
+      libmcmini_controlled_thread_arg->arg = arg;
+      libmcmini_controlled_thread_arg->routine = routine;
+      libpthread_sem_init(
+          &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0, 0);
+
+      errno = 0;
+      const int return_value =
+          libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
+                                    libmcmini_controlled_thread_arg);
+      // const int pthread_errno = errno;
+
+      // IMPORTANT: We need to ensure that the thread that is
+      // created has been assigned an; otherwise, there is a race condition
+      // in which two thread creates in the child might
+      // not be scheduled to run until *two* steps of the scheduler
+      libpthread_sem_wait(
+          &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
+
+      memcpy_v(thread_get_mailbox()->cnts, thread, sizeof(pthread_t));
+      thread_get_mailbox()->type = THREAD_CREATE_TYPE;
+      thread_await_scheduler();
+      return return_value;
+    }
+    default: {
+      return libpthread_pthread_create(thread, attr, routine, arg);
+    }
   }
-  // TODO: add support for thread attributes
-  struct mc_thread_routine_arg *libmcmini_controlled_thread_arg =
-      malloc(sizeof(struct mc_thread_routine_arg));
-  libmcmini_controlled_thread_arg->arg = arg;
-  libmcmini_controlled_thread_arg->routine = routine;
-  libpthread_sem_init(
-      &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0, 0);
-
-  errno = 0;
-  const int return_value =
-      libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
-                                libmcmini_controlled_thread_arg);
-  // const int pthread_errno = errno;
-
-  // IMPORTANT: We need to ensure that the thread that is
-  // created has been assigned an; otherwise, there is a race condition
-  // in which two thread creates in the child might
-  // not be scheduled to run until *two* steps of the scheduler
-  libpthread_sem_wait(
-      &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
-
-  memcpy_v(thread_get_mailbox()->cnts, thread, sizeof(pthread_t));
-  thread_get_mailbox()->type = THREAD_CREATE_TYPE;
-  thread_await_scheduler();
-  return return_value;
 }
 
 int mc_pthread_join(pthread_t t, void **rv) {
-  memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
-  thread_get_mailbox()->type = THREAD_JOIN_TYPE;
-  thread_await_scheduler();
-  return 0;
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
+      thread_get_mailbox()->type = THREAD_JOIN_TYPE;
+      thread_await_scheduler();
+      return 0;
+    }
+    default: {
+      return libpthread_pthread_join(t, rv);
+    }
+  }
+}
+
+unsigned mc_sleep(unsigned duration) {
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      // Ignore actually putting this thread to sleep: it doesn't affect
+      // correctness
+      return 0;
+    }
+    default:
+      return libc_sleep(duration);
+  }
 }

@@ -11,6 +11,7 @@
 #include "mcmini/defines.h"
 #include "mcmini/lib/entry.h"
 #include "mcmini/lib/template.h"
+#include "mcmini/spy/checkpointing/record.h"
 
 void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // IMPORTANT: If the THREAD in the template process ever exits, this will
@@ -29,7 +30,7 @@ void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   if (getppid() != ppid_before_fork) exit(EXIT_FAILURE);
 
   // This is important to handle the case when the
-  // main thread hits return 0; in that case, we
+  // main thread exits `in main()`; in that case, we
   // keep the process alive to allow the model checker to
   // continue working
   //
@@ -44,6 +45,7 @@ void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   //   sigemptyset(&action.sa_mask);
   //   sigaction(SIGINT, &action, NULL);
   //   sigaction(SIGCHLD, &action, NULL);
+  libmcmini_mode = TARGET_BRANCH;
 }
 
 void mc_template_process_loop_forever(void) {

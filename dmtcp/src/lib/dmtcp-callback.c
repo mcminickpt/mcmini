@@ -1,10 +1,12 @@
 #include <stdio.h>
 
 #include "dmtcp.h"
+#include "mcmini/spy/checkpointing/record.h"
 
 static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
   switch (event) {
     case DMTCP_EVENT_INIT:
+      libmcmini_mode = RECORD;
       printf("DMTCP_EVENT_INIT\n");
       break;
 
@@ -13,6 +15,7 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       break;
 
     case DMTCP_EVENT_PRECHECKPOINT:
+      libmcmini_mode = PRE_CHECKPOINT;
       printf("DMTCP_EVENT_PRECHECKPOINT\n");
       break;
 

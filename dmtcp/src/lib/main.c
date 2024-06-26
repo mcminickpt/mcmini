@@ -61,9 +61,10 @@ void mc_deallocate_shared_memory_region(void) {
 }
 
 __attribute__((constructor)) void libmcmini_main() {
-  mc_load_intercepted_pthread_functions();
+  // In recording mode, the constructor should be ignored and
+  // the DMTCP callback should instead be used to determine when
+  // `libmcmini.so` wrappers should begin recording.
   if (getenv("MCMINI_RECORD")) {
-    libmcmini_mode = RECORD;
     return;
   }
   mc_prevent_addr_randomization();
@@ -72,8 +73,8 @@ __attribute__((constructor)) void libmcmini_main() {
   mc_allocate_shared_memory_region();
   atexit(&mc_deallocate_shared_memory_region);
 
-  if (getenv("MCMINI_TEMPLATE_LOOP") != NULL) {
-    libmcmini_mode = TEMPLATE;
+  if (getenv("MCMINI_TEMPLATE_LOOP")) {
+    libmcmini_mode = TARGET_TEMPLATE;
     mc_template_process_loop_forever();
   }
   thread_await_scheduler_for_thread_start_transition();

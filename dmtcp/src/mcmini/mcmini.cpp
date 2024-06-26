@@ -21,6 +21,7 @@
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -165,19 +166,22 @@ void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
 }
 
 void do_recording(const config& config) {
-  std::string dmtcp_launch = "dmtcp_launch";
+  char dir[PATH_MAX];
+  std::string libmcini_dir = getcwd(dir, sizeof(dir)) ? dir : "PATH_TOO_LONG";
+  std::string libmcmini_path = libmcini_dir + "/libmcmini.so";
   std::vector<std::string> dmtcp_launch_args;
   dmtcp_launch_args.push_back("-i");
   dmtcp_launch_args.push_back(std::to_string(config.checkpoint_period.count()));
+  dmtcp_launch_args.push_back("--with-plugin");
+  dmtcp_launch_args.push_back(libmcmini_path);
   dmtcp_launch_args.push_back(config.target_executable);
   for (const std::string& target_arg : config.target_executable_args)
     dmtcp_launch_args.push_back(target_arg);
-  real_world::target target(dmtcp_launch, dmtcp_launch_args);
+  real_world::target target("dmtcp_launch", dmtcp_launch_args);
 
   std::cout << "Recording: " << target << std::endl;
-
   setenv("MCMINI_RECORD", "1", true);
-  target.execvp();
+  target.execvp(false);
 }
 
 int main_cpp(int argc, const char** argv) {

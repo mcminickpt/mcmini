@@ -32,7 +32,7 @@ struct target {
   ///
   /// @note this function only returns on failure of `execvp(2)` and sets
   /// errno
-  void execvp() const;
+  void execvp(bool with_ld_preload = true) const;
 
   friend std::ostream &operator<<(std::ostream &os, const target &target) {
     os << target.target_program;

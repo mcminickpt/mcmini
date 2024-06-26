@@ -32,7 +32,8 @@ int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);
 
-unsigned int sleep(unsigned int);
+unsigned sleep(unsigned);
+unsigned libc_sleep(unsigned);
 
 void exit(int);
 MCMINI_NO_RETURN void libc_exit(int);

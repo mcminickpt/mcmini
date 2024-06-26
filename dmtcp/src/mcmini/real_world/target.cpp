@@ -8,17 +8,19 @@
 
 using namespace real_world;
 
-void target::execvp() const {
-  // NOTE: According to the man page `dirname(const char *path)` "may modify the
-  // contents of `path`...", so we use the storage of the local instead.
-  std::vector<char> target_program(this->target_program.begin(),
-                                   this->target_program.end());
-  char buf[1000];
-  buf[sizeof(buf) - 1] = '\0';
-  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
-           (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
-           dirname(target_program.data()));
-  setenv("LD_PRELOAD", buf, 1);
+void target::execvp(bool with_ld_preload) const {
+  if (with_ld_preload) {
+    // NOTE: According to the man page `dirname(const char *path)` "may modify
+    // the  contents of `path`...", so we use the storage of the local instead.
+    std::vector<char> target_program(this->target_program.begin(),
+                                     this->target_program.end());
+    char buf[1000];
+    buf[sizeof(buf) - 1] = '\0';
+    snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
+             (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
+             dirname(target_program.data()));
+    setenv("LD_PRELOAD", buf, 1);
+  }
 
   // `const_cast<>` is needed to call the C-functions here. A new/delete
   // or malloc/free _could be_ needed, we'd need to check the man page. As
