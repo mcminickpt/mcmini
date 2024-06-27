@@ -17,6 +17,7 @@ void *philosopher_doit(void *forks_arg) {
   sleep(1);
   pthread_mutex_lock(forks->dining_fork);
   pthread_mutex_lock(forks->left_fork);
+  printf("Philosopher %d just ate\n", forks->philosopher);
   sleep(2);
   pthread_mutex_lock(forks->right_fork);
   pthread_mutex_unlock(forks->dining_fork);

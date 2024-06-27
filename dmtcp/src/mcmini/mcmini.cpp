@@ -21,6 +21,7 @@
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <fcntl.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -41,6 +42,7 @@ using namespace model;
 using namespace model_checking;
 using namespace objects;
 using namespace real_world;
+using namespace transitions;
 
 void finished_trace_classic_dpor(const coordinator& c) {
   static uint32_t trace_id = 0;
@@ -67,24 +69,12 @@ void found_undefined_behavior(const coordinator& c,
 }
 
 void do_model_checking(const config& config) {
-  // For "vanilla" model checking where we start at the beginning of the
-  // program, a `fork_process_source suffices` (fork() + exec() brings us to the
-  // beginning).
-  using namespace transitions;
-
   algorithm::callbacks c;
   transition_registry tr;
   detached_state state_of_program_at_main;
   pending_transitions initial_first_steps;
   classic_dpor::dependency_relation_type dr;
   classic_dpor::coenabled_relation_type cr;
-
-  const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
-      new objects::thread(objects::thread::state::running));
-  initial_first_steps.set_transition(new thread_start(main_thread_id));
-
-  program model_for_program_starting_at_main(state_of_program_at_main,
-                                             std::move(initial_first_steps));
 
   tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
   tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
@@ -93,10 +83,92 @@ void do_model_checking(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
+  const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
+      new objects::thread(objects::thread::state::running));
+  initial_first_steps.set_transition(new thread_start(main_thread_id));
+  program model_for_program_starting_at_main(state_of_program_at_main,
+                                             std::move(initial_first_steps));
+
   target target(config.target_executable, config.target_executable_args);
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr),
                           make_unique<fork_process_source>(target));
+
+  dr.register_dd_entry<const thread_create>(&thread_create::depends);
+  dr.register_dd_entry<const thread_join>(&thread_join::depends);
+  dr.register_dd_entry<const mutex_lock, const mutex_init>(
+      &mutex_lock::depends);
+  dr.register_dd_entry<const mutex_lock, const mutex_lock>(
+      &mutex_lock::depends);
+  cr.register_dd_entry<const thread_create>(&thread_create::coenabled_with);
+  cr.register_dd_entry<const thread_join>(&thread_join::coenabled_with);
+  cr.register_dd_entry<const mutex_lock, const mutex_unlock>(
+      &mutex_lock::coenabled_with);
+
+  model_checking::classic_dpor classic_dpor_checker(std::move(dr),
+                                                    std::move(cr));
+  c.trace_completed = &finished_trace_classic_dpor;
+  c.undefined_behavior = &found_undefined_behavior;
+  classic_dpor_checker.verify_using(coordinator, c);
+  std::cout << "Model checking completed!" << std::endl;
+}
+
+void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
+  // When restoring from a checkpoint file, our target is `dmtcp_restart`
+  target target("dmtcp_restart", config.target_executable_args);
+  auto dmtcp_template_handle = make_unique<fork_process_source>(target);
+
+  detached_state state_of_program_at_main;
+  pending_transitions initial_first_steps;
+  {
+    int fifo_fd = -1;
+    if ((fifo_fd = mkfifo("/tmp/mcmini-fifo", 0666)) != 0) {
+      if (errno == EEXIST) {
+        // Remove the fifo and re-attempt to create it
+        unlink("/tmp/mcmini-fifo");
+        if ((fifo_fd = mkfifo("/tmp/mcmini-fifo", 0666)) != 0) {
+          std::cerr << "Error (mkfifo failed): " << strerror(errno)
+                    << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+      } else {
+        std::cerr << "Error (mkfifo failed): " << strerror(errno) << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+    }
+
+    visible_object current_obj;
+    while (read(fifo_fd, &current_obj, sizeof(visible_object))) {
+    }
+
+    if (fifo_fd != -1) close(fifo_fd);  // Fifo can be wrapped in a class
+    // Access the shared memory portion ...
+    // Read that information from the linked list __inside the restarted
+    // image__
+    // while (! not all information read yet) {}
+    // read(...);
+
+    // auto state_of_some_object_in_the_ckpt_image = new mutex();
+    // state_of_program_at_main.add_state_for();
+  }
+
+  {
+    // initial_first_steps
+    // Figure out what thread `N` is doing. This probably involves coordination
+    // between `libmcmini.so`, `libdmtcp.so`, and the `mcmini` process
+  }
+
+  algorithm::callbacks c;
+  transition_registry tr;
+  classic_dpor::dependency_relation_type dr;
+  classic_dpor::coenabled_relation_type cr;
+
+  tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
+  tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
+  tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
+  tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
+  tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
+  tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
   dr.register_dd_entry<const thread_create>(&thread_create::depends);
   dr.register_dd_entry<const thread_join>(&thread_join::depends);
@@ -110,59 +182,26 @@ void do_model_checking(const config& config) {
   cr.register_dd_entry<const mutex_lock, const mutex_unlock>(
       &mutex_lock::coenabled_with);
 
-  model_checking::classic_dpor classic_dpor_checker(std::move(dr),
-                                                    std::move(cr));
-
-  c.trace_completed = &finished_trace_classic_dpor;
-  c.undefined_behavior = &found_undefined_behavior;
-  classic_dpor_checker.verify_using(coordinator, c);
-
-  std::cout << "Model checking completed!" << std::endl;
-}
-
-void do_model_checking_from_dmtcp_ckpt_file(std::string file_name) {
-  model::detached_state const state_of_program_at_main;
-  model::pending_transitions initial_first_steps;  // TODO: Create initializer
-                                                   // or else add other methods
-
-  // // TODO: Complete the initialization of the initial state here, i.e. a
-  // // single thread "main" that is alive and then running the transition
-
-  {
-      // Read that information from the linked list __inside the restarted
-      // image__
-      // while (! not all information read yet) {}
-      // read(...);
-
-      // auto state_of_some_object_in_the_ckpt_image = new mutex();
-      // state_of_program_at_main.add_state_for();
-  }
-
-  {
-    // initial_first_steps
-    // Figure out what thread `N` is doing. This probably involves coordination
-    // between libmcmini.so, libdmtcp.so, and the `mcmini` process
-  }
-
   model::program model_for_program_starting_at_main(
       std::move(state_of_program_at_main), std::move(initial_first_steps));
 
-  // TODO: With a checkpoint restart, a fork_process_source doesn't suffice.
-  // We'll need to create a different process source that can provide the
-  // functionality we need to spawn new processes from the checkpoint image.
-  auto process_source =
-      extensions::make_unique<real_world::fork_process_source>(target("ls"));
+  // // TODO: With a checkpoint restart, a fork_process_source doesn't suffice.
+  // // We'll need to create a different process source that can provide the
+  // // functionality we need to spawn new processes from the checkpoint image.
+  // auto process_source =
+  //     extensions::make_unique<real_world::fork_process_source>(target("ls"));
 
-  coordinator coordinator(std::move(model_for_program_starting_at_main),
-                          model::transition_registry(),
-                          std::move(process_source));
+  // coordinator coordinator(std::move(model_for_program_starting_at_main),
+  //                         std::move(tr), std::move(process_source));
 
-  std::unique_ptr<model_checking::algorithm> classic_dpor_checker =
-      extensions::make_unique<model_checking::classic_dpor>();
+  // model_checking::classic_dpor classic_dpor_checker(std::move(dr),
+  //                                                   std::move(cr));
 
-  classic_dpor_checker->verify_using(coordinator);
+  // c.trace_completed = &finished_trace_classic_dpor;
+  // c.undefined_behavior = &found_undefined_behavior;
+  // classic_dpor_checker.verify_using(coordinator, c);
 
-  std::cerr << "Model checking completed!" << std::endl;
+  std::cerr << "Deep debugging completed!" << std::endl;
 }
 
 void do_recording(const config& config) {
@@ -211,6 +250,10 @@ int main_cpp(int argc, const char** argv) {
       mcmini_config.record_target_executable_only = true;
       mcmini_config.checkpoint_period =
           std::chrono::seconds(strtoul(cur_arg[1], nullptr, 10));
+      cur_arg += 2;
+    } else if (strcmp(cur_arg[0], "--from-checkpoint") == 0 ||
+               strcmp(cur_arg[0], "-ckpt") == 0) {
+      mcmini_config.checkpoint_file = cur_arg[1];
       cur_arg += 2;
     } else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
       mcmini_config.max_thread_execution_depth =

@@ -75,11 +75,13 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       int rc = libpthread_mutex_init(mutex, attr);
       assert(rc == 0);
       libpthread_mutex_lock(&rec_list_lock);
-      rec_list *mutex_record = find_mutex(mutex);
-      if (mutex_record == NULL)
-        mutex_record = add_rec_entry(mutex, UNINITIALIZED);
-
-      mutex_record->state = UNLOCKED;
+      rec_list *mutex_record = find_object(mutex);
+      if (mutex_record == NULL) {
+        visible_object vo = {
+            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+        mutex_record = add_rec_entry(&vo);
+      }
+      mutex_record->vo.mutex_state = UNLOCKED;
       libpthread_mutex_unlock(&rec_list_lock);
       return rc;
     }
@@ -102,7 +104,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       int rc = libpthread_mutex_lock(mutex);
       assert(rc == 0);
       libpthread_mutex_lock(&rec_list_lock);
-      rec_list *mutex_record = find_mutex(mutex);
+      rec_list *mutex_record = find_object(mutex);
       if (mutex_record == NULL) {
         // static pthread_mutex_t unused = PTHREAD_MUTEX_INITIALIZER;
         // if (memcmp(mutex, &unused, sizeof(pthread_mutex_t)) != 0) {
@@ -111,9 +113,11 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
         //           mutex);
         //   libc_exit(EXIT_FAILURE);
         // }
-        mutex_record = add_rec_entry(mutex, UNINITIALIZED);
+        visible_object vo = {
+            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+        mutex_record = add_rec_entry(&vo);
       }
-      mutex_record->state = LOCKED;
+      mutex_record->vo.mutex_state = LOCKED;
       libpthread_mutex_unlock(&rec_list_lock);
       return rc;
     }
@@ -137,9 +141,9 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       assert(rc == 0);
       libpthread_mutex_lock(&rec_list_lock);
 
-      rec_list *mutex_record = find_mutex(mutex);
+      rec_list *mutex_record = find_object(mutex);
       assert(mutex_record != NULL);
-      mutex_record->state = UNLOCKED;
+      mutex_record->vo.mutex_state = UNLOCKED;
 
       libpthread_mutex_unlock(&rec_list_lock);
       return rc;

@@ -14,20 +14,20 @@ namespace real_world {
 
 /**
  * @brief A factory which produces `real_world::local_linux_process` by
- * `fork()`-ing this process followed by an `exec()` into the targeted process
- * located at `target` with `libmcmini.so` preloaded.
+ * `fork()`-ing the templace process process named `target` with
+ * `libmcmini.so` preloaded.
  *
  * A `fork_process_source` is responsible for creating new processes by forking
- * a template process, `exec()`-ing into a new one, and then repeatedly forking
- * the new process to create new process sources. The processes that this
- * process source vends are duplicates of the template process
+ * and `exec()`-ing into a template process and then repeatedly forking
+ * the new process to create new processes. The processes that are vended are
+ * duplicates of the template process.
  */
 class fork_process_source : public process_source {
  private:
   target target;
 
   /// @brief The process id of the template process whose libmcmini performs
-  /// a `sigwait()` loop ad infinitum.
+  /// a `sem_wait` loop ad infinitum.
   ///
   /// This value refers to the process id of the process that is repeatedly
   /// asked to invoke the `fork(2)` system call.
@@ -44,13 +44,8 @@ class fork_process_source : public process_source {
   /// by multiple threads. The destructors of `local_linux_process` may
   /// concurrently access this value along with the `make_new_process()` method.
   static std::atomic_uint32_t num_children_in_flight;
-  static std::unique_ptr<shared_memory_region> rw_region;
 
-  static void initialize_shared_memory();
-
-  void reset_binary_semaphores_for_new_process();
   void make_new_template_process();
-  void template_process_sig_handler();
   bool has_template_process_alive() const { return template_pid != -1; }
   friend local_linux_process;
 

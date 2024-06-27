@@ -1,4 +1,9 @@
-#include <stdio.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "dmtcp.h"
 #include "mcmini/spy/checkpointing/record.h"
@@ -23,10 +28,19 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       printf("DMTCP_EVENT_RESUME\n");
       break;
 
-    case DMTCP_EVENT_RESTART:
-      printf("DMTCP_EVENT_RESTART\n");
-      break;
+    case DMTCP_EVENT_RESTART: {
+      // TODO: Make sure the write completes fully
+      int fd = open("/tmp/mcmini-fifo", 0666);
+      for (rec_list* entry = head; entry != NULL; entry = head->next) {
+        write(fd, &entry->vo, sizeof(visible_object));
+      }
+      close(fd);
 
+      // For now, we can simply continue execution.
+      printf("DMTCP_EVENT_RESTART completed: exiting...\n");
+      exit(0);
+      break;
+    }
     default:
       break;
   }

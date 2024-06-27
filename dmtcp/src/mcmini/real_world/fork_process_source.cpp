@@ -27,6 +27,7 @@
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/process/local_linux_process.hpp"
+#include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/real_world/process/template_process.h"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/real_world/shm.hpp"
@@ -36,29 +37,14 @@ using namespace real_world;
 using namespace extensions;
 
 std::atomic_uint32_t fork_process_source::num_children_in_flight;
-std::unique_ptr<shared_memory_region> fork_process_source::rw_region = nullptr;
-
-void fork_process_source::initialize_shared_memory() {
-  fork_process_source::num_children_in_flight.store(0,
-                                                    std::memory_order_relaxed);
-  const std::string shm_file_name = "/mcmini-" + std::string(getenv("USER")) +
-                                    "-" + std::to_string((long)getpid());
-  rw_region = make_unique<shared_memory_region>(shm_file_name, shm_size);
-
-  volatile runner_mailbox* mbp = rw_region->as_array_of<runner_mailbox>();
-
-  // TODO: This should be a configurable parameter perhaps...
-  const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
-  for (int i = 0; i < max_total_threads; i++) mc_runner_mailbox_init(mbp + i);
-}
 
 fork_process_source::fork_process_source(const real_world::target& target)
-    : target(target) {
-  static std::once_flag shm_once_flag;
-  std::call_once(shm_once_flag, initialize_shared_memory);
-}
+    : target(target) {}
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
+  shared_memory_region* rw_region =
+      xpc_resources::get_instance().get_rw_region();
+
   // Assert: only a single child should be in-flight at any point
   if (fork_process_source::num_children_in_flight.load(
           std::memory_order_relaxed) >= 1) {
@@ -67,7 +53,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   }
 
   // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
-  reset_binary_semaphores_for_new_process();
+  xpc_resources::get_instance().reset_binary_semaphores_for_new_process();
   if (!has_template_process_alive()) {
     make_new_template_process();
   }
@@ -122,6 +108,9 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
 }
 
 void fork_process_source::make_new_template_process() {
+  shared_memory_region* rw_region =
+      xpc_resources::get_instance().get_rw_region();
+
   // Reset first. If an exception is raised in subsequent steps, we don't want
   // to erroneously think that there is a template process when indeed there
   // isn't one.
@@ -208,22 +197,6 @@ void fork_process_source::make_new_template_process() {
     // Parent process case
     // *******************
     this->template_pid = child_pid;
-  }
-}
-
-void fork_process_source::reset_binary_semaphores_for_new_process() {
-  // Reinitialize the region for the new process, as the contents of the
-  // memory are dirtied from the last process which used the same memory and
-  // exited arbitrarily (i.e. in such a way as to leave data in the shared
-  // memory).
-  //
-  // INVARIANT: Only one `local_linux_process` is in existence at any given
-  // time.
-  volatile runner_mailbox* mbp = (rw_region->as<mcmini_shm_file>()->mailboxes);
-  const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
-  for (int i = 0; i < max_total_threads; i++) {
-    mc_runner_mailbox_destroy(mbp + i);
-    mc_runner_mailbox_init(mbp + i);
   }
 }
 

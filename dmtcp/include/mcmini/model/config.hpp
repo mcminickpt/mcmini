@@ -29,7 +29,7 @@ struct config {
 
   /**
    * Informs McMini that the target executable should be run under DMTCP with
-   * libmcmini.so configured in record mode.
+   * `libmcmini.so` configured in record mode.
    */
   bool record_target_executable_only = false;
 
@@ -38,6 +38,12 @@ struct config {
    * running in record mode.
    */
   std::chrono::seconds checkpoint_period;
+
+  /**
+   * The path to the checkpoint file that should be used to begin deep debugging
+   * from.
+   */
+  std::string checkpoint_file = "";
 
   std::string target_executable = "";
   std::vector<std::string> target_executable_args;

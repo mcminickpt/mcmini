@@ -78,9 +78,16 @@ typedef enum mutex_state {
   DESTROYED
 } mutex_state;
 
+typedef struct visible_object {
+  visible_object_type type;
+  void *location;
+  union {
+    mutex_state mutex_state;
+  };
+} visible_object;
+
 typedef struct rec_list {
-  mutex_state state;
-  pthread_mutex_t *mutex;
+  visible_object vo;
   struct rec_list *next;
 } rec_list;
 
@@ -88,14 +95,14 @@ extern rec_list *head;
 extern rec_list *current;
 extern pthread_mutex_t rec_list_lock;
 
-/// @brief Retrieves the stored state for the given mutex
+/// @brief Retrieves the stored state for the given object
 /// @return a pointer to the node in the list formed by `head`,
-/// or `NULL` if the mutex is not found
+/// or `NULL` if the object at address `addr` is not found
 ///
 /// @note you must acquire `rec_list_lock` before calling this function
-rec_list *find_mutex(pthread_mutex_t *);
+rec_list *find_object(void *addr);
 
 /// @brief Adds a new element to the list `head`.
 ///
 /// @note you must acquire `rec_list_lock` before calling this function
-rec_list *add_rec_entry(pthread_mutex_t *, mutex_state);
+rec_list *add_rec_entry(const visible_object *);

@@ -9,23 +9,20 @@ enum libmcmini_mode libmcmini_mode = PRE_DMTCP;
 rec_list *head = NULL;
 rec_list *current = NULL;
 
-rec_list *find_mutex(pthread_mutex_t *mutex) {
+rec_list *find_object(void *addr) {
   for (rec_list *node = head; node != NULL; node = node->next) {
-    if (node->mutex == mutex) return node;
+    if (node->vo.location == addr) return node;
   }
   return NULL;
 }
 
-rec_list *add_rec_entry(pthread_mutex_t *mutex, mutex_state s) {
+rec_list *add_rec_entry(const visible_object *vo) {
   rec_list *new_node = (rec_list *)malloc(sizeof(rec_list));
   if (new_node == NULL) {
     perror("malloc");
     exit(EXIT_FAILURE);
   }
-  new_node->state = s;
-  new_node->mutex = mutex;
-  new_node->next = NULL;
-
+  new_node->vo = *vo;
   if (head == NULL) {
     head = new_node;
     current = head;
