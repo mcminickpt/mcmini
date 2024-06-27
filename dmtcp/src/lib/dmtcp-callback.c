@@ -30,15 +30,21 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
 
     case DMTCP_EVENT_RESTART: {
       // TODO: Make sure the write completes fully
-      printf("DMTCP_EVENT_RESTART completed: exiting...\n");
-      int fd = open("/tmp/mcmini-fifo", 0666);
-      for (rec_list* entry = head; entry != NULL; entry = head->next) {
+      printf("DMTCP_EVENT_RESTART starting...\n");
+      int fd = open("/tmp/mcmini-fifo", O_WRONLY);
+      if (fd == -1) {
+        perror("open");
+      }
+      for (rec_list* entry = head; entry != NULL; entry = entry->next) {
+        printf("Writing entry %p\n", entry->vo.location);
         write(fd, &entry->vo, sizeof(visible_object));
       }
-      close(fd);
+      write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
 
       // For now, we can simply continue execution.
       printf("DMTCP_EVENT_RESTART completed: exiting...\n");
+
+      libmcmini_mode = TARGET_BRANCH;
       break;
     }
     default:

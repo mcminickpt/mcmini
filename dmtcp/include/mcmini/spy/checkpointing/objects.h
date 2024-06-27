@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 typedef enum visible_object_type {
+  UNKNOWN,
   MUTEX,
   SEMAPHORE,
   CONDITION_VARIABLE,
@@ -16,6 +17,7 @@ typedef enum mutex_state {
   LOCKED,
   DESTROYED
 } mutex_state;
+
 typedef struct semaphore_state {
   int count;
 } semaphore_state;
@@ -30,6 +32,8 @@ typedef struct visible_object {
     semaphore_state sem_state;
   };
 } visible_object;
+
+extern visible_object empty_visible_obj;
 
 #ifdef __cplusplus
 }

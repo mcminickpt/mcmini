@@ -1,24 +1,23 @@
 #include <assert.h>
+#include <dmtcp.h>
 #include <errno.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "mcmini/mcmini.h"
 
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
 runner_id_t mc_register_this_thread(void) {
-  // NOTE: It is an internal error for more than one thread
-  // to be executing this function. If the model checker maintains
-  // control over each thread, it will only enable a single
-  // thread to execute this function at once. Anything else
-  // is undefined behavior
-  //
-  // NOTE: If `McMini` introduces parallelism into the
-  // model-checking process, this would have to be adjusted.
+  static pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
   static runner_id_t tid_next = 0;
+
+  libpthread_mutex_lock(&mut);
   tid_self = tid_next++;
+  libpthread_mutex_unlock(&mut);
   return tid_self;
 }
 
@@ -64,26 +63,41 @@ void thread_block_indefinitely() {
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *attr) {
   switch (libmcmini_mode) {
-    case TARGET_BRANCH: {
+    case RECORD: {
+      dmtcp_disable_ckpt();
+
+      // It's possible that we checkpointed right before the call to
+      // `dmtcp_disable_ckpt()` above. In that case, the thread will resume
+      // execution from the reocrd portion; but since we want to
+      // transfer control to the model checker now, we need to escape to the
+      // second case
+      if (libmcmini_mode == RECORD) {
+        int rc = libpthread_mutex_init(mutex, attr);
+        assert(rc == 0);
+        libpthread_mutex_lock(&rec_list_lock);
+        rec_list *mutex_record = find_object(mutex);
+        if (mutex_record == NULL) {
+          visible_object vo = {
+              .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+          mutex_record = add_rec_entry(&vo);
+        }
+        mutex_record->vo.mutex_state = UNLOCKED;
+        libpthread_mutex_unlock(&rec_list_lock);
+        dmtcp_enable_ckpt();
+        return rc;
+      } else {
+        // Fallthrough if we have exited record mode this time (transfer control
+        // to the model checker).
+        dmtcp_enable_ckpt();
+      }
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_INIT_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       thread_await_scheduler();
       return 0;
-    }
-    case RECORD: {
-      int rc = libpthread_mutex_init(mutex, attr);
-      assert(rc == 0);
-      libpthread_mutex_lock(&rec_list_lock);
-      rec_list *mutex_record = find_object(mutex);
-      if (mutex_record == NULL) {
-        visible_object vo = {
-            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
-        mutex_record = add_rec_entry(&vo);
-      }
-      mutex_record->vo.mutex_state = UNLOCKED;
-      libpthread_mutex_unlock(&rec_list_lock);
-      return rc;
     }
     default: {
       return libpthread_mutex_init(mutex, attr);
@@ -93,33 +107,56 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
 
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
   switch (libmcmini_mode) {
-    case TARGET_BRANCH: {
+    case RECORD: {
+      int rc;
+      do {
+        dmtcp_disable_ckpt();
+        // It's possible that we checkpointed right before the call to
+        // `dmtcp_disable_ckpt()` above. In that case, the thread will resume
+        // execution from the `do` portion of the loop; but since we want to
+        // transfer control to the model checker now, we need to escape this
+        // loop.
+        if (libmcmini_mode == RECORD) {
+          rc = libpthread_mutex_trylock(mutex);
+          if (rc == -1 && errno == EBUSY) {
+            dmtcp_enable_ckpt();
+
+            // TODO: We want to enable checkpointing
+            usleep(100);
+          } else if (rc == -1) {
+            perror("pthread_mutex_trylock");
+            exit(0);
+          }
+        }
+      } while (rc != 0 && libmcmini_mode == RECORD);
+
+      if (libmcmini_mode == RECORD) {
+        int rc = libpthread_mutex_lock(mutex);
+        assert(rc == 0);
+        libpthread_mutex_lock(&rec_list_lock);
+        rec_list *mutex_record = find_object(mutex);
+        if (mutex_record == NULL) {
+          visible_object vo = {
+              .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+          mutex_record = add_rec_entry(&vo);
+        }
+        mutex_record->vo.mutex_state = LOCKED;
+        libpthread_mutex_unlock(&rec_list_lock);
+        dmtcp_enable_ckpt();
+        return rc;
+      } else {
+        // Fallthrough if we have exited record mode this time (transfer control
+        // to the model checker).
+        dmtcp_enable_ckpt();
+      }
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_LOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       thread_await_scheduler();
       return 0;
-    }
-    case RECORD: {
-      int rc = libpthread_mutex_lock(mutex);
-      assert(rc == 0);
-      libpthread_mutex_lock(&rec_list_lock);
-      rec_list *mutex_record = find_object(mutex);
-      if (mutex_record == NULL) {
-        // static pthread_mutex_t unused = PTHREAD_MUTEX_INITIALIZER;
-        // if (memcmp(mutex, &unused, sizeof(pthread_mutex_t)) != 0) {
-        //   fprintf(stderr, "Undefined behavior: mutex %p was not
-        //   initialized\n",
-        //           mutex);
-        //   libc_exit(EXIT_FAILURE);
-        // }
-        visible_object vo = {
-            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
-        mutex_record = add_rec_entry(&vo);
-      }
-      mutex_record->vo.mutex_state = LOCKED;
-      libpthread_mutex_unlock(&rec_list_lock);
-      return rc;
     }
     default: {
       return libpthread_mutex_lock(mutex);
@@ -129,24 +166,36 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
 
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   switch (libmcmini_mode) {
-    case TARGET_BRANCH: {
+    case RECORD: {
+      dmtcp_disable_ckpt();
+
+      // It's possible that we checkpointed right before the call to
+      // `dmtcp_disable_ckpt()` above. In that case, the thread will resume
+      // execution from the record portion; but since we want to
+      // transfer control to the model checker now, we need to escape to the
+      // next case.
+      if (libmcmini_mode != RECORD) {
+        int rc = libpthread_mutex_unlock(mutex);
+        assert(rc == 0);
+        libpthread_mutex_lock(&rec_list_lock);
+        rec_list *mutex_record = find_object(mutex);
+        assert(mutex_record != NULL);
+        mutex_record->vo.mutex_state = UNLOCKED;
+        libpthread_mutex_unlock(&rec_list_lock);
+        dmtcp_enable_ckpt();
+        return rc;
+      } else {
+        // Fallthrough to the model checker
+        dmtcp_enable_ckpt();
+      }
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_UNLOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       thread_await_scheduler();
       return 0;
-    }
-    case RECORD: {
-      int rc = libpthread_mutex_unlock(mutex);
-      assert(rc == 0);
-      libpthread_mutex_lock(&rec_list_lock);
-
-      rec_list *mutex_record = find_object(mutex);
-      assert(mutex_record != NULL);
-      mutex_record->vo.mutex_state = UNLOCKED;
-
-      libpthread_mutex_unlock(&rec_list_lock);
-      return rc;
     }
     default: {
       return libpthread_mutex_unlock(mutex);
@@ -202,19 +251,30 @@ struct mc_thread_routine_arg {
 
 void *mc_thread_routine_wrapper(void *arg) {
   mc_register_this_thread();
-
   struct mc_thread_routine_arg *unwrapped_arg = arg;
-  libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
 
-  // Simulates THREAD_START for this thread NOTE:
-  // We don't need to write into shared memory here. The
-  // scheduler already knows how to handle the case
-  // of thread creation
-  thread_await_scheduler_for_thread_start_transition();
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH: {
+      libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
+      // Simulates THREAD_START for this thread NOTE:
+      // We don't need to write into shared memory here. The
+      // scheduler already knows how to handle the case
+      // of thread creation
+      thread_await_scheduler_for_thread_start_transition();
+    }
+    default:
+      break;
+  }
+
   void *return_value = unwrapped_arg->routine(unwrapped_arg->arg);
-
   free(arg);
-  mc_exit_thread_in_child();
+
+  switch (libmcmini_mode) {
+    case TARGET_BRANCH:
+      mc_exit_thread_in_child();
+    default:
+      break;
+  }
   return return_value;
 }
 
@@ -235,7 +295,6 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       const int return_value =
           libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
                                     libmcmini_controlled_thread_arg);
-      // const int pthread_errno = errno;
 
       // IMPORTANT: We need to ensure that the thread that is
       // created has been assigned an; otherwise, there is a race condition
@@ -250,7 +309,12 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       return return_value;
     }
     default: {
-      return libpthread_pthread_create(thread, attr, routine, arg);
+      struct mc_thread_routine_arg *record_arg =
+          malloc(sizeof(struct mc_thread_routine_arg));
+      record_arg->arg = arg;
+      record_arg->routine = routine;
+      return libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
+                                       record_arg);
     }
   }
 }

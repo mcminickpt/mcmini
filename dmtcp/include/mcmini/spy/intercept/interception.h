@@ -25,6 +25,7 @@ int libpthread_pthread_join(pthread_t thread, void**);
 
 int libpthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
 int libpthread_mutex_lock(pthread_mutex_t *);
+int libpthread_mutex_trylock(pthread_mutex_t *);
 int libpthread_mutex_unlock(pthread_mutex_t *);
 int libpthread_mutex_destroy(pthread_mutex_t *);
 

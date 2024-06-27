@@ -1,4 +1,3 @@
-#include "mcmini/common/transitions.h"
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/coordinator/model_to_system_map.hpp"
 #include "mcmini/defines.h"
@@ -21,6 +20,7 @@
 #include "mcmini/real_world/process/fork_process_source.hpp"
 #include "mcmini/signal.hpp"
 #include "mcmini/spy/checkpointing/objects.h"
+#include "mcmini/spy/checkpointing/transitions.h"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -45,7 +45,6 @@ using namespace model;
 using namespace model_checking;
 using namespace objects;
 using namespace real_world;
-using namespace transitions;
 
 void finished_trace_classic_dpor(const coordinator& c) {
   static uint32_t trace_id = 0;
@@ -88,7 +87,8 @@ void do_model_checking(const config& config) {
 
   const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));
-  initial_first_steps.set_transition(new thread_start(main_thread_id));
+  initial_first_steps.set_transition(
+      new transitions::thread_start(main_thread_id));
   program model_for_program_starting_at_main(state_of_program_at_main,
                                              std::move(initial_first_steps));
 
@@ -97,16 +97,23 @@ void do_model_checking(const config& config) {
                           std::move(tr),
                           make_unique<fork_process_source>(target));
 
-  dr.register_dd_entry<const thread_create>(&thread_create::depends);
-  dr.register_dd_entry<const thread_join>(&thread_join::depends);
-  dr.register_dd_entry<const mutex_lock, const mutex_init>(
-      &mutex_lock::depends);
-  dr.register_dd_entry<const mutex_lock, const mutex_lock>(
-      &mutex_lock::depends);
-  cr.register_dd_entry<const thread_create>(&thread_create::coenabled_with);
-  cr.register_dd_entry<const thread_join>(&thread_join::coenabled_with);
-  cr.register_dd_entry<const mutex_lock, const mutex_unlock>(
-      &mutex_lock::coenabled_with);
+  dr.register_dd_entry<const transitions::thread_create>(
+      &transitions::thread_create::depends);
+  dr.register_dd_entry<const transitions::thread_join>(
+      &transitions::thread_join::depends);
+  dr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_init>(
+      &transitions::mutex_lock::depends);
+  dr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_lock>(
+      &transitions::mutex_lock::depends);
+  cr.register_dd_entry<const transitions::thread_create>(
+      &transitions::thread_create::coenabled_with);
+  cr.register_dd_entry<const transitions::thread_join>(
+      &transitions::thread_join::coenabled_with);
+  cr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_unlock>(
+      &transitions::mutex_lock::coenabled_with);
 
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
@@ -130,10 +137,10 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   {
     fifo fifo("/tmp/mcmini-fifo");
     ::visible_object current_obj;
-    while (fifo.read(&current_obj)) {
+    assert(sizeof(::visible_object) == 24);
+    while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       std::cout << current_obj.location << std::endl;
     }
-    std::exit(0);
   }
 
   {
@@ -154,17 +161,23 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
-  dr.register_dd_entry<const thread_create>(&thread_create::depends);
-  dr.register_dd_entry<const thread_join>(&thread_join::depends);
-
-  dr.register_dd_entry<const mutex_lock, const mutex_init>(
-      &mutex_lock::depends);
-  dr.register_dd_entry<const mutex_lock, const mutex_lock>(
-      &mutex_lock::depends);
-  cr.register_dd_entry<const thread_create>(&thread_create::coenabled_with);
-  cr.register_dd_entry<const thread_join>(&thread_join::coenabled_with);
-  cr.register_dd_entry<const mutex_lock, const mutex_unlock>(
-      &mutex_lock::coenabled_with);
+  dr.register_dd_entry<const transitions::thread_create>(
+      &transitions::thread_create::depends);
+  dr.register_dd_entry<const transitions::thread_join>(
+      &transitions::thread_join::depends);
+  dr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_init>(
+      &transitions::mutex_lock::depends);
+  dr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_lock>(
+      &transitions::mutex_lock::depends);
+  cr.register_dd_entry<const transitions::thread_create>(
+      &transitions::thread_create::coenabled_with);
+  cr.register_dd_entry<const transitions::thread_join>(
+      &transitions::thread_join::coenabled_with);
+  cr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_unlock>(
+      &transitions::mutex_lock::coenabled_with);
 
   model::program model_for_program_starting_at_main(
       std::move(state_of_program_at_main), std::move(initial_first_steps));
