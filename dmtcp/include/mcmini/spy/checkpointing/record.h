@@ -1,6 +1,12 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <pthread.h>
+
+#include "mcmini/spy/checkpointing/objects.h"
 
 /**
  * @brief Describes the different behaviors that `libmcmini.so` should exhibit
@@ -65,27 +71,6 @@ enum libmcmini_mode {
 
 extern enum libmcmini_mode libmcmini_mode;
 
-typedef enum visible_object_type {
-  MUTEX,
-  SEMAPHORE,
-  CONDITION_VARIABLE,
-} visible_object_type;
-
-typedef enum mutex_state {
-  UNINITIALIZED,
-  UNLOCKED,
-  LOCKED,
-  DESTROYED
-} mutex_state;
-
-typedef struct visible_object {
-  visible_object_type type;
-  void *location;
-  union {
-    mutex_state mutex_state;
-  };
-} visible_object;
-
 typedef struct rec_list {
   visible_object vo;
   struct rec_list *next;
@@ -106,3 +91,7 @@ rec_list *find_object(void *addr);
 ///
 /// @note you must acquire `rec_list_lock` before calling this function
 rec_list *add_rec_entry(const visible_object *);
+
+#ifdef __cplusplus
+}
+#endif  // extern "C"

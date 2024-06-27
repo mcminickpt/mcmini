@@ -19,7 +19,7 @@ struct shared_memory_region {
   shared_memory_region(shared_memory_region&&) = default;
   shared_memory_region& operator=(const shared_memory_region&) = delete;
   shared_memory_region& operator=(shared_memory_region&&) = default;
-  virtual ~shared_memory_region();
+  ~shared_memory_region();
 
   volatile void* get() const { return this->shm_mmap_region; }
   volatile void* contents() const { return get(); }

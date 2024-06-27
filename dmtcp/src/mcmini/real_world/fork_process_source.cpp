@@ -208,10 +208,9 @@ fork_process_source::~fork_process_source() {
     std::cerr << "Error sending SIGUSR1 to process " << template_pid << ": "
               << strerror(errno) << std::endl;
   }
-
   int status;
   if (waitpid(template_pid, &status, 0) == -1) {
-    std::cerr << "Error waiting for process (fork) " << template_pid << ": "
+    std::cerr << "Error waiting for process (waitpid) " << template_pid << ": "
               << strerror(errno) << std::endl;
   }
 }

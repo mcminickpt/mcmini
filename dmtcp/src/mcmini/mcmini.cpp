@@ -16,8 +16,11 @@
 #include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
+#include "mcmini/real_world/fifo.hpp"
+#include "mcmini/real_world/process/dmtcp_process_source.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
 #include "mcmini/signal.hpp"
+#include "mcmini/spy/checkpointing/objects.h"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -114,42 +117,23 @@ void do_model_checking(const config& config) {
 }
 
 void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
-  // When restoring from a checkpoint file, our target is `dmtcp_restart`
-  target target("dmtcp_restart", config.target_executable_args);
-  auto dmtcp_template_handle = make_unique<fork_process_source>(target);
+  auto dmtcp_template_handle =
+      extensions::make_unique<dmtcp_process_source>(config.checkpoint_file);
+
+  // Make sure that `dmtcp_restart` has executed and that the template
+  // process is ready for execution; otherwise, the state restoration will not
+  // work as expected.
+  dmtcp_template_handle->preload_template_for_state_consumption();
 
   detached_state state_of_program_at_main;
   pending_transitions initial_first_steps;
   {
-    int fifo_fd = -1;
-    if ((fifo_fd = mkfifo("/tmp/mcmini-fifo", 0666)) != 0) {
-      if (errno == EEXIST) {
-        // Remove the fifo and re-attempt to create it
-        unlink("/tmp/mcmini-fifo");
-        if ((fifo_fd = mkfifo("/tmp/mcmini-fifo", 0666)) != 0) {
-          std::cerr << "Error (mkfifo failed): " << strerror(errno)
-                    << std::endl;
-          std::exit(EXIT_FAILURE);
-        }
-      } else {
-        std::cerr << "Error (mkfifo failed): " << strerror(errno) << std::endl;
-        std::exit(EXIT_FAILURE);
-      }
+    fifo fifo("/tmp/mcmini-fifo");
+    ::visible_object current_obj;
+    while (fifo.read(&current_obj)) {
+      std::cout << current_obj.location << std::endl;
     }
-
-    visible_object current_obj;
-    while (read(fifo_fd, &current_obj, sizeof(visible_object))) {
-    }
-
-    if (fifo_fd != -1) close(fifo_fd);  // Fifo can be wrapped in a class
-    // Access the shared memory portion ...
-    // Read that information from the linked list __inside the restarted
-    // image__
-    // while (! not all information read yet) {}
-    // read(...);
-
-    // auto state_of_some_object_in_the_ckpt_image = new mutex();
-    // state_of_program_at_main.add_state_for();
+    std::exit(0);
   }
 
   {
@@ -281,6 +265,7 @@ int main_cpp(int argc, const char** argv) {
       fprintf(stderr,
               "Usage: mcmini (experimental)\n"
               "              [--record|-r <seconds>] \n"
+              "              [--from-checkpoint <ckpt>] \n"
               "              [--max-depth-per-thread|-m <num>]\n"
               "              [--first-deadlock|--first|-f]\n"
               "              [--help|-h]\n"
@@ -292,33 +277,35 @@ int main_cpp(int argc, const char** argv) {
     }
   }
 
-  struct stat stat_buf;
-  if (cur_arg[0] == NULL || stat(cur_arg[0], &stat_buf) == -1) {
-    fprintf(stderr, "*** Missing target_executable or no such file.\n\n");
-    exit(1);
+  if (mcmini_config.checkpoint_file == "") {
+    struct stat stat_buf;
+    if (cur_arg[0] == NULL || stat(cur_arg[0], &stat_buf) == -1) {
+      fprintf(stderr, "*** Missing target_executable or no such file.\n\n");
+      exit(1);
+    }
+
+    assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
+    char idx = strlen(cur_arg[0]) - strlen("mcmini") - 1 >= 0
+                   ? strlen(cur_arg[0]) - strlen("mcmini") - 1
+                   : strlen(cur_arg[0]);
+    // idx points to 'X' when cur_arg[0] == "...Xmcmini"
+    if (strcmp(cur_arg[0], "mcmini") == 0 ||
+        strcmp(cur_arg[0] + idx, "/mcmini") == 0) {
+      fprintf(stderr,
+              "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
+      exit(1);
+    }
+    mcmini_config.target_executable = std::string(cur_arg[0]);
   }
 
-  assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
-  char idx = strlen(cur_arg[0]) - strlen("mcmini") - 1 >= 0
-                 ? strlen(cur_arg[0]) - strlen("mcmini") - 1
-                 : strlen(cur_arg[0]);
-  // idx points to 'X' when cur_arg[0] == "...Xmcmini"
-  if (strcmp(cur_arg[0], "mcmini") == 0 ||
-      strcmp(cur_arg[0] + idx, "/mcmini") == 0) {
-    fprintf(stderr,
-            "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
-    exit(1);
-  }
-  mcmini_config.target_executable = std::string(cur_arg[0]);
   install_process_wide_signal_handlers();
-
   if (mcmini_config.record_target_executable_only) {
     do_recording(mcmini_config);
+  } else if (mcmini_config.checkpoint_file != "") {
+    do_model_checking_from_dmtcp_ckpt_file(mcmini_config);
   } else {
     do_model_checking(mcmini_config);
   }
-
-  // TODO: add else case for DMTCP (e.g. with `--from-dmtcp-file`)
 
   return EXIT_SUCCESS;
 }

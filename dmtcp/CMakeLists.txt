@@ -39,6 +39,8 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/transitions/thread.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
   src/mcmini/model_checking/algorithms/clock_vector.cpp
+  src/mcmini/real_world/dmtcp_process_source.cpp
+  src/mcmini/real_world/fifo.cpp
   src/mcmini/real_world/fork_process_source.cpp
   src/mcmini/real_world/local_linux_process.cpp
   src/mcmini/real_world/resources.cpp

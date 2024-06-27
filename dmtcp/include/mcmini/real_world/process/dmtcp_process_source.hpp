@@ -33,16 +33,12 @@ class dmtcp_process_source : public process_source {
   pid_t template_pid = no_template;
   constexpr static pid_t no_template = -1;
 
-  // TODO: Extract these into a common spot
-
-  // static void initialize_shared_memory();
-  //   void reset_binary_semaphores_for_new_process();
-  //   void make_new_template_process();
-  //   void template_process_sig_handler();
-  //   bool has_template_process_alive() const { return template_pid != -1; }
-  //   friend local_linux_process;
+  void make_new_template_process();
+  bool has_template_process_alive() const { return template_pid != -1; }
 
  public:
+  void preload_template_for_state_consumption();
+
   dmtcp_process_source(const std::string &ckpt_file);
   ~dmtcp_process_source();
   std::unique_ptr<process> make_new_process() override;
