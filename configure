@@ -5366,7 +5366,22 @@ PYTHON_VERSION_MINOR=`$PYTHON -c 'import sys; print("%d" % (sys.version_info.min
 if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12 and '$PYTHON_VERSION_MINOR' >= 7)'; then
   echo '*** Python or GDB Python API is older: patching Python code'
   echo '*** There may be some smaller missing features for mcminig-gdb.'
-  # patch -p1 < mcmini-oldsys.patch
+  if test -e oldsys_was_patched.txt && which lsb_release > /dev/null && \
+     ! lsb_release -ir | diff - oldsys_was_patched.txt > /dev/null; then
+    rm oldsys_was_patched.txt.txt
+  fi
+  if test ! -e oldsys_was_patched.txt && which lsb_release > /dev/null; then
+    if git diff --quiet HEAD -- gdbinit_commands.py ; then
+      sh oldsys-patch.sh
+      lsb_release -ir > oldsys_was_patched.txt
+    else
+      echo configure:  This seems to be an older O/S;
+      echo "           "  but not patching because gdbinit_commands.py is already modified.
+    fi
+  elif test -e oldsys_was_patched.txt; then
+      echo configure:  oldsys_was_patched.txt found:  Will not patch again.
+      echo "          "  To patch again, do:  rm oldsys_was_patched.txt
+  fi
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if process_vm_readv/process_vm_writev (CMA) available" >&5

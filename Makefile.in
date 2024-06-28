@@ -72,6 +72,7 @@ clean:
 	rm -f NO-GDB-G3
 distclean: clean
 	rm -f Makefile mcmini-gdb config.log config.status
+	rm -f oldsys_was_patched.txt
 
 dist: distclean
 	dir=`basename $$PWD` && cd .. && \
