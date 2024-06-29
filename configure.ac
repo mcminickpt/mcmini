@@ -53,8 +53,8 @@ fi
 
 AC_MSG_CHECKING([if python3 is available])
 # If Python returns True, that is converted to '1', which is Failure for shell:
-PYTHON=`which python`
-PYTHON3=`which python3`
+PYTHON=`which python 2> /dev/null`
+PYTHON3=`which python3 2> /dev/null`
 if [[ "$PYTHON" != "" ]] && \
     $PYTHON -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
   has_python=yes
