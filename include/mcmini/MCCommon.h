@@ -8,5 +8,6 @@
 int mcprintf(const char *format, ...);
 void mcwrite(const char *str);
 void mcflush();
+bool is_redirect_stdout(bool strip_newline);
 
 #endif /* INCLUDE_MCMINI_MCCOMMON_HPP */
