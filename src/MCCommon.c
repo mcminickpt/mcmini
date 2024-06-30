@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include "mcmini/MCCommon.h"
 
 /* We want to allow GDB to temporarily set mcprintf_redirect to true,
@@ -25,13 +26,18 @@ static void mcprintf_redirect()
 static void mcprintf_stop_redirect() { mcprintf_idx = NORMAL; }
 #pragma GCC diagnostic pop
 
+bool is_redirect_stdout(bool strip_newline) {
+  if (mcprintf_idx != NORMAL && strip_newline) { mcprintf_idx--; }
+  return mcprintf_idx != NORMAL;
+}
+
 int
 mcprintf(const char *format, ...)
 {
   va_list args;
   va_start(args, format);
   int ret = -1;
-  if (mcprintf_idx == NORMAL) {
+  if (! is_redirect_stdout(false)) {
     ret = vprintf(format, args);
     mcflush();
   } else {
