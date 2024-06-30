@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <unistd.h>
 #include "mcmini/MCStack.h"
 #include "mcmini/MCTransitionFactory.h"
 #include "mcmini/transitions/threads/MCThreadFinish.h"
@@ -1060,17 +1062,41 @@ MCStack::printNextTransitions() const
   mcprintf("THREAD PENDING OPERATIONS\n");
   auto numThreads = this->getNumProgramThreads();
   for (uint64_t i = 0; i < numThreads; i++) {
+    fflush(stdout);
+    // In case output is to stdout (not redirect), capture it in a pipe.
+    int fd_stdout_orig = dup(1);
+    int pipefd[2];
+    pipe(pipefd);
+    dup2(pipefd[1], 1); // Set stdout to pieefd
     this->getNextTransitionForThread(i).print();
+    fflush(stdout); // Flush to pipefd
+    dup2(fd_stdout_orig, 1); // Restore normal stdout
+    close(fd_stdout_orig);
+    // If mcprintf used redirect, 'is_redirect_stdout' will strip newline.
+    if (! is_redirect_stdout(true)) {
+      // We are not doing redirect stdout; Reand from pipe and strip newline.
+      while (1) {
+        char c = '\0';
+        errno = EAGAIN;
+        while (c != '\n' && (errno == EAGAIN || errno == EINTR)) {
+          read(pipefd[0], &c, 1);
+          // DEBUG: fprintf(stderr, "Character from pipe: %d (%d)\n", c, c);
+          if (c == '\n') { break; }
+          putc(c, stdout);
+        }
+        if (c == '\n') { break; }
+      }
+    }
     // Print Enabled, Blocked, or MaxThreadDepth reached:
     if (this->getThreadDataForThread(i).getExecutionDepth() >=
         this->configuration.maxThreadExecutionDepth) {
-      mcprintf("           [ MaxThreadDepth reached (%d) ]\n",
+      mcprintf(" [ MaxThreadDepth reached (%d) ]\n",
                this->getConfiguration().maxThreadExecutionDepth);
     } else if (dynamic_cast<const MCThreadFinish *>(
                                 &this->getNextTransitionForThread(i))) {
       mcprintf(" %s\n", "[ Done ]"); // Thread has transition 'exits'.
     } else {
-      mcprintf("           %s\n",
+      mcprintf(" %s\n",
                (this->transitionIsEnabled(this->getNextTransitionForThread(i))
                     ? "[ Enabled ]"
                     : "[ Blocked ]"));
