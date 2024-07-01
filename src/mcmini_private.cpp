@@ -606,6 +606,10 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     }
 
     nextTransition = programState->getFirstEnabledTransition();
+    if ( ! programState->transitionIsEnabled (*nextTransition) ) {
+      mc_printf("**************************** next transition not enabled.\n"
+                "     Probably a traceSeq overran end of exit\n");
+    }
   } while (nextTransition != nullptr);
 
   const bool hasDeadlock = programState->isInDeadlock();
