@@ -302,7 +302,7 @@ dup_stdout = -1 # uninitialized
 output = "REDIRECT UNINTIALIZED"
 user_inferior = -1
 
-def redirect_prolog():
+def redirect_prolog(inferior=1):
   # NOTE: This doesn't work for TUI; they output to curses, not stdout. :-(
   # FIXME: But we can do tui-disable; update; tui-enable to get around it
   #        We need to capture McMini output and re-print it in tui-enabled in that case.
@@ -332,13 +332,18 @@ def redirect_prolog():
   #   then GDB freezes after doing 'mcmini printTransitions' twice.
   gdb.execute("inferior 1")  # inferior 1 is scheduler process
   gdb.execute("call mcprintf_redirect()")
-  gdb.execute("inferior " + str(user_inferior))
+  cur_stdout = os.open('/dev/null', os.O_WRONLY)
+  gdb.execute("inferior " + str(inferior))  # inferior 1 is scheduler process
+  # Should this be an optional argument? if outside of prolog it will be printed
+  os.dup2(dup_stdout, 1)
   # return context
-  return (dup_stdout, user_inferior, cur_pagination, cur_frame_info)
+  return (dup_stdout, user_inferior, inferior, cur_pagination, cur_frame_info)
 
 def redirect_epilog(context, print_hack = False):
-  (dup_stdout, user_inferior, cur_pagination, cur_frame_info) = context
-  gdb.execute("inferior 1")  # inferior 1 is scheduler process
+  (dup_stdout, user_inferior, inferior, cur_pagination, cur_frame_info) =context
+  os.close(1)
+  cur_stdout = os.open('/dev/null', os.O_WRONLY)
+  gdb.execute("inferior " + str(inferior))  # inferior 1 is scheduler process
   gdb.execute("call mcprintf_stop_redirect()")
   output = gdb.parse_and_eval("mcprintf_redirect_output").string()
   if user_inferior not in [inf.num for inf in gdb.inferiors()]:
@@ -435,14 +440,10 @@ class printTransitionsCmd(gdb.Command):
     if gdb.newest_frame().name() in ["__GI__exit", "_exit"]:
       has_exited = True
     if not has_exited:
-      context = redirect_prolog()
-      user_inferior = gdb.selected_inferior().num
-      gdb.execute("inferior 1")  # inferior 1 is scheduler process
+      context = redirect_prolog(inferior=1)
       gdb.execute("call programState->printTransitionStack()")
+      assert gdb.selected_inferior().num == 1
       gdb.execute("call programState->printNextTransitions()")
-      ## gdb.execute("set scheduler-locking off")
-      gdb.execute("inferior " + str(user_inferior))
-      select_user_frame()
       redirect_epilog(context, print_hack=True)
     else:
       print("Process has exited")
@@ -455,11 +456,8 @@ class printPendingTransitionsCmd(gdb.Command):
         "mcmini printPendingTransitions", gdb.COMMAND_USER
     )
   def invoke(self, args, from_tty):
-    context = redirect_prolog()
-    user_inferior = gdb.selected_inferior().num
-    gdb.execute("inferior 1")  # inferior 1 is scheduler process
+    context = redirect_prolog(inferior=1)
     gdb.execute("call programState->printNextTransitions()")
-    gdb.execute("inferior " + str(user_inferior))
     redirect_epilog(context)
 printPendingTransitionsCmd()
 
@@ -537,15 +535,16 @@ class forwardCmd(gdb.Command):
       pass
     continue_until("mc_shared_sem_wait_for_scheduler_done")
     # FIXME: There can be many aliases for "_exit".  We should use address.
-    if gdb.newest_frame().name() != "__GI__exit":
-      finish()
-    else:
+    if gdb.selected_inferior().pid == 0 or \
+       gdb.newest_frame().name() == "__GI__exit":
       # FIXME:  Stop scheduler from exiting, so that 'mcmini back' works.
-      gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
-      gdb.execute("set unwindonsignal on")
+      if gdb.selected_inferior().pid != 0:
+        gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
+        gdb.execute("set unwindonsignal on")
       print("\n*** McMini scheduler has exited." +
             "  Suggestion: 'mcmini printTransitions'")
       return
+    finish()
     transitionId += 1
     if "quiet" not in args:
       select_user_frame()
