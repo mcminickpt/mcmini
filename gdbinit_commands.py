@@ -294,7 +294,7 @@ def finish():
 
 dup_stdout = -1 # uninitialized
 output = "REDIRECT UNINTIALIZED"
-current_inferior = -1
+user_inferior = -1
 
 def redirect_prolog():
   # NOTE: This doesn't work for TUI; they output to curses, not stdout. :-(
@@ -302,10 +302,6 @@ def redirect_prolog():
   #        We need to capture McMini output and re-print it in tui-enabled in that case.
   # TODO:  For TUI, prolog should have cmd and args, disable, execute enable, print '(gdb) cmd line; output', enable
   # TODO:  Could maybe also print last_output before printing output if desired.
-  # TODO:  redirect_prolog/epilog can have optional argument to choose 'inferior 1' for McMini execution:
-  #          'def redicrect_prolog(command, args, inferior=1):'
-  # TODO:  Instead of lots of globals, redirect_prolog should return 'context' (w/ gloval values), and
-  #          then we do 'redicret_epilog(context)'
   # Replace original stdout/stderr by /dev/null
   # Turn pagination off; GDB junk should not go to paginated stream.
   cur_pagination = gdb.parameter("pagination")
@@ -323,26 +319,26 @@ def redirect_prolog():
   cur_stdout = os.open('/dev/null', os.O_WRONLY)
   assert cur_stdout == 1
   # GDB messages will now go to /dev/null
-  current_inferior = gdb.selected_inferior().num
+  user_inferior = gdb.selected_inferior().num
   # FIXME:  We need 'inferior 1' to call 'mcprintf_redirect()'
   #   But 'inferior 1' cmd sends junk msg to stderr.
   #   If we temporarily set stderr to /dev/null, as with stdout,
   #   then GDB freezes after doing 'mcmini printTransitions' twice.
   gdb.execute("inferior 1")  # inferior 1 is scheduler process
   gdb.execute("call mcprintf_redirect()")
-  gdb.execute("inferior " + str(current_inferior))
+  gdb.execute("inferior " + str(user_inferior))
   # return context
-  return (dup_stdout, current_inferior, cur_pagination, cur_frame_info)
+  return (dup_stdout, user_inferior, cur_pagination, cur_frame_info)
 
 def redirect_epilog(context, print_hack = False):
-  (dup_stdout, current_inferior, cur_pagination, cur_frame_info) = context
+  (dup_stdout, user_inferior, cur_pagination, cur_frame_info) = context
   gdb.execute("inferior 1")  # inferior 1 is scheduler process
   gdb.execute("call mcprintf_stop_redirect()")
   output = gdb.parse_and_eval("mcprintf_redirect_output").string()
-  if current_inferior not in [inf.num for inf in gdb.inferiors()]:
-    current_inferior = [inf.num for inf in gdb.inferiors()][-1]
-    if current_inferior == 1: print("WARNING:  program exited??")
-  gdb.execute("inferior " + str(current_inferior))
+  if user_inferior not in [inf.num for inf in gdb.inferiors()]:
+    user_inferior = [inf.num for inf in gdb.inferiors()][-1]
+    if user_inferior == 1: print("WARNING:  program exited??")
+  gdb.execute("inferior " + str(user_inferior))
   select_user_frame()
   if is_tui_active():
     gdb.execute("frame " + str(gdb.selected_frame().level()))
@@ -433,12 +429,12 @@ class printTransitionsCmd(gdb.Command):
       has_exited = True
     if not has_exited:
       context = redirect_prolog()
-      current_inferior = gdb.selected_inferior().num
+      user_inferior = gdb.selected_inferior().num
       gdb.execute("inferior 1")  # inferior 1 is scheduler process
       gdb.execute("call programState->printTransitionStack()")
       gdb.execute("call programState->printNextTransitions()")
       ## gdb.execute("set scheduler-locking off")
-      gdb.execute("inferior " + str(current_inferior))
+      gdb.execute("inferior " + str(user_inferior))
       select_user_frame()
       redirect_epilog(context, print_hack=True)
     else:
@@ -453,10 +449,10 @@ class printPendingTransitionsCmd(gdb.Command):
     )
   def invoke(self, args, from_tty):
     context = redirect_prolog()
-    current_inferior = gdb.selected_inferior().num
+    user_inferior = gdb.selected_inferior().num
     gdb.execute("inferior 1")  # inferior 1 is scheduler process
     gdb.execute("call programState->printNextTransitions()")
-    gdb.execute("inferior " + str(current_inferior))
+    gdb.execute("inferior " + str(user_inferior))
     redirect_epilog(context)
 printPendingTransitionsCmd()
 
@@ -740,13 +736,13 @@ class developerModeCmd(gdb.Command):
     print("Breakpoint added at next visible operation in scheduler process.")
     gdb.execute("break mc_run_thread_to_next_visible_operation(unsigned long)")
     ### These commented commands will go away, when it's clear it's not needed.
-    # current_inferior = gdb.selected_inferior().num
+    # user_inferior = gdb.selected_inferior().num
     # gdb.execute("inferior 1") # Set inferior to scheduler
     # scheduler_call_frame_fnc = "mc_shared_sem_wait_for_thread"
     # gdb.execute("break " + scheduler_call_frame_fnc)
     # This next command forces a GDB-internal bug in gdb-12.0
     # gdb.FinishBreakpoint().__init__(find_call_frame_fnc(scheduler_call_frame_fnc))
-    # gdb.execute("inferior " + str(current_inferior))
+    # gdb.execute("inferior " + str(user_inferior))
     gdb.execute("inferior 1")
     gdb.execute("set print address on")
     gdb.execute("set detach-on-fork on")
