@@ -1,4 +1,5 @@
 #include "mcmini/transitions/threads/MCThreadFinish.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadThreadFinish(const MCSharedTransition *shmTransition,
@@ -75,7 +76,7 @@ MCThreadFinish::dependentWith(const MCTransition *transition) const
 void
 MCThreadFinish::print() const
 {
-  printf("thread %lu: exits\n", this->thread->tid);
+  mcprintf("thread %lu: exits\n", this->thread->tid);
 }
 
 bool

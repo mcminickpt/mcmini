@@ -176,6 +176,6 @@ MCMutexLock::dependentWith(const MCTransition *transition) const
 void
 MCMutexLock::print() const
 {
-  printf("thread %lu: pthread_mutex_lock(mut:%u)\n", this->thread->tid,
-         countVisibleObjectsOfType(this->mutex->getObjectId()));
+  mcprintf("thread %lu: pthread_mutex_lock(mut:%u)\n", this->thread->tid,
+           countVisibleObjectsOfType(this->mutex->getObjectId()));
 }

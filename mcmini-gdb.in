@@ -1,6 +1,12 @@
 #!/bin/sh
 
 export MCMINI_ROOT=@PWD@
+if test ! -e $MCMINI_ROOT/mcmini; then
+  echo "$MCMINI_ROOT/mcmini not found"
+  echo "Was 'make' run during McMini install?"
+  echo ""
+  exit 1
+fi
 if test "$1" = ""; then
   echo "USAGE:  $0 [OPTIONS] TARGET_FILE"
   $MCMINI_ROOT/mcmini
