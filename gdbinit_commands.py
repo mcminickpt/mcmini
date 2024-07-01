@@ -279,10 +279,16 @@ def continue_until(function, thread_id=None):
   bkpt_exit.silent = True
   if thread_id:
     bkpt.thread = thread_id
-  while bkpt.hit_count == 0:
+  exit_was_hit = False
+  while bkpt.hit_count == 0 and not exit_was_hit:
     if bkpt_exit.hit_count > 0:
-      return
-    mcmini_execute("continue")
+      exit_was_hit = True
+      gdb.execute("inferior 1")
+      finish()
+      gdb.execute("inferior 1")
+      finish()
+    else:
+      mcmini_execute("continue")
   bkpt.delete()
   bkpt_exit.delete()
 
