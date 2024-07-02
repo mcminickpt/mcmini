@@ -91,7 +91,7 @@ MCSemEnqueue::dependentWith(const MCTransition *other) const
 void
 MCSemEnqueue::print() const
 {
-  printf("thread %lu: sem_wait(sem:%u) (awake -> asleep)\n",
-         this->thread->tid,
-         countVisibleObjectsOfType(this->sem->getObjectId()));
+  mcprintf("thread %lu: sem_wait(sem:%u) (awake -> asleep)\n",
+           this->thread->tid,
+           countVisibleObjectsOfType(this->sem->getObjectId()));
 }

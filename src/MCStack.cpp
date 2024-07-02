@@ -1045,32 +1045,32 @@ MCStack::printThreadSchedule() const
 {
   for (int i = 0; i <= this->transitionStackTop; i++) {
     const tid_t tid = this->getTransitionAtIndex(i).getThreadId();
-    printf("%lu, ", tid);
+    mcprintf("%lu, ", tid);
   }
-  printf("\n");
+  mcprintf("\n");
 }
 
 void
 MCStack::printTransitionStack() const
 {
-  printf("THREAD BACKTRACE\n");
+  mcprintf("THREAD BACKTRACE\n");
   for (int i = 0; i <= this->transitionStackTop; i++) {
     this->getTransitionAtIndex(i).print();
   }
   MCStack::printThreadSchedule();
-  printf("END\n");
+  mcprintf("END\n");
   mcflush();
 }
 
 void
 MCStack::printNextTransitions() const
 {
-  printf("THREAD PENDING OPERATIONS\n");
+  mcprintf("THREAD PENDING OPERATIONS\n");
   auto numThreads = this->getNumProgramThreads();
   for (uint64_t i = 0; i < numThreads; i++) {
     this->getNextTransitionForThread(i).print();
   }
-  printf("END\n");
+  mcprintf("END\n");
   mcflush();
 }
 

@@ -5279,8 +5279,8 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if python3 is available" >&5
 printf %s "checking if python3 is available... " >&6; }
 # If Python returns True, that is converted to '1', which is Failure for shell:
-PYTHON=`which python`
-PYTHON3=`which python3`
+PYTHON=`which python 2> /dev/null`
+PYTHON3=`which python3 2> /dev/null`
 if [ "$PYTHON" != "" ] && \
     $PYTHON -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
   has_python=yes
@@ -5360,9 +5360,13 @@ PYTHON_VERSION_MINOR=`$PYTHON -c 'import sys; print("%d" % (sys.version_info.min
 
 # If Python returns True, True is converted to '1', which is Failure for shell:
 # FIXME: We should test if gdb.Frame.level is present, for GDB's need to patch.
+#        This came into GDB somewhere from GDB-10 to GDB-12.
+#        And capture_output flag came into Python3 in python 3.7.
+# CentOS 8 still uses outdated Python and GDB.
 if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12 and '$PYTHON_VERSION_MINOR' >= 7)'; then
   echo '*** Python or GDB Python API is older: patching Python code'
-  patch -p1 < mcmini-oldsys.patch
+  echo '*** There may be some smaller missing features for mcminig-gdb.'
+  # patch -p1 < mcmini-oldsys.patch
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if process_vm_readv/process_vm_writev (CMA) available" >&5

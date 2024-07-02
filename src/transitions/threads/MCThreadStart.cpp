@@ -1,4 +1,5 @@
 #include "mcmini/transitions/threads/MCThreadStart.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadThreadStart(const MCSharedTransition *shmTransition,
@@ -67,7 +68,7 @@ MCThreadStart::dependentWith(const MCTransition *transition) const
 void
 MCThreadStart::print() const
 {
-  printf("thread %lu: starts\n", this->thread->tid);
+  mcprintf("thread %lu: starts\n", this->thread->tid);
 }
 
 bool

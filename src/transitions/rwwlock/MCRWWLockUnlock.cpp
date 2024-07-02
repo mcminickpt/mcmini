@@ -75,7 +75,7 @@ MCRWWLockUnlock::dependentWith(const MCTransition *other) const
 void
 MCRWWLockUnlock::print() const
 {
-  printf("thread %lu: pthread_rwwlock_unlock(rwwl:%u)\n",
-         this->thread->tid,
-         countVisibleObjectsOfType(this->rwwlock->getObjectId()));
+  mcprintf("thread %lu: pthread_rwwlock_unlock(rwwl:%u)\n",
+           this->thread->tid,
+           countVisibleObjectsOfType(this->rwwlock->getObjectId()));
 }

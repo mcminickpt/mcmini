@@ -1,4 +1,5 @@
 #include "mcmini/transitions/misc/MCAbortTransition.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadAbortTransition(const MCSharedTransition *shmTransition,
@@ -46,7 +47,7 @@ MCAbortTransition::enabledInState(const MCStack *) const
 void
 MCAbortTransition::print() const
 {
-  printf("thread %lu: abort()\n", this->thread->tid);
+  mcprintf("thread %lu: abort()\n", this->thread->tid);
 }
 
 bool

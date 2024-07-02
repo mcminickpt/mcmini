@@ -1,4 +1,5 @@
 #include "mcmini/transitions/misc/MCGlobalVariableWrite.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadGlobalWrite(const MCSharedTransition *shmTransition,
@@ -84,6 +85,6 @@ MCGlobalVariableWrite::isRacingWith(
 void
 MCGlobalVariableWrite::print() const
 {
-  printf("thread %lu: WRITE(%p, %p)\n", this->thread->tid,
-         this->global->addr, this->newValue);
+  mcprintf("thread %lu: WRITE(%p, %p)\n", this->thread->tid,
+           this->global->addr, this->newValue);
 }

@@ -1,5 +1,6 @@
 #include "mcmini/transitions/misc/MCGlobalVariableRead.h"
 #include "mcmini/transitions/misc/MCGlobalVariableWrite.h"
+#include "mcmini/mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadGlobalRead(const MCSharedTransition *shmTransition,
@@ -77,6 +78,6 @@ MCGlobalVariableRead::isRacingWith(
 void
 MCGlobalVariableRead::print() const
 {
-  printf("thread %lu: READ(%p)\n", this->thread->tid,
-         this->global->addr);
+  mcprintf("thread %lu: READ(%p)\n", this->thread->tid,
+           this->global->addr);
 }
