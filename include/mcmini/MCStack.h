@@ -537,9 +537,9 @@ public:
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
   inline bool
-  isTargetTraceIdForStackContents(trid_t trid) const
+  isTargetTraceIdForPrintBacktrace(trid_t trid) const
   {
-    return this->configuration.stackContentDumpTraceNumber == trid;
+    return this->configuration.printBacktraceAtTraceNumber == trid;
   }
 
   // Restarting
