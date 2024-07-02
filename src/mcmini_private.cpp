@@ -64,6 +64,12 @@ static void printResults() {
   mcprintf("Number of traces: %lu\n", traceId);
   mcprintf("Total number of transitions: %lu\n", transitionId);
   mcprintf("Elapsed time: %lu seconds\n", time(NULL) - mcmini_start_time);
+  if ((int)traceId < programState->traceIdForPrintBacktrace() &&
+      getenv(ENV_FIRST_DEADLOCK) == NULL) { // and no --first-deadlock
+    mcprintf("*** NOTE: --print-at-trace (-p) requested up to trace %d,\n"
+            "           but total number of traces was only %d.\n",
+            programState->traceIdForPrintBacktrace(), traceId);
+  }
 }
 
 /*

@@ -541,6 +541,13 @@ public:
   {
     return this->configuration.printBacktraceAtTraceNumber == trid;
   }
+  // Silly C++ style; Don't let other code know the configuration,
+  // and then punch holdes to disclose private invormation.
+  inline int
+  traceIdForPrintBacktrace() const
+  {
+    return this->configuration.printBacktraceAtTraceNumber;
+  }
 
   // Restarting
   // TODO: This is extremely unclear. I'm going to work on this...
