@@ -679,7 +679,7 @@ mc_report_undefined_behavior(const char *msg)
 void
 mc_exit_with_trace_if_necessary(trid_t trid)
 {
-  if (programState->isTargetTraceIdForStackContents(trid)) {
+  if (programState->isTargetTraceIdForPrintBacktrace(trid)) {
     mcprintf("*** -p or --print-at-trace requested.  Printing trace:\n");
     programState->printTransitionStack();
     programState->printNextTransitions();
@@ -698,7 +698,7 @@ get_config_for_execution_environment()
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
-  trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
+  trid_t printBacktraceAtTraceNumber = MC_STATE_CONFIG_PRINT_AT_TRACE;
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
 
@@ -708,7 +708,7 @@ get_config_for_execution_environment()
   }
 
   if (getenv(ENV_PRINT_AT_TRACE_ID) != NULL) {
-    stackContentDumpTraceNumber =
+    printBacktraceAtTraceNumber =
       strtoul(getenv(ENV_PRINT_AT_TRACE_ID), nullptr, 10);
   }
   if (getenv(ENV_CHECK_FORWARD_PROGRESS) != NULL) {
@@ -719,8 +719,8 @@ get_config_for_execution_environment()
     firstDeadlock = true;
   }
 
-  return {maxThreadDepth, stackContentDumpTraceNumber,
-          firstDeadlock, expectForwardProgressOfThreads};
+  return {maxThreadDepth, printBacktraceAtTraceNumber, firstDeadlock,
+          expectForwardProgressOfThreads};
 }
 
 bool
