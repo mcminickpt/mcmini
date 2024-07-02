@@ -698,7 +698,6 @@ get_config_for_execution_environment()
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
-  trid_t gdbTraceNumber   = MC_STATE_CONFIG_NO_GDB_TRACE;
   trid_t stackContentDumpTraceNumber = MC_STAT_CONFIG_NO_TRANSITION_STACK_DUMP;
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
@@ -706,10 +705,6 @@ get_config_for_execution_environment()
   // TODO: Sanitize arguments (check errors of strtoul)
   if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
     maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
-  }
-
-  if (getenv(ENV_DEBUG_AT_TRACE_ID) != NULL) {
-    gdbTraceNumber = strtoul(getenv(ENV_DEBUG_AT_TRACE_ID), NULL, 10);
   }
 
   if (getenv(ENV_PRINT_AT_TRACE_ID) != NULL) {
@@ -724,7 +719,7 @@ get_config_for_execution_environment()
     firstDeadlock = true;
   }
 
-  return {maxThreadDepth, gdbTraceNumber, stackContentDumpTraceNumber,
+  return {maxThreadDepth, stackContentDumpTraceNumber,
           firstDeadlock, expectForwardProgressOfThreads};
 }
 

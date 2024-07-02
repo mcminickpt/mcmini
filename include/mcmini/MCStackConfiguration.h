@@ -26,13 +26,7 @@ struct MCStackConfiguration final {
 
   /**
    * The trace id to stop the model checker at
-   * to allow GDB to run through a trace
-   */
-  const trid_t gdbDebugTraceNumber;
-
-  /**
-   * The trace id to stop the model checker at
-   * to print the contents of the transition stack
+   * to print the contents of the transition stack.
    */
   const trid_t stackContentDumpTraceNumber;
 
@@ -50,12 +44,10 @@ struct MCStackConfiguration final {
   const bool expectForwardProgressOfThreads;
 
   MCStackConfiguration(uint64_t maxThreadExecutionDepth,
-                       trid_t gdbDebugTraceNumber,
                        trid_t stackContentDumpTraceNumber,
                        bool firstDeadlock,
                        bool expectForwardProgressOfThreads)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
-      gdbDebugTraceNumber(gdbDebugTraceNumber),
       stackContentDumpTraceNumber(stackContentDumpTraceNumber),
       expectForwardProgressOfThreads(expectForwardProgressOfThreads)
   {}
