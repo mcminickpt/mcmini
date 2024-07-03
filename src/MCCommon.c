@@ -36,14 +36,13 @@ mcprintf(const char *format, ...)
     mcflush();
   } else {
     if (mcprintf_idx >= sizeof mcprintf_redirect_output - 200) {
-      snprintf(mcprintf_redirect_output +
-                 sizeof mcprintf_redirect_output - 100 - 200,
-               sizeof mcprintf_redirect_output, "$s",
+      snprintf(mcprintf_redirect_output + sizeof mcprintf_redirect_output - 200,
+               200, "%s",
                "\n*** McMini: mcprintf_redirect_output full;"
                " Increase it and GDB max-value-size?\n");
     } else {
       ret = vsnprintf(mcprintf_redirect_output + mcprintf_idx,
-                      sizeof mcprintf_redirect_output,
+                      sizeof mcprintf_redirect_output - mcprintf_idx,
                       format, args);
       mcprintf_idx += ret;
       if (ret >= sizeof mcprintf_redirect_output) { // then truncate:

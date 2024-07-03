@@ -277,20 +277,24 @@ def continue_until(function, thread_id=None):
   bkpt.silent = True
   bkpt_exit = gdb.Breakpoint("_exit", gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
   bkpt_exit.silent = True
+  bkpt_terminate_trace = gdb.Breakpoint("mc_terminate_trace",
+                                        gdb.BP_BREAKPOINT, gdb.WP_WRITE, True)
+  bkpt_terminate_trace.silent = True
   if thread_id:
     bkpt.thread = thread_id
-  exit_was_hit = False
-  while bkpt.hit_count == 0 and not exit_was_hit:
-    if bkpt_exit.hit_count > 0:
-      exit_was_hit = True
-      gdb.execute("inferior 1")
-      finish()
-      gdb.execute("inferior 1")
-      finish()
-    else:
-      mcmini_execute("continue")
+  while bkpt.hit_count == 0 and bkpt_exit.hit_count == 0 and \
+        bkpt_terminate_trace.hit_count == 0:
+    mcmini_execute("continue")
+  if bkpt_exit.hit_count > 0:
+    gdb.execute("inferior 1")
+    finish()
+    gdb.execute("inferior 1")
+    finish()
+  if bkpt_terminate_trace.hit_count > 0:
+    gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
   bkpt.delete()
   bkpt_exit.delete()
+  bkpt_terminate_trace.delete()
 
 def finish():
   # GDB "finish" would write to screen even when trying to make it silent.
@@ -526,13 +530,19 @@ class forwardCmd(gdb.Command):
       mcmini_execute("mcmini forward " + str(iterations-1) + " quiet")
     if gdb.selected_inferior().num == 1 and gdb.inferiors()[-1].num > 0:
       gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
-    if gdb.selected_inferior().num == 1:
-      print("\n*** McMini target process has exited." +
-            "  Suggestion: 'mcmini printTransitions'")
-      return
+
     if iterations == 0:
       print_current_frame_verbose()
       return
+    # Are we at the end of the trace?
+    thr_user = gdb.selected_thread()
+    gdb.inferiors()[0].threads()[0].switch() # inferior 1
+    if gdb.newest_frame().name().startswith("mc_terminate_trace") == 1:
+      print("\n*** Target process exited;" +
+            " (Try: 'mcmini printTransitions' and/or 'mcmini back')\n")
+      thr_user.switch()
+      return
+    thr_user.switch()
     # GDB on top of Red Hat uses debuginfo files.  This will suppress
     # the warning.  However, this GDB command fails on Debian-based distros,
     # and anyway, no warning about missing debug files issued.
@@ -544,14 +554,16 @@ class forwardCmd(gdb.Command):
     # FIXME: There can be many aliases for "_exit".  We should use address.
     if gdb.selected_inferior().pid == 0 or \
        gdb.newest_frame().name() == "__GI__exit":
-      # FIXME:  Stop scheduler from exiting, so that 'mcmini back' works.
       if gdb.selected_inferior().pid != 0:
         gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
         gdb.execute("set unwindonsignal on")
-      print("\n*** McMini scheduler has exited." +
+      print("\n*** McMini target process has exited." +
             "  Suggestion: 'mcmini printTransitions'")
       return
-    finish()
+    if gdb.newest_frame().name() == "mc_shared_sem_wait_for_scheduler_done":
+      finish()
+    # Three possibilities:  __GI_exit; *_scheduler__done; and mc_terminate_trace
+    # In the last case, process it as normal, and allow user to inspect/bo gack
     transitionId += 1
     if "quiet" not in args:
       select_user_frame()
@@ -592,16 +604,16 @@ class backCmd(gdb.Command):
     gdb.execute("set mc_reset = 1")
     # After finishing, this kills the current child, and interrupts
     # with the sigchld_handler_scheduler.
-    continue_until("mc_restore_initial_trace")
-    finish() # finish() is interrupted by signal:  sigchld_handler_scheduler
-    # Continue to kill off the old inferior and create a new one.
-    if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
-    while gdb.newest_frame().name() != "mc_search_dpor_branch_with_thread":
+    while not gdb.newest_frame().name().startswith("mc_restore_initial_trace"):
+      continue_until("mc_restore_initial_trace")
+    # Kill the old child inferior
+    while len(gdb.inferiors()) > 1:
       if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
       finish()
-      if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+    # And create the new child inferior
+    while len(gdb.inferiors()) == 1:
+      finish()
     gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
-    continue_until("mc_shared_sem_wait_for_scheduler_done")
     # We're now at the beginning of the trace (user: "mcmini_main") constructor.
     continue_until("main")
     redirect_epilog(context)
