@@ -185,7 +185,7 @@ def total_num_frames():
   return frame.level() + 1
 
 def select_user_frame():
-  gdb.invalidate_cached_frames()
+  gdb.invalidate_cached_frames()  # Is this useful?
   frame = gdb.newest_frame()
   while frame.older(): # Get oldest frame
     frame = frame.older()
@@ -309,13 +309,15 @@ output = "REDIRECT UNINTIALIZED"
 user_inferior = -1
 
 def redirect_prolog(inferior=1):
-  # NOTE: This doesn't work for TUI; they output to curses, not stdout. :-(
-  # FIXME: But we can do tui-disable; update; tui-enable to get around it
-  #        We need to capture McMini output and re-print it in tui-enabled in that case.
-  # TODO:  For TUI, prolog should have cmd and args, disable, execute enable, print '(gdb) cmd line; output', enable
-  # TODO:  Could maybe also print last_output before printing output if desired.
-  # Replace original stdout/stderr by /dev/null
+  # NOTE: This only partially workis in TUI; it sends to curses, not stdout. :-(
+  #        So we capture McMini output and re-print it later to TUI.
+  # FIXME: We could do tui-disable; update; tui-enable to get around it. ??
+  # We now replace original stdout/stderr by /dev/null
   # Turn pagination off; GDB junk should not go to paginated stream.
+  thr_user = gdb.selected_thread()
+  thr_scheduler =  gdb.inferiors()[0].threads()[0]
+  ## FIXME:  If thr.switch() is now silent, do we still need stdout->/dev/null ?
+  ##         (And do we still need mcprintf_redirect, for TUI pagination?)
   cur_pagination = gdb.parameter("pagination")
   gdb.set_parameter("pagination", "off")
   # GDB 'inferior XXX' normally tries to print filename, and errors and
@@ -323,46 +325,44 @@ def redirect_prolog(inferior=1):
   cur_frame_info = gdb.execute("show print frame-info", to_string=True)
   cur_frame_info = cur_frame_info.split('"')[1]
   gdb.execute("set print frame-info location")
-  ### if not is_tui_active() and not tui_was_initiated:
-  ###   gdb.execute("tui enable")
-  ###   gdb.execute("tui disable")
   dup_stdout = os.dup(1)
   os.close(1)
   cur_stdout = os.open('/dev/null', os.O_WRONLY)
   assert cur_stdout == 1
   # GDB messages will now go to /dev/null
-  user_inferior = gdb.selected_inferior().num
-  # FIXME:  We need 'inferior 1' to call 'mcprintf_redirect()'
-  #   But 'inferior 1' cmd sends junk msg to stderr.
-  #   If we temporarily set stderr to /dev/null, as with stdout,
-  #   then GDB freezes after doing 'mcmini printTransitions' twice.
-  gdb.execute("inferior 1")  # inferior 1 is scheduler process
+  thr_scheduler.switch()
   gdb.execute("call mcprintf_redirect()")
   cur_stdout = os.open('/dev/null', os.O_WRONLY)
-  gdb.execute("inferior " + str(inferior))  # inferior 1 is scheduler process
-  # Should this be an optional argument? if outside of prolog it will be printed
+  if inferior == 1: # inferior 1 is scheduler process
+    thr_scheduler.switch()
+  else:
+    gdb.execute("inferior " + str(inferior)) 
   os.dup2(dup_stdout, 1)
-  # return context
-  return (dup_stdout, user_inferior, inferior, cur_pagination, cur_frame_info)
+  return (dup_stdout, thr_user, inferior, cur_pagination, cur_frame_info)
 
 def redirect_epilog(context, print_hack = False):
-  (dup_stdout, user_inferior, inferior, cur_pagination, cur_frame_info) =context
+  (dup_stdout, thr_user, inferior, cur_pagination, cur_frame_info) =context
+  ## FIXME:  If thr.switch() is now silent, do we still need stdout->/dev/null ?
+  ##         (And do we still need mcprintf_redirect, for TUI pagination?)
   os.close(1)
   cur_stdout = os.open('/dev/null', os.O_WRONLY)
-  gdb.execute("inferior " + str(inferior))  # inferior 1 is scheduler process
+  thr_scheduler =  gdb.inferiors()[0].threads()[0]
+  if inferior == 1:
+    thr_scheduler.switch()  # inferior 1 is scheduler process
+  else:
+    gdb.execute("inferior " + str(inferior))
   gdb.execute("call mcprintf_stop_redirect()")
+  if not thr_user.is_valid():
+    thr_user = gdb.selected_thread()
   output = gdb.parse_and_eval("mcprintf_redirect_output").string()
-  if user_inferior not in [inf.num for inf in gdb.inferiors()]:
-    user_inferior = [inf.num for inf in gdb.inferiors()][-1]
-    if user_inferior == 1: print("WARNING:  program exited??")
   # Under TUI, this seems to go to curses (or stderr?), not stdout:
   gdb.execute("set print frame-info " + cur_frame_info)
-  gdb.execute("inferior " + str(user_inferior))
+  thr_user.switch()
   select_user_frame()
   if is_tui_active():
     gdb.execute("frame " + str(gdb.selected_frame().level()))
   # Return to original stdout/stderr
-  # FIXME: When is_tui_active(), we can't replace stdout
+  # FIXME: When is_tui_active(), some things don't go to stdout
   os.close(1)
   os.dup2(dup_stdout, 1)
   os.close(dup_stdout)
@@ -374,11 +374,11 @@ def redirect_epilog(context, print_hack = False):
     print(" === ")
     output = "*** " + output
   print(output)
-  ## gdb.execute('printf "' + output.replace("\n", "\\n") + '"')
-  ## gdb.write(output)
+  ## OR:  gdb.execute('printf "' + output.replace("\n", "\\n") + '"')
+  ## OR:  gdb.write(output)
   gdb.flush()
   if is_tui_active():
-    # BUG: Doing: mcmini forward 6; mcmini printTransitionss; ^Xa; up-arrow
+    # GDB BUG: Doing: mcmini forward 6; mcmini printTransitions; ^Xa; up-arrow
     #      then sets TUI src window to "No source available".
     #      If we type this below manually, it refreshes, but not under Python.
     gdb.execute("frame " + str( gdb.selected_frame().level() ))
