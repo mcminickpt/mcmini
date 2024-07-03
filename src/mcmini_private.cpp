@@ -505,6 +505,7 @@ void mc_run_thread_to_next_visible_operation(tid_t tid) {
 }
 
 void mc_terminate_trace() {
+  if (mc_reset) return;  // User decided to do 'mcmini back'
   if (trace_pid == -1) return;  // No child
   kill(trace_pid, SIGUSR1);
   mc_wait_for_trace();
@@ -604,50 +605,60 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       }
     }
 
+    nextTransition = programState->getFirstEnabledTransition();
+
+    if (nextTransition == nullptr) {
+      const bool hasDeadlock = programState->isInDeadlock();
+      const bool programHasNoErrors = !hasDeadlock;
+      char *v = getenv(ENV_VERBOSE);
+      bool verbose = v ? v[0] == '1' : false;
+
+      if (hasDeadlock) {
+        mcprintf("TraceId %lu, *** DEADLOCK DETECTED ***\n", traceId);
+        programState->printTransitionStack();
+        programState->printNextTransitions();
+        addResult("*** DEADLOCK DETECTED ***\n");
+        if (verbose) {
+          mcprintf("TraceId %ld:  ", traceId);
+          programState->printThreadSchedule();
+        }
+        if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
+          traceId++; // Verify "Number of traces" in printResults() is correct.
+          printResults();
+          mc_exit(EXIT_SUCCESS); // Exit McMini
+        }
+      }
+
+      if (programHasNoErrors) {
+        if (verbose) {
+          mcprintf("TraceId %ld:  ", traceId);
+          programState->printThreadSchedule();
+        } else {
+          mcprintf("TraceId: %d, *** NO FAILURE DETECTED ***\n", traceId);
+          programState->printTransitionStack();
+          programState->printNextTransitions();
+        }
+      }
+
+      // Three cases:
+      //  1. Continue trace (nextTransition != nullptr)
+      //  2. Reset trace (mcmini back set mc_reset: mc_restore_initial_trace)
+      //  3. End of trace; start the next traceId (nextTransition == nullptr)
+      // GDB stops in mc_wait_for_Trace (waitpid) inside mc_terminate_trace().
+      mc_terminate_trace(); // Does nothing if mc_reset is true
+    } // End of 'nextTransition == nullptr'; If 'mc_reset', then nextTransition
+
+    // Lat's give one more chance for 'mcmini back' to set mc_reset and go back.
     if (mc_reset) {
+      // Avoid infinte loop in: mc_restore_*()->mc_terminate_trace()->mc_reset
+      mc_reset = false;
       mc_restore_initial_trace();
       depth = 0;
       transitionId = 0;
-      mc_reset = false;
+      nextTransition = programState->getFirstEnabledTransition(); // Reset trace
     }
 
-    nextTransition = programState->getFirstEnabledTransition();
   } while (nextTransition != nullptr);
-
-  const bool hasDeadlock = programState->isInDeadlock();
-  const bool programHasNoErrors = !hasDeadlock;
-  char *v = getenv(ENV_VERBOSE);
-  bool verbose = v ? v[0] == '1' : false;
-
-  if (hasDeadlock) {
-    mcprintf("TraceId %lu, *** DEADLOCK DETECTED ***\n", traceId);
-    programState->printTransitionStack();
-    programState->printNextTransitions();
-    addResult("*** DEADLOCK DETECTED ***\n");
-    if (verbose) {
-      mcprintf("TraceId %ld:  ", traceId);
-      programState->printThreadSchedule();
-    }
-
-    if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
-      traceId++; // Verify "Number of traces" in printResults() is correct.
-      printResults();
-      mc_exit(EXIT_SUCCESS);
-    }
-  }
-
-  if (programHasNoErrors) {
-    if (verbose) {
-      mcprintf("TraceId %ld:  ", traceId);
-      programState->printThreadSchedule();
-    } else {
-      mcprintf("TraceId: %d, *** NO FAILURE DETECTED ***\n", traceId);
-      programState->printTransitionStack();
-      programState->printNextTransitions();
-    }
-  }
-
-  mc_terminate_trace();
 }
 
 tid_t
