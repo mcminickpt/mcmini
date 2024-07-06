@@ -36,12 +36,13 @@ static void trace_string_to_int_array(char *str, int *traceArray,
       mc_stop_model_checking(EXIT_FAILURE);
     }
 
-    long num = strtol(str, &str, 10);
-    char *str2 = str;
-    for (; *str2 == ' '; str2++);
-    if (num == 0 && *str2 == '\0') {
+    char *endptr;
+    long num = strtol(str, &endptr, 10);
+    if (str == endptr) {
       break; // We've seen all the numbers in the array.
     }
+    str = endptr;
+    for (; *str == ' '; str++);
 
     traceArray[traceArrayIdx++] = num;
     if (traceArrayIdx >= traceArrayLen) {
