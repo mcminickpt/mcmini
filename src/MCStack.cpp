@@ -1,5 +1,6 @@
 #include "mcmini/MCStack.h"
 #include "mcmini/MCTransitionFactory.h"
+#include "mcmini/transitions/threads/MCThreadFinish.h"
 #include <algorithm>
 #include <memory>
 #include <unordered_set>
@@ -1065,6 +1066,9 @@ MCStack::printNextTransitions() const
         this->configuration.maxThreadExecutionDepth) {
       mcprintf("           [ MaxThreadDepth reached (%d) ]\n",
                this->getConfiguration().maxThreadExecutionDepth);
+    } else if (dynamic_cast<const MCThreadFinish *>(
+                                &this->getNextTransitionForThread(i))) {
+      mcprintf(" %s\n", "[ Done ]"); // Thread has transition 'exits'.
     } else {
       mcprintf("           %s\n",
                (this->transitionIsEnabled(this->getNextTransitionForThread(i))
