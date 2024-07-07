@@ -280,6 +280,12 @@ mc_explore_branch(int curBranchPoint)
   mc_exit_with_trace_if_necessary(traceId);
 
   traceId++;
+  if (false && traceId >= 1 && getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL) {
+    mcprintf("*** Trace sequence ('-p', --print-at-trace') requested.\n"
+             "*** for more than one traceDd: -p<X> -p'<traceSeq>' for X>0\n"
+             "*** McMini cannot yet handle this situation.  Exiting now.\n");
+    mc_exit(EXIT_FAILURE);
+  }
   resetTraceSeqArray();
   if (traceId % 1000 == 0) {
     static time_t last_time_reported = mcmini_start_time;
@@ -559,6 +565,14 @@ void
 mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 {
   uint64_t depth = programState->getTransitionStackSize();
+  if (traceId >= 1 && getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL) {
+    if (depth < traceSeqLength()) {
+      printResults();
+      mc_stop_model_checking(EXIT_SUCCESS); // Exit McMini
+    } else {
+      setEndOfTraceSeq(); // Stop using traceSeq[].
+    }
+  }
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(backtrackThread);
   const MCTransition *nextTransition = &initialTransition;
