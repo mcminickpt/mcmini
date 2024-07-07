@@ -618,6 +618,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     addResult("*** DEADLOCK DETECTED ***\n");
 
     if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
+      traceId++; // Verify "Number of traces" in printResults() is correct.
       printResults();
       mc_exit(EXIT_SUCCESS);
     }
