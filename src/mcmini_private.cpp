@@ -624,6 +624,10 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     programState->printTransitionStack();
     programState->printNextTransitions();
     addResult("*** DEADLOCK DETECTED ***\n");
+    if (verbose) {
+      mcprintf("TraceId %ld:  ", traceId);
+      programState->printThreadSchedule();
+    }
 
     if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
       traceId++; // Verify "Number of traces" in printResults() is correct.
@@ -634,7 +638,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
   if (programHasNoErrors) {
     if (verbose) {
-      mcprintf("TraceId %3d:  ", traceId);
+      mcprintf("TraceId %ld:  ", traceId);
       programState->printThreadSchedule();
     } else {
       mcprintf("TraceId: %d, *** NO FAILURE DETECTED ***\n", traceId);
