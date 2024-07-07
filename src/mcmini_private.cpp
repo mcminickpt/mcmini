@@ -610,6 +610,8 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
   const bool hasDeadlock = programState->isInDeadlock();
   const bool programHasNoErrors = !hasDeadlock;
+  char *v = getenv(ENV_VERBOSE);
+  bool verbose = v ? v[0] == '1' : false;
 
   if (hasDeadlock) {
     mcprintf("TraceId %lu, *** DEADLOCK DETECTED ***\n", traceId);
@@ -624,9 +626,8 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     }
   }
 
-  static char *verbose = getenv(ENV_VERBOSE);
-  if (programHasNoErrors && verbose) {
-    if (verbose[0] == '1') {
+  if (programHasNoErrors) {
+    if (verbose) {
       mcprintf("TraceId %3d:  ", traceId);
       programState->printThreadSchedule();
     } else {
