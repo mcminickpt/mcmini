@@ -12,12 +12,20 @@ extern "C" {
 
 using namespace std;
 
-static int traceSeq[1000] = {-1};
+int traceSeq[1000] = {-1};
 static int traceSeqIdx = 1;  // traceSeq[0] is for thread 0 'starts'. Skip it.
 static int lastEndOfTraceId = -1;
 
+void setEndOfTraceSeq() {
+  lastEndOfTraceId = traceId;
+}
 void resetTraceSeqArray() {
   traceSeqIdx = 0;  // traceSeq[0] is for thread 0 'starts'. Skip it.
+}
+unsigned int traceSeqLength() {
+  unsigned int i;
+  for (i = 0; traceSeq[i] != -1; i++);
+  return i;
 }
 
 static void trace_string_to_int_array(char *str, int *traceArray,
@@ -89,7 +97,7 @@ static int getNextTraceSeqEntry(int traceSeqIdx) {
            traceSeqLen, (traceSeqLen>=10 ? "" : " "));
       }
       print_at_trace_seq = false;
-      lastEndOfTraceId = traceId;
+      setEndOfTraceSeq();
       return -1; // -1 means end of traceSeq; Continue as mormal.
     } else {
       return traceSeq[traceSeqIdx];

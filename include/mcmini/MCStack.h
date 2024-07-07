@@ -26,10 +26,22 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 
 
 /**
+ * @brief Set 'lastEnedOfTraceId = traceId'.
+ * getNextTraceSeqEntry(...) will now always return '-1'.
+ */
+void setEndOfTraceSeq();
+
+/**
  * @brief When '-p<traceSeq>' is invoked, then the traceSeq needs to be
  * reset when a trace is completed.
  */
 void resetTraceSeqArray();
+
+/**
+ * @brief Return number of terms in traceSeq[] until '-1'.
+ * This is used to decide if 'depth' is beyod the traceSeq in mcini_private.cpp.
+ */
+unsigned int traceSeqLength();
 
 /* This is returned by getDeepestDPORBranchPoint() if this is the
  * first (origina) branch.  mc_do_model_checking() uses this to detect
