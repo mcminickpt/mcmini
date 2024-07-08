@@ -158,6 +158,28 @@ if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
   gdb.execute("set args " + mcmini_args)
   ### FIXME:  We must now instantiate the new argumnets before '(gdb) run'.
 
+def is_traceSeq(arg):
+  numbers = arg.strip().strip("'" + '"').replace(",", " ")
+  if "'" in numbers:
+    numbers = numbers.split("'")[0]
+  if '"' in numbers:
+    numbers = numbers.split('"')[0]
+  numbers = numbers.split()
+  is_trace = len(numbers) > 1 and len([ num for num in numbers
+                                           if num.isnumeric() ]) == len(numbers)
+  return (is_trace, len(numbers))
+def trace_seq_len(mcminiArgs):
+  if "--print-at-trace" in mcminiArgs:
+    args = mcminiArgs.split("--print-at-trace")[1:]
+  elif "-p" in mcminiArgs and [a for a in mcminiArgs.split("-p")[1:]
+                                 if is_traceSeq(a)[0]]:
+    args = mcminiArgs.split("-p")[1:]
+  else:
+    return 0
+  args = [arg for arg in args if is_traceSeq(arg)[0]]
+  return is_traceSeq(args[0])[1]
+
+
 def is_tui_active():
   return "The TUI is not active." not in gdb.execute("info win", to_string=True)
 
@@ -519,7 +541,7 @@ def print_current_frame_verbose():
           frame.name() + "() [" + "??" + "]: " + "??")
 
 class forwardCmd(gdb.Command):
-  """Execute until next transition; Accepts optional <count> arg"""
+  """Execute until next transition; Accepts optional arg: <count>; or: end """
   def __init__(self):
     super(forwardCmd, self).__init__(
         "mcmini forward", gdb.COMMAND_USER
@@ -528,6 +550,8 @@ class forwardCmd(gdb.Command):
     global transitionId
     args = args.split()
     iterations = int(args[0]) if args and args[0].isdigit() else 1
+    if "end" in args:  # if 'mcmini forward end'
+      iterations = trace_seq_len(mcmini_args) - transitionId
     if iterations > 1:
       mcmini_execute("mcmini forward " + str(iterations-1) + " quiet")
     if gdb.selected_inferior().num == 1 and gdb.inferiors()[-1].num > 0:
