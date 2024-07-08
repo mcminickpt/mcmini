@@ -301,6 +301,8 @@ def finish():
   bkpt = gdb.FinishBreakpoint(internal=True)
   bkpt.silent = True
   gdb.execute("continue")
+  if not gdb.selected_thread():
+    gdb.execute("inferior 1")  # User thread must have exited.
 
 # NOTE: gdb.Breakpoint.stop() can be defined to do anything arbitrary when
 #                       reaching the breakpoint, such as print a message.

@@ -33,7 +33,7 @@ void
 mc_shared_sem_wait_for_scheduler(mc_shared_sem_ref ref)
 {
   __real_sem_wait(&ref->pthread_sem);
-  // We have this for gdbini_command: mcmini forward
+  // We have this for gdbinit_command: mcmini forward
   mc_shared_sem_wait_for_scheduler_done();
 }
 
