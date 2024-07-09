@@ -66,10 +66,5 @@ typedef void *MCSystemID;
 #endif
 
 #define MC_FATAL() abort()
-#define MC_STRUCT_DECL(type)       \
-  typedef struct type type;        \
-  typedef struct type *type##_t;   \
-  typedef struct type *type##_ref; \
-  typedef const struct type *type##_refc;
 
 #endif // DPOR_MCSHARED_H
