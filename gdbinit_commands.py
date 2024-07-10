@@ -154,7 +154,7 @@ if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
   print("** Running: " + exec_file + "-gdb " + mcmini_args)
   print("** Note:  In order to replay this trace,\n" +
         "          it is faster to directly run the above command line.\n")
-  time.sleep(2)
+  time.sleep(2) # Allow user some time to read the above message
   gdb.execute("set args " + mcmini_args)
   ### FIXME:  We must now instantiate the new argumnets before '(gdb) run'.
 
@@ -320,7 +320,13 @@ def continue_until(function, thread_id=None):
 
 def finish():
   # GDB "finish" would write to screen even when trying to make it silent.
-  bkpt = gdb.FinishBreakpoint(internal=True)
+  if not gdb.selected_thread() and (gdb.selected_inferior().num == 1
+       or gdb.inferiors()[0].num == 1 and gdb.inferiors()[0].pid == 0):
+    breakpoint()
+  try:
+    bkpt = gdb.FinishBreakpoint(internal=True)
+  except:
+    breakpoint()
   bkpt.silent = True
   gdb.execute("continue")
   if not gdb.selected_thread():
@@ -612,6 +618,7 @@ class backCmd(gdb.Command):
     )
   def invoke(self, args, from_tty):
     global transitionId
+    args = args.split()
     count = int(args[0]) if args and args[0].isdigit() else 1
     if gdb.selected_inferior().num == 1 and gdb.inferiors()[-1].num > 0:
       gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
@@ -632,16 +639,55 @@ class backCmd(gdb.Command):
     # with the sigchld_handler_scheduler.
     while not gdb.newest_frame().name().startswith("mc_restore_initial_trace"):
       continue_until("mc_restore_initial_trace")
+    assert "mc_restore_initial_trace" in gdb.newest_frame().name()
     # Kill the old child inferior
-    while len(gdb.inferiors()) > 1:
+    if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+    while "wait" not in gdb.newest_frame().name() and \
+          "fork" not in gdb.newest_frame().name():
       if gdb.selected_inferior().num != 1: gdb.execute("inferior 1")
+      # if gdb.newest_frame().name() == "arch_fork":
+      #   breakpoint()
       finish()
+    # Three cases:
+    #  1. The newest frame is "wait"
+    #  2. Newest frame is sigchildhandler (due to "mc_terminate); and "wait"
+    #  3. The newest frame is "arch_fork" (called by " __libc_fork")
+    #     [ Why does it sometimes skip over 'wait' and go to
+    #       arch_fork?  The old child seems to exist but then soon disappear. ]
+    if not ( "wait" in gdb.newest_frame().name() or \
+             "wait" in gdb.newest_frame().older().name() or \
+             "fork" in gdb.newest_frame().name() ):
+      breakpoint()
+    assert "wait" in gdb.newest_frame().name() or \
+           "wait" in gdb.newest_frame().older().name() or \
+           "fork" in gdb.newest_frame().name()
+    if "fork" in gdb.newest_frame().name():
+      finish()
+      gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
+      continue_until("main")
+      assert gdb.newest_frame().name() == "main"
+      redirect_epilog(context)
+      # We're now at the beginning of the trace (user: "main").
+      # After this, stap at mc_shared_sem_wait_for_scheduler_done for transition.
+      gdb.execute("mcmini forward " + str(iterationsForward))
+      return
+    finish() # Finish it for one more time.
+    assert len(gdb.inferiors()) == 1
     # And create the new child inferior
-    while len(gdb.inferiors()) == 1:
-      finish()
+    continue_until("mc_fork_next_trace_at_current_state")
+    if not "mc_fork_next_trace_at_current_state" in gdb.newest_frame().name():
+      breakpoint()
+    gdb.execute("catch syscall fork")
+    if not "fork" in gdb.newest_frame().name():
+      breakpoint()
+    assert "fork" in gdb.newest_frame().name()
+    gdb.execute("inferior 1")
+    finish()
+    assert len(gdb.inferiors()) > 1
     gdb.execute("inferior " + str(gdb.inferiors()[-1].num))
     # We're now at the beginning of the trace (user: "mcmini_main") constructor.
     continue_until("main")
+    assert gdb.newest_frame().name() == "main"
     redirect_epilog(context)
     # We're now at the beginning of the trace (user: "main").
     # After this, stap at mc_shared_sem_wait_for_scheduler_done for transition.

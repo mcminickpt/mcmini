@@ -277,6 +277,7 @@ mc_explore_branch(int curBranchPoint)
   }
 
   mc_search_dpor_branch_with_thread(backtrackThread);
+  // If '-p <traceId>' set and current traceId matches it, then exit.
   mc_exit_with_trace_if_necessary(traceId);
 
   traceId++;
