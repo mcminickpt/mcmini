@@ -10,6 +10,7 @@ typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
 typeof(&sem_init) sem_init_ptr;
+typeof(&sem_destroy) sem_destroy_ptr;
 typeof(&exit) exit_ptr;
 typeof(&abort) abort_ptr;
 typeof(&pthread_barrier_init) pthread_barrier_init_ptr;
@@ -36,6 +37,7 @@ mc_load_intercepted_symbol_addresses()
   sem_wait_ptr             = dlsym(RTLD_NEXT, "sem_wait");
   sem_post_ptr             = dlsym(RTLD_NEXT, "sem_post");
   sem_init_ptr             = dlsym(RTLD_NEXT, "sem_init");
+  sem_destroy_ptr          = dlsym(RTLD_NEXT, "sem_destroy");
   exit_ptr                 = dlsym(RTLD_NEXT, "exit");
   abort_ptr                = dlsym(RTLD_NEXT, "abort");
   pthread_barrier_init_ptr = dlsym(RTLD_NEXT, "pthread_barrier_init");
@@ -62,6 +64,7 @@ mc_load_intercepted_symbol_addresses()
   sem_post_ptr               = &sem_post;
   sem_wait_ptr               = &sem_wait;
   sem_init_ptr               = &sem_init;
+  sem_destroy_ptr            = &sem_destroy;
   exit_ptr                   = &exit;
   abort_ptr                  = &abort;
   pthread_barrier_init_ptr   = &pthread_barrier_init;
