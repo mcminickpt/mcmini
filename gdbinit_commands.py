@@ -85,8 +85,9 @@ if "-p0" not in mcmini_args and "'-p' '0'" not in mcmini_args:
   mcmini_output = mcmini_output.stdout.decode('utf-8').split('\n')
   pending_indexes = [idx for idx, line in enumerate(mcmini_output)
                          if "THREAD PENDING OPERATIONS" in line]
+  # '-v' will insert many "THREAD PENDING" msg's; Use last one for '-f'
   if pending_indexes:
-     trace_seq = mcmini_output[pending_indexes[0]-2]
+     trace_seq = mcmini_output[pending_indexes[-1]-2]
   else:
     trace_indexes = [idx for idx, line in enumerate(mcmini_output)
                          if line.startswith("TraceId ")]
