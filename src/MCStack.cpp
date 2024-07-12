@@ -1068,6 +1068,7 @@ MCStack::printNextTransitions() const
     int pipefd[2];
     pipe(pipefd);
     dup2(pipefd[1], 1); // Set stdout to pieefd
+    mcprintf(" %c ", static_cast<int>(i) == traceSeq[traceSeqIdx-1] ? '*' : ' ');
     this->getNextTransitionForThread(i).print();
     fflush(stdout); // Flush to pipefd
     dup2(fd_stdout_orig, 1); // Restore normal stdout
