@@ -152,7 +152,7 @@ MCCondBroadcast::dependentWith(const MCTransition *other) const
 void
 MCCondBroadcast::print() const
 {
-  const char * isLostWakeup = " [No thread waiting on cond; lost wakeup?]";
+  const char * isLostWakeup = " [Lost wakeup? (No thread waiting on cond) ]";
   if (hadWaiters) { isLostWakeup = ""; }
 
   printf("thread %lu: pthread_cond_signal(cond:%u)%s\n", this->thread->tid,
