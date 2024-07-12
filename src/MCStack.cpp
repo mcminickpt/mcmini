@@ -1049,6 +1049,8 @@ MCStack::printTransitionStack() const
 {
   mcprintf("THREAD BACKTRACE\n");
   for (int i = 0; i <= this->transitionStackTop; i++) {
+    // mcprintf("#%d %s", i, (i >= 10 ? "" : " "));
+    mcprintf("%s%d. ", (i+1 >= 10 ? "" : " "), i+1);
     this->getTransitionAtIndex(i).print();
   }
   MCStack::printThreadSchedule();
