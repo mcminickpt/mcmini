@@ -373,33 +373,12 @@ MCStack::getCurrentlyEnabledThreads()
   // FIXME:  We are returning an unordered set.
   //         An address to it might be more performant, but the set is small.
 
-#if 0
-  static bool print_at_trace_seq = (getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL);
-  if (print_at_trace_seq) {
-    static int traceSeqIdx = 1; // traceSeq[0] is for thread 0 'starts'. Skip it.
-    if (traceSeqIdx <= 1) {
-      trace_string_to_int_array(getenv(ENV_PRINT_AT_TRACE_SEQ), traceSeq,
-                                       sizeof(traceSeq) / sizeof(traceSeq[0]));
-    }
-    if (traceSeq[traceSeqIdx] == -1) {
-      mcprintf("*** END OF trace sequence\n");
-      mcprintf("*** ... continuing beyond trace sequence\n");
-      print_at_trace_seq = false;
-      assert(traceId == 0);
-      setenv(ENV_PRINT_AT_TRACE_ID, "0", 1); // but his was also set earlier
-    } else {
-      enabledThreadsInState.insert(traceSeq[traceSeqIdx++]);
-      return enabledThreadsInState;
-    }
-  }
-#else
   static int traceSeqIdx = 1; // traceSeq[0] is for thread 0 'starts'. Skip it.
   int nextTraceEntry = getNextTraceSeqEntry(traceSeqIdx++);
   if (nextTraceEntry >= 0) {
     enabledThreadsInState.insert(nextTraceEntry);
     return enabledThreadsInState;
   }
-#endif
 
   const uint32_t numThreads = this->getNumProgramThreads();
   for (uint32_t i = 0; i < numThreads; i++) {
