@@ -60,6 +60,11 @@ static void addResult(const char *result) {
   strncat(resultString, stats, sizeof(resultString) - strlen(resultString));
 }
 static void printResults() {
+  if (strcmp(resultString, "***** Model checking completed! *****\n") == 0) {
+    // If we never previously added a conclusion, then this is the default.
+    strncat(resultString, "      (NO FAILURE DETECTED)\n",
+            sizeof(resultString) - 80);
+  }
   mcprintf(resultString);
   mcprintf("Number of traces: %lu\n", traceId);
   mcprintf("Total number of transitions: %lu\n", transitionId);
@@ -626,7 +631,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       const bool hasDeadlock = programState->isInDeadlock();
       const bool programHasNoErrors = !hasDeadlock;
       char *v = getenv(ENV_VERBOSE);
-      bool verbose = v ? v[0] == '1' : false;
+      int verbose = v ? v[0] - '0' : 0;
 
       if (hasDeadlock) {
         mcprintf("TraceId %lu, *** DEADLOCK DETECTED ***\n", traceId);
@@ -645,13 +650,21 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       }
 
       if (programHasNoErrors) {
-        if (verbose) {
+        switch (verbose) {
+        case 0:
+          break;
+        case 1:
           mcprintf("TraceId %ld:  ", traceId);
           programState->printThreadSchedule();
-        } else {
+          break;
+        case 2:
           mcprintf("TraceId: %d, *** NO FAILURE DETECTED ***\n", traceId);
           programState->printTransitionStack();
           programState->printNextTransitions();
+          break;
+        default:
+          mcprintf("McMini: Internal error: verbose is %d\n", verbose);
+          exit(1);
         }
       }
 
