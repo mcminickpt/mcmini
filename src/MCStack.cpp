@@ -62,7 +62,7 @@ static void trace_string_to_int_array(char *str, int *traceArray,
   }
 }
 
-static int getNextTraceSeqEntry(int traceSeqIdx) {
+static int getNextTraceSeqEntry(int index) {
   if (lastEndOfTraceId == static_cast<int>(traceId)) {
     // We have gone past traceSeq.
     return -1;
@@ -87,7 +87,7 @@ static int getNextTraceSeqEntry(int traceSeqIdx) {
       initialized = true;
     }
     if (lastEndOfTraceId < static_cast<int>(traceId) &&
-        traceSeqIdx < buflen && traceSeq[traceSeqIdx] == -1) {
+        index < buflen && traceSeq[index] == -1) {
       if (getenv(ENV_VERBOSE)) {
         mcprintf(
            "**************************************************************\n"
@@ -100,7 +100,7 @@ static int getNextTraceSeqEntry(int traceSeqIdx) {
       setEndOfTraceSeq();
       return -1; // -1 means end of traceSeq; Continue as mormal.
     } else {
-      return traceSeq[traceSeqIdx];
+      return traceSeq[index];
     }
   } else {
     return -2; // -2 means no ENV_PRINT_AT_TRACE_SEQ; Continue as normal
