@@ -211,6 +211,9 @@ def select_user_frame():
   frame = gdb.newest_frame()
   while frame.older(): # Get oldest frame
     frame = frame.older()
+    if frame.name() == "mc_exit_main_thread":
+      frame.select()
+      return
   while True:
     # Search from oldest to newest for a call frame whose _next_ (newer) frame
     #   would be a McMini call frame.
