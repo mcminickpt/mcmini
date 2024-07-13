@@ -293,8 +293,13 @@ mc_explore_branch(int curBranchPoint)
     mc_exit(EXIT_FAILURE);
   }
   resetTraceSeqArray();
-  if (traceId % 1000 == 0) {
-    static time_t last_time_reported = mcmini_start_time;
+
+  static time_t last_time_reported = mcmini_start_time;
+  static int interval = 1000;
+  if (traceId == 100 && time(NULL) - last_time_reported > 10) {
+    interval = 100;
+  }
+  if (traceId % interval == 0) {
     if (time(NULL) - last_time_reported > 10) {
       last_time_reported = time(NULL);
       mcprintf("... %d traces analyzed so far ...\n", traceId);
@@ -591,10 +596,12 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       printResults();
       mcprintf(
         "*** Execution Limit Reached! ***\n\n"
-        "McMini ran a trace with %lu transitions which is\n"
-        "the most McMini can currently handle in any one trace. Try\n"
-        "running mcmini with the \"--max-depth-per-thread\" flag (\"-m\")\n"
-        "to limit how far into a trace McMini can go.\n",
+        "McMini ran a trace with %lu transitions.  To increase this limit,\n"
+        "modify MAX_TOTAL_TRANSITIONS_IN_PROGRAM in MCConstants.h and"
+        " re-compile.\n"
+        "But first, try running mcmini with the \"--max-depth-per-thread\""
+        " flag (\"-m\")\n"
+        "to limit how far into a trace a McMini thread can go.\n",
         depth);
       mc_stop_model_checking(EXIT_FAILURE);
     }
