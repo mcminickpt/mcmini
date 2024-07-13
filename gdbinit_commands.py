@@ -572,6 +572,8 @@ class forwardCmd(gdb.Command):
     super(forwardCmd, self).__init__(
         "mcmini forward", gdb.COMMAND_USER
     )
+  def complete(self, text, word):
+    return ["end"] if "end".startswith(word) else gdb.COMPLETE_NONE
   def invoke(self, args, from_tty):
     global transitionId
     args = args.split()
