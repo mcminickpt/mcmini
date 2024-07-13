@@ -1,3 +1,11 @@
+#***************************************************************************
+#* McMini 1.0                                                              *
+#* Copyright(c) Maxwell Pirtle, Luka Jovanovic, Gene Cooperman             *
+#*   (LGPLv3 license: See COPYING.md in source code distribution.)         *
+#* pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu *
+#* https://github.com/mcminickpt/mcmini.git                                *
+#***************************************************************************
+
 # Nice tutorial:
 # https://interrupt.memfault.com/blog/automate-debugging-with-gdb-python-api
 
