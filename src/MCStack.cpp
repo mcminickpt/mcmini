@@ -25,9 +25,11 @@ void setEndOfTraceSeq() {
 void resetTraceSeqArray() {
   traceSeqIdx = 0;  // traceSeq[0] is for thread 0 'starts'. Skip it.
 }
-unsigned int traceSeqLength() {
-  unsigned int i;
-  for (i = 0; traceSeq[i] != -1; i++);
+int traceSeqLength() {
+  static int i = -1;
+  if (i == -1) {
+    for (i = 0; traceSeq[i] != -1; i++);
+  }
   return i;
 }
 
@@ -42,7 +44,7 @@ static void trace_string_to_int_array(char *str, int *traceArray,
   unsigned int traceArrayIdx = 0;
   while (1) {
     if (!isdigit(*str) && *str != ' ' && *str != '\0') {
-      mcprintf("\n*** Input traceSeq contains delimiiter"
+      mcprintf("\n*** Input traceSeq contains delimiter"
                " not in ',' or ' ': %c\n\n", *str);
       mc_stop_model_checking(EXIT_FAILURE);
     }
