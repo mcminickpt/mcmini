@@ -41,7 +41,7 @@ void resetTraceSeqArray();
  * @brief Return number of terms in traceSeq[] until '-1'.
  * This is used to decide if 'depth' is beyod the traceSeq in mcini_private.cpp.
  */
-unsigned int traceSeqLength();
+int traceSeqLength();
 
 /* This is returned by getDeepestDPORBranchPoint() if this is the
  * first (origina) branch.  mc_do_model_checking() uses this to detect

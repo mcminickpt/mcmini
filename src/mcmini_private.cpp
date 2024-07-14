@@ -575,7 +575,7 @@ void mc_restore_initial_trace() {
 void
 mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 {
-  uint64_t depth = programState->getTransitionStackSize();
+  int depth = programState->getTransitionStackSize();
   if (traceId >= 1 && getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL) {
     if (depth < traceSeqLength()) {
       printResults();
@@ -634,8 +634,13 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
     nextTransition = programState->getFirstEnabledTransition();
 
-    if (nextTransition == nullptr) {
+    if (nextTransition == nullptr ||
+        (traceSeqLength() > 0 && programState->isInDeadlock())) {
       const bool hasDeadlock = programState->isInDeadlock();
+      if (hasDeadlock && nextTransition != nullptr) { // Stop using traceSeq
+        addResult("  [Truncating traceSeq from '-p', due to deadlock!]\n");
+        nextTransition = nullptr;
+      }
       const bool programHasNoErrors = !hasDeadlock;
       char *v = getenv(ENV_VERBOSE);
       int verbose = v ? v[0] - '0' : 0;
