@@ -67,12 +67,11 @@ def insert_extra(args, extra):
   args = args.split()
   last_flag_idx = max([ idx for (idx, word) in enumerate(args)
                             if word.startswith('-') or word.startswith("'-") ],
-                      default = 0)
+                      default = -1)
   last_word = args[last_flag_idx].replace("'", "")
-  if last_word in [ "--max-depth-per-thread", "--print-at-trace"] or \
-     len(last_word) == 2 and last_word[1] in ['m', 'p']:
+  if last_word in ["--max-depth-per-thread", "--print-at-trace", "-m", "-p"]:
     last_flag_idx += 1
-  args = args[:last_flag_idx] + extra.split() + args[last_flag_idx:]
+  args = args[:last_flag_idx+1] + extra.split() + args[last_flag_idx+1:]
   return ' '.join(args)
 
 if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
@@ -124,17 +123,6 @@ if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
   for i in range(len(mcmini_args)):
     if len(mcmini_args[i].strip("'"))+2 == len(mcmini_args[i]):
       mcmini_args[i] = mcmini_args[i].strip("'")
-  # Remove any old prefixes: '-p 0,0, ...' (or variations)
-  for i in range(len(mcmini_args)):
-    if "-p" in mcmini_args[i] and "'" in mcmini_args[i] or \
-       i > 0 and mcmini_args[i-1] == "-p" and "'" in mcmini_args[i]:
-      j =  i if "-p" in mcmini_args[i] else i-1
-      mcmini_args[j] = ""
-      for k in range(j+1, len(mcmini_args)):
-        tmp = mcmini_args[k]
-        mcmini_args[k] = ""
-        if tmp.endswith("'"): # If this is the matching "'":
-          break
   # Now, rejoin the edited words in mcmini_args
   def delete_one(elt, args):
     if len([1 for arg in args if arg == elt]) > 1:
@@ -143,13 +131,15 @@ if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
   mcmini_args = [ arg for arg in mcmini_args if "-f" != arg ]
   delete_one("-q", mcmini_args)
   delete_one("-v", mcmini_args)
-  tmp = [arg for arg in mcmini_args
-         if arg.startswith("-p") and len(arg) == 3 and arg != "-p0"]
-  if tmp:
-    mcmini_args[ mcmini_args.index(tmp[0]) ] = ""
-  mcmini_args = ' '.join([arg for arg in mcmini_args if arg != ""])
-  mcmini_args = mcmini_args.replace("-p0 ", "").replace("-p 0 ", "")
+  # Remove any old prefixes: '-p0', '-p 0', '-p 0,0, ...', etc.
+  tmp = [idx for idx, line in enumerate(mcmini_args)
+                 if line.startswith("-p")]
+  for idx in tmp:
+    if mcmini_args[idx] in ["-p", "--print-at-trace"]:
+      mcmini_args[idx+1] = "" # "-p" takes an argumnet; Remove next word
+    mcmini_args[idx] = ""
 
+  mcmini_args = ' '.join([arg for arg in mcmini_args if arg != ""])
   mcmini_args = insert_extra(mcmini_args, extra_args)
   print("** Running: " + exec_file + "-gdb " + mcmini_args)
   print("** Note:  In order to replay this trace,\n" +
