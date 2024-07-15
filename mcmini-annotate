@@ -18,7 +18,10 @@ else:
 #   path = [ line for line in open(mcmini_root + "/" + mcmini_gdb).readine() if line.startswith("export MCMINI_ROOT=") ]
 #   mcmini_root = (path[0]+"-END$").split('=')[1].replace("/mcmini-gdb-END$", "")
 
-newargs = " -p 0 " + ' '.join(newargs)
+newargs = " " + ' '.join(newargs)
+if "-p 0 " not in newargs and \
+   not set(newargs.split()).intersection(["-p0","'-p0'", "'-p' '0'"]):
+  newargs = " -p 0 " + newargs
 os.environ["MCMINI_ARGS"] = newargs
 
 ## Similar to code in gdbinit_commands.py:

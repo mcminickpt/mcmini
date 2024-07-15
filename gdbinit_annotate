@@ -1,9 +1,16 @@
 python
+thr_user = gdb.selected_thread()
 for i in range(1000):
   try:
+    thr_user.switch()
     gdb.execute("mcmini forward")
+    thr_user = gdb.selected_thread()
+    # Are we at the end of the trace?
+    gdb.inferiors()[0].threads()[0].switch()
+    if gdb.newest_frame().name().startswith("mc_terminate_trace"):
+      gdb.execute("set confirm off")
+      gdb.execute("quit")
   except:
     gdb.execute("set confirm off")
     gdb.execute("quit")
-    pass
 end
