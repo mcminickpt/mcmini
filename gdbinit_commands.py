@@ -74,7 +74,8 @@ def insert_extra(args, extra):
   args = args[:last_flag_idx+1] + extra.split() + args[last_flag_idx+1:]
   return ' '.join(args)
 
-if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
+if "-p 0 " not in mcmini_args and \
+   not set(mcmini_args.split()).intersection(["-p0","'-p0'", "'-p' '0'"]):
   # If "-p0" not in the mcmini arguments, then get the trace sequence first.
   # We will then add "-p 0 -p <traceSeq>" to the command line before giving
   #   control to gdb.
@@ -118,12 +119,29 @@ if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
       gdb.execute("quit")
   extra_args = " -p0 -p'" + trace_seq + "' "
 
+  # Convert: "-p 0 -p '0 0 1'" to: "-p 0 -p '0,0,1'"
+  # (Note:  This serves mostly to consolidate '-p' into one or two words
+  #         with no spsaces.  Later, these args are removed in varo
+  #         of the '-p' flag in extra_args.)
+  apostrophes = [idx for idx, char in enumerate(mcmini_args) if char == "'"]
+  if len(apostrophes) %2 != 0:
+    print("McMini: Invalid arguments: \"'\" seen, but no matching \"'\":")
+    print("  args:" + mcmini_args[idx1:])
+    gdb.execute("quit")
+  strip_spaces = [ (apostrophes[idx], apostrophes[idx+1])
+                   for idx in range(0, len(apostrophes), 2) ]
+  for idx1, idx2 in strip_spaces:
+    mcmini_args = mcmini_args[:idx1] + \
+             mcmini_args[idx1:idx2].replace(" ", ",").replace(",,", ",") + \
+             mcmini_args[idx2:]
+
   mcmini_args = mcmini_args.split()
   # Strip "'" if it surrounds an arg with no spaces:
   for i in range(len(mcmini_args)):
-    if len(mcmini_args[i].strip("'"))+2 == len(mcmini_args[i]):
+    if " " not in mcmini_args[i] and \
+       len(mcmini_args[i].strip("'"))+2 == len(mcmini_args[i]):
       mcmini_args[i] = mcmini_args[i].strip("'")
-  # Now, rejoin the edited words in mcmini_args
+
   def delete_one(elt, args):
     if len([1 for arg in args if arg == elt]) > 1:
       args[args.index(elt)] = ""
@@ -133,12 +151,13 @@ if "-p0" not in mcmini_args.split() and "'-p' '0'" not in mcmini_args:
   delete_one("-v", mcmini_args)
   # Remove any old prefixes: '-p0', '-p 0', '-p 0,0, ...', etc.
   tmp = [idx for idx, line in enumerate(mcmini_args)
-                 if line.startswith("-p")]
+             if line.startswith("-p")]
   for idx in tmp:
     if mcmini_args[idx] in ["-p", "--print-at-trace"]:
       mcmini_args[idx+1] = "" # "-p" takes an argumnet; Remove next word
     mcmini_args[idx] = ""
 
+  # Now, rejoin the edited words in mcmini_args
   mcmini_args = ' '.join([arg for arg in mcmini_args if arg != ""])
   mcmini_args = insert_extra(mcmini_args, extra_args)
   print("** Running: " + exec_file + "-gdb " + mcmini_args)
