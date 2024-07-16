@@ -106,7 +106,7 @@ const size_t shmAllocationSize =
   (sizeof(*shmTransitionTypeInfo) + MAX_SHARED_MEMORY_ALLOCATION);
 
 /* Program state */
-MCDeferred<MCStack> programState;
+MCStack *programState;
 
 void
 alarm_handler(int sig)
@@ -161,8 +161,10 @@ mcmini_main()
 void
 mc_create_global_state_object()
 {
-  auto config = get_config_for_execution_environment();
-  programState.Construct(config);
+  MCStackConfiguration config = get_config_for_execution_environment();
+  // FIXME:  MCStack is supposed to be a singleton class.
+  //         So, change programState to type MCStack, and make it singleton
+  programState = new MCStack(config);
   programState->registerVisibleOperationType(typeid(MCThreadStart),
                                              &MCReadThreadStart);
   programState->registerVisibleOperationType(typeid(MCThreadCreate),
