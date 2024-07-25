@@ -2865,7 +2865,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
 
-ac_config_headers="$ac_config_headers include/mcmini/config.h"
+ac_config_headers="$ac_config_headers include/config.h"
 
 
 # Checks for programs.
@@ -6132,7 +6132,7 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "include/mcmini/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/mcmini/config.h" ;;
+    "include/config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/config.h" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "mcmini-gdb") CONFIG_FILES="$CONFIG_FILES mcmini-gdb" ;;
 
