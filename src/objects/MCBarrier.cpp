@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCBarrier.h"
+#include "objects/MCBarrier.h"
 
 MCSystemID
 MCBarrier::getSystemId()

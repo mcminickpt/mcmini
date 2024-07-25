@@ -1,5 +1,5 @@
-#include "mcmini/transitions/rwlock/MCRWLockWriterEnqueue.h"
-#include "mcmini/mcmini_private.h"
+#include "transitions/rwlock/MCRWLockWriterEnqueue.h"
+#include "mcmini_private.h"
 
 using namespace std;
 

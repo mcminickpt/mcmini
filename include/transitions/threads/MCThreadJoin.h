@@ -1,8 +1,8 @@
 #ifndef MC_MCTHREADJOIN_H
 #define MC_MCTHREADJOIN_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/transitions/threads/MCThreadTransition.h"
+#include "MCShared.h"
+#include "transitions/threads/MCThreadTransition.h"
 
 MCTransition *MCReadThreadJoin(const MCSharedTransition *, void *,
                                MCStack *);

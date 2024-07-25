@@ -1,6 +1,6 @@
-#include "mcmini/transitions/rwlock/MCRWLockReaderLock.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/transitions/rwlock/MCRWLockWriterLock.h"
+#include "transitions/rwlock/MCRWLockReaderLock.h"
+#include "mcmini_private.h"
+#include "transitions/rwlock/MCRWLockWriterLock.h"
 #include <pthread.h>
 #include <string.h>
 #include <sys/uio.h> /* For process_vm_readv() */

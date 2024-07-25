@@ -1,16 +1,16 @@
-#include "mcmini/transitions/wrappers/MCThreadTransitionWrappers.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/objects/MCThread.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/misc/MCAbortTransition.h"
-#include "mcmini/transitions/misc/MCExitTransition.h"
-#include "mcmini/transitions/threads/MCThreadCreate.h"
-#include "mcmini/transitions/threads/MCThreadFinish.h"
-#include "mcmini/transitions/threads/MCThreadJoin.h"
+#include "transitions/wrappers/MCThreadTransitionWrappers.h"
+#include "mcmini_private.h"
+#include "objects/MCThread.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/misc/MCAbortTransition.h"
+#include "transitions/misc/MCExitTransition.h"
+#include "transitions/threads/MCThreadCreate.h"
+#include "transitions/threads/MCThreadFinish.h"
+#include "transitions/threads/MCThreadJoin.h"
 #include <typeinfo>
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 struct mc_thread_routine_arg {

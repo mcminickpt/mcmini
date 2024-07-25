@@ -1,12 +1,12 @@
-#include "mcmini/transitions/wrappers/MCSemaphoreTransitionWrappers.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/semaphore/MCSemEnqueue.h"
-#include "mcmini/transitions/semaphore/MCSemInit.h"
-#include "mcmini/transitions/semaphore/MCSemPost.h"
-#include "mcmini/transitions/semaphore/MCSemWait.h"
+#include "transitions/wrappers/MCSemaphoreTransitionWrappers.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/semaphore/MCSemEnqueue.h"
+#include "transitions/semaphore/MCSemInit.h"
+#include "transitions/semaphore/MCSemPost.h"
+#include "transitions/semaphore/MCSemWait.h"
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 int

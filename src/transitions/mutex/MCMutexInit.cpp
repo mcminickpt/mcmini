@@ -1,5 +1,5 @@
-#include "mcmini/transitions/mutex/MCMutexInit.h"
-#include "mcmini/mcmini_private.h"
+#include "transitions/mutex/MCMutexInit.h"
+#include "mcmini_private.h"
 
 MCTransition *
 MCReadMutexInit(const MCSharedTransition *shmTransition,

@@ -1,7 +1,7 @@
-#include "mcmini/transitions/cond/MCCondSignal.h"
-#include "mcmini/mcmini_private.h" /* For trace_pid, and state */
-#include "mcmini/transitions/mutex/MCMutexTransition.h"
-#include "mcmini/misc/cond/MCConditionVariableArbitraryPolicy.hpp"
+#include "transitions/cond/MCCondSignal.h"
+#include "mcmini_private.h" /* For trace_pid, and state */
+#include "transitions/mutex/MCMutexTransition.h"
+#include "misc/cond/MCConditionVariableArbitraryPolicy.hpp"
 #include <pthread.h>
 #include <string.h>
 #include <sys/uio.h> /* For process_vm_readv() */

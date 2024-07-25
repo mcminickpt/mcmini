@@ -1,7 +1,7 @@
 #ifndef MC_MCTHREADFINISH_H
 #define MC_MCTHREADFINISH_H
 
-#include "mcmini/transitions/threads/MCThreadTransition.h"
+#include "transitions/threads/MCThreadTransition.h"
 
 MCTransition *
 MCReadThreadFinish(const MCSharedTransition *shmTransition,

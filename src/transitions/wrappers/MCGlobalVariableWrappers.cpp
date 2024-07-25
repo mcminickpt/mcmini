@@ -1,10 +1,10 @@
-#include "mcmini/transitions/wrappers/MCGlobalVariableWrappers.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/misc/MCGlobalVariableRead.h"
-#include "mcmini/transitions/misc/MCGlobalVariableWrite.h"
+#include "transitions/wrappers/MCGlobalVariableWrappers.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/misc/MCGlobalVariableRead.h"
+#include "transitions/misc/MCGlobalVariableWrite.h"
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 void *

@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEORDEREDPOLICY_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEORDEREDPOLICY_HPP
 
-#include "mcmini/misc/cond/MCConditionVariableSingleGroupPolicy.hpp"
+#include "misc/cond/MCConditionVariableSingleGroupPolicy.hpp"
 
 namespace mcmini {
 

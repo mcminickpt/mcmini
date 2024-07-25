@@ -1,7 +1,7 @@
 #ifndef MC_MCGLOBALVARIABLEREAD_H
 #define MC_MCGLOBALVARIABLEREAD_H
 
-#include "mcmini/transitions/misc/MCGlobalVariableTransition.h"
+#include "transitions/misc/MCGlobalVariableTransition.h"
 
 MCTransition *MCReadGlobalRead(const MCSharedTransition *, void *,
                                MCStack *);

@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCMutex.h"
+#include "objects/MCMutex.h"
 
 bool
 MCMutex::operator==(const MCMutex &other) const

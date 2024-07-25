@@ -1,8 +1,8 @@
 #ifndef MC_MCOBJECTSTORE_H
 #define MC_MCOBJECTSTORE_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/objects/MCVisibleObject.h"
+#include "MCShared.h"
+#include "objects/MCVisibleObject.h"
 #include <memory>
 #include <string.h>
 #include <unordered_map>

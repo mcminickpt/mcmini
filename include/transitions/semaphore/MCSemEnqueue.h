@@ -1,7 +1,7 @@
 #ifndef MC_MCSEMENQUEUE_H
 #define MC_MCSEMENQUEUE_H
 
-#include "mcmini/transitions/semaphore/MCSemaphoreTransition.h"
+#include "transitions/semaphore/MCSemaphoreTransition.h"
 
 MCTransition *MCReadSemEnqueue(const MCSharedTransition *, void *,
                                MCStack *);

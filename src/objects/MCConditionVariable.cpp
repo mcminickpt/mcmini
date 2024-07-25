@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCConditionVariable.h"
+#include "objects/MCConditionVariable.h"
 #include <algorithm>
 
 std::shared_ptr<MCVisibleObject>

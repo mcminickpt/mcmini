@@ -1,9 +1,9 @@
 #ifndef MC_MCTRANSITIONFACTORY_H
 #define MC_MCTRANSITIONFACTORY_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/MCTransition.h"
-#include "mcmini/transitions/threads/MCThreadStart.h"
+#include "MCShared.h"
+#include "MCTransition.h"
+#include "transitions/threads/MCThreadStart.h"
 
 namespace mcmini {
 

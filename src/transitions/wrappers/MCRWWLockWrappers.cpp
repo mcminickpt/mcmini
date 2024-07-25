@@ -1,9 +1,9 @@
-#include "mcmini/objects/MCRWWLock.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/wrappers/MCRWLockWrappers.h"
+#include "objects/MCRWWLock.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/wrappers/MCRWLockWrappers.h"
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 int

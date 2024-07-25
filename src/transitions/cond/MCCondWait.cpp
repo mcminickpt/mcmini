@@ -1,8 +1,8 @@
-#include "mcmini/transitions/cond/MCCondWait.h"
-#include "mcmini/MCTransitionFactory.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/transitions/mutex/MCMutexLock.h"
-#include "mcmini/transitions/mutex/MCMutexTransition.h"
+#include "transitions/cond/MCCondWait.h"
+#include "MCTransitionFactory.h"
+#include "mcmini_private.h"
+#include "transitions/mutex/MCMutexLock.h"
+#include "transitions/mutex/MCMutexTransition.h"
 
 MCTransition *
 MCReadCondWait(const MCSharedTransition *shmTransition, void *shmData,

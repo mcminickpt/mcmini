@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEPOLICY_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEPOLICY_HPP
 
-#include "mcmini/MCShared.h"
-#include "mcmini/misc/cond/MCWakeGroup.hpp"
+#include "MCShared.h"
+#include "misc/cond/MCWakeGroup.hpp"
 
 #include <exception>
 #include <memory>

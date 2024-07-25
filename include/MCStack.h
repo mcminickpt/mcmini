@@ -8,16 +8,16 @@ struct MCStackItem;
 typedef MCTransition *(*MCSharedMemoryHandler)(
   const MCSharedTransition *, void *, MCStack *);
 
-#include "mcmini/MCClockVector.hpp"
-#include "mcmini/MCObjectStore.h"
-#include "mcmini/MCShared.h"
-#include "mcmini/MCSharedTransition.h"
-#include "mcmini/MCStackConfiguration.h"
-#include "mcmini/MCStackItem.h"
-#include "mcmini/MCThreadData.hpp"
-#include "mcmini/misc/MCSortedStack.hpp"
-#include "mcmini/misc/MCTypes.hpp"
-#include "mcmini/objects/MCThread.h"
+#include "MCClockVector.hpp"
+#include "MCObjectStore.h"
+#include "MCShared.h"
+#include "MCSharedTransition.h"
+#include "MCStackConfiguration.h"
+#include "MCStackItem.h"
+#include "MCThreadData.hpp"
+#include "misc/MCSortedStack.hpp"
+#include "misc/MCTypes.hpp"
+#include "objects/MCThread.h"
 
 #include <stack>
 #include <unordered_map>

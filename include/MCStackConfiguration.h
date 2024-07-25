@@ -1,7 +1,7 @@
 #ifndef MC_MCSTATECONFIGURATION_H
 #define MC_MCSTATECONFIGURATION_H
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 
 /**
  * A configuration constant which specifies that threads

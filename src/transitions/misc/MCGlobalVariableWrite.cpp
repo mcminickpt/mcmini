@@ -1,5 +1,5 @@
-#include "mcmini/transitions/misc/MCGlobalVariableWrite.h"
-#include "mcmini/mcmini_private.h"  /* For mcprintf() */
+#include "transitions/misc/MCGlobalVariableWrite.h"
+#include "mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadGlobalWrite(const MCSharedTransition *shmTransition,

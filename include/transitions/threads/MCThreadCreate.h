@@ -1,8 +1,8 @@
 #ifndef MC_MCTHREADCREATE_H
 #define MC_MCTHREADCREATE_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/transitions/threads/MCThreadTransition.h"
+#include "MCShared.h"
+#include "transitions/threads/MCThreadTransition.h"
 
 MCTransition *MCReadThreadCreate(const MCSharedTransition *, void *,
                                  MCStack *);

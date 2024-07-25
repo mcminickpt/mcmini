@@ -1,8 +1,8 @@
 #ifndef MC_MCGLOBALVARIABLETRANSITION_H
 #define MC_MCGLOBALVARIABLETRANSITION_H
 
-#include "mcmini/MCTransition.h"
-#include "mcmini/objects/MCGlobalVariable.h"
+#include "MCTransition.h"
+#include "objects/MCGlobalVariable.h"
 
 struct MCGlobalVariableTransition : public MCTransition {
 public:

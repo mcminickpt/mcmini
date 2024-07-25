@@ -1,10 +1,10 @@
 #ifndef INCLUDE_MCMINI_OBJECTS_MCCONDITIONVARIABLE_HPP
 #define INCLUDE_MCMINI_OBJECTS_MCCONDITIONVARIABLE_HPP
 
-#include "mcmini/misc/MCOptional.h"
-#include "mcmini/misc/cond/MCConditionVariablePolicy.hpp"
-#include "mcmini/objects/MCMutex.h"
-#include "mcmini/objects/MCVisibleObject.h"
+#include "misc/MCOptional.h"
+#include "misc/cond/MCConditionVariablePolicy.hpp"
+#include "objects/MCMutex.h"
+#include "objects/MCVisibleObject.h"
 #include <deque>
 #include <vector>
 

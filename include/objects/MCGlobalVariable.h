@@ -1,7 +1,7 @@
 #ifndef MC_MCGLOBALVARIABLE_H
 #define MC_MCGLOBALVARIABLE_H
 
-#include "mcmini/objects/MCVisibleObject.h"
+#include "objects/MCVisibleObject.h"
 
 struct MCGlobalVariable : public MCVisibleObject {
 private:

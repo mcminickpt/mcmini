@@ -1,7 +1,7 @@
 #ifndef MC_MCSEMINIT_H
 #define MC_MCSEMINIT_H
 
-#include "mcmini/transitions/semaphore/MCSemaphoreTransition.h"
+#include "transitions/semaphore/MCSemaphoreTransition.h"
 
 MCTransition *MCReadSemInit(const MCSharedTransition *, void *,
                             MCStack *);

@@ -1,5 +1,5 @@
-#include "mcmini/transitions/semaphore/MCSemInit.h"
-#include "mcmini/mcmini_private.h"
+#include "transitions/semaphore/MCSemInit.h"
+#include "mcmini_private.h"
 
 MCTransition *
 MCReadSemInit(const MCSharedTransition *shmTransition, void *shmData,

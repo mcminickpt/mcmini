@@ -1,13 +1,13 @@
-#include "mcmini/transitions/wrappers/MCConditionVariableWrappers.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/cond/MCCondBroadcast.h"
-#include "mcmini/transitions/cond/MCCondEnqueue.h"
-#include "mcmini/transitions/cond/MCCondInit.h"
-#include "mcmini/transitions/cond/MCCondSignal.h"
-#include "mcmini/transitions/cond/MCCondWait.h"
+#include "transitions/wrappers/MCConditionVariableWrappers.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/cond/MCCondBroadcast.h"
+#include "transitions/cond/MCCondEnqueue.h"
+#include "transitions/cond/MCCondInit.h"
+#include "transitions/cond/MCCondSignal.h"
+#include "transitions/cond/MCCondWait.h"
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 int

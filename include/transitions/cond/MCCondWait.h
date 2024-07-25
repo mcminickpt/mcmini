@@ -1,7 +1,7 @@
 #ifndef MC_MCCONDWAIT_H
 #define MC_MCCONDWAIT_H
 
-#include "mcmini/transitions/cond/MCCondTransition.h"
+#include "transitions/cond/MCCondTransition.h"
 
 MCTransition *MCReadCondWait(const MCSharedTransition *, void *,
                              MCStack *);

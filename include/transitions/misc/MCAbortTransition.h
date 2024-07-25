@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_MISC_MCABORTTRANSITION_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_MISC_MCABORTTRANSITION_HPP
 
-#include "mcmini/MCTransition.h"
+#include "MCTransition.h"
 
 MCTransition *MCReadAbortTransition(const MCSharedTransition *,
                                     void *, MCStack *);

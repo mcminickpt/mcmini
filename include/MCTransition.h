@@ -1,9 +1,9 @@
 #ifndef MC_MCTRANSITION_H
 #define MC_MCTRANSITION_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/MCStack.h"
-#include "mcmini/objects/MCThread.h"
+#include "MCShared.h"
+#include "MCStack.h"
+#include "objects/MCThread.h"
 #include <memory>
 #include <utility>
 

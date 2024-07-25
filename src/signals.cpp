@@ -1,5 +1,5 @@
-#include "mcmini/signals.h"
-#include "mcmini/mcmini_private.h"
+#include "signals.h"
+#include "mcmini_private.h"
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>

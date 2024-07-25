@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include "mcmini/MCCommon.h"
+#include "MCCommon.h"
 
 /* We want to allow GDB to temporarily set mcprintf_redirect to true,
  * so that mcprintf() does not immediately print to stdout.

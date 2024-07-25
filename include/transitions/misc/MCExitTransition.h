@@ -1,7 +1,7 @@
 #ifndef MC_MCEXITTRANSITION_H
 #define MC_MCEXITTRANSITION_H
 
-#include "mcmini/MCTransition.h"
+#include "MCTransition.h"
 
 MCTransition *MCReadExitTransition(const MCSharedTransition *, void *,
                                    MCStack *);

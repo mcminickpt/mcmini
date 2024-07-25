@@ -1,8 +1,8 @@
 #ifndef MC_MCBARRIERTRANSITION_H
 #define MC_MCBARRIERTRANSITION_H
 
-#include "mcmini/MCTransition.h"
-#include "mcmini/objects/MCBarrier.h"
+#include "MCTransition.h"
+#include "objects/MCBarrier.h"
 
 struct MCBarrierTransition : public MCTransition {
 public:

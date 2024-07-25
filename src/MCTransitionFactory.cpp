@@ -1,6 +1,6 @@
-#include "mcmini/MCTransitionFactory.h"
-#include "mcmini/transitions/threads/MCThreadCreate.h"
-#include "mcmini/transitions/threads/MCThreadJoin.h"
+#include "MCTransitionFactory.h"
+#include "transitions/threads/MCThreadCreate.h"
+#include "transitions/threads/MCThreadJoin.h"
 
 std::shared_ptr<MCTransition>
 MCTransitionFactory::createInitialTransitionForThread(

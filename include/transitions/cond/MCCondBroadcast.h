@@ -1,7 +1,7 @@
 #ifndef MC_MCCONDBROADCAST_H
 #define MC_MCCONDBROADCAST_H
 
-#include "mcmini/transitions/cond/MCCondTransition.h"
+#include "transitions/cond/MCCondTransition.h"
 
 MCTransition *MCReadCondBroadcast(const MCSharedTransition *, void *,
                                   MCStack *);

@@ -9,9 +9,9 @@
 #include <vector>
 
 extern "C" {
-#include "mcmini/MCCommon.h"
+#include "MCCommon.h"
 }
-#include "mcmini/mcmini_private.h"
+#include "mcmini_private.h"
 
 using namespace std;
 

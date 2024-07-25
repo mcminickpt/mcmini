@@ -1,4 +1,4 @@
-#include "mcmini/MCSharedTransition.h"
+#include "MCSharedTransition.h"
 #include <cstring>
 
 void

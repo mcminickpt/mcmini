@@ -1,4 +1,4 @@
-#include "mcmini/misc/cond/MCConditionVariableGLibcPolicy.hpp"
+#include "misc/cond/MCConditionVariableGLibcPolicy.hpp"
 #include <algorithm>
 
 namespace mcmini {

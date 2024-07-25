@@ -1,9 +1,9 @@
 #ifndef INCLUDE_MCMINI_OBJECTS_MCRWWLOCK_HPP
 #define INCLUDE_MCMINI_OBJECTS_MCRWWLOCK_HPP
 
-#include "mcmini/export/rwwlock.h"
-#include "mcmini/misc/MCOptional.h"
-#include "mcmini/objects/MCVisibleObject.h"
+#include "export/rwwlock.h"
+#include "misc/MCOptional.h"
+#include "objects/MCVisibleObject.h"
 #include <pthread.h>
 #include <queue>
 #include <unordered_set>

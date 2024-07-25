@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "mcmini/export/rwwlock.h"
-#include "mcmini/mcmini.h"
+#include "export/rwwlock.h"
+#include "mcmini.h"
 
 #define NUM_READERS 2
 #define NUM_WRITERS 1

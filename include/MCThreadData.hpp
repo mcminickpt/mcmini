@@ -1,8 +1,8 @@
 #ifndef MC_MCTHREADDATA_H
 #define MC_MCTHREADDATA_H
 
-#include "mcmini/MCClockVector.hpp"
-#include "mcmini/misc/MCSortedStack.hpp"
+#include "MCClockVector.hpp"
+#include "misc/MCSortedStack.hpp"
 #include <stack>
 #include <stdint.h>
 #include <vector>

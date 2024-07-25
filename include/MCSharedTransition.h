@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_MCSHAREDTRANSITION_HPP
 #define INCLUDE_MCMINI_MCSHAREDTRANSITION_HPP
 
-#include "mcmini/MCShared.h"
-#include "mcmini/MCTransition.h"
+#include "MCShared.h"
+#include "MCTransition.h"
 
 struct MCSharedTransition {
 public:

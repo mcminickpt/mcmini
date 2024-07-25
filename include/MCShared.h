@@ -7,7 +7,7 @@
 #include <assert.h>
 #endif
 
-#include "mcmini/MCConstants.h"
+#include "MCConstants.h"
 
 typedef uint64_t objid_t;
 typedef void *MCSystemID;
