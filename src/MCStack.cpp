@@ -1,8 +1,8 @@
 #include <errno.h>
 #include <unistd.h>
-#include "mcmini/MCStack.h"
-#include "mcmini/MCTransitionFactory.h"
-#include "mcmini/transitions/threads/MCThreadFinish.h"
+#include "MCStack.h"
+#include "MCTransitionFactory.h"
+#include "transitions/threads/MCThreadFinish.h"
 #include <algorithm>
 #include <memory>
 #include <unordered_set>
