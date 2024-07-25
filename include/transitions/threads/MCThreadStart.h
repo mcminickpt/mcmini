@@ -1,8 +1,8 @@
 #ifndef MC_MCTHREADSTART_H
 #define MC_MCTHREADSTART_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/transitions/threads/MCThreadTransition.h"
+#include "MCShared.h"
+#include "transitions/threads/MCThreadTransition.h"
 
 MCTransition *MCReadThreadStart(const MCSharedTransition *, void *,
                                 MCStack *);

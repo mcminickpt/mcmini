@@ -1,7 +1,7 @@
 #ifndef MC_MCGLOBALVARIABLEWRITE_H
 #define MC_MCGLOBALVARIABLEWRITE_H
 
-#include "mcmini/transitions/misc/MCGlobalVariableTransition.h"
+#include "transitions/misc/MCGlobalVariableTransition.h"
 
 MCTransition *MCReadGlobalWrite(const MCSharedTransition *, void *,
                                 MCStack *);

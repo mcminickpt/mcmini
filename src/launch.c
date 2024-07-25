@@ -4,7 +4,7 @@
  * ensuring that libmcmini.so is preloadaed
 */
 
-#include "mcmini/MCEnv.h"
+#include "MCEnv.h"
 #include <assert.h>
 #include <ctype.h>
 #include <libgen.h>
@@ -13,7 +13,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "mcmini/config.h"
+#include "config.h"
 
 int
 main(int argc, char *argv[])

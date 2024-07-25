@@ -1,6 +1,6 @@
-#include "mcmini/transitions/cond/MCCondInit.h"
-#include "mcmini/misc/cond/MCConditionVariableArbitraryPolicy.hpp"
-#include "mcmini/mcmini_private.h"
+#include "transitions/cond/MCCondInit.h"
+#include "misc/cond/MCConditionVariableArbitraryPolicy.hpp"
+#include "mcmini_private.h"
 #include <pthread.h>
 #include <string.h>
 #include <sys/uio.h> /* For process_vm_readv() */

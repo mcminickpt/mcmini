@@ -1,8 +1,8 @@
 #ifndef MC_MCTHREAD_H
 #define MC_MCTHREAD_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/objects/MCVisibleObject.h"
+#include "MCShared.h"
+#include "objects/MCVisibleObject.h"
 #include <memory>
 #include <pthread.h>
 

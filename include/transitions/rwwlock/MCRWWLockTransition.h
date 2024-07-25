@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_RWWLOCK_MCRWWLOCKTRANSITION_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_RWWLOCK_MCRWWLOCKTRANSITION_HPP
 
-#include "mcmini/MCTransition.h"
-#include "mcmini/objects/MCRWWLock.h"
+#include "MCTransition.h"
+#include "objects/MCRWWLock.h"
 
 struct MCRWWLockTransition : public MCTransition {
 public:

@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCCONDITIONVARIABLEWRAPPERS_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCCONDITIONVARIABLEWRAPPERS_HPP
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 #include <pthread.h>
 
 MC_EXTERN int mc_pthread_cond_init(pthread_cond_t *,

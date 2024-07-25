@@ -4,7 +4,7 @@
 class MCStack;
 class MCObjectStore;
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 #include <memory>
 
 class MCVisibleObject {

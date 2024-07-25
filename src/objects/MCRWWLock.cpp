@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCRWWLock.h"
+#include "objects/MCRWWLock.h"
 #include <algorithm>
 
 using namespace std;

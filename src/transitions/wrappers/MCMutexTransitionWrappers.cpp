@@ -1,11 +1,11 @@
-#include "mcmini/transitions/wrappers/MCMutexTransitionWrappers.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/mutex/MCMutexInit.h"
-#include "mcmini/transitions/mutex/MCMutexLock.h"
-#include "mcmini/transitions/mutex/MCMutexUnlock.h"
+#include "transitions/wrappers/MCMutexTransitionWrappers.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/mutex/MCMutexInit.h"
+#include "transitions/mutex/MCMutexLock.h"
+#include "transitions/mutex/MCMutexUnlock.h"
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 int

@@ -1,7 +1,7 @@
 #ifndef MC_MCMUTEXINIT_H
 #define MC_MCMUTEXINIT_H
 
-#include "mcmini/transitions/mutex/MCMutexTransition.h"
+#include "transitions/mutex/MCMutexTransition.h"
 
 MCTransition *MCReadMutexInit(const MCSharedTransition *, void *,
                               MCStack *);

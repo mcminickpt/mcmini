@@ -1,5 +1,5 @@
-#include "mcmini/transitions/threads/MCThreadCreate.h"
-#include "mcmini/mcmini_private.h"  /* For mcprintf() */
+#include "transitions/threads/MCThreadCreate.h"
+#include "mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadThreadCreate(const MCSharedTransition *shmTransition,

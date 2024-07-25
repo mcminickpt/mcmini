@@ -1,8 +1,8 @@
 #ifndef MC_MCMUTEXTRANSITION_H
 #define MC_MCMUTEXTRANSITION_H
 
-#include "mcmini/MCTransition.h"
-#include "mcmini/objects/MCMutex.h"
+#include "MCTransition.h"
+#include "objects/MCMutex.h"
 
 struct MCMutexTransition : public MCTransition {
 public:

@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCSemaphore.h"
+#include "objects/MCSemaphore.h"
 #include <algorithm>
 
 MCSystemID

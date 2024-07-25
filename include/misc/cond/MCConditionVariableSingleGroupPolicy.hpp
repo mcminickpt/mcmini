@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLESINGLEGROUPPOLICY_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLESINGLEGROUPPOLICY_HPP
 
-#include "mcmini/misc/cond/MCConditionVariableDefaultPolicy.hpp"
+#include "misc/cond/MCConditionVariableDefaultPolicy.hpp"
 
 #include <deque>
 

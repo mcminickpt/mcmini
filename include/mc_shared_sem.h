@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_MC_SHARED_SEM_HPP
 #define INCLUDE_MCMINI_MC_SHARED_SEM_HPP
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 #include <semaphore.h>
 
 // NOTE: We have a semaphore pair for each thread.  trace_sleep_list

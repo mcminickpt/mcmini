@@ -1,4 +1,4 @@
-#include "mcmini/MCObjectStore.h"
+#include "MCObjectStore.h"
 
 void
 MCObjectStore::resetObjectsToInitialStateInStore()

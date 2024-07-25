@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCVisibleObject.h"
+#include "objects/MCVisibleObject.h"
 
 objid_t
 MCVisibleObject::getObjectId() const

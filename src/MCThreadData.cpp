@@ -1,4 +1,4 @@
-#include "mcmini/MCThreadData.hpp"
+#include "MCThreadData.hpp"
 
 uint32_t
 MCThreadData::getExecutionDepth() const

@@ -1,7 +1,7 @@
 #ifndef MC_MCBARRIER_H
 #define MC_MCBARRIER_H
 
-#include "mcmini/objects/MCVisibleObject.h"
+#include "objects/MCVisibleObject.h"
 #include <unordered_set>
 
 struct MCBarrierShadow {

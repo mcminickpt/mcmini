@@ -1,4 +1,4 @@
-#include "mcmini/transitions/MCTransitionsShared.h"
+#include "transitions/MCTransitionsShared.h"
 
 // NOTE: Assumes that the parent process
 // is asleep (called dpor_run_thread_to_next_visible_operation); the

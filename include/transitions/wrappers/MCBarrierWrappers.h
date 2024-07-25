@@ -1,7 +1,7 @@
 #ifndef MC_MCBARRIERWRAPPERS_H
 #define MC_MCBARRIERWRAPPERS_H
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 #include <pthread.h>
 
 MC_EXTERN int mc_pthread_barrier_init(pthread_barrier_t *,

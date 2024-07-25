@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCWAKEGROUP_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCWAKEGROUP_HPP
 
-#include "mcmini/MCShared.h"
-#include "mcmini/misc/MCOptional.h"
+#include "MCShared.h"
+#include "misc/MCOptional.h"
 
 #include <initializer_list>
 #include <set>

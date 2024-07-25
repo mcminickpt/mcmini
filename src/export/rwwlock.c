@@ -1,4 +1,4 @@
-#include "mcmini/export/rwwlock.h"
+#include "export/rwwlock.h"
 
 // This proves that McMini behaves as an emulator:
 // A user can link this code into the target application.  We don't even need

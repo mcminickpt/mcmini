@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCGlobalVariable.h"
+#include "objects/MCGlobalVariable.h"
 
 bool
 MCGlobalVariable::operator==(const MCGlobalVariable &other) const

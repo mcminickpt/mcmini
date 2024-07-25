@@ -1,17 +1,17 @@
 #ifndef INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 #define INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 
-#include "mcmini/config.h"
-#include "mcmini/MCDeferred.h"
-#include "mcmini/MCShared.h"
-#include "mcmini/MCSharedTransition.h"
-#include "mcmini/MCStack.h"
-#include "mcmini/mcmini_wrappers.h"
+#include "config.h"
+#include "MCDeferred.h"
+#include "MCShared.h"
+#include "MCSharedTransition.h"
+#include "MCStack.h"
+#include "mcmini_wrappers.h"
 
 extern "C" {
-#include "mcmini/MCCommon.h"
-#include "mcmini/MCEnv.h"
-#include "mcmini/mc_shared_sem.h"
+#include "MCCommon.h"
+#include "MCEnv.h"
+#include "mc_shared_sem.h"
 }
 
 /**

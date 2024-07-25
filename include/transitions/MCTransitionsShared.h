@@ -1,21 +1,21 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_MCTRANSITIONSSHARED_HPP
 
-#include "mcmini/MCShared.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/transitions/barrier/MCBarrierDefs.h"
-#include "mcmini/transitions/cond/MCCondDefs.h"
-#include "mcmini/transitions/misc/MCMiscDefs.h"
-#include "mcmini/transitions/mutex/MCMutexDefs.h"
-#include "mcmini/transitions/rwlock/MCRWLockDefs.h"
-#include "mcmini/transitions/rwwlock/MCRWWLockDefs.h"
-#include "mcmini/transitions/semaphore/MCSemaphoreDefs.h"
-#include "mcmini/transitions/threads/MCThreadDefs.h"
+#include "MCShared.h"
+#include "mcmini_private.h"
+#include "transitions/barrier/MCBarrierDefs.h"
+#include "transitions/cond/MCCondDefs.h"
+#include "transitions/misc/MCMiscDefs.h"
+#include "transitions/mutex/MCMutexDefs.h"
+#include "transitions/rwlock/MCRWLockDefs.h"
+#include "transitions/rwwlock/MCRWWLockDefs.h"
+#include "transitions/semaphore/MCSemaphoreDefs.h"
+#include "transitions/threads/MCThreadDefs.h"
 #include <pthread.h>
 #include <typeinfo>
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 /* Source program thread control */

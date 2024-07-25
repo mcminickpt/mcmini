@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_OBJECTS_MCRWLOCK_HPP
 #define INCLUDE_MCMINI_OBJECTS_MCRWLOCK_HPP
 
-#include "mcmini/misc/MCOptional.h"
-#include "mcmini/objects/MCVisibleObject.h"
+#include "misc/MCOptional.h"
+#include "objects/MCVisibleObject.h"
 #include <pthread.h>
 #include <queue>
 #include <unordered_set>

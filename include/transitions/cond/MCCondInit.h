@@ -1,7 +1,7 @@
 #ifndef MC_MCCONDINIT_H
 #define MC_MCCONDINIT_H
 
-#include "mcmini/transitions/cond/MCCondTransition.h"
+#include "transitions/cond/MCCondTransition.h"
 
 MCTransition *MCReadCondInit(const MCSharedTransition *, void *,
                              MCStack *);

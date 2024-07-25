@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEDEFAULTPOLICY_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCCONDITIONVARIABLEDEFAULTPOLICY_HPP
 
-#include "mcmini/misc/cond/MCConditionVariablePolicy.hpp"
-#include "mcmini/misc/cond/MCWakeGroup.hpp"
+#include "misc/cond/MCConditionVariablePolicy.hpp"
+#include "misc/cond/MCWakeGroup.hpp"
 
 #include <deque>
 #include <unordered_set>

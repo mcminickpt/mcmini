@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCSEMAPHORETRANSITIONWRAPPERS_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_WRAPPERS_MCSEMAPHORETRANSITIONWRAPPERS_HPP
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 #include <semaphore.h>
 
 MC_EXTERN int mc_sem_init(sem_t *, int, unsigned int);

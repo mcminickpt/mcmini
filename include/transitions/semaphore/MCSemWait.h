@@ -1,7 +1,7 @@
 #ifndef MC_MCSEMWAIT_H
 #define MC_MCSEMWAIT_H
 
-#include "mcmini/transitions/semaphore/MCSemaphoreTransition.h"
+#include "transitions/semaphore/MCSemaphoreTransition.h"
 
 MCTransition *MCReadSemWait(const MCSharedTransition *, void *,
                             MCStack *);

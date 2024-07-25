@@ -1,6 +1,6 @@
-#include "mcmini/transitions/mutex/MCMutexUnlock.h"
-#include "mcmini/MCTransitionFactory.h"
-#include "mcmini/mcmini_private.h"
+#include "transitions/mutex/MCMutexUnlock.h"
+#include "MCTransitionFactory.h"
+#include "mcmini_private.h"
 
 MCTransition *
 MCReadMutexUnlock(const MCSharedTransition *shmTransition,

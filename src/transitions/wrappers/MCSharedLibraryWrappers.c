@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
-#include "mcmini/mcmini_wrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "mcmini_wrappers.h"
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;

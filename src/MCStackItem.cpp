@@ -1,4 +1,4 @@
-#include "mcmini/MCStackItem.h"
+#include "MCStackItem.h"
 #include <algorithm>
 using namespace std;
 

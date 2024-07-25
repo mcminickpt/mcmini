@@ -1,7 +1,7 @@
-#include "mcmini/transitions/mutex/MCMutexLock.h"
-#include "mcmini/transitions/mutex/MCMutexUnlock.h"
-#include "mcmini/transitions/threads/MCThreadCreate.h"
-#include "mcmini/mcmini_private.h" /* For trace_pid, and state */
+#include "transitions/mutex/MCMutexLock.h"
+#include "transitions/mutex/MCMutexUnlock.h"
+#include "transitions/threads/MCThreadCreate.h"
+#include "mcmini_private.h" /* For trace_pid, and state */
 #include <pthread.h>
 #include <string.h>
 #include <memory>

@@ -1,9 +1,9 @@
-#include "mcmini/transitions/cond/MCCondEnqueue.h"
-#include "mcmini/MCTransitionFactory.h"
-#include "mcmini/mcmini_private.h" /* For trace_pid, and state */
-#include "mcmini/transitions/mutex/MCMutexTransition.h"
-#include "mcmini/transitions/mutex/MCMutexUnlock.h"
-#include "mcmini/misc/cond/MCConditionVariableArbitraryPolicy.hpp"
+#include "transitions/cond/MCCondEnqueue.h"
+#include "MCTransitionFactory.h"
+#include "mcmini_private.h" /* For trace_pid, and state */
+#include "transitions/mutex/MCMutexTransition.h"
+#include "transitions/mutex/MCMutexUnlock.h"
+#include "misc/cond/MCConditionVariableArbitraryPolicy.hpp"
 #include <pthread.h>
 #include <string.h>
 #include <sys/uio.h> /* For process_vm_readv() */

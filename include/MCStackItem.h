@@ -1,9 +1,9 @@
 #ifndef MC_MCSTATESTACKITEM_H
 #define MC_MCSTATESTACKITEM_H
 
-#include "mcmini/MCClockVector.hpp"
-#include "mcmini/MCShared.h"
-#include "mcmini/MCTransition.h"
+#include "MCClockVector.hpp"
+#include "MCShared.h"
+#include "MCTransition.h"
 #include <unordered_set>
 #include <utility>
 #include <vector>

@@ -1,7 +1,7 @@
 #ifndef MC_MCBARRIERWAIT_H
 #define MC_MCBARRIERWAIT_H
 
-#include "mcmini/transitions/barrier/MCBarrierTransition.h"
+#include "transitions/barrier/MCBarrierTransition.h"
 
 MCTransition *MCReadBarrierWait(const MCSharedTransition *, void *,
                                 MCStack *);

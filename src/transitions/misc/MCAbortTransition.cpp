@@ -1,5 +1,5 @@
-#include "mcmini/transitions/misc/MCAbortTransition.h"
-#include "mcmini/mcmini_private.h"  /* For mcprintf() */
+#include "transitions/misc/MCAbortTransition.h"
+#include "mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadAbortTransition(const MCSharedTransition *shmTransition,

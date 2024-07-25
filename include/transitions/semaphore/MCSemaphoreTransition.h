@@ -1,8 +1,8 @@
 #ifndef MC_MCSEMAPHORETRANSITION_H
 #define MC_MCSEMAPHORETRANSITION_H
 
-#include "mcmini/MCTransition.h"
-#include "mcmini/objects/MCSemaphore.h"
+#include "MCTransition.h"
+#include "objects/MCSemaphore.h"
 
 struct MCSemaphoreTransition : public MCTransition {
 public:

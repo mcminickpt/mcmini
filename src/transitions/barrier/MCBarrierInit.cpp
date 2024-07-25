@@ -1,5 +1,5 @@
-#include "mcmini/transitions/barrier/MCBarrierInit.h"
-#include "mcmini/mcmini_private.h"
+#include "transitions/barrier/MCBarrierInit.h"
+#include "mcmini_private.h"
 
 MCTransition *
 MCReadBarrierInit(const MCSharedTransition *shmTransition,

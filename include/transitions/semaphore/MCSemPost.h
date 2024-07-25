@@ -1,7 +1,7 @@
 #ifndef MC_MCSEMPOST_H
 #define MC_MCSEMPOST_H
 
-#include "mcmini/transitions/semaphore/MCSemaphoreTransition.h"
+#include "transitions/semaphore/MCSemaphoreTransition.h"
 
 MCTransition *MCReadSemPost(const MCSharedTransition *, void *,
                             MCStack *);

@@ -1,5 +1,5 @@
-#include "mcmini/mc_shared_sem.h"
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "mc_shared_sem.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 
 // PRETTY_PRINT_DEF_DECL(mc_shared_sem)
 

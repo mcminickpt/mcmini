@@ -1,7 +1,7 @@
 #ifndef MC_MCCONDSIGNAL_H
 #define MC_MCCONDSIGNAL_H
 
-#include "mcmini/transitions/cond/MCCondTransition.h"
+#include "transitions/cond/MCCondTransition.h"
 
 MCTransition *MCReadCondSignal(const MCSharedTransition *, void *,
                                MCStack *);

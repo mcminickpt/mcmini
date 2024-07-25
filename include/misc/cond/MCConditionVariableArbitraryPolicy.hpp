@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_MISC_COND_MCCONDVARARBITRARYWAKEUPPOLICY_HPP
 #define INCLUDE_MCMINI_MISC_COND_MCCONDVARARBITRARYWAKEUPPOLICY_HPP
 
-#include "mcmini/misc/cond/MCConditionVariableSingleGroupPolicy.hpp"
+#include "misc/cond/MCConditionVariableSingleGroupPolicy.hpp"
 
 namespace mcmini {
 

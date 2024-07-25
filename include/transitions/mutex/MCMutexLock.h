@@ -1,7 +1,7 @@
 #ifndef MC_MCMUTEXLOCK_H
 #define MC_MCMUTEXLOCK_H
 
-#include "mcmini/transitions/mutex/MCMutexTransition.h"
+#include "transitions/mutex/MCMutexTransition.h"
 
 MCTransition *MCReadMutexLock(const MCSharedTransition *, void *,
                               MCStack *);

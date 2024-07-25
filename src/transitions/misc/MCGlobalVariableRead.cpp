@@ -1,6 +1,6 @@
-#include "mcmini/transitions/misc/MCGlobalVariableRead.h"
-#include "mcmini/transitions/misc/MCGlobalVariableWrite.h"
-#include "mcmini/mcmini_private.h"  /* For mcprintf() */
+#include "transitions/misc/MCGlobalVariableRead.h"
+#include "transitions/misc/MCGlobalVariableWrite.h"
+#include "mcmini_private.h"  /* For mcprintf() */
 
 MCTransition *
 MCReadGlobalRead(const MCSharedTransition *shmTransition,

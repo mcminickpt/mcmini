@@ -1,4 +1,4 @@
-#include "mcmini/MCClockVector.hpp"
+#include "MCClockVector.hpp"
 
 using namespace std;
 

@@ -1,4 +1,4 @@
-#include "mcmini/objects/MCThread.h"
+#include "objects/MCThread.h"
 
 static_assert(MC_IS_TRIVIALLY_COPYABLE(MCThreadShadow),
               "The shared transition is not trivially copiable. "

@@ -1,6 +1,6 @@
-#include "mcmini/transitions/semaphore/MCSemPost.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/transitions/semaphore/MCSemInit.h"
+#include "transitions/semaphore/MCSemPost.h"
+#include "mcmini_private.h"
+#include "transitions/semaphore/MCSemInit.h"
 
 MCTransition *
 MCReadSemPost(const MCSharedTransition *shmTransition, void *shmData,

@@ -1,10 +1,10 @@
-#include "mcmini/transitions/wrappers/MCBarrierWrappers.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
-#include "mcmini/transitions/barrier/MCBarrierInit.h"
-#include "mcmini/transitions/barrier/MCBarrierWait.h"
+#include "transitions/wrappers/MCBarrierWrappers.h"
+#include "transitions/MCTransitionsShared.h"
+#include "transitions/barrier/MCBarrierInit.h"
+#include "transitions/barrier/MCBarrierWait.h"
 
 extern "C" {
-#include "mcmini/transitions/wrappers/MCSharedLibraryWrappers.h"
+#include "transitions/wrappers/MCSharedLibraryWrappers.h"
 }
 
 int

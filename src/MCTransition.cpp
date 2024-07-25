@@ -1,6 +1,6 @@
-#include "mcmini/MCTransition.h"
-#include "mcmini/MCStack.h"
-#include "mcmini/transitions/threads/MCThreadDefs.h"
+#include "MCTransition.h"
+#include "MCStack.h"
+#include "transitions/threads/MCThreadDefs.h"
 
 bool
 MCTransition::dependentTransitions(const MCTransition &t1,

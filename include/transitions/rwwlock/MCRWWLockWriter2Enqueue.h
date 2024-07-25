@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_RWWLOCK_MCRWWLOCKWRITER2ENQUEUE_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_RWWLOCK_MCRWWLOCKWRITER2ENQUEUE_HPP
 
-#include "mcmini/transitions/rwwlock/MCRWWLockTransition.h"
+#include "transitions/rwwlock/MCRWWLockTransition.h"
 
 MCTransition *MCReadRWWLockWriter2Enqueue(const MCSharedTransition *,
                                           void *, MCStack *);

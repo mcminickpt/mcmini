@@ -1,7 +1,7 @@
 #ifndef MC_MCTHREADTRANSITION_H
 #define MC_MCTHREADTRANSITION_H
 
-#include "mcmini/MCTransition.h"
+#include "MCTransition.h"
 
 struct MCThreadTransition : public MCTransition {
 protected:

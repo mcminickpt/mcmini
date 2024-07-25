@@ -1,7 +1,7 @@
 #ifndef INCLUDE_MCMINI_TRANSITIONS_RWLOCK_MCRWLOCKUNLOCK_HPP
 #define INCLUDE_MCMINI_TRANSITIONS_RWLOCK_MCRWLOCKUNLOCK_HPP
 
-#include "mcmini/transitions/rwlock/MCRWLockTransition.h"
+#include "transitions/rwlock/MCRWLockTransition.h"
 
 MCTransition *MCReadRWLockUnlock(const MCSharedTransition *, void *,
                                  MCStack *);

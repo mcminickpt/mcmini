@@ -1,7 +1,7 @@
 #ifndef MC_MCCONDENQUEUE_H
 #define MC_MCCONDENQUEUE_H
 
-#include "mcmini/transitions/cond/MCCondTransition.h"
+#include "transitions/cond/MCCondTransition.h"
 
 MCTransition *MCReadCondEnqueue(const MCSharedTransition *, void *,
                                 MCStack *);

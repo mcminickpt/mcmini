@@ -1,4 +1,4 @@
-#include "mcmini/misc/cond/MCWakeGroup.hpp"
+#include "misc/cond/MCWakeGroup.hpp"
 #include <algorithm>
 
 namespace mcmini {

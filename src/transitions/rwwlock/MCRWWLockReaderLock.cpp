@@ -1,7 +1,7 @@
-#include "mcmini/transitions/rwwlock/MCRWWLockReaderLock.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/transitions/rwwlock/MCRWWLockWriter1Lock.h"
-#include "mcmini/transitions/rwwlock/MCRWWLockWriter2Lock.h"
+#include "transitions/rwwlock/MCRWWLockReaderLock.h"
+#include "mcmini_private.h"
+#include "transitions/rwwlock/MCRWWLockWriter1Lock.h"
+#include "transitions/rwwlock/MCRWWLockWriter2Lock.h"
 
 MCTransition *
 MCReadRWWLockReaderLock(const MCSharedTransition *shmTransition,

@@ -1,8 +1,8 @@
 #ifndef MC_MCCLOCKVECTOR_H
 #define MC_MCCLOCKVECTOR_H
 
-#include "mcmini/MCShared.h"
-#include "mcmini/misc/MCOptional.h"
+#include "MCShared.h"
+#include "misc/MCOptional.h"
 #include <stdint.h>
 #include <unordered_map>
 #include <vector>

@@ -1,7 +1,7 @@
-#include "mcmini/transitions/semaphore/MCSemEnqueue.h"
-#include "mcmini/mcmini_private.h"
-#include "mcmini/transitions/semaphore/MCSemInit.h"
-#include "mcmini/transitions/semaphore/MCSemWait.h"
+#include "transitions/semaphore/MCSemEnqueue.h"
+#include "mcmini_private.h"
+#include "transitions/semaphore/MCSemInit.h"
+#include "transitions/semaphore/MCSemWait.h"
 
 MCTransition *
 MCReadSemEnqueue(const MCSharedTransition *shmTransition,

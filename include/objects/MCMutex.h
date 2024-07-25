@@ -1,8 +1,8 @@
 #ifndef INCLUDE_MCMINI_OBJECTS_MCMUTEX_HPP
 #define INCLUDE_MCMINI_OBJECTS_MCMUTEX_HPP
 
-#include "mcmini/misc/MCOptional.h"
-#include "mcmini/objects/MCVisibleObject.h"
+#include "misc/MCOptional.h"
+#include "objects/MCVisibleObject.h"
 
 struct MCMutexShadow {
   pthread_mutex_t *systemIdentity;

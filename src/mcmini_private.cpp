@@ -1,8 +1,8 @@
-#include "mcmini/mcmini_private.h"
-#include "mcmini/MCSharedTransition.h"
-#include "mcmini/MCTransitionFactory.h"
-#include "mcmini/signals.h"
-#include "mcmini/transitions/MCTransitionsShared.h"
+#include "mcmini_private.h"
+#include "MCSharedTransition.h"
+#include "MCTransitionFactory.h"
+#include "signals.h"
+#include "transitions/MCTransitionsShared.h"
 #include <vector>
 #include <sys/wait.h> // For waitpid
 #include <errno.h>    // For errno
@@ -10,7 +10,7 @@
 #include <iostream>   // For std::cerr
 
 extern "C" {
-#include "mcmini/mc_shared_sem.h"
+#include "mc_shared_sem.h"
 #include <cassert>
 #include <cstdio>
 #include <fcntl.h>

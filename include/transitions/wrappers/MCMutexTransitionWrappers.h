@@ -1,7 +1,7 @@
 #ifndef MC_MCMUTEXTRANSITIONWRAPPERS_H
 #define MC_MCMUTEXTRANSITIONWRAPPERS_H
 
-#include "mcmini/MCShared.h"
+#include "MCShared.h"
 #include <pthread.h>
 
 MC_EXTERN int mc_pthread_mutex_init(pthread_mutex_t *,

@@ -1,7 +1,7 @@
 #ifndef MC_MCSEMAPHORE_H
 #define MC_MCSEMAPHORE_H
 
-#include "mcmini/objects/MCVisibleObject.h"
+#include "objects/MCVisibleObject.h"
 #include <deque>
 #include <semaphore.h>
 

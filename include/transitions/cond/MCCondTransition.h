@@ -1,8 +1,8 @@
 #ifndef MC_MCCONDTRANSITION_H
 #define MC_MCCONDTRANSITION_H
 
-#include "mcmini/MCTransition.h"
-#include "mcmini/objects/MCConditionVariable.h"
+#include "MCTransition.h"
+#include "objects/MCConditionVariable.h"
 
 struct MCCondTransition : public MCTransition {
  public:
