@@ -4,7 +4,7 @@ import os
 import sys
 import subprocess
 
-os.environ["MCMIN_ANNOTATE"] = "1"
+os.environ["MCMINI_ANNOTATE"] = "1"
 
 newargs = [ arg if ' ' not in arg else "'"+arg+"'" for arg in sys.argv ][1:]
 
@@ -43,7 +43,7 @@ if 'THREAD PENDING OPERATIONS' not in output.split('\n') \
     print([line for line in error_output.split('\n')
                 if "Missing target_executable" in line][0], file=sys.stderr)
   else:
-    print( "\n*** mcmini-annotate.py: Invalid arguments." +
+    print( "\n*** mcmini-annotate: Invalid arguments." +
            " Please check args and target binary.", file=sys.stderr)
   sys.exit(1)
 

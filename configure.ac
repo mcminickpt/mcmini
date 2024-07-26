@@ -68,7 +68,7 @@ fi
 AC_MSG_RESULT([$has_python])
 if [[ $has_python == yes ]] && [[ $PYTHON != /usr/bin/python ]]; then
   # Replacing line 1 ( #!/usr/bin/env python ) with local python
-  sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate.py
+  sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate
 fi
 if [[ $has_python == no ]]; then
   AC_MSG_FAILURE("python3 not found")
