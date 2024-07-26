@@ -5295,7 +5295,7 @@ fi
 printf "%s\n" "$has_python" >&6; }
 if [ $has_python == yes ] && [ $PYTHON != /usr/bin/python ]; then
   # Replacing line 1 ( #!/usr/bin/env python ) with local python
-  sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate.py
+  sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate
 fi
 if [ $has_python == no ]; then
   { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
