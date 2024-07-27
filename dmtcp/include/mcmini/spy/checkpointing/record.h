@@ -88,6 +88,7 @@ typedef struct pending_operation {
 
 extern pending_operation *head_op;
 extern pending_operation *current_op;
+extern pthread_mutex_t pending_op_lock;
 
 /// @brief Retrieves the stored state for the given object
 /// @return a pointer to the node in the list formed by `head`,

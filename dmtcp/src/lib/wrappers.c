@@ -64,24 +64,34 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *attr) {
   switch (libmcmini_mode) {
     case RECORD: {
-      dmtcp_disable_ckpt();
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *mutex_record = find_object(mutex);
+      if (mutex_record == NULL) {
+        visible_object vo = {
+            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+        mutex_record = add_rec_entry(&vo);
+      }
+      pending_operation *next_step = find_pending_op(pthread_self());
+      if (next_step == NULL) {
+        transition mut_unlock = {.type = MUTEX_INIT_TYPE,
+                                 .executor = pthread_self(),
+                                 .init = {.mut = &mutex_record->vo}};
+        next_step = add_pending_op(&mut_unlock);
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
 
       // It's possible that we checkpointed right before the call to
       // `dmtcp_disable_ckpt()` above. In that case, the thread will resume
       // execution from the reocrd portion; but since we want to
       // transfer control to the model checker now, we need to escape to the
       // second case
+      dmtcp_disable_ckpt();
       if (libmcmini_mode == RECORD) {
         int rc = libpthread_mutex_init(mutex, attr);
         assert(rc == 0);
         libpthread_mutex_lock(&rec_list_lock);
-        rec_list *mutex_record = find_object(mutex);
-        if (mutex_record == NULL) {
-          visible_object vo = {
-              .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
-          mutex_record = add_rec_entry(&vo);
-        }
         mutex_record->vo.mutex_state = UNLOCKED;
+        next_step->t = invisible_operation_for_this_thread();
         libpthread_mutex_unlock(&rec_list_lock);
         dmtcp_enable_ckpt();
         return rc;
@@ -108,14 +118,30 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
   switch (libmcmini_mode) {
     case RECORD: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *mutex_record = find_object(mutex);
+      if (mutex_record == NULL) {
+        visible_object vo = {
+            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+        mutex_record = add_rec_entry(&vo);
+      }
+      pending_operation *next_step = find_pending_op(pthread_self());
+      if (next_step == NULL) {
+        transition mut_lock = {.type = MUTEX_LOCK_TYPE,
+                               .executor = pthread_self(),
+                               .lock = {.mut = &mutex_record->vo}};
+        next_step = add_pending_op(&mut_lock);
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
+
       int rc;
       do {
-        dmtcp_disable_ckpt();
         // It's possible that we checkpointed right before the call to
-        // `dmtcp_disable_ckpt()` above. In that case, the thread will resume
+        // `dmtcp_disable_ckpt()`. In that case, the thread will resume
         // execution from the `do` portion of the loop; but since we want to
         // transfer control to the model checker now, we need to escape this
         // loop.
+        dmtcp_disable_ckpt();
         if (libmcmini_mode == RECORD) {
           rc = libpthread_mutex_trylock(mutex);
           if (rc == -1 && errno == EBUSY) {
@@ -134,13 +160,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
         int rc = libpthread_mutex_lock(mutex);
         assert(rc == 0);
         libpthread_mutex_lock(&rec_list_lock);
-        rec_list *mutex_record = find_object(mutex);
-        if (mutex_record == NULL) {
-          visible_object vo = {
-              .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
-          mutex_record = add_rec_entry(&vo);
-        }
         mutex_record->vo.mutex_state = LOCKED;
+        next_step->t = invisible_operation_for_this_thread();
         libpthread_mutex_unlock(&rec_list_lock);
         dmtcp_enable_ckpt();
         return rc;
@@ -167,20 +188,29 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   switch (libmcmini_mode) {
     case RECORD: {
-      dmtcp_disable_ckpt();
+      libpthread_mutex_lock(&rec_list_lock);
+      pending_operation *next_step = find_pending_op(pthread_self());
+      rec_list *mutex_record = find_object(mutex);
+      assert(mutex_record != NULL);
+      assert(next_step != NULL);
+      transition unlock = {.type = MUTEX_UNLOCK_TYPE,
+                           .executor = pthread_self(),
+                           .init = {.mut = &mutex_record->vo}};
+      next_step->t = unlock;
+      libpthread_mutex_unlock(&rec_list_lock);
 
       // It's possible that we checkpointed right before the call to
-      // `dmtcp_disable_ckpt()` above. In that case, the thread will resume
+      // `dmtcp_disable_ckpt()`. In that case, the thread will resume
       // execution from the record portion; but since we want to
       // transfer control to the model checker now, we need to escape to the
       // next case.
+      dmtcp_disable_ckpt();
       if (libmcmini_mode != RECORD) {
         int rc = libpthread_mutex_unlock(mutex);
         assert(rc == 0);
         libpthread_mutex_lock(&rec_list_lock);
-        rec_list *mutex_record = find_object(mutex);
-        assert(mutex_record != NULL);
         mutex_record->vo.mutex_state = UNLOCKED;
+        next_step->t = invisible_operation_for_this_thread();
         libpthread_mutex_unlock(&rec_list_lock);
         dmtcp_enable_ckpt();
         return rc;

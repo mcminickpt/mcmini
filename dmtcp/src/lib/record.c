@@ -5,10 +5,18 @@
 #include <unistd.h>
 
 pthread_mutex_t rec_list_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t pending_op_lock = PTHREAD_MUTEX_INITIALIZER;
 enum libmcmini_mode libmcmini_mode = PRE_DMTCP;
 visible_object empty_visible_obj = {.type = UNKNOWN, .location = NULL};
 rec_list *head = NULL;
 rec_list *current = NULL;
+pending_operation *head_op = NULL;
+pending_operation *current_op = NULL;
+
+transition invisible_operation_for_this_thread(void) {
+  transition t = {.type = INVISIBLE_OPERATION_TYPE, .executor = pthread_self()};
+  return t;
+}
 
 rec_list *find_object(void *addr) {
   for (rec_list *node = head; node != NULL; node = node->next) {

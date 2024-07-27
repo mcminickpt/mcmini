@@ -10,6 +10,7 @@ extern "C" {
 #include "mcmini/spy/checkpointing/objects.h"
 
 typedef enum transition_type {
+  INVISIBLE_OPERATION_TYPE,
   MUTEX_INIT_TYPE,
   MUTEX_LOCK_TYPE,
   MUTEX_UNLOCK_TYPE,
@@ -26,15 +27,15 @@ typedef enum transition_type {
 } transition_type;
 
 typedef struct mutex_init {
-  visible_object mut;
+  visible_object *mut;
 } mutex_init;
 
 typedef struct mutex_lock {
-  visible_object mut;
+  visible_object *mut;
 } mutex_lock;
 
 typedef struct mutex_unlock {
-  visible_object mut;
+  visible_object *mut;
 } mutex_unlock;
 
 typedef struct transition {
@@ -46,6 +47,8 @@ typedef struct transition {
     mutex_unlock unlock;
   };
 } transition;
+
+transition invisible_operation_for_this_thread(void);
 
 #ifdef __cplusplus
 }
