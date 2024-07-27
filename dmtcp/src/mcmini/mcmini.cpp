@@ -140,6 +140,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     assert(sizeof(::visible_object) == 24);
     while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       std::cout << current_obj.location << std::endl;
+      std::cout << current_obj.mutex_state << std::endl;
     }
   }
 
@@ -206,6 +207,7 @@ void do_recording(const config& config) {
   std::string libmcini_dir = getcwd(dir, sizeof(dir)) ? dir : "PATH_TOO_LONG";
   std::string libmcmini_path = libmcini_dir + "/libmcmini.so";
   std::vector<std::string> dmtcp_launch_args;
+  dmtcp_launch_args.push_back("--disable-alloc-plugin");
   dmtcp_launch_args.push_back("-i");
   dmtcp_launch_args.push_back(std::to_string(config.checkpoint_period.count()));
   dmtcp_launch_args.push_back("--with-plugin");

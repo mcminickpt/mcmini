@@ -77,32 +77,28 @@ typedef struct rec_list {
   struct rec_list *next;
 } rec_list;
 
-extern rec_list *head;
-extern rec_list *current;
+extern rec_list *head_record_mode;
+extern rec_list *current_record_mode;
+extern rec_list *head_after_restart;
+extern rec_list *current_after_restart;
 extern pthread_mutex_t rec_list_lock;
-
-typedef struct pending_operation {
-  transition t;
-  struct pending_operation *next;
-} pending_operation;
-
-extern pending_operation *head_op;
-extern pending_operation *current_op;
-extern pthread_mutex_t pending_op_lock;
 
 /// @brief Retrieves the stored state for the given object
 /// @return a pointer to the node in the list formed by `head`,
 /// or `NULL` if the object at address `addr` is not found
 ///
 /// @note you must acquire `rec_list_lock` before calling this function
-rec_list *find_object(void *addr);
-pending_operation *find_pending_op(pthread_t);
+rec_list *find_object(void *addr, rec_list *);
+rec_list *find_object_record_mode(void *addr);
+rec_list *find_object_restart_mode(void *addr);
 
 /// @brief Adds a new element to the list `head`.
 ///
 /// @note you must acquire `rec_list_lock` before calling this function
-rec_list *add_rec_entry(const visible_object *);
-pending_operation *add_pending_op(const transition *);
+rec_list *add_rec_entry(const visible_object *, rec_list **, rec_list **);
+rec_list *add_rec_entry_record_mode(const visible_object *);
+rec_list *add_rec_entry_restart_mode(const visible_object *);
+
 
 #ifdef __cplusplus
 }

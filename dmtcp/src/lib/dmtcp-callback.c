@@ -35,9 +35,10 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       if (fd == -1) {
         perror("open");
       }
-      for (rec_list* entry = head; entry != NULL; entry = entry->next) {
-        printf("Writing entry %p\n", entry->vo.location);
+      for (rec_list* entry = head_record_mode; entry != NULL; entry = entry->next) {
+        printf("Writing entry %p (state %d)\n", entry->vo.location, entry->vo.mutex_state);
         write(fd, &entry->vo, sizeof(visible_object));
+        add_rec_entry_restart_mode(&entry->vo);
       }
       write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
 
