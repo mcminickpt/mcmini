@@ -124,52 +124,51 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
 }
 
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
-  // switch (libmcmini_mode) {
-  //   case RECORD: {
-  //     libpthread_mutex_lock(&rec_list_lock);
-  //     pending_operation *next_step = find_pending_op(pthread_self());
-  //     rec_list *mutex_record = find_object(mutex);
-  //     assert(mutex_record != NULL);
-  //     assert(next_step != NULL);
-  //     transition unlock = {.type = MUTEX_UNLOCK_TYPE,
-  //                          .executor = pthread_self(),
-  //                          .init = {.mut = &mutex_record->vo}};
-  //     next_step->t = unlock;
-  //     libpthread_mutex_unlock(&rec_list_lock);
+  int result = 0;
+  libpthread_mutex_lock(&rec_list_lock);
+  rec_list *mutex_record = find_object_record_mode(mutex);
+  if (mutex_record == NULL) {
+    visible_object vo = {
+            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+    mutex_record = add_rec_entry_record_mode(&vo);
+  }
+  libpthread_mutex_unlock(&rec_list_lock);
+  if (libmcmini_mode == TARGET_BRANCH) {
+    volatile runner_mailbox *mb = thread_get_mailbox();
+    mb->type = MUTEX_UNLOCK_TYPE;
+    memcpy_v(mb->cnts, &mutex, sizeof(mutex));
+    thread_await_scheduler();
+    return 0;
+  }
+  result = pthread_mutex_unlock(mutex);
+  libpthread_mutex_lock(&rec_list_lock);
+  mutex_record->vo.mutex_state = UNLOCKED;
+  libpthread_mutex_unlock(&rec_list_lock);
 
-  //     // It's possible that we checkpointed right before the call to
-  //     // `dmtcp_disable_ckpt()`. In that case, the thread will resume
-  //     // execution from the record portion; but since we want to
-  //     // transfer control to the model checker now, we need to escape to the
-  //     // next case.
-  //     dmtcp_disable_ckpt();
-  //     if (libmcmini_mode != RECORD) {
-  //       int rc = libpthread_mutex_unlock(mutex);
-  //       assert(rc == 0);
-  //       libpthread_mutex_lock(&rec_list_lock);
-  //       mutex_record->vo.mutex_state = UNLOCKED;
-  //       next_step->t = invisible_operation_for_this_thread();
-  //       libpthread_mutex_unlock(&rec_list_lock);
-  //       dmtcp_enable_ckpt();
-  //       return rc;
-  //     } else {
-  //       // Fallthrough to the model checker
-  //       dmtcp_enable_ckpt();
-  //     }
-  //   }
-  //   case TARGET_BRANCH:
-  //   case TARGET_BRANCH_AFTER_RESTART: {
-  //     volatile runner_mailbox *mb = thread_get_mailbox();
-  //     mb->type = MUTEX_UNLOCK_TYPE;
-  //     memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-  //     thread_await_scheduler();
-  //     return 0;
-  //   }
-  //   default: {
-  //     return libpthread_mutex_unlock(mutex);
-  //   }
-  // }
-  return libpthread_mutex_unlock(mutex);
+  if (libmcmini_mode == TARGET_BRANCH) { // if a ckpt/restart happened in this wrapper
+    libpthread_mutex_lock(&rec_list_lock);
+    rec_list *mutex_during_record = find_object_record_mode(mutex);
+    rec_list *mutex_after_restart = find_object(mutex, head_after_restart);
+    libpthread_mutex_unlock(&rec_list_lock);
+    // Test if we already owned this mutex prior to ckpt/restart
+    if (memcmp(&mutex_during_record->vo, &mutex_after_restart, sizeof(visible_object))
+        == 0) {
+      // The model checker already knows we have the lock; nothing to do.
+      // The model checker thinks were are between visible operations.
+      return result;
+    } else {
+      // The model checker thought we DO have the lock.
+      // We'll lock it again now, and make the model to be true in this target.
+      pthread_mutex_lock(mutex);
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_LOCK_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
+      thread_await_scheduler();
+      return 0;
+    }
+  } else {
+    return result;
+  }
 }
 
 void mc_exit_thread_in_child(void) {
