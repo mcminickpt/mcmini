@@ -31,6 +31,8 @@ struct template_process_t {
   /// A semphore that `libmcmini.so` waits on and that the McMini process
   /// signals when it wants to spawn a new process.
   sem_t libmcmini_sem;
+
+  // MARK: DMTCP ONLY
 };
 
 #ifdef __cplusplus

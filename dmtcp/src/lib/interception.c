@@ -6,13 +6,14 @@
 
 #include "mcmini/spy/intercept/wrappers.h"
 
-bool libmcmini_initialized = false;
+pthread_once_t libmcini_init = PTHREAD_ONCE_INIT;
 
 typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
 typeof(&pthread_mutex_init) pthread_mutex_init_ptr;
 typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
 typeof(&pthread_mutex_trylock) pthread_mutex_trylock_ptr;
+typeof(&pthread_mutex_timedlock) pthread_mutex_timedlock_ptr;
 typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 typeof(&pthread_mutex_destroy) pthread_mutex_destroy_ptr;
 typeof(&sem_wait) sem_wait_ptr;
@@ -28,10 +29,7 @@ __attribute__((__noreturn__)) typeof(&exit) exit_ptr;
 __attribute__((__noreturn__)) typeof(&abort) abort_ptr;
 
 inline static void libmcmini_init() {
-  if (!libmcmini_initialized) {
-    mc_load_intercepted_pthread_functions();
-    libmcmini_initialized = true;
-  }
+  pthread_once(&libmcini_init, &mc_load_intercepted_pthread_functions);
 }
 
 void mc_load_intercepted_pthread_functions() {
@@ -40,6 +38,7 @@ void mc_load_intercepted_pthread_functions() {
   pthread_mutex_init_ptr = dlsym(RTLD_NEXT, "pthread_mutex_init");
   pthread_mutex_lock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_lock");
   pthread_mutex_trylock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_trylock");
+  pthread_mutex_timedlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_timedlock");
   pthread_mutex_unlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_unlock");
   pthread_mutex_destroy_ptr = dlsym(RTLD_NEXT, "pthread_mutex_destroy");
   sem_wait_ptr = dlsym(RTLD_NEXT, "sem_wait");
@@ -79,6 +78,11 @@ int libpthread_mutex_lock(pthread_mutex_t *mut) {
 int libpthread_mutex_trylock(pthread_mutex_t *mut) {
   libmcmini_init();
   return (*pthread_mutex_trylock_ptr)(mut);
+}
+
+int libpthread_mutex_timedlock(pthread_mutex_t *mut, struct timespec *t) {
+  libmcmini_init();
+  return (*pthread_mutex_timedlock_ptr)(mut, t);
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex) {
