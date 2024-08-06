@@ -21,12 +21,19 @@ typedef enum mutex_state {
   DESTROYED
 } mutex_state;
 
+typedef enum thread_status {
+  EMBRYO,
+  ALIVE,
+  EXITED,
+} thread_status;
+
 typedef struct semaphore_state {
   int count;
 } semaphore_state;
 
 typedef struct thread_state {
   pthread_t tag;
+  thread_status status;
 } thread_state;
 
 // Condition variables ... tricky...
