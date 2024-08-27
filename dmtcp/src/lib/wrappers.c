@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "mcmini/mcmini.h"
+#include "mcmini/common/exit.h"
 
 pthread_t main_thread;
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
@@ -77,12 +78,37 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
     case PRE_DMTCP: {
       return libpthread_mutex_init(mutex, attr);
     }
-    case RECORD: {
-      break;
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      // NOTE: This is subtle: at this point, the possible modes are
+      // RECORD ***AND*** DMTCP_RESTART. The latter is possible if
+      // checkpointing occurs anywhere AFTER the switch statement above.
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *mutex_record = find_object_record_mode(mutex);
+      if (mutex_record == NULL) {
+        // FIXME: We assume that this is a normal mutex. For other mutex
+        // types, we'd need to behave differently
+        visible_object vo = {
+            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+        mutex_record = add_rec_entry_record_mode(&vo);
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
+
+      int rc = libpthread_mutex_init(mutex, attr);
+      if (rc == 0) {  // Init
+        libpthread_mutex_lock(&rec_list_lock);
+        mutex_record->vo.mutex_state = UNLOCKED;
+        libpthread_mutex_unlock(&rec_list_lock);
+      }
+      return rc;
     }
     case DMTCP_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_INIT_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       notify_template_thread();
-      // Explicit fallthrough intended here
+      thread_await_scheduler();
+      return libpthread_mutex_lock(mutex);
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -98,31 +124,9 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
-      assert(0);
-      break;
+      libc_abort();
     }
   }
-  // NOTE: This is subtle: at this point, the possible modes are
-  // RECORD ***AND*** DMTCP_RESTART. The latter is possible if
-  // checkpointing occurs anywhere AFTER the switch statement above.
-  libpthread_mutex_lock(&rec_list_lock);
-  rec_list *mutex_record = find_object_record_mode(mutex);
-  if (mutex_record == NULL) {
-    // FIXME: We assume that this is a normal mutex. For other mutex
-    // types, we'd need to behave differently
-    visible_object vo = {
-        .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
-    mutex_record = add_rec_entry_record_mode(&vo);
-  }
-  libpthread_mutex_unlock(&rec_list_lock);
-
-  int rc = libpthread_mutex_init(mutex, attr);
-  if (rc == 0) {  // Init
-    libpthread_mutex_lock(&rec_list_lock);
-    mutex_record->vo.mutex_state = UNLOCKED;
-    libpthread_mutex_unlock(&rec_list_lock);
-  }
-  return rc;
 }
 
 int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
@@ -151,7 +155,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
     case PRE_DMTCP: {
       return libpthread_mutex_lock(mutex);
     }
-    case RECORD: {
+    case RECORD:
+    case PRE_CHECKPOINT: {
       // NOTE: This is subtle: at this point, the possible modes are
       // RECORD ***AND*** DMTCP_RESTART. The latter is possible if
       // checkpointing occurs anywhere AFTER the switch statement above.
@@ -195,8 +200,12 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       // Explicit fallthrough
     }
     case DMTCP_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_LOCK_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       notify_template_thread();
-      // Explicit fallthrough
+      thread_await_scheduler();
+      return libpthread_mutex_lock(mutex);
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -212,7 +221,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
-      abort();
+      libc_abort();
     }
   }
 }
@@ -222,8 +231,8 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
     case PRE_DMTCP: {
       return libpthread_mutex_unlock(mutex);
     }
-    case RECORD: {
-      // NOTE: This is subtle:
+    case RECORD:
+    case PRE_CHECKPOINT: {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *mutex_record = find_object_record_mode(mutex);
       if (mutex_record == NULL) {
@@ -233,7 +242,7 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
                 "Undefined behavior: attempting to unlock an uninitialized "
                 "mutex %p",
                 mutex);
-        assert(0);
+        libc_abort();
       }
       libpthread_mutex_unlock(&rec_list_lock);
       int rc = libpthread_mutex_unlock(mutex);
@@ -245,8 +254,12 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       return rc;
     }
     case DMTCP_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = MUTEX_UNLOCK_TYPE;
+      memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       notify_template_thread();
-      // Explicit fallthrough intended
+      thread_await_scheduler();
+      return libpthread_mutex_lock(mutex);
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -262,7 +275,7 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
-      abort();
+      libc_abort();
     }
   }
 }
@@ -314,15 +327,39 @@ struct mc_thread_routine_arg {
 };
 
 void *mc_thread_routine_wrapper(void *arg) {
-  // FIXME: This needs to be adjusted to the new cases
-  // (the DMTCP_RESTART case in particular)
-  mc_register_this_thread();
+  runner_id_t rid = mc_register_this_thread();
   struct mc_thread_routine_arg *unwrapped_arg = arg;
-
   switch (get_current_mode()) {
-    case DMTCP_AFTER_RESTART: {
-      notify_template_thread();
-      // Explicit fallthrough here
+    case PRE_DMTCP: {
+      // In `PRE_DMTCP` mode, `mc_pthread_create` always directly calls the thread routine
+      // passed to `pthread_create(3)`. Reaching this McMini wrapper would be an error.
+      libc_abort();
+    }
+    case RECORD:
+    case PRE_CHECKPOINT:
+    case DMTCP_RESTART: {
+      // If we've noticed we're executing after a `DMTCP_EVENT_RESTART`, we
+      // simply let the thread continue executing until one of two things
+      // happens:
+      //
+      // 1. The thread routine itself calls another wrapper function (i.e.
+      // visible operation)
+      // 2. The thread routine exits before calling another wrapper function.
+      //
+      // The same applies to RECORD mode: we simply do the recording and let the
+      // thread routine call the next wrapper function.
+      pthread_t this_thread = pthread_self();
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *thread_record = find_thread_record_mode(this_thread);
+      assert(thread_record == NULL);
+      visible_object vo = {.type = THREAD,
+                           .location = NULL,
+                           .thread_state.tag = this_thread,
+                           .thread_state.status = ALIVE,
+                           .thread_state.id = rid};
+      thread_record = add_rec_entry_record_mode(&vo);
+      libpthread_mutex_unlock(&rec_list_lock);
+      break;
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -332,41 +369,59 @@ void *mc_thread_routine_wrapper(void *arg) {
       // scheduler already knows how to handle the case
       // of thread creation
       thread_await_scheduler_for_thread_start_transition();
-    }
-    default:
       break;
+    }
+    default: {
+      libc_abort();
+    }
   }
 
-  void *return_value = unwrapped_arg->routine(unwrapped_arg->arg);
+  void *rv = unwrapped_arg->routine(unwrapped_arg->arg);
   free(arg);
 
   switch (get_current_mode()) {
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *thread_record = find_thread_record_mode(pthread_self());
+      assert(thread_record != NULL);
+      thread_record->vo.thread_state.status = EXITED;
+      libpthread_mutex_unlock(&rec_list_lock);
+      return rv;
+    }
+    case DMTCP_RESTART: {
+      notify_template_thread();
+      // Explicit fallthrough here
+    }
     case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
       mc_exit_thread_in_child();
-    default:
       break;
+    }
+    default: {
+      libc_abort();
+    }
   }
-  return return_value;
+  return rv;
+}
+
+void record_main_thread(void) {
+  main_thread = pthread_self();
+  libpthread_mutex_lock(&rec_list_lock);
+  rec_list *thread_record = find_thread_record_mode(main_thread);
+  assert(thread_record == NULL);
+  visible_object vo = {
+      .type = THREAD, .location = NULL, .thread_state.tag = main_thread};
+  thread_record = add_rec_entry_record_mode(&vo);
+  libpthread_mutex_unlock(&rec_list_lock);
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                       void *(*routine)(void *), void *arg) {
-  // FIXME: Needs implementation with DMTCP_RESTART etc.
-  static bool main_thread_known = false;
-  // static pthread_once_t main_thread_recorded = PTHREAD_ONCE_INIT;
-  // pthread_once()
-  if (!main_thread_known) {
-    main_thread = pthread_self();
-    libpthread_mutex_lock(&rec_list_lock);
-    rec_list *thread_record = find_thread_record_mode(main_thread);
-    assert(thread_record == NULL);
-    visible_object vo = {
-        .type = THREAD, .location = NULL, .thread_state.tag = main_thread};
-    thread_record = add_rec_entry_record_mode(&vo);
-    libpthread_mutex_unlock(&rec_list_lock);
-    main_thread_known = true;
-  }
+  static pthread_once_t main_thread_recorded = PTHREAD_ONCE_INIT;
+  pthread_once(&main_thread_recorded, &record_main_thread);
 
+  // TODO: Reduce code duplication here!
   switch (get_current_mode()) {
     case PRE_DMTCP: {
       // NOTE: We're assuming that only a single checkpoint
@@ -374,12 +429,21 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       // is more of less "boring" (i.e. it doesn't call pthread functions)
       return libpthread_pthread_create(thread, attr, routine, arg);
     }
-    case RECORD: {
-      break;
-    }
+    case RECORD:
+    case PRE_CHECKPOINT:
     case DMTCP_RESTART: {
-      notify_template_thread();
-      // Explicity fallthrough here
+      // TODO: add support for thread attributes
+      struct mc_thread_routine_arg *libmcmini_controlled_thread_arg =
+          malloc(sizeof(struct mc_thread_routine_arg));
+      libmcmini_controlled_thread_arg->arg = arg;
+      libmcmini_controlled_thread_arg->routine = routine;
+      // TODO: Handle the errors that can occur when
+      // pthread_create is called. They are unlikely to
+      // occur in practice, but should be handled
+      const int rc =
+          libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
+                                    libmcmini_controlled_thread_arg);
+      return rc;
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -389,15 +453,14 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       libmcmini_controlled_thread_arg->arg = arg;
       libmcmini_controlled_thread_arg->routine = routine;
       libpthread_sem_init(
-          &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0, 0);
-
-      errno = 0;
-      const int return_value =
+          &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0,
+          0);
+      const int rv =
           libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
                                     libmcmini_controlled_thread_arg);
 
       // IMPORTANT: We need to ensure that the thread that is
-      // created has been assigned an; otherwise, there is a race condition
+      // created has been assigned an id; otherwise, there is a race condition
       // in which two thread creates in the child might
       // not be scheduled to run until *two* steps of the scheduler
       libpthread_sem_wait(
@@ -406,18 +469,12 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       memcpy_v(thread_get_mailbox()->cnts, thread, sizeof(pthread_t));
       thread_get_mailbox()->type = THREAD_CREATE_TYPE;
       thread_await_scheduler();
-      return return_value;
+      return rv;
     }
     default: {
-      struct mc_thread_routine_arg *record_arg =
-          malloc(sizeof(struct mc_thread_routine_arg));
-      record_arg->arg = arg;
-      record_arg->routine = routine;
-      return libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
-                                       record_arg);
+      libc_abort();
     }
   }
-  return 0;
 }
 
 int mc_pthread_join(pthread_t t, void **rv) {
@@ -425,7 +482,8 @@ int mc_pthread_join(pthread_t t, void **rv) {
     case PRE_DMTCP: {
       return libpthread_pthread_join(t, rv);
     }
-    case RECORD: {
+    case RECORD:
+    case PRE_CHECKPOINT: {
       // NOTE: This is subtle: at this point, the possible modes are
       // RECORD ***AND*** DMTCP_RESTART. The latter is possible if
       // checkpointing occurs anywhere AFTER the switch statement above.
@@ -469,8 +527,11 @@ int mc_pthread_join(pthread_t t, void **rv) {
     }
     // Explicit fallthrough here
     case DMTCP_RESTART: {
+      memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
+      thread_get_mailbox()->type = THREAD_JOIN_TYPE;
       notify_template_thread();
-      // Explicit fallthrough here
+      thread_await_scheduler();
+      return 0;
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -480,7 +541,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
       return 0;
     }
     default: {
-      abort();
+      libc_abort();
     }
   }
 }

@@ -58,7 +58,7 @@ extern "C" {
  *
  * PRE_CHECKPOINT:
  *   In this mode, `libmcmini.so` has been alerted about the end of the
- * recording session. AWrapper functions again forward their calls to the next
+ * recording session. Wrapper functions again forward their calls to the next
  * available function.
  *
  * TARGET_TEMPLATE_AFTER_RESTART:

@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "dmtcp.h"
+#include "mcmini/common/exit.h"
 #include "mcmini/spy/checkpointing/record.h"
 #include "mcmini/spy/intercept/interception.h"
 
@@ -54,8 +55,11 @@ static void *template_thread(void *unused) {
   }
   write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
   printf("The template thread has completed: looping...\n");
+  fsync(fd);
+  fsync(0);
 
   // TODO: Exit for now --> loop eventually and do multithreaded forks
+  mc_exit(0);
   return NULL;
 }
 
@@ -77,6 +81,8 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       // AFTER DMTCP restart. This ensures that the semaphore is properly
       // initialized at restart time.
       sem_init(&dmtcp_restart_sem, 0, 0);
+
+      head_record_mode = NULL;
       printf("DMTCP_EVENT_INIT\n");
       break;
     }

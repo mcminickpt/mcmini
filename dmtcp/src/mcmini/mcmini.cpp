@@ -244,8 +244,7 @@ int main_cpp(int argc, const char** argv) {
         exit(1);
       }
       cur_arg += 2;
-    } else if (strcmp(cur_arg[0], "--record") == 0 ||
-               strcmp(cur_arg[0], "-r") == 0) {
+    } else if (strcmp(cur_arg[0], "--interval") == 0 || strcmp(cur_arg[0], "-i") == 0) {
       mcmini_config.record_target_executable_only = true;
       mcmini_config.checkpoint_period =
           std::chrono::seconds(strtoul(cur_arg[1], nullptr, 10));

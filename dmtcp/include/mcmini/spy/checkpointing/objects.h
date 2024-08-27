@@ -2,6 +2,8 @@
 
 #include <pthread.h>
 
+#include "mcmini/defines.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,7 +24,6 @@ typedef enum mutex_state {
 } mutex_state;
 
 typedef enum thread_status {
-  EMBRYO,
   ALIVE,
   EXITED,
 } thread_status;
@@ -33,6 +34,7 @@ typedef struct semaphore_state {
 
 typedef struct thread_state {
   pthread_t tag;
+  runner_id_t id;
   thread_status status;
 } thread_state;
 

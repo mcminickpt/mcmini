@@ -56,7 +56,22 @@ rec_list *add_rec_entry(const visible_object *vo, rec_list **head, rec_list **cu
 }
 
 rec_list *add_rec_entry_record_mode(const visible_object *vo) {
-  return add_rec_entry(vo, &head_record_mode, &current_record_mode);
+  rec_list *new_node = (rec_list *)malloc(sizeof(rec_list));
+  if (new_node == NULL) {
+    perror("malloc");
+    exit(EXIT_FAILURE);
+  }
+  new_node->vo = *vo;
+  new_node->next = NULL;
+  if (head_record_mode == NULL) {
+    head_record_mode = new_node;
+    current_record_mode = new_node;
+  }
+  else {
+    current_record_mode->next = new_node;
+    current_record_mode = new_node;
+  }
+  return new_node;
 }
 
 void notify_template_thread() { sem_post(&dmtcp_restart_sem); }
