@@ -14,6 +14,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "dmtcp.h"
 #include "mcmini/mcmini.h"
 
 volatile void *global_shm_start = NULL;
@@ -64,7 +65,11 @@ __attribute__((constructor)) void libmcmini_main() {
   // In recording mode, the constructor should be ignored and
   // the DMTCP callback should instead be used to determine when
   // `libmcmini.so` wrappers should begin recording.
-  if (getenv("MCMINI_RECORD")) {
+
+  // TODO: With weak and strong variables we can later detect
+  // whether `libmcmini` has been loaded as a plugin.
+  // McMini is only loaded as a plugin in record mode.
+  if (dmtcp_is_enabled()) {
     return;
   }
   mc_prevent_addr_randomization();

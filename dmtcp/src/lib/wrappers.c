@@ -354,11 +354,12 @@ void *mc_thread_routine_wrapper(void *arg) {
       assert(thread_record == NULL);
       visible_object vo = {.type = THREAD,
                            .location = NULL,
-                           .thread_state.tag = this_thread,
+                           .thread_state.pthread_desc = this_thread,
                            .thread_state.status = ALIVE,
                            .thread_state.id = rid};
       thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
+      libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
       break;
     }
     case TARGET_BRANCH:
@@ -411,7 +412,7 @@ void record_main_thread(void) {
   rec_list *thread_record = find_thread_record_mode(main_thread);
   assert(thread_record == NULL);
   visible_object vo = {
-      .type = THREAD, .location = NULL, .thread_state.tag = main_thread};
+      .type = THREAD, .location = NULL, .thread_state.pthread_desc = main_thread};
   thread_record = add_rec_entry_record_mode(&vo);
   libpthread_mutex_unlock(&rec_list_lock);
 }
@@ -440,9 +441,18 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       // TODO: Handle the errors that can occur when
       // pthread_create is called. They are unlikely to
       // occur in practice, but should be handled
+      libpthread_sem_init(
+          &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0,
+          0);
       const int rc =
           libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
                                     libmcmini_controlled_thread_arg);
+      // IMPORTANT: We need to ensure that the child thread is recorded
+      // before exiting; otherwise there are potential race conditions
+      // in the record code (e.g. with `pthread_join()`) which expect the
+      // child thread to have been recorded when it may not have been yet.
+      libpthread_sem_wait(
+          &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem);
       return rc;
     }
     case TARGET_BRANCH:
@@ -491,7 +501,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
       rec_list *thread_record = find_thread_record_mode(t);
       assert(thread_record != NULL);
       visible_object vo = {
-          .type = THREAD, .location = NULL, .thread_state.tag = t};
+          .type = THREAD, .location = NULL, .thread_state.pthread_desc = t};
       thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
 

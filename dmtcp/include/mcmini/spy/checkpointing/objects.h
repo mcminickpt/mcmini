@@ -33,7 +33,7 @@ typedef struct semaphore_state {
 } semaphore_state;
 
 typedef struct thread_state {
-  pthread_t tag;
+  pthread_t pthread_desc;
   runner_id_t id;
   thread_status status;
 } thread_state;

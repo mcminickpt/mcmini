@@ -27,7 +27,7 @@ rec_list *find_object(void *addr, rec_list *head) {
 rec_list *find_thread_record_mode(pthread_t thrd) {
   for (rec_list *node = head_record_mode; node != NULL; node = node->next) {
     if (node->vo.type == THREAD &&
-        pthread_equal(thrd, node->vo.thread_state.tag))
+        pthread_equal(thrd, node->vo.thread_state.pthread_desc))
       return node;
   }
   return NULL;
