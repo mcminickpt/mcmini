@@ -1,4 +1,7 @@
 #include "mcmini/spy/checkpointing/record.h"
+#include "mcmini/spy/checkpointing/rec_list.h"
+#include "mcmini/spy/checkpointing/objects.h"
+#include "mcmini/spy/checkpointing/transitions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +30,7 @@ rec_list *find_object(void *addr, rec_list *head) {
 rec_list *find_thread_record_mode(pthread_t thrd) {
   for (rec_list *node = head_record_mode; node != NULL; node = node->next) {
     if (node->vo.type == THREAD &&
-        pthread_equal(thrd, node->vo.thread_state.pthread_desc))
+        pthread_equal(thrd, node->vo.thrd_state.pthread_desc))
       return node;
   }
   return NULL;

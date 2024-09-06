@@ -92,10 +92,10 @@ void do_model_checking(const config& config) {
   program model_for_program_starting_at_main(state_of_program_at_main,
                                              std::move(initial_first_steps));
 
-  target target(config.target_executable, config.target_executable_args);
+  target target_program(config.target_executable, config.target_executable_args);
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr),
-                          make_unique<fork_process_source>(target));
+                          make_unique<fork_process_source>(target_program));
 
   dr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::depends);
@@ -137,10 +137,9 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   {
     fifo fifo("/tmp/mcmini-fifo");
     ::visible_object current_obj;
-    assert(sizeof(::visible_object) == 24);
     while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       std::cout << current_obj.location << std::endl;
-      std::cout << current_obj.mutex_state << std::endl;
+      std::cout << current_obj.mut_state << std::endl;
     }
   }
 
@@ -215,11 +214,11 @@ void do_recording(const config& config) {
   dmtcp_launch_args.push_back(config.target_executable);
   for (const std::string& target_arg : config.target_executable_args)
     dmtcp_launch_args.push_back(target_arg);
-  real_world::target target("dmtcp_launch", dmtcp_launch_args);
+  real_world::target target_program("dmtcp_launch", dmtcp_launch_args);
 
-  std::cout << "Recording: " << target << std::endl;
+  std::cout << "Recording: " << target_program << std::endl;
   setenv("MCMINI_RECORD", "1", true);
-  target.execvp(false);
+  target_program.execvp(false);
 }
 
 int main_cpp(int argc, const char** argv) {

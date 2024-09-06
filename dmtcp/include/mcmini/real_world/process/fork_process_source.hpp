@@ -24,7 +24,7 @@ namespace real_world {
  */
 class fork_process_source : public process_source {
  private:
-  target target;
+  target target_program;
 
   /// @brief The process id of the template process whose libmcmini performs
   /// a `sem_wait` loop ad infinitum.

@@ -24,7 +24,7 @@ typedef struct visible_object {
   visible_object_type type;
   void *location;
   union {
-    mutex_state mutex_state;
+    mutex_state mut_state;
   };
 } visible_object;
 

@@ -9,6 +9,7 @@
 #include "dmtcp.h"
 #include "mcmini/common/exit.h"
 #include "mcmini/spy/checkpointing/record.h"
+#include "mcmini/spy/checkpointing/rec_list.h"
 #include "mcmini/spy/intercept/interception.h"
 
 static atomic_bool is_template_thread_alive = 0;
@@ -50,7 +51,7 @@ static void *template_thread(void *unused) {
   }
   for (rec_list *entry = head_record_mode; entry != NULL; entry = entry->next) {
     printf("Writing entry %p (state %d)\n", entry->vo.location,
-           entry->vo.mutex_state);
+           entry->vo.mut_state);
     write(fd, &entry->vo, sizeof(visible_object));
   }
   write(fd, &empty_visible_obj, sizeof(empty_visible_obj));

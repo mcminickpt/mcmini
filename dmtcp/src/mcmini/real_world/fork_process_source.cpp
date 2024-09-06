@@ -38,8 +38,8 @@ using namespace extensions;
 
 std::atomic_uint32_t fork_process_source::num_children_in_flight;
 
-fork_process_source::fork_process_source(const real_world::target& target)
-    : target(target) {}
+fork_process_source::fork_process_source(const real_world::target& target_program)
+    : target_program(target_program) {}
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
   shared_memory_region* rw_region =
@@ -145,7 +145,7 @@ void fork_process_source::make_new_template_process() {
     fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
 
     setenv("MCMINI_TEMPLATE_LOOP", "1", 1);
-    target.execvp();
+    target_program.execvp();
     unsetenv("MCMINI_TEMPLATE_LOOP");
 
     // If `execvp()` fails, we signal the error to the parent process by writing
@@ -187,7 +187,7 @@ void fork_process_source::make_new_template_process() {
             std::string(strerror(errno)));
       }
       throw process_source::process_creation_exception(
-          "Failed to create a new process of '" + this->target.name() + "'" +
+          "Failed to create a new process of '" + this->target_program.name() + "'" +
           " (execvp(2) failed with error code '" + std::to_string(errno) +
           "'):" + std::string(strerror(err)));
     }

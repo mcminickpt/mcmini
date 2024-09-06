@@ -89,7 +89,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
         // FIXME: We assume that this is a normal mutex. For other mutex
         // types, we'd need to behave differently
         visible_object vo = {
-            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
         mutex_record = add_rec_entry_record_mode(&vo);
       }
       libpthread_mutex_unlock(&rec_list_lock);
@@ -97,7 +97,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       int rc = libpthread_mutex_init(mutex, attr);
       if (rc == 0) {  // Init
         libpthread_mutex_lock(&rec_list_lock);
-        mutex_record->vo.mutex_state = UNLOCKED;
+        mutex_record->vo.mut_state = UNLOCKED;
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
@@ -164,7 +164,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       rec_list *mutex_record = find_object_record_mode(mutex);
       if (mutex_record == NULL) {
         visible_object vo = {
-            .type = MUTEX, .location = mutex, .mutex_state = UNINITIALIZED};
+            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
         mutex_record = add_rec_entry_record_mode(&vo);
       }
       libpthread_mutex_unlock(&rec_list_lock);
@@ -174,7 +174,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
         int rc = libpthread_mutex_timedlock(mutex, &time);
         if (rc == 0) {  // Lock succeeded
           libpthread_mutex_lock(&rec_list_lock);
-          mutex_record->vo.mutex_state = LOCKED;
+          mutex_record->vo.mut_state = LOCKED;
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         } else if (rc == ETIMEDOUT) {  // If the lock failed.
@@ -248,7 +248,7 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       int rc = libpthread_mutex_unlock(mutex);
       if (rc == 0) {  // Unlock succeeded
         libpthread_mutex_lock(&rec_list_lock);
-        mutex_record->vo.mutex_state = UNLOCKED;
+        mutex_record->vo.mut_state = UNLOCKED;
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
@@ -354,9 +354,9 @@ void *mc_thread_routine_wrapper(void *arg) {
       assert(thread_record == NULL);
       visible_object vo = {.type = THREAD,
                            .location = NULL,
-                           .thread_state.pthread_desc = this_thread,
-                           .thread_state.status = ALIVE,
-                           .thread_state.id = rid};
+                           .thrd_state.pthread_desc = this_thread,
+                           .thrd_state.status = ALIVE,
+                           .thrd_state.id = rid};
       thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
       libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
@@ -386,7 +386,7 @@ void *mc_thread_routine_wrapper(void *arg) {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *thread_record = find_thread_record_mode(pthread_self());
       assert(thread_record != NULL);
-      thread_record->vo.thread_state.status = EXITED;
+      thread_record->vo.thrd_state.status = EXITED;
       libpthread_mutex_unlock(&rec_list_lock);
       return rv;
     }
@@ -412,7 +412,7 @@ void record_main_thread(void) {
   rec_list *thread_record = find_thread_record_mode(main_thread);
   assert(thread_record == NULL);
   visible_object vo = {
-      .type = THREAD, .location = NULL, .thread_state.pthread_desc = main_thread};
+      .type = THREAD, .location = NULL, .thrd_state.pthread_desc = main_thread};
   thread_record = add_rec_entry_record_mode(&vo);
   libpthread_mutex_unlock(&rec_list_lock);
 }
@@ -501,7 +501,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
       rec_list *thread_record = find_thread_record_mode(t);
       assert(thread_record != NULL);
       visible_object vo = {
-          .type = THREAD, .location = NULL, .thread_state.pthread_desc = t};
+          .type = THREAD, .location = NULL, .thrd_state.pthread_desc = t};
       thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
 
@@ -510,7 +510,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
         int rc = pthread_timedjoin_np(t, rv, &time);
         if (rc == 0) {  // Join succeeded
           libpthread_mutex_lock(&rec_list_lock);
-          thread_record->vo.thread_state.status = EXITED;
+          thread_record->vo.thrd_state.status = EXITED;
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         } else if (rc == ETIMEDOUT) {

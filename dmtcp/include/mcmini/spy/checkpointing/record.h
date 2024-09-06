@@ -13,9 +13,6 @@ extern "C" {
 #include <pthread.h>
 #include <semaphore.h>
 
-#include "mcmini/spy/checkpointing/objects.h"
-#include "mcmini/spy/checkpointing/transitions.h"
-
 /**
  * @brief Describes the different behaviors that `libmcmini.so` should exhibit
  *
@@ -110,10 +107,8 @@ enum libmcmini_mode {
 extern atomic_int libmcmini_mode;
 enum libmcmini_mode get_current_mode();
 
-typedef struct rec_list {
-  visible_object vo;
-  struct rec_list *next;
-} rec_list;
+typedef struct visible_object visible_object;
+typedef struct rec_list rec_list;
 
 extern sem_t dmtcp_restart_sem;
 extern rec_list *head_record_mode;
