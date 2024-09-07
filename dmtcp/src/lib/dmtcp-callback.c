@@ -12,6 +12,10 @@
 #include "mcmini/spy/checkpointing/rec_list.h"
 #include "mcmini/spy/intercept/interception.h"
 
+// We probably won't need the '#undef', but just in case a .h file defined it:
+#undef dmtcp_mcmini_is_loaded
+int dmtcp_mcmini_is_loaded() { return 1; }
+
 static atomic_bool is_template_thread_alive = 0;
 
 static void *template_thread(void *unused) {

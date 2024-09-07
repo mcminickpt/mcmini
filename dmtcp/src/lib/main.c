@@ -61,15 +61,18 @@ void mc_deallocate_shared_memory_region(void) {
   }
 }
 
+int dmtcp_mcmini_plugin_is_loaded(void) __attribute((weak));
+#define dmtcp_mcmini_plugin_is_loaded() \
+  (dmtcp_mcmini_plugin_is_loaded? dmtcp_mcmini_plugin_is_loaded() : 0)
+
 __attribute__((constructor)) void libmcmini_main() {
   // In recording mode, the constructor should be ignored and
   // the DMTCP callback should instead be used to determine when
   // `libmcmini.so` wrappers should begin recording.
 
-  // TODO: With weak and strong variables we can later detect
-  // whether `libmcmini` has been loaded as a plugin.
-  // McMini is only loaded as a plugin in record mode.
-  if (dmtcp_is_enabled()) {
+  if (dmtcp_mcmini_plugin_is_loaded()) {
+    // The libmcmini plugin of DMTCP has been loaded.
+    // We must be in recording mode.  Don't do model checking yet.
     return;
   }
   mc_prevent_addr_randomization();
