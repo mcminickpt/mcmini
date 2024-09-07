@@ -203,6 +203,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
 
 void do_recording(const config& config) {
   char dir[PATH_MAX];
+  // FIXME:  This depends on mcmini starting in root dir of git repo.
   std::string libmcini_dir = getcwd(dir, sizeof(dir)) ? dir : "PATH_TOO_LONG";
   std::string libmcmini_path = libmcini_dir + "/libmcmini.so";
   std::vector<std::string> dmtcp_launch_args;
