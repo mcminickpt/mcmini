@@ -3,6 +3,7 @@
 
 #include <dlfcn.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "mcmini/spy/intercept/wrappers.h"
 
@@ -33,24 +34,38 @@ inline static void libmcmini_init() {
 }
 
 void mc_load_intercepted_pthread_functions() {
-  pthread_create_ptr = dlsym(RTLD_NEXT, "pthread_create");
-  pthread_join_ptr = dlsym(RTLD_NEXT, "pthread_join");
-  pthread_mutex_init_ptr = dlsym(RTLD_NEXT, "pthread_mutex_init");
-  pthread_mutex_lock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_lock");
-  pthread_mutex_trylock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_trylock");
-  pthread_mutex_timedlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_timedlock");
-  pthread_mutex_unlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_unlock");
-  pthread_mutex_destroy_ptr = dlsym(RTLD_NEXT, "pthread_mutex_destroy");
-  sem_wait_ptr = dlsym(RTLD_NEXT, "sem_wait");
-  sem_post_ptr = dlsym(RTLD_NEXT, "sem_post");
-  sem_init_ptr = dlsym(RTLD_NEXT, "sem_init");
-  pthread_cond_init_ptr = dlsym(RTLD_NEXT, "pthread_cond_init");
-  pthread_cond_wait_ptr = dlsym(RTLD_NEXT, "pthread_cond_wait");
-  pthread_cond_signal_ptr = dlsym(RTLD_NEXT, "pthread_cond_signal");
-  pthread_cond_broadcast_ptr = dlsym(RTLD_NEXT, "pthread_cond_broadcast");
-  sleep_ptr = dlsym(RTLD_NEXT, "sleep");
-  exit_ptr = dlsym(RTLD_NEXT, "exit");
-  abort_ptr = dlsym(RTLD_NEXT, "abort");
+  void* real_dlopen = dlsym(RTLD_NEXT, "dlopen");
+  printf("%p\n", real_dlopen);
+  void *libpthread_handle = dlopen("libpthread.so", RTLD_LAZY);
+  void *libc_handle = dlopen("libc.so", RTLD_LAZY);
+
+  // TODO: Handle failed `dlopen`
+  if (!libpthread_handle) {
+    // Error: libpthread.so not
+
+  }
+
+  pthread_create_ptr = dlsym(libpthread_handle, "pthread_create");
+  pthread_join_ptr = dlsym(libpthread_handle, "pthread_join");
+  pthread_mutex_init_ptr = dlsym(libpthread_handle, "pthread_mutex_init");
+  pthread_mutex_lock_ptr = dlsym(libpthread_handle, "pthread_mutex_lock");
+  pthread_mutex_trylock_ptr = dlsym(libpthread_handle, "pthread_mutex_trylock");
+  pthread_mutex_timedlock_ptr = dlsym(libpthread_handle, "pthread_mutex_timedlock");
+  pthread_mutex_unlock_ptr = dlsym(libpthread_handle, "pthread_mutex_unlock");
+  pthread_mutex_destroy_ptr = dlsym(libpthread_handle, "pthread_mutex_destroy");
+  sem_wait_ptr = dlsym(libpthread_handle, "sem_wait");
+  sem_post_ptr = dlsym(libpthread_handle, "sem_post");
+  sem_init_ptr = dlsym(libpthread_handle, "sem_init");
+  pthread_cond_init_ptr = dlsym(libpthread_handle, "pthread_cond_init");
+  pthread_cond_wait_ptr = dlsym(libpthread_handle, "pthread_cond_wait");
+  pthread_cond_signal_ptr = dlsym(libpthread_handle, "pthread_cond_signal");
+  pthread_cond_broadcast_ptr = dlsym(libpthread_handle, "pthread_cond_broadcast");
+  sleep_ptr = dlsym(libc_handle, "sleep");
+  exit_ptr = dlsym(libc_handle, "exit");
+  abort_ptr = dlsym(libc_handle, "abort");
+
+  dlclose(libpthread_handle);
+  dlclose(libc_handle);
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex,
