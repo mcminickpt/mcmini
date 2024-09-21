@@ -47,7 +47,7 @@ void mc_load_intercepted_pthread_functions(void) {
   if (!libpthread_handle) {
     fprintf(stderr, "dlopen(3) couldn't find `libpthread`: %s\n", dlerror());
     fflush(stderr);
-    abort();
+    libc_abort();
   }
 
   // TODO: This shouldn't refer to the absolute path to dmtcp.so
@@ -57,7 +57,7 @@ void mc_load_intercepted_pthread_functions(void) {
   if (!libdmtcp_handle) {
     fprintf(stderr, "dlopen(3) couldn't find `libdmtcp`: %s\n", dlerror());
     fflush(stderr);
-    abort();
+    libc_abort();
   }
 
   void *libc_handle = dlopen("libc.so", RTLD_LAZY);
@@ -68,7 +68,7 @@ void mc_load_intercepted_pthread_functions(void) {
   if (!libc_handle) {
     fprintf(stderr, "dlopen(3) couldn't find `libc`: %s\n", dlerror());
     fflush(stderr);
-    abort();
+    libc_abort();
   }
 
   libpthread_pthread_create_ptr = dlsym(libpthread_handle, "pthread_create");
