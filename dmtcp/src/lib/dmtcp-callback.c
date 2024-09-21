@@ -71,21 +71,37 @@ static void *template_thread(void *unused) {
 static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
   switch (event) {
     case DMTCP_EVENT_INIT: {
-      // By default, `libmcmini_mode` is set to `PRE_DMTCP`
+      // Initialization should NOT happen in any of the
+      // `pthread*` wrapper functions, as they may be called
+      // in unexpected ways prior to the `DMTCP_EVENT_INIT`.
+      //
+      // For example, `libatomic.so` on aarch64 calls `pthread_mutex_lock`
+      // as part of its implementation (silly but so it is). This calls
+      // `libmcmini.so`'s `pthread_mutex_lock` since McMini comes first.
+      // If we called `libmcmini_init()` then, it's possible to end back
+      // up in DMTCP (via `dlopen(3)` which DMTCP intercepts) and subsequently
+      // call `pthread_mutex_lock` through `libatomic.so` _all by the same thread_.
+      // Since we use `pthread_once()`, this causes a deadlock.
+      //
+      // Hence, we initialization ONLY NOW, and there is not danger that the
+      // wrapper functions will unexpectedly recurse on themselves.
+      libmcmini_init();
+
+      // By default, `libmcmini_mode` is set to `PRE_DMTCP_INIT`
       // to indicate that DMTCP has not yet sent the
       // DMTCP_EVENT_INIT to `libmcmini.so`. This ensures that
       // wrapper functions simply forward their calls to the
-      // next (in the sense of RTLD_NEXT) function in line
-      // (most likely those in `libphread.so`) while DMTCP
-      // initializes itself (i.e. the primitives manipulated
-      // by DMTCP prior to restart are not recorded as part of
-      // the state of the process)
-      atomic_store(&libmcmini_mode, RECORD);
+      // next appropriate function in line. In most cases, this means
+      // calling the equivalent function in `libphread.so`.
+      //
+      // The checkpoint thread will be created immediately after
+      // DMTCP sends the `DMTCP_EVENT_INIT`
+      atomic_store(&libmcmini_mode, PRE_CHECKPOINT_THREAD);
 
       // We also initialize the semaphore used by the wrapper functions
       // AFTER DMTCP restart. This ensures that the semaphore is properly
       // initialized at restart time.
-      sem_init(&dmtcp_restart_sem, 0, 0);
+      libpthread_sem_init(&dmtcp_restart_sem, 0, 0);
 
       head_record_mode = NULL;
       printf("DMTCP_EVENT_INIT\n");

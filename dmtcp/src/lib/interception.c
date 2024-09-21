@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "mcmini/spy/intercept/interception.h"
 
+#include <assert.h>
 #include <dlfcn.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -9,8 +10,10 @@
 
 pthread_once_t libmcini_init = PTHREAD_ONCE_INIT;
 
-typeof(&pthread_create) pthread_create_ptr;
-typeof(&pthread_join) pthread_join_ptr;
+typeof(&pthread_create) libpthread_pthread_create_ptr;
+typeof(&pthread_create) libdmtcp_pthread_create_ptr;
+typeof(&pthread_join) libpthread_pthread_join_ptr;
+typeof(&pthread_create) libdmtcp_pthread_join_ptr;
 typeof(&pthread_mutex_init) pthread_mutex_init_ptr;
 typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
 typeof(&pthread_mutex_trylock) pthread_mutex_trylock_ptr;
@@ -29,24 +32,49 @@ typeof(&sleep) sleep_ptr;
 __attribute__((__noreturn__)) typeof(&exit) exit_ptr;
 __attribute__((__noreturn__)) typeof(&abort) abort_ptr;
 
-inline static void libmcmini_init() {
+void libmcmini_init(void) {
   pthread_once(&libmcini_init, &mc_load_intercepted_pthread_functions);
 }
 
-void mc_load_intercepted_pthread_functions() {
-  void* real_dlopen = dlsym(RTLD_NEXT, "dlopen");
-  printf("%p\n", real_dlopen);
-  void *libpthread_handle = dlopen("libpthread.so", RTLD_LAZY);
-  void *libc_handle = dlopen("libc.so", RTLD_LAZY);
+void mc_load_intercepted_pthread_functions(void) {
+  void *libpthread_handle =
+      dlopen("libpthread.so", RTLD_LAZY);
 
-  // TODO: Handle failed `dlopen`
   if (!libpthread_handle) {
-    // Error: libpthread.so not
-
+    libpthread_handle = dlopen("libpthread.so.0", RTLD_LAZY);
   }
 
-  pthread_create_ptr = dlsym(libpthread_handle, "pthread_create");
-  pthread_join_ptr = dlsym(libpthread_handle, "pthread_join");
+  if (!libpthread_handle) {
+    fprintf(stderr, "dlopen(3) couldn't find `libpthread`: %s\n", dlerror());
+    fflush(stderr);
+    abort();
+  }
+
+  // TODO: This shouldn't refer to the absolute path to dmtcp.so
+  // We need to -->
+  void *libdmtcp_handle = dlopen("libdmtcp.so", RTLD_LAZY);
+
+  if (!libdmtcp_handle) {
+    fprintf(stderr, "dlopen(3) couldn't find `libdmtcp`: %s\n", dlerror());
+    fflush(stderr);
+    abort();
+  }
+
+  void *libc_handle = dlopen("libc.so", RTLD_LAZY);
+  if (!libc_handle) {
+    libc_handle = dlopen("libc.so.6", RTLD_LAZY);
+  }
+
+  if (!libc_handle) {
+    fprintf(stderr, "dlopen(3) couldn't find `libc`: %s\n", dlerror());
+    fflush(stderr);
+    abort();
+  }
+
+  libpthread_pthread_create_ptr = dlsym(libpthread_handle, "pthread_create");
+  libdmtcp_pthread_create_ptr = dlsym(libdmtcp_handle, "pthread_create");
+  libpthread_pthread_join_ptr = dlsym(libpthread_handle, "pthread_join");
+  libdmtcp_pthread_join_ptr = dlsym(libdmtcp_handle, "pthread_join");
   pthread_mutex_init_ptr = dlsym(libpthread_handle, "pthread_mutex_init");
   pthread_mutex_lock_ptr = dlsym(libpthread_handle, "pthread_mutex_lock");
   pthread_mutex_trylock_ptr = dlsym(libpthread_handle, "pthread_mutex_trylock");
@@ -65,12 +93,12 @@ void mc_load_intercepted_pthread_functions() {
   abort_ptr = dlsym(libc_handle, "abort");
 
   dlclose(libpthread_handle);
+  dlclose(libdmtcp_handle);
   dlclose(libc_handle);
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex,
                        const pthread_mutexattr_t *mutexattr) {
-  libmcmini_init();
   return mc_pthread_mutex_init(mutex, mutexattr);
 }
 
@@ -81,7 +109,6 @@ int libpthread_mutex_init(pthread_mutex_t *mutex,
 }
 
 int pthread_mutex_lock(pthread_mutex_t *mutex) {
-  libmcmini_init();
   return mc_pthread_mutex_lock(mutex);
 }
 
@@ -101,7 +128,6 @@ int libpthread_mutex_timedlock(pthread_mutex_t *mut, struct timespec *t) {
 }
 
 int pthread_mutex_unlock(pthread_mutex_t *mutex) {
-  libmcmini_init();
   return mc_pthread_mutex_unlock(mutex);
 }
 
@@ -117,31 +143,42 @@ int libpthread_mutex_destroy(pthread_mutex_t *mut) {
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                    void *(*routine)(void *), void *arg) {
-  libmcmini_init();
   return mc_pthread_create(thread, attr, routine, arg);
 }
 
-int pthread_join(pthread_t thread, void **rv) {
+int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                              void *(*routine)(void *), void *arg) {
   libmcmini_init();
+  return (*libpthread_pthread_create_ptr)(thread, attr, routine, arg);
+}
+
+int libdmtcp_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                            void *(*routine)(void *), void *arg) {
+  libmcmini_init();
+  return (*libdmtcp_pthread_create_ptr)(thread, attr, routine, arg);
+}
+
+int pthread_join(pthread_t thread, void **rv) {
   return mc_pthread_join(thread, rv);
 }
 int libpthread_pthread_join(pthread_t thread, void **rv) {
   libmcmini_init();
-  return (*pthread_join_ptr)(thread, rv);
+  return (*libpthread_pthread_join_ptr)(thread, rv);
+}
+int libdmtcp_pthread_join(pthread_t thread, void **rv) {
+  libmcmini_init();
+  return (*libdmtcp_pthread_join_ptr)(thread, rv);
 }
 
 void exit(int status) {
-  libmcmini_init();
   mc_transparent_exit(status);
 }
 
 void abort(void) {
-  libmcmini_init();
   mc_transparent_abort();
 }
 
 unsigned sleep(unsigned duration) {
-  libmcmini_init();
   return mc_sleep(duration);
 }
 
@@ -160,11 +197,6 @@ MCMINI_NO_RETURN void libc_exit(int status) {
   (*exit_ptr)(status);
 }
 
-int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
-                              void *(*routine)(void *), void *arg) {
-  libmcmini_init();
-  return (*pthread_create_ptr)(thread, attr, routine, arg);
-}
 int libpthread_sem_init(sem_t *sem, int pshared, int value) {
   libmcmini_init();
   return (*sem_init_ptr)(sem, pshared, value);

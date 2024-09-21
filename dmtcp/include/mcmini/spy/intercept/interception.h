@@ -8,7 +8,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 
-void mc_load_intercepted_pthread_functions();
+void libmcmini_init(void);
+void mc_load_intercepted_pthread_functions(void);
 
 int pthread_mutex_init(pthread_mutex_t *mutex,
                        const pthread_mutexattr_t *mutexattr);
@@ -19,9 +20,12 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                   void *(*routine)(void *), void *arg);
 int libpthread_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                   void *(*routine)(void *), void *arg);
+int libdmtcp_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                            void *(*routine)(void *), void *arg);
 
 int pthread_join(pthread_t thread, void**);
 int libpthread_pthread_join(pthread_t thread, void**);
+int libdmtcp_pthread_join(pthread_t thread, void**);
 
 int libpthread_mutex_init(pthread_mutex_t *, const pthread_mutexattr_t *);
 int libpthread_mutex_lock(pthread_mutex_t *);

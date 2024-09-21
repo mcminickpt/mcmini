@@ -40,12 +40,17 @@ extern "C" {
  * `libmcmini.so` will now behave as if under the control of the model checker
  * in `mcmini`.
  *
- * PRE_DMTCP:
+ * PRE_DMTCP_INIT:
  *   In this mode, the `mcmini` process has `exec()`-ed into `dmtcp_launch` with
- * `libmcminio.so` as a DMTCP plugin. Here, DMTCP will preload mcmini. Prior to
+ * `libmcmini.so` as a DMTCP plugin. Here, DMTCP will preload mcmini. Prior to
  * DMTCP alerting us with the `DMTCP_EVENT_INIT`, wrapper functions simply
- * forward calls to the next available function found by `dlsym(3)` using
- * `RTLD_NEXT`.
+ * forward calls to `libpthread.so`
+ *
+ * PRE_CHECKPOINT_THREAD:
+ *   In this mode, DMTCP has sent the `DMTCP_EVENT_INIT` event but has not
+ * yet created the checkpoint thread. All wrappers (except `pthread_create`)
+ * behave as in `PRE_DMTCP_INIT`. For `pthread_create`, the call is _only_ forwarded
+ * into DMTCP instead -- the checkpoint thread is NOT recorded.
  *
  * RECORD:
  *   In this mode, `libmcmini.so` performs a light-weight recording of the
@@ -78,7 +83,8 @@ extern "C" {
  * with model checking.
  */
 enum libmcmini_mode {
-  PRE_DMTCP,
+  PRE_DMTCP_INIT,
+  PRE_CHECKPOINT_THREAD,
   RECORD,
   PRE_CHECKPOINT,
   DMTCP_RESTART,

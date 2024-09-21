@@ -75,7 +75,8 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
   }
 
   switch (get_current_mode()) {
-    case PRE_DMTCP: {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
       return libpthread_mutex_init(mutex, attr);
     }
     case RECORD:
@@ -152,7 +153,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
   // 4. The thread is executing in RECORD mode and should do state
   // tracking.
   switch (get_current_mode()) {
-    case PRE_DMTCP: {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
       return libpthread_mutex_lock(mutex);
     }
     case RECORD:
@@ -228,7 +230,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
 
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   switch (get_current_mode()) {
-    case PRE_DMTCP: {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
       return libpthread_mutex_unlock(mutex);
     }
     case RECORD:
@@ -330,9 +333,11 @@ void *mc_thread_routine_wrapper(void *arg) {
   runner_id_t rid = mc_register_this_thread();
   struct mc_thread_routine_arg *unwrapped_arg = arg;
   switch (get_current_mode()) {
-    case PRE_DMTCP: {
-      // In `PRE_DMTCP` mode, `mc_pthread_create` always directly calls the thread routine
-      // passed to `pthread_create(3)`. Reaching this McMini wrapper would be an error.
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
+      fprintf(stderr,
+      "In `PRE_DMTCP_INIT` mode, `mc_pthread_create` always directly calls DMTCP."
+      "Reaching this point means that the McMini wrapper would be an error.\n");
       libc_abort();
     }
     case RECORD:
@@ -414,21 +419,36 @@ void record_main_thread(void) {
   visible_object vo = {
       .type = THREAD, .location = NULL, .thrd_state.pthread_desc = main_thread};
   thread_record = add_rec_entry_record_mode(&vo);
+
+  // Recording the presence of the main thread means that the main
+  // thread has made its first call to `pthread_create`. The assumption
+  // is that DMTCP (executing in the main thread before the `main` routine)
+  // makes the first call to `pthread_create` to create the checkpoint thread.
+  // Since the checkpoint thread is about to be created, it is safe to begin
+  // recording.
+  atomic_store(&libmcmini_mode, RECORD);
   libpthread_mutex_unlock(&rec_list_lock);
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                       void *(*routine)(void *), void *arg) {
-  static pthread_once_t main_thread_recorded = PTHREAD_ONCE_INIT;
-  pthread_once(&main_thread_recorded, &record_main_thread);
+  // NOTE: We're assuming that DMTCP creates only the checkpoint thread
+  // immediately after sending the `DMTCP_EVENT_INIT` to `libmcmini.so`
+  // and creates no other threads during execution
+  static pthread_once_t main_thread_once = PTHREAD_ONCE_INIT;
 
   // TODO: Reduce code duplication here!
   switch (get_current_mode()) {
-    case PRE_DMTCP: {
-      // NOTE: We're assuming that only a single checkpoint
-      // thread enters model checking mode and that this thread
-      // is more of less "boring" (i.e. it doesn't call pthread functions)
-      return libpthread_pthread_create(thread, attr, routine, arg);
+    case PRE_DMTCP_INIT: {
+      // This case implies that DMTCP attempted to create
+      // a thread BEFORE the `DMTCP_EVENT_INIT` was delivered
+      // to `libmcmini`'s callback.
+      // NOTE: Explicit fallthrough intended
+      assert(0);
+    }
+    case PRE_CHECKPOINT_THREAD: {
+      pthread_once(&main_thread_once, &record_main_thread);
+      return libdmtcp_pthread_create(thread, attr, routine, arg);
     }
     case RECORD:
     case PRE_CHECKPOINT:
@@ -445,7 +465,7 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
           &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0,
           0);
       const int rc =
-          libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
+          libdmtcp_pthread_create(thread, attr, &mc_thread_routine_wrapper,
                                     libmcmini_controlled_thread_arg);
       // IMPORTANT: We need to ensure that the child thread is recorded
       // before exiting; otherwise there are potential race conditions
@@ -465,6 +485,13 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       libpthread_sem_init(
           &libmcmini_controlled_thread_arg->mc_pthread_create_binary_sem, 0,
           0);
+
+      // NOTE: This code is reached when the model checker has control.
+      // Since this process represents an(emphemeral) branch of state space,
+      // unless we later want to checkpoint this branch, we don't need to
+      // inform DMTCP of these new threads. Indeed, in classic model checking
+      // mode, `libdmtcp.so` is not even loaded (so we'd have to check first anyway).
+      // Calling `libpthread_pthread_create` simplifies all this.
       const int rv =
           libpthread_pthread_create(thread, attr, &mc_thread_routine_wrapper,
                                     libmcmini_controlled_thread_arg);
@@ -489,8 +516,15 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
 int mc_pthread_join(pthread_t t, void **rv) {
   switch (get_current_mode()) {
-    case PRE_DMTCP: {
-      return libpthread_pthread_join(t, rv);
+    case PRE_DMTCP_INIT: {
+      // This case implies that DMTCP attempted to join
+      // a thread BEFORE the `DMTCP_EVENT_INIT` was delivered
+      // to `libmcmini`'s callback
+      // NOTE: Explicit fallthrough intended
+      assert(0);
+    }
+    case PRE_CHECKPOINT_THREAD: {
+      return libdmtcp_pthread_join(t, rv);
     }
     case RECORD:
     case PRE_CHECKPOINT: {
@@ -505,7 +539,9 @@ int mc_pthread_join(pthread_t t, void **rv) {
       thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
 
-      struct timespec time = {.tv_sec = 2};
+      time(NULL);
+
+      struct timespec two_seconds_later = {.tv_sec = 2, .tv_nsec = 0};
       while (1) {
         int rc = pthread_timedjoin_np(t, rv, &time);
         if (rc == 0) {  // Join succeeded
