@@ -539,9 +539,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
       thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
 
-      time(NULL);
-
-      struct timespec two_seconds_later = {.tv_sec = 2, .tv_nsec = 0};
+      struct timespec time = {.tv_sec = 2, .tv_nsec = 0};
       while (1) {
         int rc = pthread_timedjoin_np(t, rv, &time);
         if (rc == 0) {  // Join succeeded

@@ -13,7 +13,7 @@ pthread_once_t libmcini_init = PTHREAD_ONCE_INIT;
 typeof(&pthread_create) libpthread_pthread_create_ptr;
 typeof(&pthread_create) libdmtcp_pthread_create_ptr;
 typeof(&pthread_join) libpthread_pthread_join_ptr;
-typeof(&pthread_create) libdmtcp_pthread_join_ptr;
+typeof(&pthread_join) libdmtcp_pthread_join_ptr;
 typeof(&pthread_mutex_init) pthread_mutex_init_ptr;
 typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
 typeof(&pthread_mutex_trylock) pthread_mutex_trylock_ptr;
