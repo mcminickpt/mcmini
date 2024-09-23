@@ -7,66 +7,65 @@
 #include <unistd.h>
 
 #include "dmtcp.h"
-#include "mcmini/common/exit.h"
-#include "mcmini/spy/checkpointing/record.h"
-#include "mcmini/spy/checkpointing/rec_list.h"
-#include "mcmini/spy/intercept/interception.h"
+#include "mcmini/mcmini.h"
 
 // We probably won't need the '#undef', but just in case a .h file defined it:
 #undef dmtcp_mcmini_is_loaded
 int dmtcp_mcmini_is_loaded() { return 1; }
 
-static atomic_bool is_template_thread_alive = 0;
+static sem_t template_thread_sem;
 
-static void *template_thread(void *unused) {
-  // Determine how many times
-  int thread_count = 0;
-  struct dirent *entry;
-  DIR *dp = opendir("/proc/self/tasks");
-  if (dp == NULL) {
-    perror("opendir");
-    exit(EXIT_FAILURE);
-  }
+// static void *template_thread(void *unused) {
+//   libpthread_sem_wait(&template_thread_sem);
 
-  while ((entry = readdir(dp))) {
-    if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-      thread_count++;
-    }
-  }
+//   // Determine how many times
+//   int thread_count = 0;
+//   struct dirent *entry;
+//   DIR *dp = opendir("/proc/self/tasks");
+//   if (dp == NULL) {
+//     perror("opendir");
+//     mc_exit(EXIT_FAILURE);
+//   }
 
-  // We don't want to count the template thread nor
-  // the checkpoint thread, but these will appear in
-  // `/proc/self/tasks`
-  thread_count -= 2;
-  closedir(dp);
+//   while ((entry = readdir(dp))) {
+//     if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+//       thread_count++;
+//     }
+//   }
 
-  printf(
-      "There are %d threads... waiting for them to get into a consistent "
-      "state...\n",
-      thread_count);
-  for (int i = 0; i < thread_count; i++) {
-    sem_wait(&dmtcp_restart_sem);
-  }
+//   // We don't want to count the template thread nor
+//   // the checkpoint thread, but these will appear in
+//   // `/proc/self/tasks`
+//   thread_count -= 2;
+//   closedir(dp);
 
-  printf("The template thread is finished... restarting...\n");
-  int fd = open("/tmp/mcmini-fifo", O_WRONLY);
-  if (fd == -1) {
-    perror("open");
-  }
-  for (rec_list *entry = head_record_mode; entry != NULL; entry = entry->next) {
-    printf("Writing entry %p (state %d)\n", entry->vo.location,
-           entry->vo.mut_state);
-    write(fd, &entry->vo, sizeof(visible_object));
-  }
-  write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
-  printf("The template thread has completed: looping...\n");
-  fsync(fd);
-  fsync(0);
+//   printf(
+//       "There are %d threads... waiting for them to get into a consistent "
+//       "state...\n",
+//       thread_count);
+//   for (int i = 0; i < thread_count; i++) {
+//     libpthread_sem_wait(&dmtcp_restart_sem);
+//   }
 
-  // TODO: Exit for now --> loop eventually and do multithreaded forks
-  mc_exit(0);
-  return NULL;
-}
+//   printf("The template thread is finished... restarting...\n");
+//   int fd = open("/tmp/mcmini-fifo", O_WRONLY);
+//   if (fd == -1) {
+//     perror("open");
+//   }
+//   for (rec_list *entry = head_record_mode; entry != NULL; entry = entry->next) {
+//     printf("Writing entry %p (state %d)\n", entry->vo.location,
+//            entry->vo.mut_state);
+//     write(fd, &entry->vo, sizeof(visible_object));
+//   }
+//   write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
+//   printf("The template thread has completed: looping...\n");
+//   fsync(fd);
+//   fsync(0);
+
+//   // TODO: Exit for now --> loop eventually and do multithreaded forks
+//   mc_exit(0);
+//   return NULL;
+// }
 
 static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
   switch (event) {
@@ -103,6 +102,20 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       // initialized at restart time.
       libpthread_sem_init(&dmtcp_restart_sem, 0, 0);
 
+      // We would prefer to create the template thread
+      // only during restart. However, the restart event
+      // is handled by the checkpoint thread. The DMTCP
+      // checkpoint thread does not expect to create an
+      // extra user thread as a child of the checkpoint
+      // thread. So we create the template thread here.
+      // pthread_t template_thread_id;
+      // pthread_attr_t attr;
+      // pthread_attr_init(&attr);
+      // pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+      // libpthread_sem_init(&template_thread_sem, 0, 0);
+      // libdmtcp_pthread_create(&template_thread_id, &attr, &template_thread, NULL);
+      // pthread_attr_destroy(&attr);
+
       head_record_mode = NULL;
       printf("DMTCP_EVENT_INIT\n");
       break;
@@ -121,14 +134,34 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       break;
 
     case DMTCP_EVENT_RESTART: {
-      if (!atomic_load(&is_template_thread_alive)) {
-        atomic_store(&libmcmini_mode, DMTCP_RESTART);
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-        libpthread_pthread_create(NULL, &attr, &template_thread, NULL);
-        atomic_store(&is_template_thread_alive, 1);
-      }
+      atomic_store(&libmcmini_mode, DMTCP_RESTART);
+
+      // During record mode, the shared memory
+      // used by the `mcmini` process to control
+      // the userspace threads in this process
+      // is not allocated. At restart time,
+      // the userspace threads may be in the middle
+      // of executing wrapper functions. Once they
+      // notice that the `DMTCP_EVENT_RESTART` event has
+      // been sent, they will want to access this
+      // region. Hence, we need to allocate it prior
+      // to returning from the checkpoint thread
+      //
+      // NOTE: `mcmini` ensures that the shared memory region
+      // is properly _initialized_, just as with classic
+      // model checking.
+      char shm_name[100];
+      snprintf(shm_name, sizeof(shm_name), "/mcmini-%s-%lu", getenv("USER"), (long)dmtcp_virtual_to_real_pid(getppid()));
+      shm_name[sizeof(shm_name) - 1] = '\0';
+      mc_allocate_shared_memory_region(shm_name);
+
+      // NOTE: The template thread has been sleeping
+      // on `template_thread_sem` during the entire
+      // record phase. Only at restart time do we
+      // actually wake it up to take control of the
+      // other userspace threads for model checking.
+      libpthread_sem_post(&template_thread_sem);
+
       break;
     }
     default:

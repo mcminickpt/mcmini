@@ -19,15 +19,12 @@
 
 volatile void *global_shm_start = NULL;
 
-void mc_allocate_shared_memory_region(void) {
-  char dpor[100];
-  mc_get_shm_handle_name(dpor, sizeof(dpor));
-
-  int fd = shm_open(dpor, O_RDWR, S_IRUSR | S_IWUSR);
+void mc_allocate_shared_memory_region(const char *shm_name) {
+  int fd = shm_open(shm_name, O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) {
     if (errno == EACCES) {
       fprintf(stderr, "Shared memory region '%s' not owned by this process\n",
-              dpor);
+              shm_name);
     } else {
       perror("shm_open");
     }
@@ -65,6 +62,12 @@ int dmtcp_mcmini_plugin_is_loaded(void) __attribute((weak));
 #define dmtcp_mcmini_plugin_is_loaded() \
   (dmtcp_mcmini_plugin_is_loaded ? dmtcp_mcmini_plugin_is_loaded() : 0)
 
+
+void *test(void*) {
+  return NULL;
+}
+
+
 __attribute__((constructor)) void libmcmini_main() {
   // In recording mode, the constructor should be ignored and
   // the DMTCP callback should instead be used to determine when
@@ -76,16 +79,21 @@ __attribute__((constructor)) void libmcmini_main() {
   //   // We must be in recording mode.  Don't do model checking yet.
   //   return;
   // }
+
+  pthread_t t;
+  libdmtcp_pthread_create(&t, NULL, &test, NULL);
   if (dmtcp_is_enabled()) {
     // The libmcmini plugin of DMTCP has been loaded.
     // We must be in recording mode.  Don't do model checking yet.
     return;
-
   }
   mc_prevent_addr_randomization();
   mc_install_sig_handlers();
   mc_register_this_thread();
-  mc_allocate_shared_memory_region();
+
+  char shm_name[100];
+  mc_get_shm_handle_name(shm_name, sizeof(shm_name));
+  mc_allocate_shared_memory_region(shm_name);
   atexit(&mc_deallocate_shared_memory_region);
 
   if (getenv("MCMINI_TEMPLATE_LOOP")) {

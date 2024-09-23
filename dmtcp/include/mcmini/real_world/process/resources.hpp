@@ -17,8 +17,11 @@ struct xpc_resources {
 
  public:
   static xpc_resources &get_instance() {
-    static xpc_resources resources;
-    return resources;
+    static std::unique_ptr<xpc_resources> resources = nullptr;
+    if (!resources) {
+      resources = std::unique_ptr<xpc_resources>(new xpc_resources());
+    }
+    return *resources;
   }
   shared_memory_region *get_rw_region() const { return this->rw_region.get(); }
   void reset_binary_semaphores_for_new_process();

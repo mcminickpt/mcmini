@@ -21,6 +21,7 @@
 #include "mcmini/signal.hpp"
 #include "mcmini/spy/checkpointing/objects.h"
 #include "mcmini/spy/checkpointing/transitions.h"
+#include "mcmini/real_world/process/resources.hpp"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -124,6 +125,7 @@ void do_model_checking(const config& config) {
 }
 
 void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
+  xpc_resources::get_instance();
   auto dmtcp_template_handle =
       extensions::make_unique<dmtcp_process_source>(config.checkpoint_file);
 
