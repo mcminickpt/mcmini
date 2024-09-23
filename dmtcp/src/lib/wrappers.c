@@ -419,6 +419,7 @@ void record_main_thread(void) {
   visible_object vo = {
       .type = THREAD, .location = NULL, .thrd_state.pthread_desc = main_thread};
   thread_record = add_rec_entry_record_mode(&vo);
+  libpthread_mutex_unlock(&rec_list_lock);
 
   // Recording the presence of the main thread means that the main
   // thread has made its first call to `pthread_create`. The assumption
@@ -427,7 +428,12 @@ void record_main_thread(void) {
   // Since the checkpoint thread is about to be created, it is safe to begin
   // recording.
   atomic_store(&libmcmini_mode, RECORD);
-  libpthread_mutex_unlock(&rec_list_lock);
+
+  // Finally, we give the thread an id for use later
+  // after restart when we begin model checking.
+  // (note that this is called in `mc_thread_routine_wrapper`
+  // for all threads... except the main one!)
+  mc_register_this_thread();
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,

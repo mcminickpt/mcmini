@@ -62,12 +62,6 @@ int dmtcp_mcmini_plugin_is_loaded(void) __attribute((weak));
 #define dmtcp_mcmini_plugin_is_loaded() \
   (dmtcp_mcmini_plugin_is_loaded ? dmtcp_mcmini_plugin_is_loaded() : 0)
 
-
-void *test(void*) {
-  return NULL;
-}
-
-
 __attribute__((constructor)) void libmcmini_main() {
   // In recording mode, the constructor should be ignored and
   // the DMTCP callback should instead be used to determine when
@@ -80,8 +74,6 @@ __attribute__((constructor)) void libmcmini_main() {
   //   return;
   // }
 
-  pthread_t t;
-  libdmtcp_pthread_create(&t, NULL, &test, NULL);
   if (dmtcp_is_enabled()) {
     // The libmcmini plugin of DMTCP has been loaded.
     // We must be in recording mode.  Don't do model checking yet.
