@@ -23,15 +23,13 @@ using namespace real_world;
 
 coordinator::coordinator(
     model::program &&initial_state,
-    model::transition_registry &&runtime_transition_mapping,
+    model::transition_registry runtime_transition_mapping,
     std::unique_ptr<real_world::process_source> &&process_source)
     : current_program_model(std::move(initial_state)),
       runtime_transition_mapping(std::move(runtime_transition_mapping)),
       process_source(std::move(process_source)) {
   this->assign_new_process_handle();
 }
-
-#include <iostream>
 
 void coordinator::execute_runner(process::runner_id_t runner_id) {
   if (!current_process_handle) {
@@ -143,6 +141,13 @@ model::state::objid_t model_to_system_map::observe_object(
       _coordinator.current_program_model.discover_object(vobs);
   _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
   return new_objid;
+}
+
+model::state::runner_id_t model_to_system_map::observe_runner(
+    real_world::remote_address<void> rp_vobj_handle,
+    const model::runner_state *vobs, const model::transition *t) {
+  return observe_runner(std::move(rp_vobj_handle), vobs,
+                        [t](runner_id_t id) { return t; });
 }
 
 model::state::runner_id_t model_to_system_map::observe_runner(

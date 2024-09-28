@@ -11,7 +11,12 @@
 
 #include <iostream>
 
+#include "mcmini/misc/extensions/unique_ptr.hpp"
+#include "mcmini/real_world/process/local_linux_process.hpp"
+#include "mcmini/real_world/process/resources.hpp"
+
 using namespace real_world;
+using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {}
@@ -106,8 +111,13 @@ void dmtcp_process_source::make_new_template_process() {
 }
 
 std::unique_ptr<process> dmtcp_process_source::make_new_process() {
-  // TODO: Implement later
-  return nullptr;
+  // TODO: actually implement the template process forking via multithreaded
+  // fork on the `libmcmini.so` side
+  if (!has_template_process_alive()) {
+    make_new_template_process();
+  }
+  return extensions::make_unique<local_linux_process>(
+      this->template_pid, *xpc_resources::get_instance().get_rw_region());
 }
 
 dmtcp_process_source::~dmtcp_process_source() {

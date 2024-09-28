@@ -9,10 +9,13 @@
 
 #include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/state.hpp"
+#include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
 using namespace model;
+
+program::program() : program(detached_state(), pending_transitions()) {}
 
 program::program(const state &initial_state,
                  pending_transitions &&initial_first_steps)
@@ -94,6 +97,13 @@ state::runner_id_t program::discover_runner(const runner_state *initial_state,
                                             runner_generation_function f) {
   state::runner_id_t const id = this->state_seq.add_runner(initial_state);
   this->next_steps.set_transition(f(id));
+  return id;
+}
+
+state::runner_id_t program::discover_runner(const runner_state *initial_state,
+                                            const transition *next_transition) {
+  state::runner_id_t const id = this->state_seq.add_runner(initial_state);
+  this->next_steps.set_transition(next_transition);
   return id;
 }
 

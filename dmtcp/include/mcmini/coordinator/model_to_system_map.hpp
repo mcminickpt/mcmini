@@ -31,15 +31,14 @@
 class model_to_system_map final {
  private:
   coordinator &_coordinator;
+  friend coordinator;
 
+ public:
   /*
    * Prevent external construction (only the coordinator can construct
    * instances of this class)
    */
   model_to_system_map(coordinator &coordinator) : _coordinator(coordinator) {}
-  friend coordinator;
-
- public:
   model_to_system_map() = delete;
 
   model::state::objid_t get_model_of_object(
@@ -66,6 +65,17 @@ class model_to_system_map final {
    */
   model::state::objid_t observe_object(real_world::remote_address<void>,
                                        const model::visible_object_state *);
+
+  // TODO: Does it make sense to be able to add a runner without a transition
+  // and then later (retroactively) give it a transition (in _this_ interface
+  // that is)
+  model::state::runner_id_t observe_runner(real_world::remote_address<void>,
+                                           const model::runner_state *);
+  void observe_runner_transition(model::state::runner_id_t,
+                                 const model::transition *);
+  model::state::runner_id_t observe_runner(real_world::remote_address<void>,
+                                           const model::runner_state *,
+                                           const model::transition *);
   model::state::runner_id_t observe_runner(real_world::remote_address<void>,
                                            const model::runner_state *,
                                            runner_generation_function f);

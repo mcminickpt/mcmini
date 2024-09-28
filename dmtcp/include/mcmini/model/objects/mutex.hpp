@@ -9,16 +9,16 @@ namespace objects {
 struct mutex : public model::visible_object_state {
  public:
   /* The four possible states for a mutex */
-  enum state_type { uninitialized, unlocked, locked, destroyed };
+  enum state { uninitialized, unlocked, locked, destroyed };
 
  private:
-  state_type current_state = state_type::uninitialized;
+  state current_state = state::uninitialized;
 
  public:
   mutex() = default;
   ~mutex() = default;
   mutex(const mutex &) = default;
-  mutex(state_type state) : current_state(state) {}
+  mutex(state s) : current_state(s) {}
   // ---- State Observation --- //
   bool operator==(const mutex &other) const {
     return this->current_state == other.current_state;

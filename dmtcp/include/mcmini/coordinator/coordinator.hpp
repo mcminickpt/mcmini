@@ -99,7 +99,7 @@ class coordinator {
    * undefined (most likely this would lead to deadlocks etc.).
    */
   coordinator(model::program &&initial_state,
-              model::transition_registry &&runtime_transition_mapping,
+              model::transition_registry runtime_transition_mapping,
               std::unique_ptr<real_world::process_source> &&process_source);
   ~coordinator() = default;
 

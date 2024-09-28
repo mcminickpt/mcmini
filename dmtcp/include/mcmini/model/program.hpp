@@ -53,7 +53,7 @@ class program {
 
  public:
   using runner_id_t = ::runner_id_t;
-
+  program();
   program(const state &initial_state,
           pending_transitions &&initial_first_steps);
   program(program &&) = default;
@@ -78,7 +78,7 @@ class program {
   /// @return the id assigned to the object in the model
   state::objid_t discover_object(const visible_object_state *s);
 
-  /// @brief Introduce a new object into the model with initial state `s`
+  /// @brief Introduce a new runner into the model with initial state `s`
   /// @param s the initial state of the new object to add to the model
   /// @param f a function which, when passed the id that will be vended to the
   /// runner, produces the first transition that runner is executing in the
@@ -86,6 +86,15 @@ class program {
   /// @return the id assigned to the runner.
   state::runner_id_t discover_runner(const runner_state *s,
                                      runner_generation_function f);
+
+  /// @brief Introduce a new runner into the model with initial state `s`
+  /// running transition `next_transition`
+  /// @param s the initial state of the new object to add to the model
+  /// @param next_transition the next operation the runner will execute in
+  /// state `s`
+  /// @return the id assigned to the runner.
+  state::runner_id_t discover_runner(const runner_state *s,
+                                     const transition *next_transition);
 
   /// @brief Model the execution of runner `p` and replace its next operation
   /// with `next_pending_operation`.

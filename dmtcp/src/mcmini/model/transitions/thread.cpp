@@ -32,5 +32,8 @@ model::transition* thread_join_callback(runner_id_t p,
   memcpy_v(&target, static_cast<const volatile void*>(&rmb.cnts),
            sizeof(pthread_t));
   const state::runner_id_t target_id = m.get_model_of_runner((void*)target);
+  if (target_id == model::invalid_rid) {
+    throw std::runtime_error("Attemping to join on an unmodeled thread");
+  }
   return new transitions::thread_join(p, target_id);
 }

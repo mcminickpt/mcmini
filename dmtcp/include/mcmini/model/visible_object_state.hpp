@@ -5,7 +5,6 @@
 #include <memory>
 
 namespace model {
-
 class visible_object_state {
  public:
   virtual ~visible_object_state() = default;

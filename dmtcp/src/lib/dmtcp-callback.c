@@ -53,17 +53,26 @@ static void *template_thread(void *unused) {
     perror("open");
   }
   for (rec_list *entry = head_record_mode; entry != NULL; entry = entry->next) {
-    printf("Writing entry %p (state %d)\n", entry->vo.location,
-           entry->vo.mut_state);
+    if (entry->vo.type == MUTEX) {
+      printf("Writing mutex entry %p (state %d)\n", entry->vo.location,
+             entry->vo.mut_state);
+    } else if (entry->vo.type == THREAD) {
+      printf("Writing thread entry %p (id %d, status: %d)\n",
+             (void *)entry->vo.thrd_state.pthread_desc, entry->vo.thrd_state.id,
+             entry->vo.thrd_state.status);
+    } else {
+      libc_abort();
+    }
+
     write(fd, &entry->vo, sizeof(visible_object));
   }
   write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
   printf("The template thread has completed: looping...\n");
   fsync(fd);
   fsync(0);
-
-  // TODO: Exit for now --> loop eventually and do multithreaded forks
-  mc_exit(0);
+  int dummy = 1;
+  while (dummy)
+    ;
   return NULL;
 }
 

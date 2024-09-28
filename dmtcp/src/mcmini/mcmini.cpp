@@ -1,5 +1,7 @@
+#include "mcmini/common/shm_config.h"
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/coordinator/model_to_system_map.hpp"
+#include "mcmini/coordinator/restore-objects.hpp"
 #include "mcmini/defines.h"
 #include "mcmini/mem.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
@@ -18,10 +20,10 @@
 #include "mcmini/real_world/fifo.hpp"
 #include "mcmini/real_world/process/dmtcp_process_source.hpp"
 #include "mcmini/real_world/process/fork_process_source.hpp"
+#include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/signal.hpp"
 #include "mcmini/spy/checkpointing/objects.h"
 #include "mcmini/spy/checkpointing/transitions.h"
-#include "mcmini/real_world/process/resources.hpp"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -31,6 +33,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -46,6 +49,37 @@ using namespace model;
 using namespace model_checking;
 using namespace objects;
 using namespace real_world;
+
+visible_object_state* translate_recorded_object_to_model(
+    const ::visible_object& recorded_object) {
+  // TODO: A function table would be slightly better, but this works perfectly
+  // fine too.
+  switch (recorded_object.type) {
+    case MUTEX: {
+      return new objects::mutex(
+          static_cast<objects::mutex::state>(recorded_object.mut_state));
+    }
+    // Other objects here
+    // case ...  { }
+    // ...
+    default: {
+      std::abort();
+    }
+  }
+}
+
+runner_state* translate_recorded_runner_to_model(
+    const ::visible_object& recorded_object) {
+  switch (recorded_object.type) {
+    case THREAD: {
+      return new objects::thread(static_cast<objects::thread::state>(
+          recorded_object.thrd_state.status));
+    }
+    default: {
+      std::abort();
+    }
+  }
+}
 
 void finished_trace_classic_dpor(const coordinator& c) {
   static uint32_t trace_id = 0;
@@ -125,37 +159,16 @@ void do_model_checking(const config& config) {
 }
 
 void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
-  xpc_resources::get_instance();
+  volatile mcmini_shm_file* rw_region =
+      xpc_resources::get_instance().get_rw_region()->as<mcmini_shm_file>();
   auto dmtcp_template_handle =
       extensions::make_unique<dmtcp_process_source>(config.checkpoint_file);
 
   // Make sure that `dmtcp_restart` has executed and that the template
   // process is ready for execution; otherwise, the state restoration will not
   // work as expected.
-  dmtcp_template_handle->preload_template_for_state_consumption();
-
-  detached_state state_of_program_at_main;
-  pending_transitions initial_first_steps;
-  {
-    fifo fifo("/tmp/mcmini-fifo");
-    ::visible_object current_obj;
-    while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
-      std::cout << current_obj.location << std::endl;
-      std::cout << current_obj.mut_state << std::endl;
-    }
-  }
-
-  {
-    // initial_first_steps
-    // Figure out what thread `N` is doing. This probably involves coordination
-    // between `libmcmini.so`, `libdmtcp.so`, and the `mcmini` process
-  }
-
   algorithm::callbacks c;
   transition_registry tr;
-  classic_dpor::dependency_relation_type dr;
-  classic_dpor::coenabled_relation_type cr;
-
   tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
   tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
   tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
@@ -163,6 +176,71 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
 
+  coordinator coordinator(model::program(), tr,
+                          std::move(dmtcp_template_handle));
+  {
+    model_to_system_map recorder(coordinator);
+
+    fifo fifo("/tmp/mcmini-fifo");
+    ::visible_object current_obj;
+    std::vector<::visible_object> recorded_threads;
+
+    while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
+      if (current_obj.type == THREAD) {
+        recorded_threads.emplace_back(std::move(current_obj));
+      } else {
+        recorder.observe_object(
+            current_obj.location,
+            translate_recorded_object_to_model(current_obj));
+      }
+    }
+
+    std::sort(recorded_threads.begin(), recorded_threads.end(),
+              [](const ::visible_object& lhs, const ::visible_object& rhs) {
+                return lhs.thrd_state.id < rhs.thrd_state.id;
+              });
+
+    for (const ::visible_object& recorded_thread : recorded_threads) {
+      // Translates from what each user space thread recorded as its next
+      // transition. This happens _after_ DMTCP has restarted the checkpoint
+      // image but _before_ the template thread told the McMini process (i.e.
+      // this one) about the recorded objects. In other words, each user space
+      // thread has "recorded" (in the sense of "marked" and not in the sense
+      // of "during the RECORD phase of `libmcmini.so`") the next transition
+      // it would have run had McMini not just now intervened.
+      runner_id_t recorded_id = recorded_thread.thrd_state.id;
+      volatile runner_mailbox* mb = &rw_region->mailboxes[recorded_id];
+      transition_registry::transition_discovery_callback callback =
+          tr.get_callback_for(mb->type);
+      const size_t num_objects_before =
+          coordinator.get_current_program_model().get_state_sequence().count();
+      runner_id_t rid = recorder.observe_runner(
+          (void*)recorded_thread.thrd_state.pthread_desc,
+          translate_recorded_runner_to_model(recorded_thread),
+          callback(recorded_id, *mb, recorder));
+      const size_t num_objects_after =
+          coordinator.get_current_program_model().get_state_sequence().count();
+
+      // Ensures that the above sorting was successful
+      assert(rid == recorded_id);
+
+      // Ensures that no objects were added during `callback`.
+      //
+      // Callbacks insert objects into the model when they notice
+      // that the model is missing an association for a particular
+      // real world address. Since we already translated all recorded
+      // objects from `libmcmini.so`, if an object is ever added
+      // when determining the pending operation of `recorded_thread`,
+      // this means that the object was not added to the model and
+      // hence was not sent to the McMini proces by `libmcmini.so`.
+      //
+      // In short, this ensures that recording worked as expected.
+      assert(num_objects_before == num_objects_after);
+    }
+  }
+
+  classic_dpor::dependency_relation_type dr;
+  classic_dpor::coenabled_relation_type cr;
   dr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::depends);
   dr.register_dd_entry<const transitions::thread_join>(
@@ -180,26 +258,12 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   cr.register_dd_entry<const transitions::mutex_lock,
                        const transitions::mutex_unlock>(
       &transitions::mutex_lock::coenabled_with);
+  model_checking::classic_dpor classic_dpor_checker(std::move(dr),
+                                                    std::move(cr));
 
-  model::program model_for_program_starting_at_main(
-      std::move(state_of_program_at_main), std::move(initial_first_steps));
-
-  // // TODO: With a checkpoint restart, a fork_process_source doesn't suffice.
-  // // We'll need to create a different process source that can provide the
-  // // functionality we need to spawn new processes from the checkpoint image.
-  // auto process_source =
-  //     extensions::make_unique<real_world::fork_process_source>(target("ls"));
-
-  // coordinator coordinator(std::move(model_for_program_starting_at_main),
-  //                         std::move(tr), std::move(process_source));
-
-  // model_checking::classic_dpor classic_dpor_checker(std::move(dr),
-  //                                                   std::move(cr));
-
-  // c.trace_completed = &finished_trace_classic_dpor;
-  // c.undefined_behavior = &found_undefined_behavior;
-  // classic_dpor_checker.verify_using(coordinator, c);
-
+  c.trace_completed = &finished_trace_classic_dpor;
+  c.undefined_behavior = &found_undefined_behavior;
+  classic_dpor_checker.verify_using(coordinator, c);
   std::cerr << "Deep debugging completed!" << std::endl;
 }
 

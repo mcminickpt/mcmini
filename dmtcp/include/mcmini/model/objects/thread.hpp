@@ -11,7 +11,7 @@ namespace objects {
 struct thread : public model::runner_state {
  public:
   /* The four possible states for a mutex */
-  enum state { embryo, running, exited, killed };
+  enum state { running, exited, killed, embryo };
 
  private:
   state current_state = state::embryo;
