@@ -201,6 +201,12 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
               });
 
     for (const ::visible_object& recorded_thread : recorded_threads) {
+      recorder.observe_runner(
+          (void*)recorded_thread.thrd_state.pthread_desc,
+          translate_recorded_runner_to_model(recorded_thread));
+    }
+
+    for (const ::visible_object& recorded_thread : recorded_threads) {
       // Translates from what each user space thread recorded as its next
       // transition. This happens _after_ DMTCP has restarted the checkpoint
       // image but _before_ the template thread told the McMini process (i.e.
@@ -214,15 +220,9 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
           tr.get_callback_for(mb->type);
       const size_t num_objects_before =
           coordinator.get_current_program_model().get_state_sequence().count();
-      runner_id_t rid = recorder.observe_runner(
-          (void*)recorded_thread.thrd_state.pthread_desc,
-          translate_recorded_runner_to_model(recorded_thread),
-          callback(recorded_id, *mb, recorder));
+      recorder.observe_runner_transition(callback(recorded_id, *mb, recorder));
       const size_t num_objects_after =
           coordinator.get_current_program_model().get_state_sequence().count();
-
-      // Ensures that the above sorting was successful
-      assert(rid == recorded_id);
 
       // Ensures that no objects were added during `callback`.
       //
