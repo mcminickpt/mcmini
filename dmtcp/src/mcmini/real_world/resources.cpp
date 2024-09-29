@@ -16,9 +16,10 @@ xpc_resources::xpc_resources() {
   this->rw_region = make_unique<shared_memory_region>(shm_file_name, shm_size);
 
   // TODO: This should be a configurable parameter perhaps...
-  volatile runner_mailbox* mbp = rw_region->as_array_of<runner_mailbox>();
+  volatile mcmini_shm_file* shm_file = rw_region->as<mcmini_shm_file>();
   const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
-  for (int i = 0; i < max_total_threads; i++) mc_runner_mailbox_init(mbp + i);
+  for (int i = 0; i < max_total_threads; i++)
+    mc_runner_mailbox_init(&shm_file->mailboxes[i]);
 }
 
 void xpc_resources::reset_binary_semaphores_for_new_process() {

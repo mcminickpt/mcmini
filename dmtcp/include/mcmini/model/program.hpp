@@ -61,6 +61,8 @@ class program {
 
   std::unordered_set<runner_id_t> get_enabled_runners() const;
   size_t get_num_runners() const { return next_steps.size(); }
+  mutable_state &get_current_state() { return this->state_seq; }
+  pending_transitions &get_pending_transitions() { return this->next_steps; }
   const state_sequence &get_state_sequence() const { return this->state_seq; }
   const transition_sequence &get_trace() const { return this->trace; }
   const pending_transitions &get_pending_transitions() const {

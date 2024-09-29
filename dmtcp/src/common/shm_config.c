@@ -8,7 +8,7 @@
 
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 
-const size_t shm_size = sizeof(runner_mailbox) * MAX_TOTAL_THREADS_IN_PROGRAM;
+const size_t shm_size = sizeof(struct mcmini_shm_file);
 
 void mc_get_shm_handle_name(char *dst, size_t sz) {
   snprintf(dst, sz, "/mcmini-%s-%lu", getenv("USER"), (long)getppid());

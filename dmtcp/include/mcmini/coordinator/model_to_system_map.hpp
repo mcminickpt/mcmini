@@ -71,8 +71,7 @@ class model_to_system_map final {
   // that is)
   model::state::runner_id_t observe_runner(real_world::remote_address<void>,
                                            const model::runner_state *);
-  void observe_runner_transition(model::state::runner_id_t,
-                                 const model::transition *);
+  void observe_runner_transition(const model::transition *);
   model::state::runner_id_t observe_runner(real_world::remote_address<void>,
                                            const model::runner_state *,
                                            const model::transition *);

@@ -92,5 +92,5 @@ __attribute__((constructor)) void libmcmini_main() {
     libmcmini_mode = TARGET_TEMPLATE;
     mc_template_process_loop_forever();
   }
-  thread_await_scheduler_for_thread_start_transition();
+  thread_await_scheduler();
 }

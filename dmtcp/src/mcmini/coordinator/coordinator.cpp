@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
@@ -63,16 +64,15 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
   }
   this->current_program_model.model_execution_of(runner_id, pending_operation);
 
-  // std::cerr
-  //     << "\n\n**************** AFTER MODEL EXEC *********************\n\n\n"
-  //     << current_program_model.get_trace().back()->debug_string()
-  //     << " just executed\n\n"
-  //     << pending_operation->debug_string() << " will execute next "
-  //     << "\n\n"
-  //     <<
-  //     this->current_program_model.get_state_sequence().back().debug_string()
-  //     << "\n\n**************** AFTER MODEL EXEC *********************\n\n"
-  //     << std::endl;
+  std::cerr
+      << "\n\n**************** AFTER MODEL EXEC *********************\n\n\n"
+      << current_program_model.get_trace().back()->debug_string()
+      << " just executed\n\n"
+      << pending_operation->debug_string() << " will execute next "
+      << "\n\n"
+      << this->current_program_model.get_state_sequence().back().debug_string()
+      << "\n\n**************** AFTER MODEL EXEC *********************\n\n"
+      << std::endl;
 }
 
 void coordinator::return_to_depth(uint32_t n) {
@@ -88,25 +88,23 @@ void coordinator::return_to_depth(uint32_t n) {
     this->current_process_handle->execute_runner(t->get_executor());
   }
 
-  // std::cerr
-  //     << "\n\n**************** AFTER RESTORATION *********************\n\n"
-  //     <<
-  //     this->current_program_model.get_state_sequence().back().debug_string();
+  std::cerr
+      << "\n\n**************** AFTER RESTORATION *********************\n\n"
+      << this->current_program_model.get_state_sequence().back().debug_string();
 
-  // std::stringstream ss;
-  // const auto &program_model = get_current_program_model();
-  // for (const auto &t : program_model.get_trace()) {
-  //   ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
-  // }
-  // ss << "\nNEXT THREAD OPERATIONS\n";
-  // for (const auto &tpair : program_model.get_pending_transitions()) {
-  //   ss << "thread " << tpair.first << ": " << tpair.second->to_string() <<
-  //   "\n";
-  // }
-  // std::cerr << ss.str()
-  //           << "\n\n**************** AFTER RESTORATION  "
-  //              "*********************\n\n";
-  // std::cerr.flush();
+  std::stringstream ss;
+  const auto &program_model = get_current_program_model();
+  for (const auto &t : program_model.get_trace()) {
+    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  }
+  ss << "\nNEXT THREAD OPERATIONS\n";
+  for (const auto &tpair : program_model.get_pending_transitions()) {
+    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
+  }
+  std::cerr << ss.str()
+            << "\n\n**************** AFTER RESTORATION  "
+               "*********************\n\n";
+  std::cerr.flush();
 }
 
 model::state::runner_id_t model_to_system_map::get_model_of_runner(
@@ -138,7 +136,7 @@ model::state::objid_t model_to_system_map::observe_object(
         "exist?");
   }
   model::state::objid_t const new_objid =
-      _coordinator.current_program_model.discover_object(vobs);
+      _coordinator.current_program_model.get_current_state().add_object(vobs);
   _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
   return new_objid;
 }
@@ -161,6 +159,28 @@ model::state::runner_id_t model_to_system_map::observe_runner(
   }
   model::state::runner_id_t const new_runner_id =
       _coordinator.current_program_model.discover_runner(vobs, std::move(f));
+  model::state::objid_t const new_objid =
+      _coordinator.get_current_program_model()
+          .get_state_sequence()
+          .get_objid_for_runner(new_runner_id);
+  _coordinator.system_address_mapping.insert({rp_vobj_handle, new_objid});
+  return new_runner_id;
+}
+
+void model_to_system_map::observe_runner_transition(
+    const model::transition *t) {
+  _coordinator.current_program_model.get_pending_transitions().set_transition(
+      t);
+}
+
+model::state::runner_id_t model_to_system_map::observe_runner(
+    real_world::remote_address<void> rp_vobj_handle,
+    const model::runner_state *rs) {
+  // TODO: Remove code duplication here. Also there's a better way to do all of
+  // this I think (instead of e.g. needing to add similar methods onto
+  // `model::program`)
+  model::state::runner_id_t const new_runner_id =
+      _coordinator.current_program_model.get_current_state().add_runner(rs);
   model::state::objid_t const new_objid =
       _coordinator.get_current_program_model()
           .get_state_sequence()

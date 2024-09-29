@@ -6,7 +6,7 @@
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 
 void thread_await_scheduler(void);
-void thread_await_scheduler_for_thread_start_transition(void);
+void thread_wake_scheduler_and_wait(void);
 void thread_awake_scheduler_for_thread_finish_transition(void);
 volatile runner_mailbox *thread_get_mailbox(void);
 

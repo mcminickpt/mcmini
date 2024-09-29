@@ -70,6 +70,11 @@ static void *template_thread(void *unused) {
   printf("The template thread has completed: looping...\n");
   fsync(fd);
   fsync(0);
+  atomic_store(&libmcmini_mode, TARGET_BRANCH_AFTER_RESTART);
+
+  // WARNING: "Temporarily in the template process itself instead of the forked
+  // child to demonstrate one trace"
+  atexit(&mc_exit_main_thread_in_child);
   int dummy = 1;
   while (dummy)
     ;

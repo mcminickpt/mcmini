@@ -13,7 +13,6 @@
 #include "mcmini/mcmini.h"
 #include "mcmini/common/exit.h"
 
-pthread_t main_thread;
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
 runner_id_t mc_register_this_thread(void) {
@@ -31,27 +30,32 @@ volatile runner_mailbox *thread_get_mailbox() {
               ->mailboxes[tid_self];
 }
 
+void thread_wake_scheduler_and_wait(void) {
+  assert(tid_self != RID_INVALID);
+  volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
+  errno = 0;
+  int wake_rc = mc_wake_scheduler(thread_mailbox);
+  assert(wake_rc == 0);
+  assert(errno == 0);
+
+  errno = 0;
+  int rc = mc_wait_for_scheduler(thread_mailbox);
+  while (rc != 0 && errno == EINTR) {
+    rc = mc_wait_for_scheduler(thread_mailbox);
+  }
+  assert(errno != EINVAL);
+}
+
 void thread_await_scheduler(void) {
   assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
-  mc_wake_scheduler(thread_mailbox);
 
   errno = 0;
   int rc = mc_wait_for_scheduler(thread_mailbox);
   while (rc != 0 && errno == EINTR) {
     rc = mc_wait_for_scheduler(thread_mailbox);
   }
-}
-
-void thread_await_scheduler_for_thread_start_transition(void) {
-  assert(tid_self != RID_INVALID);
-  volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
-
-  errno = 0;
-  int rc = mc_wait_for_scheduler(thread_mailbox);
-  while (rc != 0 && errno == EINTR) {
-    rc = mc_wait_for_scheduler(thread_mailbox);
-  }
+  assert(errno != EINVAL);
 }
 
 void thread_awake_scheduler_for_thread_finish_transition(void) {
@@ -116,7 +120,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_INIT_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-      thread_await_scheduler();
+      thread_wake_scheduler_and_wait();
       return libpthread_mutex_lock(mutex);
     }
     default: {
@@ -214,7 +218,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_LOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-      thread_await_scheduler();
+      thread_wake_scheduler_and_wait();
       return libpthread_mutex_lock(mutex);
     }
     default: {
@@ -262,15 +266,15 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       notify_template_thread();
       thread_await_scheduler();
-      return libpthread_mutex_lock(mutex);
+      return libpthread_mutex_unlock(mutex);
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_UNLOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-      thread_await_scheduler();
-      return libpthread_mutex_lock(mutex);
+      thread_wake_scheduler_and_wait();
+      return libpthread_mutex_unlock(mutex);
     }
     default: {
       // Wrapper functions should not be executing
@@ -285,14 +289,14 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
 
 void mc_exit_thread_in_child(void) {
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
-  thread_await_scheduler();
+  thread_wake_scheduler_and_wait();
   thread_awake_scheduler_for_thread_finish_transition();
 }
 
 void mc_exit_main_thread_in_child(void) {
   if (tid_self != RID_MAIN_THREAD) libc_abort();
   // IMPORTANT: This is NOT a typo!
-  // 1. `thread_await_scheduler()` is called when the
+  // 1. `thread_wake_scheduler_and_wait()` is called when the
   // main thread is known to be _alive_ to the model
   // 2. `thread_awake_scheduler_for_thread_finish_transition()`
   // is called to simulate the thread having "exited"
@@ -303,7 +307,7 @@ void mc_exit_main_thread_in_child(void) {
   // the process doesn't terminate; hence, we prevent the main thread
   // from ever escaping this function.
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
-  thread_await_scheduler();
+  thread_wake_scheduler_and_wait();
 
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
   thread_awake_scheduler_for_thread_finish_transition();
@@ -314,12 +318,12 @@ MCMINI_NO_RETURN void mc_transparent_exit(int status) {
   volatile runner_mailbox *mb = thread_get_mailbox();
   mb->type = PROCESS_EXIT_TYPE;
   memcpy_v(mb->cnts, &status, sizeof(status));
-  thread_await_scheduler();
+  thread_wake_scheduler_and_wait();
   libc_exit(status);
 }
 
 MCMINI_NO_RETURN void mc_transparent_abort(void) {
-  thread_await_scheduler();
+  thread_wake_scheduler_and_wait();
   libc_abort();
 }
 
@@ -374,7 +378,7 @@ void *mc_thread_routine_wrapper(void *arg) {
       // We don't need to write into shared memory here. The
       // scheduler already knows how to handle the case
       // of thread creation
-      thread_await_scheduler_for_thread_start_transition();
+      thread_await_scheduler();
       break;
     }
     default: {
@@ -396,8 +400,11 @@ void *mc_thread_routine_wrapper(void *arg) {
       return rv;
     }
     case DMTCP_RESTART: {
+      thread_get_mailbox()->type = THREAD_EXIT_TYPE;
       notify_template_thread();
-      // Explicit fallthrough here
+      thread_await_scheduler();
+      thread_awake_scheduler_for_thread_finish_transition();
+      break;
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -412,12 +419,17 @@ void *mc_thread_routine_wrapper(void *arg) {
 }
 
 void record_main_thread(void) {
-  main_thread = pthread_self();
+  pthread_t main_thread = pthread_self();
+  runner_id_t main_tid = mc_register_this_thread();
+  assert(main_tid == 0);
   libpthread_mutex_lock(&rec_list_lock);
   rec_list *thread_record = find_thread_record_mode(main_thread);
   assert(thread_record == NULL);
-  visible_object vo = {
-      .type = THREAD, .location = NULL, .thrd_state.pthread_desc = main_thread};
+  visible_object vo = {.type = THREAD,
+                       .location = NULL,
+                       .thrd_state.id = main_tid,
+                       .thrd_state.pthread_desc = main_thread,
+                       .thrd_state.status = ALIVE};
   thread_record = add_rec_entry_record_mode(&vo);
   libpthread_mutex_unlock(&rec_list_lock);
 
@@ -428,12 +440,6 @@ void record_main_thread(void) {
   // Since the checkpoint thread is about to be created, it is safe to begin
   // recording.
   atomic_store(&libmcmini_mode, RECORD);
-
-  // Finally, we give the thread an id for use later
-  // after restart when we begin model checking.
-  // (note that this is called in `mc_thread_routine_wrapper`
-  // for all threads... except the main one!)
-  mc_register_this_thread();
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
@@ -511,7 +517,7 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
       memcpy_v(thread_get_mailbox()->cnts, thread, sizeof(pthread_t));
       thread_get_mailbox()->type = THREAD_CREATE_TYPE;
-      thread_await_scheduler();
+      thread_wake_scheduler_and_wait();
       return rv;
     }
     default: {
@@ -540,9 +546,6 @@ int mc_pthread_join(pthread_t t, void **rv) {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *thread_record = find_thread_record_mode(t);
       assert(thread_record != NULL);
-      visible_object vo = {
-          .type = THREAD, .location = NULL, .thrd_state.pthread_desc = t};
-      thread_record = add_rec_entry_record_mode(&vo);
       libpthread_mutex_unlock(&rec_list_lock);
 
       struct timespec time = {.tv_sec = 2, .tv_nsec = 0};
@@ -587,7 +590,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
     case TARGET_BRANCH_AFTER_RESTART: {
       memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
       thread_get_mailbox()->type = THREAD_JOIN_TYPE;
-      thread_await_scheduler();
+      thread_wake_scheduler_and_wait();
       return 0;
     }
     default: {
