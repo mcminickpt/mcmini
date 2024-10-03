@@ -24,6 +24,7 @@ namespace real_world {
 class dmtcp_process_source : public process_source {
  private:
   std::string ckpt_file;
+  bool has_transferred_recorded_objects = false;
 
 private:
   pid_t make_new_branch();

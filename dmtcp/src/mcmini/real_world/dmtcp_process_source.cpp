@@ -47,7 +47,10 @@ pid_t dmtcp_process_source::make_new_branch() {
     close(pipefd[0]);
     fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
 
-    setenv("MCMINI_MULTIPLE_RESTARTS", "1", 1);
+    if (!has_transferred_recorded_objects) {
+      setenv("MCMINI_MULTIPLE_RESTARTS", "1", 1);
+    }
+
     dmtcp_restart.execvp(false);
     unsetenv("MCMINI_MULTIPLE_RESTARTS");
 
@@ -116,6 +119,7 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
       xpc_resources::get_instance().get_rw_region();
   xpc_resources::get_instance().reset_binary_semaphores_for_new_branch();
   pid_t target_branch_pid = make_new_branch();
+  this->has_transferred_recorded_objects = true;
 
   const volatile template_process_t* tstruct =
       &(rw_region->as<mcmini_shm_file>()->tpt);
