@@ -53,7 +53,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   }
 
   // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
-  xpc_resources::get_instance().reset_binary_semaphores_for_new_process();
+  xpc_resources::get_instance().reset_binary_semaphores_for_new_branch();
   if (!has_template_process_alive()) {
     make_new_template_process();
   }
@@ -108,20 +108,10 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
 }
 
 void fork_process_source::make_new_template_process() {
-  shared_memory_region* rw_region =
-      xpc_resources::get_instance().get_rw_region();
-
   // Reset first. If an exception is raised in subsequent steps, we don't want
   // to erroneously think that there is a template process when indeed there
   // isn't one.
   this->template_pid = fork_process_source::no_template;
-
-  {
-    const volatile template_process_t* tstruct =
-        rw_region->as<template_process_t>();
-    sem_init((sem_t*)&tstruct->mcmini_process_sem, SEM_FLAG_SHARED, 0);
-    sem_init((sem_t*)&tstruct->libmcmini_sem, SEM_FLAG_SHARED, 0);
-  }
 
   int pipefd[2];
   if (pipe(pipefd) == -1) {

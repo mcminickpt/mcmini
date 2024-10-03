@@ -47,37 +47,60 @@ static void *template_thread(void *unused) {
     libpthread_sem_wait(&dmtcp_restart_sem);
   }
 
-  printf("The template thread is finished... restarting...\n");
-  int fd = open("/tmp/mcmini-fifo", O_WRONLY);
-  if (fd == -1) {
-    perror("open");
-  }
-  for (rec_list *entry = head_record_mode; entry != NULL; entry = entry->next) {
-    if (entry->vo.type == MUTEX) {
-      printf("Writing mutex entry %p (state %d)\n", entry->vo.location,
-             entry->vo.mut_state);
-    } else if (entry->vo.type == THREAD) {
-      printf("Writing thread entry %p (id %d, status: %d)\n",
-             (void *)entry->vo.thrd_state.pthread_desc, entry->vo.thrd_state.id,
-             entry->vo.thrd_state.status);
-    } else {
-      libc_abort();
-    }
-
-    write(fd, &entry->vo, sizeof(visible_object));
-  }
-  write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
-  printf("The template thread has completed: looping...\n");
-  fsync(fd);
-  fsync(0);
   atomic_store(&libmcmini_mode, TARGET_BRANCH_AFTER_RESTART);
-
-  // WARNING: "Temporarily in the template process itself instead of the forked
-  // child to demonstrate one trace"
   atexit(&mc_exit_main_thread_in_child);
-  int dummy = 1;
-  while (dummy)
-    ;
+
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
+
+  // `libmcmini.so` acting as a target branch process.
+  pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
+
+  // Wait for McMini to signal us to create a new target branch.
+  // Here it's simple enough: we are the target branch!
+  // So we don't even need
+
+  // TODO: For multithreaded fork, we'll need this line.
+  // See the function `mc_template_process_loop_forever()`
+  // in `src/lib/template/loop.c` for details.
+  // sem_wait((sem_t *)&tpt->libmcmini_sem);
+  tpt->cpid = target_branch_pid;
+  sem_post((sem_t *)&tpt->mcmini_process_sem);
+
+  if (!getenv("MCMINI_MULTIPLE_RESTARTS")) {
+    printf("The template thread is finished... restarting...\n");
+    int fd = open("/tmp/mcmini-fifo", O_WRONLY);
+    if (fd == -1) {
+      perror("open");
+    }
+    for (rec_list *entry = head_record_mode; entry != NULL;
+         entry = entry->next) {
+      if (entry->vo.type == MUTEX) {
+        printf("Writing mutex entry %p (state %d)\n", entry->vo.location,
+               entry->vo.mut_state);
+      } else if (entry->vo.type == THREAD) {
+        printf("Writing thread entry %p (id %d, status: %d)\n",
+               (void *)entry->vo.thrd_state.pthread_desc,
+               entry->vo.thrd_state.id, entry->vo.thrd_state.status);
+      } else {
+        libc_abort();
+      }
+
+      write(fd, &entry->vo, sizeof(visible_object));
+    }
+    write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
+    printf("The template thread has completed: looping...\n");
+    fsync(fd);
+    fsync(0);
+  }
+
+  // TODO: Multithreaded fork would go here
+
+  // Exiting from the template thread is fine:
+  // once we're in the target branch, we no longer care
+  // about it anyways.
+  //
+  // NOTE: This is true ALSO for multithreaded fork
   return NULL;
 }
 

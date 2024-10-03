@@ -15,14 +15,18 @@ xpc_resources::xpc_resources() {
                                     "-" + std::to_string((long)getpid());
   this->rw_region = make_unique<shared_memory_region>(shm_file_name, shm_size);
 
-  // TODO: This should be a configurable parameter perhaps...
   volatile mcmini_shm_file* shm_file = rw_region->as<mcmini_shm_file>();
+  volatile template_process_t* tstruct = &shm_file->tpt;
+  sem_init((sem_t*)&tstruct->mcmini_process_sem, SEM_FLAG_SHARED, 0);
+  sem_init((sem_t*)&tstruct->libmcmini_sem, SEM_FLAG_SHARED, 0);
+
+  // TODO: The `MAX_TOTAL_THREADS_IN_PROGRAM` should be a configurable parameter...
   const int max_total_threads = MAX_TOTAL_THREADS_IN_PROGRAM;
   for (int i = 0; i < max_total_threads; i++)
     mc_runner_mailbox_init(&shm_file->mailboxes[i]);
 }
 
-void xpc_resources::reset_binary_semaphores_for_new_process() {
+void xpc_resources::reset_binary_semaphores_for_new_branch() {
   // Reinitialize the region for the new process, as the contents of the
   // memory are dirtied from the last process which used the same memory and
   // exited arbitrarily (i.e. in such a way as to leave data in the shared

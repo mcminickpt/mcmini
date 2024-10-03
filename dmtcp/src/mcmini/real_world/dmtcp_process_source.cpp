@@ -10,7 +10,9 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <cassert>
 
+#include "mcmini/common/shm_config.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/process/local_linux_process.hpp"
 #include "mcmini/real_world/process/resources.hpp"
@@ -21,17 +23,8 @@ using namespace extensions;
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {}
 
-void dmtcp_process_source::preload_template_for_state_consumption() {
-  if (!has_template_process_alive()) make_new_template_process();
-}
-
-void dmtcp_process_source::make_new_template_process() {
+pid_t dmtcp_process_source::make_new_branch() {
   target dmtcp_restart("dmtcp_restart", {this->ckpt_file});
-
-  // Reset first. If an exception is raised in subsequent steps, we don't want
-  // to erroneously think that there is a template process when indeed there
-  // isn't one.
-  this->template_pid = dmtcp_process_source::no_template;
 
   int pipefd[2];
   if (pipe(pipefd) == -1) {
@@ -40,7 +33,7 @@ void dmtcp_process_source::make_new_template_process() {
   }
 
   errno = 0;
-  pid_t const child_pid = fork();
+  const pid_t child_pid = fork();
   if (child_pid == -1) {
     // fork(2) failed
     throw process_source::process_creation_exception(
@@ -54,9 +47,9 @@ void dmtcp_process_source::make_new_template_process() {
     close(pipefd[0]);
     fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
 
-    setenv("MCMINI_DMTCP_RESTART", "1", 1);
+    setenv("MCMINI_MULTIPLE_RESTARTS", "1", 1);
     dmtcp_restart.execvp(false);
-    unsetenv("MCMINI_DMTCP_RESTART");
+    unsetenv("MCMINI_MULTIPLE_RESTARTS");
 
     // If `execvp()` fails, we signal the error to the parent process by writing
     // into the pipe.
@@ -81,6 +74,10 @@ void dmtcp_process_source::make_new_template_process() {
     // ******************
     // Child process case
     // ******************
+
+    // Should never be reached --> implies quick_exit returned
+    std::abort();
+    return child_pid;
   } else {
     // *******************
     // Parent process case
@@ -106,32 +103,39 @@ void dmtcp_process_source::make_new_template_process() {
     // *******************
     // Parent process case
     // *******************
-    this->template_pid = child_pid;
+    return child_pid;
   }
 }
 
 std::unique_ptr<process> dmtcp_process_source::make_new_process() {
-  // TODO: actually implement the template process forking via multithreaded
-  // fork on the `libmcmini.so` side
-  if (!has_template_process_alive()) {
-    make_new_template_process();
-  }
-  return extensions::make_unique<local_linux_process>(
-      this->template_pid, *xpc_resources::get_instance().get_rw_region());
-}
+  // IMPORTANT: Here, resetting the semaphores for the userspace
+  // threads BEFORE creating the new branch process is very important.
+  // Otherwise the threads from the restarted checkpoint image would
+  // read from the semaphores which the McMini process would overwrite.
+  shared_memory_region* rw_region =
+      xpc_resources::get_instance().get_rw_region();
+  xpc_resources::get_instance().reset_binary_semaphores_for_new_branch();
+  pid_t target_branch_pid = make_new_branch();
 
-dmtcp_process_source::~dmtcp_process_source() {
-  if (template_pid <= 0) {
-    return;
-  }
-  if (kill(template_pid, SIGUSR1) == -1) {
-    std::cerr << "Error sending SIGUSR1 to process " << template_pid << ": "
-              << strerror(errno) << std::endl;
+  const volatile template_process_t* tstruct =
+      &(rw_region->as<mcmini_shm_file>()->tpt);
+
+  if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
+    throw process_source::process_creation_exception(
+        "The template thread (in process with PID " + std::to_string(target_branch_pid) +
+        ") did not synchronize correctly with the McMini process: " +
+        std::string(strerror(errno)));
   }
 
-  int status;
-  if (waitpid(template_pid, &status, 0) == -1) {
-    std::cerr << "Error waiting for process (waitpid) " << template_pid << ": "
-              << strerror(errno) << std::endl;
-  }
+  // Since there is no template process intermediary,
+  // the PID of the child process created with `dmtcp_restart`
+  // is the PID of the branch. The chain of events is
+  //
+  // `mcmini process` --> fork()/exec() --> `dmtcp_restart`
+  //                  -->  exec() --> `mtcp_restart`
+  //
+  // The key detail is that `dmtcp_restart` calls `exec()` only.
+  // So its PID is preserved.
+  assert(tstruct->cpid == target_branch_pid);
+  return extensions::make_unique<local_linux_process>(target_branch_pid, *rw_region);
 }

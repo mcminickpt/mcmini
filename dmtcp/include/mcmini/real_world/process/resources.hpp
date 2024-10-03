@@ -24,7 +24,7 @@ struct xpc_resources {
     return *resources;
   }
   shared_memory_region *get_rw_region() const { return this->rw_region.get(); }
-  void reset_binary_semaphores_for_new_process();
+  void reset_binary_semaphores_for_new_branch();
 };
 
 }  // namespace real_world
