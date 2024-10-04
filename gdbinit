@@ -30,7 +30,7 @@ python DIR = ""
 python if os.environ.get("MCMINI_ROOT"): DIR = os.environ["MCMINI_ROOT"]+"/"
 python if DIR: gdb.execute("dir " + DIR)
 python if os.path.isfile("NO-GDB-G3"): \
-  print("\n*** Not compiled with -g3.  Please call:\n" + \
+  print("\n*** Not compiled with -g3.  Please re-compile McMini:\n" + \
         "***                             make clean && make -j9 debug"); \
   sys.exit(1)
 python print("source " + DIR + "gdbinit_commands.py")

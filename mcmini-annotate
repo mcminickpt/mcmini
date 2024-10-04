@@ -42,6 +42,9 @@ if 'THREAD PENDING OPERATIONS' not in output.split('\n') \
     print("\n")
     print([line for line in error_output.split('\n')
                 if "Missing target_executable" in line][0], file=sys.stderr)
+  elif "Not compiled with -g3." in output:
+    print("\n*** Not compiled with -g3.  Please re-compile McMini:\n" + \
+            "***                             make clean && make -j9 debug");
   else:
     print( "\n*** mcmini-annotate: Invalid arguments." +
            " Please check args and target binary.", file=sys.stderr)
