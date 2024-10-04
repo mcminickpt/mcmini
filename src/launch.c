@@ -78,18 +78,18 @@ main(int argc, char *argv[])
       setenv(ENV_LONG_TEST, "1", 1);
       cur_arg++;
     }
-    else if (strncmp(cur_arg[0], "--print-at-trace", strlen("--print-at-trace")) == 0 ||
-             strncmp(cur_arg[0], "-p", strlen("-p")) == 0) {
+    else if (strncmp(cur_arg[0], "--trace", strlen("--trace")) == 0 ||
+             strncmp(cur_arg[0], "-t", strlen("-t")) == 0) {
       char *value;
-      if (strcmp(cur_arg[0], "--print-at-trace") == 0 ||
-          strcmp(cur_arg[0], "-p") == 0) {
+      if (strcmp(cur_arg[0], "--trace") == 0 ||
+          strcmp(cur_arg[0], "-t") == 0) {
         value = cur_arg[1];
         cur_arg += 2;
-      } else if (strncmp(cur_arg[0], "--print-at-trace=", strlen("--print-at-trace=")) == 0) {
-        value = cur_arg[0] + strlen("--print-at-trace=");
+      } else if (strncmp(cur_arg[0], "--trace=", strlen("--trace=")) == 0) {
+        value = cur_arg[0] + strlen("--trace=");
         cur_arg++;
-      } else if (strncmp(cur_arg[0], "-p", strlen("-p")) == 0) {
-        value = cur_arg[0] + strlen("-p");
+      } else if (strncmp(cur_arg[0], "-t", strlen("-t")) == 0) {
+        value = cur_arg[0] + strlen("-t");
         cur_arg++;
       }
       char *endptr;
@@ -99,7 +99,7 @@ main(int argc, char *argv[])
       } else if ( isdigit(*value) || isspace(*value) ) { // if array of integers
         setenv(ENV_PRINT_AT_TRACE_SEQ, value, 1);
       } else {
-        fprintf(stderr, "%s: illegal value\n", "--print-at-trace");
+        fprintf(stderr, "%s: illegal value\n", "--trace");
         exit(1);
       }
     }
@@ -113,12 +113,12 @@ main(int argc, char *argv[])
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
                       "              [--first-deadlock|--first|-f]\n"
                       "              [--quiet|-q]\n"
-                      "              [--print-at-trace|-p <num>|<traceSeq>]\n"
+                      "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"
                       "              [--help|-h]\n"
                       "              target_executable\n"
                       "       mcmini-gdb ...<same as mcmini args>...\n"
-                      "       python3 mcmini-annotate.py -p <traceSeq> ...<same as mcmini args>...\n"
+                      "       python3 mcmini-annotate.py -t <traceSeq> ...<same as mcmini args>...\n"
              );
       exit(1);
     }

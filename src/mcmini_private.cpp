@@ -71,7 +71,7 @@ static void printResults() {
   mcprintf("Elapsed time: %lu seconds\n", time(NULL) - mcmini_start_time);
   if ((int)traceId < programState->traceIdForPrintBacktrace() &&
       getenv(ENV_FIRST_DEADLOCK) == NULL) { // and no --first-deadlock
-    mcprintf("*** NOTE: --print-at-trace (-p) requested up to trace %d,\n"
+    mcprintf("*** NOTE: --trace (-t) requested up to trace %d,\n"
             "           but total number of traces was only %d.\n",
             programState->traceIdForPrintBacktrace(), traceId);
   }
@@ -282,13 +282,13 @@ mc_explore_branch(int curBranchPoint)
   }
 
   mc_search_dpor_branch_with_thread(backtrackThread);
-  // If '-p <traceId>' set and current traceId matches it, then exit.
+  // If '-t <traceId>' set and current traceId matches it, then exit.
   mc_exit_with_trace_if_necessary(traceId);
 
   traceId++;
   if (false && traceId >= 1 && getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL) {
-    mcprintf("*** Trace sequence ('-p', --print-at-trace') requested.\n"
-             "*** for more than one traceDd: -p<X> -p'<traceSeq>' for X>0\n"
+    mcprintf("*** Trace sequence ('-t', --trace') requested.\n"
+             "*** for more than one traceDd: -t<X> -t'<traceSeq>' for X>0\n"
              "*** McMini cannot yet handle this situation.  Exiting now.\n");
     mc_exit(EXIT_FAILURE);
   }
@@ -638,7 +638,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         (traceSeqLength() > 0 && programState->isInDeadlock())) {
       const bool hasDeadlock = programState->isInDeadlock();
       if (hasDeadlock && nextTransition != nullptr) { // Stop using traceSeq
-        addResult("  [Truncating traceSeq from '-p', due to deadlock!]\n");
+        addResult("  [Truncating traceSeq from '-t', due to deadlock!]\n");
         nextTransition = nullptr;
       }
       const bool programHasNoErrors = !hasDeadlock;
@@ -741,10 +741,10 @@ void
 mc_exit_with_trace_if_necessary(trid_t trid)
 {
   if (programState->isTargetTraceIdForPrintBacktrace(trid)) {
-    mcprintf("*** -p or --print-at-trace requested.  Printing trace:\n");
+    mcprintf("*** -t or --trace requested.  Printing trace:\n");
     programState->printTransitionStack();
     programState->printNextTransitions();
-    traceId++; // We stopped at -p<trid>, but Number of traces shuld be trid+1.
+    traceId++; // We stopped at -t<trid>, but Number of traces shuld be trid+1.
     printResults();
     mc_stop_model_checking(EXIT_SUCCESS);
   }

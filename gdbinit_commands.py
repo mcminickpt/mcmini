@@ -62,7 +62,7 @@
 ##  to distinguish it from the user threads.
 
 # ===========================================================
-# We now do the setup.  If  '-p <traceSeq>' found, add '-p 0'.
+# We now do the setup.  If  '-t <traceSeq>' found, add '-t 0'.
 # Call subprocess with './mcmini' first, to get a full traceSeq.
 
 import os, subprocess, time
@@ -77,15 +77,15 @@ def insert_extra(args, extra):
                             if word.startswith('-') or word.startswith("'-") ],
                       default = -1)
   last_word = args[last_flag_idx].replace("'", "")
-  if last_word in ["--max-depth-per-thread", "--print-at-trace", "-m", "-p"]:
+  if last_word in ["--max-depth-per-thread", "--trace", "-m", "-t"]:
     last_flag_idx += 1
   args = args[:last_flag_idx+1] + extra.split() + args[last_flag_idx+1:]
   return ' '.join(args)
 
-if "-p 0 " not in mcmini_args and \
-   not set(mcmini_args.split()).intersection(["-p0","'-p0'", "'-p' '0'"]):
-  # If "-p0" not in the mcmini arguments, then get the trace sequence first.
-  # We will then add "-p 0 -p <traceSeq>" to the command line before giving
+if "-t 0 " not in mcmini_args and \
+   not set(mcmini_args.split()).intersection(["-t0","'-t0'", "'-t' '0'"]):
+  # If "-t0" not in the mcmini arguments, then get the trace sequence first.
+  # We will then add "-t 0 -t <traceSeq>" to the command line before giving
   #   control to gdb.
 
   # 'mcmini' is the exec-file for GDB
@@ -125,12 +125,12 @@ if "-p 0 " not in mcmini_args and \
         print("******** mcmini-gdb: Internal error:"
               " can't compute trace sequence")
       gdb.execute("quit")
-  extra_args = " -p0 -p'" + trace_seq + "' "
+  extra_args = " -t0 -t'" + trace_seq + "' "
 
-  # Convert: "-p 0 -p '0 0 1'" to: "-p 0 -p '0,0,1'"
-  # (Note:  This serves mostly to consolidate '-p' into one or two words
+  # Convert: "-t 0 -t '0 0 1'" to: "-t 0 -t '0,0,1'"
+  # (Note:  This serves mostly to consolidate '-t' into one or two words
   #         with no spsaces.  Later, these args are removed in varo
-  #         of the '-p' flag in extra_args.)
+  #         of the '-t' flag in extra_args.)
   apostrophes = [idx for idx, char in enumerate(mcmini_args) if char == "'"]
   if len(apostrophes) %2 != 0:
     print("McMini: Invalid arguments: \"'\" seen, but no matching \"'\":")
@@ -157,12 +157,12 @@ if "-p 0 " not in mcmini_args and \
   mcmini_args = [ arg for arg in mcmini_args if "-f" != arg ]
   delete_one("-q", mcmini_args)
   delete_one("-v", mcmini_args)
-  # Remove any old prefixes: '-p0', '-p 0', '-p 0,0, ...', etc.
+  # Remove any old prefixes: '-t0', '-t 0', '-t 0,0, ...', etc.
   tmp = [idx for idx, line in enumerate(mcmini_args)
-             if line.startswith("-p")]
+             if line.startswith("-t")]
   for idx in tmp:
-    if mcmini_args[idx] in ["-p", "--print-at-trace"]:
-      mcmini_args[idx+1] = "" # "-p" takes an argumnet; Remove next word
+    if mcmini_args[idx] in ["-t", "--trace"]:
+      mcmini_args[idx+1] = "" # "-t" takes an argumnet; Remove next word
     mcmini_args[idx] = ""
 
   # Now, rejoin the edited words in mcmini_args
@@ -186,11 +186,11 @@ def is_traceSeq(arg):
                                            if num.isnumeric() ]) == len(numbers)
   return (is_trace, len(numbers))
 def trace_seq_len(mcminiArgs):
-  if "--print-at-trace" in mcminiArgs:
-    args = mcminiArgs.split("--print-at-trace")[1:]
-  elif "-p" in mcminiArgs and [a for a in mcminiArgs.split("-p")[1:]
+  if "--trace" in mcminiArgs:
+    args = mcminiArgs.split("--trace")[1:]
+  elif "-t" in mcminiArgs and [a for a in mcminiArgs.split("-t")[1:]
                                  if is_traceSeq(a)[0]]:
-    args = mcminiArgs.split("-p")[1:]
+    args = mcminiArgs.split("-t")[1:]
   else:
     return 0
   args = [arg for arg in args if is_traceSeq(arg)[0]]
@@ -761,7 +761,7 @@ class finishTraceCmd(gdb.Command):
     if "quiet" not in args:
       print_mcmini_stats()
     transitionId = 0
-# finishTraceCmd()  # Not working with '-p <traceSeq>'
+# finishTraceCmd()  # Not working with '-t <traceSeq>'
 
 # NOT USED:
 class nextTraceCmd(gdb.Command):
@@ -789,7 +789,7 @@ class nextTraceCmd(gdb.Command):
     # We should now be in the next child process.
     if "quiet" not in args:
       print_mcmini_stats()
-# nextTraceCmd()  # Not working with '-p <traceSeq>'
+# nextTraceCmd()  # Not working with '-t <traceSeq>'
 
 # NOT USED:
 class gotoTraceCmd(gdb.Command):
@@ -824,7 +824,7 @@ class gotoTraceCmd(gdb.Command):
     gdb.execute("set detach-on-fork off")
     gdb.execute("mcmini nextTrace quiet")
     print_mcmini_stats()
-# gotoTraceCmd()  # Not working with '-p <traceSeq>'
+# gotoTraceCmd()  # Not working with '-t <traceSeq>'
 
 developerHelp = ("""\
 Executes:

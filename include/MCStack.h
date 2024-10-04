@@ -32,7 +32,7 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 void setEndOfTraceSeq();
 
 /**
- * @brief When '-p<traceSeq>' is invoked, then the traceSeq needs to be
+ * @brief When '-t<traceSeq>' is invoked, then the traceSeq needs to be
  * reset when a trace is completed.
  */
 void resetTraceSeqArray();
