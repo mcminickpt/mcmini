@@ -113,7 +113,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       notify_template_thread();
       thread_await_scheduler();
-      return libpthread_mutex_lock(mutex);
+      return libpthread_mutex_init(mutex, attr);
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
@@ -121,7 +121,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       mb->type = MUTEX_INIT_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
       thread_wake_scheduler_and_wait();
-      return libpthread_mutex_lock(mutex);
+      return libpthread_mutex_init(mutex, attr);
     }
     default: {
       // Wrapper functions should not be executing
