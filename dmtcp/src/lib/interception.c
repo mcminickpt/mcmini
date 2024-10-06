@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "dmtcp.h"
 #include "mcmini/spy/intercept/wrappers.h"
 
 pthread_once_t libmcini_init = PTHREAD_ONCE_INIT;
@@ -50,16 +51,6 @@ void mc_load_intercepted_pthread_functions(void) {
     libc_abort();
   }
 
-  // TODO: This shouldn't refer to the absolute path to dmtcp.so
-  // We need to -->
-  void *libdmtcp_handle = dlopen("libdmtcp.so", RTLD_LAZY);
-
-  if (!libdmtcp_handle) {
-    fprintf(stderr, "dlopen(3) couldn't find `libdmtcp`: %s\n", dlerror());
-    fflush(stderr);
-    libc_abort();
-  }
-
   void *libc_handle = dlopen("libc.so", RTLD_LAZY);
   if (!libc_handle) {
     libc_handle = dlopen("libc.so.6", RTLD_LAZY);
@@ -72,9 +63,7 @@ void mc_load_intercepted_pthread_functions(void) {
   }
 
   libpthread_pthread_create_ptr = dlsym(libpthread_handle, "pthread_create");
-  libdmtcp_pthread_create_ptr = dlsym(libdmtcp_handle, "pthread_create");
   libpthread_pthread_join_ptr = dlsym(libpthread_handle, "pthread_join");
-  libdmtcp_pthread_join_ptr = dlsym(libdmtcp_handle, "pthread_join");
   pthread_mutex_init_ptr = dlsym(libpthread_handle, "pthread_mutex_init");
   pthread_mutex_lock_ptr = dlsym(libpthread_handle, "pthread_mutex_lock");
   pthread_mutex_trylock_ptr = dlsym(libpthread_handle, "pthread_mutex_trylock");
@@ -93,8 +82,22 @@ void mc_load_intercepted_pthread_functions(void) {
   abort_ptr = dlsym(libc_handle, "abort");
 
   dlclose(libpthread_handle);
-  dlclose(libdmtcp_handle);
+
   dlclose(libc_handle);
+
+  if (dmtcp_is_enabled()) {
+    // TODO: This shouldn't refer to the absolute path to dmtcp.so
+    // We need to -->
+    void *libdmtcp_handle = dlopen("libdmtcp.so", RTLD_LAZY);
+    if (!libdmtcp_handle) {
+      fprintf(stderr, "dlopen(3) couldn't find `libdmtcp`: %s\n", dlerror());
+      fflush(stderr);
+      libc_abort();
+    }
+    libdmtcp_pthread_create_ptr = dlsym(libdmtcp_handle, "pthread_create");
+    libdmtcp_pthread_join_ptr = dlsym(libdmtcp_handle, "pthread_join");
+    dlclose(libdmtcp_handle);
+  }
 }
 
 int pthread_mutex_init(pthread_mutex_t *mutex,

@@ -69,6 +69,15 @@ static void *template_thread(void *unused) {
 
   if (!getenv("MCMINI_MULTIPLE_RESTARTS")) {
     printf("The template thread is finished... restarting...\n");
+
+    // FIXME: There appears to be an issue with opening the FIFO
+    // here. If it already exists most likely is should be replaced,
+    // but we seem to block on both sides (the `McMini` process side and here)
+    // or else exit with `No file or directory`. It's probably a race.
+    //
+    // The current work around is to simply remove the named FIFO manually
+    // and run a few exections until the race "resolves" itself (just hope that
+    // they don't block).
     int fd = open("/tmp/mcmini-fifo", O_WRONLY);
     if (fd == -1) {
       perror("open");
