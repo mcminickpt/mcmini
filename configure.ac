@@ -1,8 +1,11 @@
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
+AC_INIT([McMini],
+        m4_esyscmd([tr -d '\n' < VERSION]),
+        [https://github.com/mcminickpt/mcmini/issues],
+        [mcmini],
+        [https://github.com/mcminickpt/mcmini ; https://mcmini-doc.readthedocs.io/])
+
 
 AC_PREREQ([2.71])
-AC_INIT([McMini],[1.0],[pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu],[mcmini],[https://github.com/mcminickpt/mcmini.git])
 AC_CONFIG_SRCDIR([src/launch.c])
 AC_CONFIG_HEADERS([include/config.h])
 

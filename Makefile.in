@@ -35,7 +35,7 @@ test/program/producer_consumer: test/program/producer_consumer.c
 	cd test/program && make producer_consumer
 
 check: all test/program/producer_consumer
-	./mcmini test/program/producer_consumer --quiet
+	./mcmini -f -m 5 test/program/producer_consumer 2 2 0
 
 # If McMini was already built, first do:  'make clean'
 check-gdb: debug test/program/producer_consumer
@@ -46,7 +46,8 @@ check-gdb: debug test/program/producer_consumer
 	  echo After 15 seconds, GDB will start, but it may not work properly.;\
 	  sleep 15; \
 	fi
-	gdb -x gdbinit --args ./mcmini test/program/producer_consumer --quiet
+	# gdb -x gdbinit --args -f -m 5 --quiet ./mcmini test/program/producer_consumer
+	mcmini-gdb -f -m 5 --quiet test/program/producer_consumer
 
 mcmini: src/launch.c libmcmini.so
 	${CC} -g3 -O0 -Iinclude -o $@ $<

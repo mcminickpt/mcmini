@@ -1,5 +1,5 @@
 McMini is a program that does model checking on a target MultiThreaded Program.
-Copyright (C) 2022, Maxwell Pirtle, Luka Jovanovic, Gene Cooperman
+Copyright (C) 2022-2024, Maxwell Pirtle, Luka Jovanovic, Gene Cooperman
   (pirtle.m@northeastern.edu, jovanovic.l@northeastern.edu, gene@ccs.neu.edu)
 
 This program is free software: you can redistribute it and/or modify
