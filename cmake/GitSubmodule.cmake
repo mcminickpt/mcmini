@@ -1,6 +1,6 @@
 find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    option(INIT_SUBMODULE "Checkout submodules during build" ON)
+    option(INIT_SUBMODULE "Checkout submodules during build" OFF)
     if(INIT_SUBMODULE)
         message(STATUS "Initializing git submodules")
         execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
