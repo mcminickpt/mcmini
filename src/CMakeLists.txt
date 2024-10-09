@@ -6,15 +6,16 @@ set(MC_C_FILES
 )
 
 set(MC_CPP_FILES
-  MCObjectStore.cpp
-  MCSharedTransition.cpp
-  MCTransition.cpp
-  MCState.cpp
-  MCTransitionFactory.cpp
-  MCStateStackItem.cpp
-  MCThreadData.cpp
+  main.cpp
   MCClockVector.cpp
   mcmini_private.cpp
+  MCObjectStore.cpp
+  MCSharedTransition.cpp
+  MCStack.cpp
+  MCStackItem.cpp
+  MCThreadData.cpp
+  MCTransition.cpp
+  MCTransitionFactory.cpp
   signals.cpp
 
   misc/cond/MCConditionVariableDefaultPolicy.cpp
