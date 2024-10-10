@@ -22,10 +22,6 @@ class local_linux_process : public process {
  private:
   pid_t pid;
 
-  // A reference to shared memory that outlives this process and within which
-  // `libmcmini.so` in the proxied process writes its data.
-  shared_memory_region &shm_slice;
-
   // NOTE: At the moment, each process has the entire view of the
   // shared memory region at its disposal. If desired, an extra layer could be
   // added on top which manages allocating slices of a `shared_memory_region`
@@ -35,7 +31,8 @@ class local_linux_process : public process {
   // restrict the number of proxy processes to one.
 
  public:
-  local_linux_process(pid_t pid, shared_memory_region &shm_slice);
+  local_linux_process() : local_linux_process(-1) {}
+  local_linux_process(pid_t pid);
   virtual ~local_linux_process();
   volatile runner_mailbox *execute_runner(runner_id_t) override;
 };

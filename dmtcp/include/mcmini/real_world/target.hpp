@@ -2,6 +2,7 @@
 
 #include <ostream>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace real_world {
@@ -17,6 +18,9 @@ struct target {
   /// @brief The list of arguments to pass to the target program.
   std::vector<std::string> target_program_args;
 
+  /// @brief A list of environment variables to set prior to fork()/exec()
+  std::unordered_map<std::string, std::string> environment_vars;
+
  public:
   explicit target(const std::string &target_program)
       : target(target_program, std::vector<std::string>()) {}
@@ -28,11 +32,18 @@ struct target {
 
   const std::string &name() const { return this->target_program; }
 
+  void set_env(const char *name, const char *value) {
+    environment_vars.insert({std::string(name), std::string(value)});
+  }
+
+  /// @brief Creates a new process running this program
+  pid_t fork();
+
   /// @brief Turn this process into the target via `execvp()`
   ///
   /// @note this function only returns on failure of `execvp(2)` and sets
   /// errno
-  void execvp(bool with_ld_preload = true) const;
+  void execvp() const;
 
   friend std::ostream &operator<<(std::ostream &os, const target &target) {
     os << target.target_program;

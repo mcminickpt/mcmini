@@ -1,6 +1,7 @@
 #include "mcmini/real_world/process/fork_process_source.hpp"
 
 #include <fcntl.h>
+#include <libgen.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -38,8 +39,23 @@ using namespace extensions;
 
 std::atomic_uint32_t fork_process_source::num_children_in_flight;
 
-fork_process_source::fork_process_source(const real_world::target& target_program)
-    : target_program(target_program) {}
+fork_process_source::fork_process_source(
+    const real_world::target& target_program)
+    : target_program(target_program) {
+  // NOTE: According to the man page `dirname(const char *path)` "may modify
+  // the contents of `path`...", so we use the storage of the local instead.
+  // We don't want to use `std::string` either since it doesn't expect its
+  // contents to be modified indirectly
+  std::vector<char> target_program_mutable_name(
+      this->target_program.name().begin(), this->target_program.name().end());
+  char buf[1000];
+  buf[sizeof(buf) - 1] = '\0';
+  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
+           (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
+           dirname(target_program_mutable_name.data()));
+  this->target_program.set_env("LD_PRELOAD", buf);
+  this->target_program.set_env("MCMINI_TEMPLATE_LOOP", "1");
+}
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
   shared_memory_region* rw_region =
@@ -103,8 +119,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
 
   fork_process_source::num_children_in_flight.fetch_add(
       1, std::memory_order_relaxed);
-  return extensions::make_unique<local_linux_process>(tstruct->cpid,
-                                                      *rw_region);
+  return extensions::make_unique<local_linux_process>(tstruct->cpid);
 }
 
 void fork_process_source::make_new_template_process() {
@@ -112,82 +127,7 @@ void fork_process_source::make_new_template_process() {
   // to erroneously think that there is a template process when indeed there
   // isn't one.
   this->template_pid = fork_process_source::no_template;
-
-  int pipefd[2];
-  if (pipe(pipefd) == -1) {
-    throw std::runtime_error("Failed to open pipe(2): " +
-                             std::string(strerror(errno)));
-  }
-
-  errno = 0;
-  pid_t const child_pid = fork();
-  if (child_pid == -1) {
-    // fork(2) failed
-    throw process_source::process_creation_exception(
-        "Failed to create a new process (fork(2) failed): " +
-        std::string(strerror(errno)));
-  }
-  if (child_pid == 0) {
-    // ******************
-    // Child process case
-    // ******************
-    close(pipefd[0]);
-    fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
-
-    setenv("MCMINI_TEMPLATE_LOOP", "1", 1);
-    target_program.execvp();
-    unsetenv("MCMINI_TEMPLATE_LOOP");
-
-    // If `execvp()` fails, we signal the error to the parent process by writing
-    // into the pipe.
-    int err = errno;
-    write(pipefd[1], &err, sizeof(err));
-    close(pipefd[1]);
-
-    // @note: We invoke `quick_exit()` here to ensure that C++ static
-    // objects are NOT destroyed. `std::exit()` will invoke the destructors
-    // of such static objects, among other cleanup. This is only intended to
-    // happen exactly once however; bad things likely would happen to a program
-    // which called the destructor on an object that already cleaned up its
-    // resources.
-    //
-    // We must remember that this child is in a completely separate process with
-    // a completely separate address space, but the shared resources that the
-    // McMini process holds onto will also (inadvertantly) be shared with the
-    // child. We want the resources to be destroyed in the MCMINI process, NOT
-    // this (failed) child fork(). To get C++ to play nicely, this is how we do
-    // it.
-    std::quick_exit(EXIT_FAILURE);
-    // ******************
-    // Child process case
-    // ******************
-  } else {
-    // *******************
-    // Parent process case
-    // *******************
-    close(pipefd[1]);  // Close write end
-
-    int err = 0;
-    if (read(pipefd[0], &err, sizeof(err)) > 0) {
-      // waitpid() ensures that the child's resources are properly reacquired.
-      if (waitpid(child_pid, nullptr, 0) == -1) {
-        throw process_source::process_creation_exception(
-            "Failed to create a cleanup zombied child process (waitpid(2) "
-            "returned -1): " +
-            std::string(strerror(errno)));
-      }
-      throw process_source::process_creation_exception(
-          "Failed to create a new process of '" + this->target_program.name() + "'" +
-          " (execvp(2) failed with error code '" + std::to_string(errno) +
-          "'):" + std::string(strerror(err)));
-    }
-    close(pipefd[0]);
-
-    // *******************
-    // Parent process case
-    // *******************
-    this->template_pid = child_pid;
-  }
+  this->template_pid = this->target_program.fork();
 }
 
 fork_process_source::~fork_process_source() {

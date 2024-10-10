@@ -7,6 +7,7 @@
 #include "mcmini/defines.h"
 #include "mcmini/forwards.hpp"
 #include "mcmini/real_world/process_source.hpp"
+#include "mcmini/real_world/process/local_linux_process.hpp"
 #include "mcmini/real_world/shm.hpp"
 #include "mcmini/real_world/target.hpp"
 
@@ -24,6 +25,7 @@ namespace real_world {
 class dmtcp_process_source : public process_source {
  private:
   std::string ckpt_file;
+  local_linux_process dmtcp_coordinator;
   bool has_transferred_recorded_objects = false;
 
 private:
@@ -31,6 +33,8 @@ private:
 
 public:
   dmtcp_process_source(const std::string &ckpt_file);
+
+public:
   std::unique_ptr<process> make_new_process() override;
 };
 

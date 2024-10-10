@@ -105,6 +105,11 @@ void found_undefined_behavior(const coordinator& c,
   finished_trace_classic_dpor(c);
 }
 
+void found_deadlock(const coordinator& c) {
+  std::cerr << "DEADLOCK" << std::endl;
+  finished_trace_classic_dpor(c);
+}
+
 void do_model_checking(const config& config) {
   algorithm::callbacks c;
   transition_registry tr;
@@ -284,8 +289,7 @@ void do_recording(const config& config) {
   real_world::target target_program("dmtcp_launch", dmtcp_launch_args);
 
   std::cout << "Recording: " << target_program << std::endl;
-  setenv("MCMINI_RECORD", "1", true);
-  target_program.execvp(false);
+  target_program.execvp();
 }
 
 int main_cpp(int argc, const char** argv) {

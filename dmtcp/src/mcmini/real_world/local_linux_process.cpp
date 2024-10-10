@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "mcmini/common/shm_config.h"
+#include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
 #include "mcmini/real_world/shm.hpp"
@@ -15,9 +16,8 @@
 
 using namespace real_world;
 
-local_linux_process::local_linux_process(pid_t pid,
-                                         shared_memory_region &shm_slice)
-    : pid(pid), shm_slice(shm_slice) {}
+local_linux_process::local_linux_process(pid_t pid)
+    : pid(pid) {}
 
 local_linux_process::~local_linux_process() {
   if (pid <= 0) {
@@ -36,8 +36,9 @@ local_linux_process::~local_linux_process() {
 }
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
+  shared_memory_region *shm_slice = xpc_resources::get_instance().get_rw_region();
   volatile runner_mailbox *rmb =
-      &(shm_slice.as_array_of<mcmini_shm_file>()->mailboxes[id]);
+      &(shm_slice->as_array_of<mcmini_shm_file>()->mailboxes[id]);
 
   // TODO: As a sanity check, a `waitpid()` to check if the process is still
   // alive is probably warranted. This would prevent a deadlock in _most_ cases.

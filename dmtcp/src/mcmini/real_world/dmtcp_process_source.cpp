@@ -1,6 +1,5 @@
 #include "mcmini/real_world/process/dmtcp_process_source.hpp"
 
-#include <fcntl.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -9,8 +8,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 #include "mcmini/common/shm_config.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
@@ -21,93 +20,17 @@ using namespace real_world;
 using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
-    : ckpt_file(ckpt_file) {}
+    : ckpt_file(ckpt_file) {
+  target dmtcp_restart("dmtcp_coordinator", {"--daemon"});
+  this->dmtcp_coordinator = local_linux_process(dmtcp_restart.fork());
+}
 
 pid_t dmtcp_process_source::make_new_branch() {
   target dmtcp_restart("dmtcp_restart", {this->ckpt_file});
-
-  int pipefd[2];
-  if (pipe(pipefd) == -1) {
-    throw std::runtime_error("Failed to open pipe(2): " +
-                             std::string(strerror(errno)));
+  if (!has_transferred_recorded_objects) {
+    dmtcp_restart.set_env("MCMINI_MULTIPLE_RESTARTS", "1");
   }
-
-  errno = 0;
-  const pid_t child_pid = fork();
-  if (child_pid == -1) {
-    // fork(2) failed
-    throw process_source::process_creation_exception(
-        "Failed to create a new process (fork(2) failed): " +
-        std::string(strerror(errno)));
-  }
-  if (child_pid == 0) {
-    // ******************
-    // Child process case
-    // ******************
-    close(pipefd[0]);
-    fcntl(pipefd[1], F_SETFD, FD_CLOEXEC);
-
-    if (!has_transferred_recorded_objects) {
-      setenv("MCMINI_MULTIPLE_RESTARTS", "1", 1);
-    }
-
-    dmtcp_restart.execvp(false);
-    unsetenv("MCMINI_MULTIPLE_RESTARTS");
-
-    // If `execvp()` fails, we signal the error to the parent process by writing
-    // into the pipe.
-    int err = errno;
-    write(pipefd[1], &err, sizeof(err));
-    close(pipefd[1]);
-
-    // @note: We invoke `quick_exit()` here to ensure that C++ static
-    // objects are NOT destroyed. `std::exit()` will invoke the destructors
-    // of such static objects, among other cleanup. This is only intended to
-    // happen exactly once however; bad things likely would happen to a program
-    // which called the destructor on an object that already cleaned up its
-    // resources.
-    //
-    // We must remember that this child is in a completely separate process with
-    // a completely separate address space, but the shared resources that the
-    // McMini process holds onto will also (inadvertantly) be shared with the
-    // child. We want the resources to be destroyed in the MCMINI process, NOT
-    // this (failed) child fork(). To get C++ to play nicely, this is how we do
-    // it.
-    std::quick_exit(EXIT_FAILURE);
-    // ******************
-    // Child process case
-    // ******************
-
-    // Should never be reached --> implies quick_exit returned
-    std::abort();
-    return child_pid;
-  } else {
-    // *******************
-    // Parent process case
-    // *******************
-    close(pipefd[1]);  // Close write end
-
-    int err = 0;
-    if (read(pipefd[0], &err, sizeof(err)) > 0) {
-      // waitpid() ensures that the child's resources are properly reacquired.
-      if (waitpid(child_pid, nullptr, 0) == -1) {
-        throw process_source::process_creation_exception(
-            "Failed to create a cleanup zombied child process (waitpid(2) "
-            "returned -1): " +
-            std::string(strerror(errno)));
-      }
-      throw process_source::process_creation_exception(
-          "Failed to create a new process from the checkpoint image '" +
-          this->ckpt_file + "'" + " (execvp(2) failed with error code '" +
-          std::to_string(errno) + "'):" + std::string(strerror(err)));
-    }
-    close(pipefd[0]);
-
-    // *******************
-    // Parent process case
-    // *******************
-    return child_pid;
-  }
+  return dmtcp_restart.fork();
 }
 
 std::unique_ptr<process> dmtcp_process_source::make_new_process() {
@@ -141,5 +64,5 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
   // The key detail is that `dmtcp_restart` calls `exec()` only.
   // So its PID is preserved.
   assert(tstruct->cpid == target_branch_pid);
-  return extensions::make_unique<local_linux_process>(target_branch_pid, *rw_region);
+  return extensions::make_unique<local_linux_process>(target_branch_pid);
 }
