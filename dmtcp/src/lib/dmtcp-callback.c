@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -71,16 +72,17 @@ static void *template_thread(void *unused) {
     printf("The template thread is finished... restarting...\n");
 
     // FIXME: There appears to be an issue with opening the FIFO
-    // here. If it already exists most likely is should be replaced,
+    // here. If it already exists most likely it should be replaced,
     // but we seem to block on both sides (the `McMini` process side and here)
     // or else exit with `No file or directory`. It's probably a race.
     //
     // The current work around is to simply remove the named FIFO manually
     // and run a few exections until the race "resolves" itself (just hope that
     // they don't block).
-    int fd = open("/tmp/mcmini-fifo", O_WRONLY);
+    int fd = open("/tmp/mcmini-fifo", O_CREAT | O_WRONLY);
     if (fd == -1) {
       perror("open");
+      mc_exit(EXIT_FAILURE);
     }
     for (rec_list *entry = head_record_mode; entry != NULL;
          entry = entry->next) {
@@ -95,12 +97,15 @@ static void *template_thread(void *unused) {
         libc_abort();
       }
 
-      write(fd, &entry->vo, sizeof(visible_object));
+      int sz = write(fd, &entry->vo, sizeof(visible_object));
+      assert(sz == sizeof(visible_object));
     }
-    write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
-    printf("The template thread has completed: looping...\n");
+    int sz = write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
+    assert(sz == sizeof(visible_object));
+    printf("The template thread has completed: exiting...\n");
     fsync(fd);
     fsync(0);
+    close(fd);
   }
 
   // TODO: Multithreaded fork would go here

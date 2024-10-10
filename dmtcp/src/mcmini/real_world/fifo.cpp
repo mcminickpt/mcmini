@@ -22,7 +22,7 @@ fifo::fifo(const std::string& name) : name(name) {
       std::exit(EXIT_FAILURE);
     }
   }
-  fd = open(name.c_str(), O_RDWR);
+  fd = open(name.c_str(), O_RDONLY);
 }
 
 size_t fifo::read(void* buf, size_t size) const {

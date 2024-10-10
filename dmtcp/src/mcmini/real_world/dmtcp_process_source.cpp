@@ -21,12 +21,16 @@ using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {
+  // FIXME: Returning from the call to `fork()` does _NOT_ guarantee
+  // that the forked child process has completed its `execvp()`.
+  // To avoid a race in which the coordinator is not yet ready before
+  // calling the first `dmtcp_restart`, we need to call `dmtcp_get_coordinator_status()`
   target dmtcp_restart("dmtcp_coordinator", {"--daemon"});
   this->dmtcp_coordinator = local_linux_process(dmtcp_restart.fork());
 }
 
 pid_t dmtcp_process_source::make_new_branch() {
-  target dmtcp_restart("dmtcp_restart", {this->ckpt_file});
+  target dmtcp_restart("dmtcp_restart", {"--join-coordinator", this->ckpt_file});
   if (!has_transferred_recorded_objects) {
     dmtcp_restart.set_env("MCMINI_MULTIPLE_RESTARTS", "1");
   }
