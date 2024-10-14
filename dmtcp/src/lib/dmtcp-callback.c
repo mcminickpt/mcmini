@@ -79,7 +79,11 @@ static void *template_thread(void *unused) {
     // The current work around is to simply remove the named FIFO manually
     // and run a few exections until the race "resolves" itself (just hope that
     // they don't block).
-    int fd = open("/tmp/mcmini-fifo", O_CREAT | O_WRONLY);
+    int rc = mkfifo("/tmp/mcmini-fifo", S_IRUSR | S_IWUSR);
+    if (rc != 0) {
+      perror("mkfifo");
+    }
+    int fd = open("/tmp/mcmini-fifo", O_WRONLY);
     if (fd == -1) {
       perror("open");
       mc_exit(EXIT_FAILURE);

@@ -6,23 +6,25 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <iostream>
+
 using namespace real_world;
 
 fifo::fifo(const std::string& name) : name(name) {
-  if (mkfifo(name.c_str(), 0666) != 0) {
+  if (mkfifo(name.c_str(), S_IRUSR | S_IWUSR) != 0) {
     if (errno == EEXIST) {
-      // Remove the fifo and re-attempt to create it
-      unlink(name.c_str());
-      if (mkfifo(name.c_str(), 0666) != 0) {
-        std::perror("mkfifo");
-        std::exit(EXIT_FAILURE);
-      }
+      std::cerr << "The FIFO `" << name
+                << "` already exist. We'll use the existing one";
     } else {
       std::perror("mkfifo");
       std::exit(EXIT_FAILURE);
     }
   }
   fd = open(name.c_str(), O_RDONLY);
+  if (fd == -1) {
+    std::perror("open");
+    std::exit(EXIT_FAILURE);
+  }
 }
 
 size_t fifo::read(void* buf, size_t size) const {
