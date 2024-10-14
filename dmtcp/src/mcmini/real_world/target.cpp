@@ -32,7 +32,12 @@ void target::execvp() const {
   // exits. Since McMini is currently single-threaded, this is equivalent to
   // saying if McMini ever exits. Note that this `prctl(2)` persists across
   // `execvp(2)`.
-  prctl(PR_SET_PDEATHSIG, SIGTERM);
+
+  // FIXME: The goal of prctl here is to automatically clean up
+  // child processes when the `mcmini` process exits (whether normally
+  // or abnormally), but a child process is also responsible for killing
+  // the `dmtcp_coordinator`.
+  // prctl(PR_SET_PDEATHSIG, SIGTERM);
 
   // Ensures that the child will accept the reception of all signals (see
   // `install_process_wide_signal_handlers()` where we explicitly block the
