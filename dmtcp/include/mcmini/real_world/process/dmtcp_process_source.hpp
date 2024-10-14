@@ -25,7 +25,6 @@ namespace real_world {
 class dmtcp_process_source : public process_source {
  private:
   std::string ckpt_file;
-  local_linux_process dmtcp_coordinator;
   bool has_transferred_recorded_objects = false;
 
 private:
@@ -33,8 +32,9 @@ private:
 
 public:
   dmtcp_process_source(const std::string &ckpt_file);
+  virtual ~dmtcp_process_source();
 
-public:
+ public:
   std::unique_ptr<process> make_new_process() override;
 };
 

@@ -21,16 +21,33 @@ using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {
+  target("dmtcp_coordinator",
+         {"--daemon", "--port",
+          std::to_string(xpc_resources::dmtcp_coordinator_port)})
+      .fork();
   // FIXME: Returning from the call to `fork()` does _NOT_ guarantee
   // that the forked child process has completed its `execvp()`.
   // To avoid a race in which the coordinator is not yet ready before
-  // calling the first `dmtcp_restart`, we need to call `dmtcp_get_coordinator_status()`
-  target dmtcp_restart("dmtcp_coordinator", {"--daemon"});
-  this->dmtcp_coordinator = local_linux_process(dmtcp_restart.fork());
+  // calling the first `dmtcp_restart`, we probably need some  call to
+  // `dmtcp_get_coordinator_status()`
+  //
+  // Busy waiting works here for now
+  // int num_peers;
+  // int is_running = 0;
+  // while (!is_running) {
+  //   dmtcp_get_coordinator_status(&num_peers, &is_running);
+  //   usleep(10000);
+  // }
+
+  // FIXME: Fix the race condition noted above
+  sleep(2);
 }
 
 pid_t dmtcp_process_source::make_new_branch() {
-  target dmtcp_restart("dmtcp_restart", {"--join-coordinator", this->ckpt_file});
+  target dmtcp_restart(
+      "dmtcp_restart",
+      {"--join-coordinator", "--port",
+       std::to_string(xpc_resources::dmtcp_coordinator_port), this->ckpt_file});
   if (!has_transferred_recorded_objects) {
     dmtcp_restart.set_env("MCMINI_MULTIPLE_RESTARTS", "1");
   }
@@ -69,4 +86,11 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
   // So its PID is preserved.
   assert(tstruct->cpid == target_branch_pid);
   return extensions::make_unique<local_linux_process>(target_branch_pid);
+}
+
+dmtcp_process_source::~dmtcp_process_source() {
+  target(
+      "dmtcp_command",
+      {"-q", "--port", std::to_string(xpc_resources::dmtcp_coordinator_port)})
+      .fork();
 }
