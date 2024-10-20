@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([McMini],[1.0],[pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu],[mcmini],[https://github.com/mcminickpt/mcmini.git])
+AC_INIT([McMini],[1.0.0],[pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu],[mcmini],[https://github.com/mcminickpt/mcmini.git])
 AC_CONFIG_SRCDIR([src/launch.c])
 AC_CONFIG_HEADERS([include/config.h])
 
