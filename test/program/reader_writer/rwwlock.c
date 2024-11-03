@@ -8,19 +8,19 @@
 
 int
 pthread_rwwlock_init(pthread_rwwlock_t *rwwlock)
-{}
+{ return 0; }
 int
 pthread_rwwlock_rdlock(pthread_rwwlock_t *rwwlock)
-{}
+{ return 0; }
 int
 pthread_rwwlock_wr1lock(pthread_rwwlock_t *rwwlock)
-{}
+{ return 0; }
 int
 pthread_rwwlock_wr2lock(pthread_rwwlock_t *rwwlock)
-{}
+{ return 0; }
 int
 pthread_rwwlock_unlock(pthread_rwwlock_t *rwwlock)
-{}
+{ return 0; }
 int
 pthread_rwwlock_destroy(pthread_rwwlock_t *rwwlock)
-{}
+{ return 0; }

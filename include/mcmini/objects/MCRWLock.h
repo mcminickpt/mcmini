@@ -23,9 +23,14 @@ struct MCRWLockShadow {
 };
 
 struct MCRWLock : public MCVisibleObject {
+public:
+
+  // FIXME:  This was private, but we need to access the state
+  //           in MCReadRWLockReaderLock()
+  MCRWLockShadow shadow;
+
 private:
 
-  MCRWLockShadow shadow;
   MCOptional<tid_t> active_writer = MCOptional<tid_t>::nil();
   std::vector<tid_t> active_readers;
 
@@ -50,11 +55,12 @@ public:
   {}
   inline MCRWLock(const MCRWLock &rwlock)
     : MCVisibleObject(rwlock.getObjectId()), shadow(rwlock.shadow),
-      type(rwlock.type), active_writer(rwlock.active_writer),
+      active_writer(rwlock.active_writer),
       active_readers(rwlock.active_readers),
       reader_queue(rwlock.reader_queue),
       writer_queue(rwlock.writer_queue),
-      acquire_queue(rwlock.acquire_queue)
+      acquire_queue(rwlock.acquire_queue),
+      type(rwlock.type)
   {}
 
   std::shared_ptr<MCVisibleObject> copy() override;

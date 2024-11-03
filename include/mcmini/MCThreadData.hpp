@@ -43,7 +43,7 @@ private:
    * @brief
    *
    */
-  MCSortedStack<uint32_t> executionPoints;
+  MCSortedStack executionPoints;
 
   /**
    * @brief

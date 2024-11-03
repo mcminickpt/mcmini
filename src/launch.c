@@ -13,10 +13,21 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "mcmini/config.h"
 
 int
 main(int argc, char *argv[])
 {
+  int width = strlen(PACKAGE_BUGREPORT) + 4;
+  char * stars = "***********************************************"
+                 "***********************************************";
+  printf(" %.*s\n * %s\n"
+         " * Copyright(c) Maxwell Pirtle, Luka Jovanovic, Gene Cooperman\n"
+         " *   (LGPLv3 license: See COPYING.md in source code distribution.)\n"
+         " * %s\n * %s\n %.*s\n\n", width, stars,
+         PACKAGE_STRING, PACKAGE_BUGREPORT, PACKAGE_URL,
+         width, stars);
+
   char **cur_arg = &argv[1];
   if (argc == 1) {
     cur_arg[0] = "--help";
@@ -28,19 +39,29 @@ main(int argc, char *argv[])
     if (strcmp(cur_arg[0], "--max-depth-per-thread") == 0 ||
         strcmp(cur_arg[0], "-m") == 0) {
       setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[1], 1);
+      char *endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--max-depth-per-thread");
+        exit(1);
+      }
       cur_arg += 2;
     }
     else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
       setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[0] + 2, 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--debug-at-trace") == 0 ||
+    else if (strcmp(cur_arg[0], "--debug-at-traceId") == 0 ||
              strcmp(cur_arg[0], "-d") == 0) {
-      setenv(ENV_DEBUG_AT_TRACE, cur_arg[1], 1);
+      setenv(ENV_DEBUG_AT_TRACE_ID, cur_arg[1], 1);
+      char *endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--debug-at-traceId");
+        exit(1);
+      }
       cur_arg += 2;
     }
     else if (cur_arg[0][1] == 'd' && isdigit(cur_arg[0][2])) {
-      setenv(ENV_DEBUG_AT_TRACE, cur_arg[0] + 2, 1);
+      setenv(ENV_DEBUG_AT_TRACE_ID, cur_arg[0] + 2, 1);
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--verbose") == 0 ||
@@ -67,17 +88,35 @@ main(int argc, char *argv[])
       setenv(ENV_LONG_TEST, "1", 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--print-at-trace") == 0) {
-      setenv(ENV_PRINT_AT_TRACE, cur_arg[1], 1);
+    else if (strcmp(cur_arg[0], "--print-at-traceId") == 0 ||
+             strcmp(cur_arg[0], "-p") == 0) {
+      setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[1], 1);
+      char *endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--print-at-traceId");
+        exit(1);
+      }
       cur_arg += 2;
+    }
+    else if (cur_arg[0][1] == 'p' && isdigit(cur_arg[0][2])) {
+      setenv(ENV_PRINT_AT_TRACE_ID, cur_arg[0] + 2, 1);
+      cur_arg++;
+    }
+    else if (strcmp(cur_arg[0], "--quiet") == 0 ||
+             strcmp(cur_arg[0], "-q") == 0) {
+      setenv(ENV_QUIET, "1", 1);
+      cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
-      fprintf(stderr,
-              "Usage: mcmini [--max-depth-per-thread|-m <num>] "
-              "[--debug-at-trace|-d <num>]\n"
-              "[--first-deadlock|-first] [--print-at-trace]\n"
-              "[--verbose|-v] [-v -v] [--help|-h] target_executable\n");
+      fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
+                      "              [--first-deadlock|--first|-f]\n"
+                      "              [--quiet|-q]\n"
+                      "              [--print-at-traceId|-p <num>]\n"
+                      "              [--debug-at-traceId|-d <num>]\n"
+                      "              [--verbose|-v] [-v -v]\n"
+                      "              [--help|-h]\n"
+                      "              target_executable\n");
       exit(1);
     }
     else {
@@ -98,7 +137,7 @@ main(int argc, char *argv[])
              strlen(cur_arg[0]) - strlen("mcmini") - 1 :
              strlen(cur_arg[0]);
   // idx points to 'X' when cur_arg[0] == "...Xmcmini"
-  if (strcmp(cur_arg[0], "mcmini") == 0 || cur_arg[0][idx] == '/') {
+  if (strcmp(cur_arg[0], "mcmini") == 0 ||  strcmp(cur_arg[0] + idx, "/mcmini") == 0) {
     fprintf(stderr,
             "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
     exit(1);
@@ -115,6 +154,9 @@ main(int argc, char *argv[])
   setenv("LD_PRELOAD", buf, 1);
   printf("About to exec into %s\n", cur_arg[0]);
   fflush(stdout);
+  // We execute target application as "template", and then fork traces.
+  // McMini next appears as a constructor in mcmini_private.cpp:mcmini_main().
+  // This is a constructor in libmcmini.so, loaded using LD_PRELOAD.
   execvp(cur_arg[0], cur_arg);
   fprintf(stderr, "Executable '%s' not found.\n", cur_arg[0]);
   perror("mcmini");

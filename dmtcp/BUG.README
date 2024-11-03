@@ -1,0 +1,7 @@
+Sept. 21, 2024
+
+export LD_LIBRARY_PATH=/home/gene/dmtcp.git/lib/dmtcp
+
+~/dmtcp.git/bin/dmtcp_launch -i3 --disable-alloc-plugin --with-plugin ~/mcmini-pirtle/dmtcp/build/libmcmini.so ./src/examples/hello-world &
+
+dmtcp_commnd -c

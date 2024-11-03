@@ -42,6 +42,9 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
  * up into more manageable chunks
  */
 class MCStack {
+public:
+  std::shared_ptr<MCVisibleObject> getObjectWithId(objid_t);
+
 private:
 
   /**
@@ -113,7 +116,7 @@ private:
    * @invariant For elements e_i and e_j at indices
    * i and j, e_i < e_j <--> i < j
    */
-  MCSortedStack<int> irreversibleStatesStack;
+  MCSortedStack irreversibleStatesStack;
 
 private:
 
@@ -350,7 +353,7 @@ private:
    */
   bool dynamicallyUpdateBacktrackSetsHelper(
     const MCTransition &S_i, MCStackItem &preSi,
-    const MCTransition &nextSP, int i, int p);
+    const MCTransition &nextSP, int i, tid_t p);
 
   void incrementThreadDepthIfNecessary(const MCTransition &);
   void decrementThreadDepthIfNecessary(const MCTransition &);

@@ -22,7 +22,7 @@ void
 MCThreadData::resetExecutionData()
 {
   this->executionDepth  = 0;
-  this->executionPoints = MCSortedStack<uint32_t>();
+  this->executionPoints = MCSortedStack();
 }
 
 MCClockVector

@@ -4,16 +4,15 @@
 #include <stack>
 #include <stdexcept>
 
-template<typename Index>
 struct MCSortedStack final {
 private:
 
-  std::stack<Index> contents;
+  std::stack<uint32_t> contents;
 
 public:
 
   inline void
-  push(Index index)
+  push(uint32_t index)
   {
     if (!this->contents.empty() && this->contents.top() > index)
       throw std::invalid_argument(
@@ -22,7 +21,7 @@ public:
     this->contents.push(index);
   }
 
-  inline Index
+  inline uint32_t
   top() const
   {
     return this->contents.top();
@@ -35,7 +34,7 @@ public:
   }
 
   inline void
-  popGreaterThan(Index index)
+  popGreaterThan(uint32_t index)
   {
     while (!this->empty() && this->top() > index) this->pop();
   }

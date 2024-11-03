@@ -39,6 +39,8 @@ void
 thread_post_visible_operation_hit(const std::type_info &type)
 {
   auto newTypeInfo = MCSharedTransition(tid_self, type);
-  memcpy(shmTransitionTypeInfo, &newTypeInfo,
+  // NOTE:  This cast could be done in a more complicated C++ way:
+  //        https://stackoverflow.com/questions/66368061/error-clearing-an-object-of-non-trivial-type-with-memset
+  memcpy((void *)shmTransitionTypeInfo, (void *)(&newTypeInfo),
          sizeof(MCSharedTransition));
 }

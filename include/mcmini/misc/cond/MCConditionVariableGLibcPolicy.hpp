@@ -14,6 +14,7 @@ struct ConditionVariableGLibcPolicy :
   virtual void receive_broadcast_message() override;
   virtual void wake_thread(tid_t tid) override;
   virtual void add_waiter(tid_t tid) override;
+  virtual bool has_waiters() const override;
   std::unique_ptr<ConditionVariablePolicy> clone() const override;
 
 private:

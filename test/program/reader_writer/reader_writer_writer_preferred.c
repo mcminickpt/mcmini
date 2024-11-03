@@ -24,9 +24,9 @@ int write_condition() {
     return (num_readers - num_readers_waiting) == 0 && (num_writers - num_writers_waiting) == 1;
 }
 
-void *reader(void *unused) {
-    int num_loop = *((int*)unused);
-    for(int i=0; i< num_loop; i++) {
+void *reader(void *num_loop_ptr) {
+    int num_loop = *(int*)num_loop_ptr;
+    for(int i=0; i < num_loop; i++) {
         pthread_mutex_lock(&mutex);
         num_readers++;
         while (! read_condition()) {
@@ -44,9 +44,9 @@ void *reader(void *unused) {
     return NULL;
 }
 
-void *writer(void *unused) {
-    int num_loop = *((int*)unused);
-    for(int i=0; i< num_loop; i++) {
+void *writer(void *num_loop_ptr) {
+    int num_loop = *(int*)num_loop_ptr;
+    for(int i=0; i < num_loop; i++) {
         pthread_mutex_lock(&mutex);
         num_writers++;
         while (! write_condition()) {

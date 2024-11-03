@@ -294,7 +294,7 @@ MCStack::hasADataRaceWithNewTransition(
   const tid_t threadRunningTransition = transition.getThreadId();
   const uint64_t numThreads           = this->getNumProgramThreads();
 
-  for (auto i = 0; i < numThreads; i++) {
+  for (uint64_t i = 0; i < numThreads; i++) {
     if (i == threadRunningTransition) continue;
     const MCTransition &nextTransitionForThreadI =
       this->getNextTransitionForThread(i);
@@ -325,7 +325,7 @@ MCStack::happensBefore(int i, int j) const
   MC_ASSERT(i >= 0 && j >= 0);
   const tid_t tid        = getThreadRunningTransitionAtIndex(i);
   const MCClockVector cv = clockVectorForTransitionAtIndex(j);
-  return i <= cv.valueForThread(tid).value_or(0);
+  return i <= (int)cv.valueForThread(tid).value_or(0);
 }
 
 bool
@@ -333,14 +333,14 @@ MCStack::happensBeforeThread(int i, tid_t p) const
 {
   const tid_t tid        = getThreadRunningTransitionAtIndex(i);
   const MCClockVector cv = getThreadDataForThread(p).getClockVector();
-  return i <= cv.valueForThread(tid).value_or(0);
+  return i <= (int)cv.valueForThread(tid).value_or(0);
 }
 
 bool
 MCStack::threadsRaceAfterDepth(int depth, tid_t q, tid_t p) const
 {
   // We want to search the entire transition stack in this case
-  const auto transitionStackHeight = this->getTransitionStackSize();
+  const int transitionStackHeight = this->getTransitionStackSize();
   for (int j = depth + 1; j < transitionStackHeight; j++) {
     if (q == this->getThreadRunningTransitionAtIndex(j) &&
         this->happensBeforeThread(j, p))
@@ -421,7 +421,7 @@ MCStack::dynamicallyUpdateBacktrackSets()
       const MCTransition &nextSP =
         this->getNextTransitionForThread(tid);
       this->dynamicallyUpdateBacktrackSetsHelper(
-        S_n, s_n, nextSP, this->transitionStackTop, (int)tid);
+        S_n, s_n, nextSP, this->transitionStackTop, tid);
     }
   }
 
@@ -436,7 +436,7 @@ MCStack::dynamicallyUpdateBacktrackSets()
     MCStackItem &preSi = this->getStateItemAtIndex(i);
     const bool shouldStop   = dynamicallyUpdateBacktrackSetsHelper(
         S_i, preSi, nextTransitionForMostRecentThread, i,
-        (int)mostRecentThreadId);
+        mostRecentThreadId);
     /*
      * Stop when we find the first such i; this
      * will be the maxmimum `i` since we're searching
@@ -449,7 +449,7 @@ MCStack::dynamicallyUpdateBacktrackSets()
 bool
 MCStack::dynamicallyUpdateBacktrackSetsHelper(
   const MCTransition &S_i, MCStackItem &preSi,
-  const MCTransition &nextSP, int i, int p)
+  const MCTransition &nextSP, int i, tid_t p)
 {
   const unordered_set<tid_t> enabledThreadsAtPreSi =
     preSi.getEnabledThreadsInState();
@@ -753,7 +753,7 @@ MCStack::reset()
 void
 MCStack::reflectStateAtTransitionIndex(uint32_t index)
 {
-  MC_ASSERT(index <= this->transitionStackTop);
+  MC_ASSERT((int)index <= this->transitionStackTop);
 
   /*
    * Note that this is the number of threads at the *current*
@@ -814,16 +814,15 @@ MCStack::reflectStateAtTransitionIndex(uint32_t index)
      */
 
     std::unordered_map<tid_t, uint32_t> threadToClosestIndexMap;
-    for (int i = this->transitionStackTop; i > index; i--) {
+    for (int i = this->transitionStackTop; i > (int)index; i--) {
       const tid_t tid = this->getThreadRunningTransitionAtIndex(i);
       threadToClosestIndexMap[tid] = i;
     }
 
-    for (const pair<tid_t, uint32_t> &elem :
+    for (const pair<tid_t, uint32_t> elem :
          threadToClosestIndexMap) {
       const tid_t tid            = elem.first;
       const uint32_t latestIndex = elem.second;
-      const MCThreadData &tData  = this->getThreadDataForThread(tid);
       const MCTransition &transition =
         this->getTransitionAtIndex(latestIndex);
       const auto dynamicCopy = transition.dynamicCopyInState(this);
@@ -866,6 +865,11 @@ MCStack::registerVisibleObjectWithSystemIdentity(
   this->objectStorage.mapSystemAddressToShadow(systemId, id);
 }
 
+std::shared_ptr<MCVisibleObject>
+MCStack::getObjectWithId(objid_t objectId) {
+  return objectStorage.getObjectWithId(objectId);
+}
+
 void
 MCStack::printThreadSchedule() const
 {
@@ -891,9 +895,9 @@ MCStack::printTransitionStack() const
 void
 MCStack::printNextTransitions() const
 {
-  printf("THREAD STATES\n");
+  printf("THREAD PENDING OPERATIONS\n");
   auto numThreads = this->getNumProgramThreads();
-  for (auto i = 0; i < numThreads; i++) {
+  for (uint64_t i = 0; i < numThreads; i++) {
     this->getNextTransitionForThread(i).print();
   }
   printf("END\n");
@@ -904,8 +908,8 @@ std::vector<tid_t>
 MCStack::getThreadIdBacktrace() const
 {
   auto trace                       = std::vector<tid_t>();
-  const auto transitionStackHeight = this->getTransitionStackSize();
-  for (auto i = 0; i < transitionStackHeight; i++)
+  const uint64_t transitionStackHeight = this->getTransitionStackSize();
+  for (uint64_t i = 0; i < transitionStackHeight; i++)
     trace.push_back(this->getTransitionAtIndex(i).getThreadId());
   return trace;
 }

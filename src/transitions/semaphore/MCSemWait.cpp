@@ -89,6 +89,6 @@ MCSemWait::enabledInState(const MCStack *) const
 void
 MCSemWait::print() const
 {
-  printf("thread %lu: sem_wait(%lu) (asleep -> awake)\n",
-         this->thread->tid, this->sem->getObjectId());
+  printf("thread %lu: sem_wait(sem:%u) (asleep -> awake)\n", this->thread->tid,
+         countVisibleObjectsOfType(this->sem->getObjectId()));
 }

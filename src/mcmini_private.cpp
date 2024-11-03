@@ -16,9 +16,11 @@ extern "C" {
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/prctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 #include <ucontext.h>
 }
@@ -28,6 +30,11 @@ using namespace std;
 MC_THREAD_LOCAL tid_t tid_self = TID_INVALID;
 pid_t trace_pid                = -1;
 
+trid_t traceId      = 0;
+trid_t transitionId = 0;
+
+time_t mcmini_start_time = 0;
+
 /**
  * The process id of the scheduler
  */
@@ -36,27 +43,26 @@ mc_shared_sem (*trace_sleep_list)[MAX_TOTAL_THREADS_IN_PROGRAM] =
   nullptr;
 sem_t mc_pthread_create_binary_sem;
 
-trid_t traceId      = 0;
-trid_t transitionId = 0;
-
 static char resultString[1000] = "***** Model checking completed! *****\n";
 static void addResult(const char *result) {
   char stats[1000];
   if (strstr(resultString, result) != NULL) {
-    result = "  (Other trace numbers exist: ...)\n";
+    result = "  (Other trace numbers (traceId) of bugs exist above;\n"
+             "   Use --first-deadlock (-f) to only show first one)\n";
     if (strstr(resultString, result) == NULL) {
       strncat(resultString, result, sizeof(resultString) - strlen(resultString));
     }
     return;
   }
   strncat(resultString, result, sizeof(resultString) - strlen(resultString));
-  snprintf(stats, 80, "  (Trace number: %lu)\n", traceId);
+  snprintf(stats, 80, "  (Trace number (traceId): %lu)\n", traceId);
   strncat(resultString, stats, sizeof(resultString) - strlen(resultString));
 }
 static void printResults() {
   mcprintf(resultString);
-  mcprintf("Number of transitions: %lu\n", transitionId);
   mcprintf("Number of traces: %lu\n", traceId);
+  mcprintf("Total number of transitions: %lu\n", transitionId);
+  mcprintf("Elapsed time: %lu seconds\n", time(NULL) - mcmini_start_time);
 }
 
 /*
@@ -109,6 +115,8 @@ ucontext_t mcmini_scheduler_main_context;
 MC_CONSTRUCTOR void
 mcmini_main()
 {
+  mcmini_start_time = time(NULL);
+
   getcontext(&mcmini_scheduler_main_context);
 
   if (getenv("MCMINI_PROCESS") == NULL) {
@@ -223,6 +231,17 @@ mc_create_global_state_object()
   programState->start();
 }
 
+int countVisibleObjectsOfType(int objectId) {
+  int count = 0;
+  for (int i = 0; i <= objectId; i++) {
+    if (typeid(*(programState->getObjectWithId(i))) ==
+        typeid(*(programState->getObjectWithId(objectId)))) {
+      count++;
+    }
+  }
+  return count;
+}
+
 void
 mc_prepare_to_model_check_new_program()
 {
@@ -257,6 +276,13 @@ mc_explore_branch(int curBranchPoint)
   mc_run_next_trace_for_debugger();
 
   traceId++;
+  if (traceId % 1000 == 0) {
+    static time_t last_time_reported = mcmini_start_time;
+    if (time(NULL) - last_time_reported > 10) {
+      last_time_reported = time(NULL);
+      mcprintf("... %d traces analyzed so far ...\n", traceId);
+    }
+  }
   return programState->getDeepestDPORBranchPoint();
 }
 
@@ -368,14 +394,14 @@ mc_initialize_shared_memory_globals()
 void
 mc_initialize_trace_sleep_list()
 {
-  for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
+  for (unsigned int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++)
     mc_shared_sem_init(&(*trace_sleep_list)[i]);
 }
 
 void
 mc_reset_cv_locks()
 {
-  for (int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
+  for (unsigned int i = 0; i < MAX_TOTAL_THREADS_IN_PROGRAM; i++) {
     mc_shared_sem_destroy(&(*trace_sleep_list)[i]);
     mc_shared_sem_init(&(*trace_sleep_list)[i]);
   }
@@ -396,6 +422,13 @@ mc_fork_new_trace()
   trace_pid = childpid;
 
   if (FORK_IS_CHILD_PID(childpid)) {
+    prctl(PR_SET_PDEATHSIG, SIGUSR1, 0, 0); // In McMini, SIGUSR1 to kill child
+    if (getenv(ENV_QUIET) != NULL) {
+      close(0); assert(open("/dev/null", O_RDONLY) == 0);
+      close(1); assert(open("/dev/null", O_WRONLY) == 1);
+      close(2); assert(open("/dev/null", O_WRONLY) == 2);
+    }
+
     install_sighandles_for_trace();
 
     // We need to reset the concurrent system
@@ -449,62 +482,62 @@ mc_fork_next_trace_at_current_state()
     // move to a different point in the trace, we can simply break
     // out of the loop moving the execution forward of the current
     // trace in order to start a new one.
-    if (rerunCurrentTraceForDebugger) { break; }
+    if (rerunCurrentTraceForDebugger) {
+      break;
+    }
 
     // NOTE: This is reliant on the fact
     // that threads are created in the same order
     // when we create them. This will always be consistent,
     // but we might need to look out for when a thread dies
-    tid_t nextTid =
-      programState->getThreadRunningTransitionAtIndex(i);
+    tid_t nextTid = programState->getThreadRunningTransitionAtIndex(i);
     mc_run_thread_to_next_visible_operation(nextTid);
   }
 }
 
-void
-mc_run_thread_to_next_visible_operation(tid_t tid)
-{
+void mc_run_thread_to_next_visible_operation(tid_t tid) {
   MC_ASSERT(tid != TID_INVALID);
   mc_shared_sem_ref sem = &(*trace_sleep_list)[tid];
   mc_shared_sem_wake_thread(sem);
   mc_shared_sem_wait_for_thread(sem);
 }
 
-void
-mc_terminate_trace() 
-{
-  if (trace_pid == -1) return; // No child
+void mc_terminate_trace() {
+  if (trace_pid == -1) return;  // No child
   kill(trace_pid, SIGUSR1);
   mc_wait_for_trace();
   trace_pid = -1;
 }
 
-void
-mc_wait_for_trace() {
+void mc_wait_for_trace() {
   MC_ASSERT(trace_pid != -1);
 
   int status;
+  char *v = getenv(ENV_VERBOSE);
+  bool verbose = v ? v[0] == '1' : false;
   if (waitpid(trace_pid, &status, 0) == -1) {
-    std::cerr << "Error waiting for trace process " << trace_pid << ": "
-              << strerror(errno) << std::endl;
-  } else {
+    if (verbose) {
+      fprintf(stderr, "Error waiting for trace process with pid `%lu` %s\n",
+              (uint64_t)trace_pid, strerror(errno));
+    }
+  } else if (verbose) {
     // Check how the trace process exited
     if (WIFEXITED(status)) {
-      std::cerr << "Trace process " << trace_pid << " exited with status "
-                << WEXITSTATUS(status) << std::endl;
+      fprintf(stderr,
+              "Trace process with traceId `%lu` exited with status %d\n",
+              traceId, WEXITSTATUS(status));
     } else if (WIFSIGNALED(status)) {
-      std::cerr << "Trace process " << trace_pid << " was killed by signal "
-                << WTERMSIG(status) << std::endl;
+      fprintf(stderr,
+              "Trace process with traceId `%lu` was killed by signal `%d`\n",
+              traceId, WTERMSIG(status));
     } else {
-      std::cerr << "Trace process " << trace_pid << " exited abnormally."
-                << std::endl;
+      fprintf(stderr, "Trace process with traceId `%lu` exited abnormally.\n",
+              traceId);
     }
   }
 }
 
-void
-mc_trace_panic()
-{
+void mc_trace_panic() {
   pid_t schedpid = getppid();
   kill(schedpid, SIGUSR1);
 
@@ -567,14 +600,13 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   const bool programHasNoErrors = !hasDeadlock;
 
   if (hasDeadlock) {
-    mcprintf("Trace %lu, *** DEADLOCK DETECTED ***\n", traceId);
+    mcprintf("TraceId %lu, *** DEADLOCK DETECTED ***\n", traceId);
     programState->printTransitionStack();
     programState->printNextTransitions();
     addResult("*** DEADLOCK DETECTED ***\n");
 
     if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
       printResults();
-      mcprintf("Number of transitions: %lu\n", transitionId);
       mc_exit(EXIT_SUCCESS);
     }
   }
@@ -582,10 +614,10 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   static char *verbose = getenv(ENV_VERBOSE);
   if (programHasNoErrors && verbose) {
     if (verbose[0] == '1') {
-      mcprintf("Trace %3d:  ", traceId);
+      mcprintf("TraceId %3d:  ", traceId);
       programState->printThreadSchedule();
     } else {
-      mcprintf("Trace: %d, *** NO FAILURE DETECTED ***\n", traceId);
+      mcprintf("TraceId: %d, *** NO FAILURE DETECTED ***\n", traceId);
       programState->printTransitionStack();
       programState->printNextTransitions();
     }
@@ -616,12 +648,12 @@ mc_report_undefined_behavior(const char *msg)
   mc_terminate_trace();
   fprintf(stderr,
           "\n"
-          "Undefined Behavior Detected! \t\n"
-          "............................ \t\n"
-          "mcmini aborted the execution of trace %lu because\t\n"
-          "it detected undefined behavior\t\n"
+          "Undefined or Illegal Behavior Detected!\n"
+          "............................\n"
+          "mcmini aborted the execution of trace with traceId %lu because\n"
+          "it detected undefined behavior\n"
           "............................ \n"
-          "Reason: %s \t\n\n",
+          "Reason: %s\n\n",
           traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();
@@ -673,13 +705,13 @@ get_config_for_execution_environment()
     maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
   }
 
-  if (getenv(ENV_DEBUG_AT_TRACE) != NULL) {
-    gdbTraceNumber = strtoul(getenv(ENV_DEBUG_AT_TRACE), NULL, 10);
+  if (getenv(ENV_DEBUG_AT_TRACE_ID) != NULL) {
+    gdbTraceNumber = strtoul(getenv(ENV_DEBUG_AT_TRACE_ID), NULL, 10);
   }
 
-  if (getenv(ENV_PRINT_AT_TRACE) != NULL) {
+  if (getenv(ENV_PRINT_AT_TRACE_ID) != NULL) {
     stackContentDumpTraceNumber =
-      strtoul(getenv(ENV_PRINT_AT_TRACE), nullptr, 10);
+      strtoul(getenv(ENV_PRINT_AT_TRACE_ID), nullptr, 10);
   }
   if (getenv(ENV_CHECK_FORWARD_PROGRESS) != NULL) {
     expectForwardProgressOfThreads = true;

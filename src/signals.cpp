@@ -63,7 +63,7 @@ void
 sigusr1_handler_scheduler(int sig)
 {
   char msg[] = "*** FATAL ERROR: Trace failed unexpectedly ***\n";
-  write(STDERR_FILENO, msg, sizeof(msg));
+  assert(write(STDERR_FILENO, msg, sizeof(msg)) == sizeof(msg));
   mc_stop_model_checking(EXIT_FAILURE);
 }
 
@@ -71,7 +71,7 @@ void
 sigint_handler_scheduler(int sig)
 {
   char msg[] = "\nmcmini: interrupted\n";
-  write(STDERR_FILENO, msg, sizeof(msg));
+  assert(write(STDERR_FILENO, msg, sizeof(msg)) == sizeof(msg));
   mc_stop_model_checking(EXIT_SUCCESS);
 }
 
@@ -95,13 +95,13 @@ sigchld_handler_scheduler(int sig, siginfo_t *info, void *unused)
   char msg[512];
   int len =
     snprintf(msg, sizeof(msg),
-             "Trace %lu stopped early!\n"
+             "traceId %lu stopped early!\n"
              "  (possible SEGFAULT, assert failure, or exit with failure\n"
              "   between thread operations)\n",
              traceId);
   msg[len] = '\0';
 
-  write(STDERR_FILENO, msg, len);
+  assert(write(STDERR_FILENO, msg, len) == len);
   fsync(STDERR_FILENO);
 
   // Write the trace contents out

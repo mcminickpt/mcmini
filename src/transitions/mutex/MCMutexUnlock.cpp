@@ -90,6 +90,6 @@ MCMutexUnlock::dependentWith(const MCTransition *transition) const
 void
 MCMutexUnlock::print() const
 {
-  printf("thread %lu: pthread_mutex_unlock(%lu)\n", this->thread->tid,
-         this->mutex->getObjectId());
+  printf("thread %lu: pthread_mutex_unlock(mut:%u)\n", this->thread->tid,
+         countVisibleObjectsOfType(this->mutex->getObjectId()));
 }

@@ -1,4 +1,5 @@
 #include "mcmini/transitions/semaphore/MCSemInit.h"
+#include "mcmini/mcmini_private.h"
 
 MCTransition *
 MCReadSemInit(const MCSharedTransition *shmTransition, void *shmData,
@@ -69,6 +70,7 @@ MCSemInit::dependentWith(const MCTransition *other) const
 void
 MCSemInit::print() const
 {
-  printf("thread %lu: sem_init(%lu, 0, %u)\n", this->thread->tid,
-         this->sem->getObjectId(), this->sem->getCount());
+  printf("thread %lu: sem_init(sem:%u, 0, %u)\n", this->thread->tid,
+         countVisibleObjectsOfType(this->sem->getObjectId()),
+         this->sem->getCount());
 }

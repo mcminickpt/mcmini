@@ -13,8 +13,11 @@ struct MCMutexShadow {
 };
 
 struct MCMutex : public MCVisibleObject {
-private:
+public:
 
+  // FIXME:  This was private, but we need to access the state
+  //           in MCReadMutexLock().
+  //         Maybe add a method to directly access and modify the state?
   MCMutexShadow mutexShadow;
 
 public:

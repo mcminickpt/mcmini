@@ -116,6 +116,8 @@ public:
    */
   virtual void add_waiter(tid_t tid) = 0;
 
+  virtual bool has_waiters() const = 0;
+
   virtual std::unique_ptr<ConditionVariablePolicy> clone() const = 0;
 
   virtual ~ConditionVariablePolicy() = default;

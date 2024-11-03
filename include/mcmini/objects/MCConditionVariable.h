@@ -35,9 +35,12 @@ public:
     explicit Shadow(pthread_cond_t *cond) : cond(cond) {}
   };
 
+  // `FIXME:  This used to be private.  But MCReadCondSignal, etc.,
+  //          needs to set shadow.state to 'initialized'.
+  Shadow shadow;
+
 private:
 
-  Shadow shadow;
   unsigned int numRemainingSpuriousWakeups = 0;
   std::unique_ptr<ConditionVariablePolicy> policy;
 
@@ -54,8 +57,9 @@ public:
   // This value may be NULL before the condition variable has received
   // a pthread_cond_wait call
   //
-  // Note it is undefined to access a single condition variable with
-  // two different locks
+  // NOTE:  See MCCondWait.cpp:MCCondWait::applyToState() for a
+  //   comment on a single condition variable being successively
+  //   bound to two different mutexes.
   std::shared_ptr<MCMutex> mutex;
 
   ConditionVariable(Shadow shadow,
@@ -67,8 +71,9 @@ public:
 
   ConditionVariable(const ConditionVariable &cond)
     : MCVisibleObject(cond.getObjectId()), shadow(cond.shadow),
-      mutex(nullptr), policy(std::move(cond.policy->clone())),
-      numRemainingSpuriousWakeups(cond.numRemainingSpuriousWakeups)
+      numRemainingSpuriousWakeups(cond.numRemainingSpuriousWakeups),
+      policy(std::move(cond.policy->clone())),
+      mutex(nullptr)
   {
     if (cond.mutex != nullptr) {
       mutex = std::static_pointer_cast<MCMutex, MCVisibleObject>(
@@ -89,6 +94,7 @@ public:
   void destroy();
 
   void addWaiter(tid_t tid);
+  bool hasWaiters();
   void removeWaiter(tid_t tid);
   bool waiterCanExit(tid_t tid);
   void sendSignalMessage();

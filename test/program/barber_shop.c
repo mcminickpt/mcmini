@@ -72,6 +72,7 @@ void *customer(void *number) {
     // Give up the chair.
     sem_post(&barberChair);
     printf("Customer %d leaving barber shop.\n", num);
+    return NULL;
 }
 
 void *barber(void *junk) {
@@ -100,6 +101,7 @@ void *barber(void *junk) {
             printf("The barber is going home for the day.\n");
         }
     }
+    return NULL;
 }
 
 int main(int argc, char *argv[]) {

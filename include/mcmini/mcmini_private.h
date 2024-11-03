@@ -1,6 +1,7 @@
 #ifndef INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 #define INCLUDE_MCMINI_MCMINI_PRIVATE_HPP
 
+#include "mcmini/config.h"
 #include "mcmini/MCDeferred.h"
 #include "mcmini/MCShared.h"
 #include "mcmini/MCSharedTransition.h"
@@ -208,6 +209,14 @@ extern MCDeferred<MCStack> programState;
  * and instead the global state is only locally accessible perhaps
  */
 void mc_create_global_state_object();
+
+/**
+ * @brief Return id for the operation type of objectID
+ *
+ * This counts how many objects, i,  of the same type
+ * as objectId exist, for i < ojbectId.
+ */
+int countVisibleObjectsOfType(int objectId);
 
 /**
  * @brief Perform setup for the global program state object in

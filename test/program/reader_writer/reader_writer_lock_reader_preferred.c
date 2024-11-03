@@ -32,7 +32,7 @@ void *reader(void *notused) {
 void *writer(void *notused) {
     for(int i=0; i< NUM_LOOP; i++) {
         pthread_mutex_lock(&rw);
-        
+
         if (DEBUG) printf("writer is writing\n");
 
         pthread_mutex_unlock(&rw);
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
     pthread_t write_thread[NUM_WRITERS];
     pthread_mutex_init(&read_mutex, NULL);
     pthread_mutex_init(&rw, NULL);
-    
+
     int i;
     for (i = 0; i < NUM_READERS; i++) {
         pthread_create(&read_thread[i], NULL, reader, NULL);

@@ -79,6 +79,12 @@ MCCondWait::applyToState(MCStack *state)
   const tid_t threadId = this->getThreadId();
   this->conditionVariable->mutex->lock(threadId);
   this->conditionVariable->removeWaiter(threadId);
+  // POSIX sttandard says that the dynamic binding of a condition variable
+  // to a mutex is removed when the last thread waiting on that cond var is
+  // unblocked (i.e., has re-acquired the associated mutex of the cond var).
+  if (! this->conditionVariable->hasWaiters()) {
+    this->conditionVariable->mutex = nullptr;
+  }
 }
 
 bool
@@ -136,8 +142,8 @@ MCCondWait::dependentWith(const MCTransition *other) const
 void
 MCCondWait::print() const
 {
-  printf(
-    "thread %lu: pthread_cond_wait(%lu, %lu) (asleep -> awake)\n",
-    this->thread->tid, this->conditionVariable->getObjectId(),
-    this->conditionVariable->mutex->getObjectId());
+  printf("thread %lu: pthread_cond_wait(cond:%u, mut:%u) (asleep -> awake)\n",
+      this->thread->tid,
+      countVisibleObjectsOfType(this->conditionVariable->getObjectId()),
+      countVisibleObjectsOfType(this->conditionVariable->mutex->getObjectId()));
 }
