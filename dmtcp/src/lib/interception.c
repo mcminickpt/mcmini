@@ -144,6 +144,33 @@ int libpthread_mutex_destroy(pthread_mutex_t *mut) {
   return (*pthread_mutex_destroy_ptr)(mut);
 }
 
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
+  return mc_pthread_cond_init(cond, attr);
+}
+
+int libpthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
+  libmcmini_init();
+  return (*pthread_cond_init_ptr)(cond, attr);
+}
+
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mut) {
+  return mc_pthread_cond_wait(cond, mut);
+}
+
+int libpthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mut) {
+  libmcmini_init();
+  return (*pthread_cond_wait_ptr)(cond, mut);
+}
+
+int pthread_cond_signal(pthread_cond_t *cond) {
+  return mc_pthread_cond_signal(cond);
+}
+
+int libpthread_cond_signal(pthread_cond_t *cond) {
+  libmcmini_init();
+  return (*pthread_cond_signal_ptr)(cond);
+}
+
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                    void *(*routine)(void *), void *arg) {
   return mc_pthread_create(thread, attr, routine, arg);

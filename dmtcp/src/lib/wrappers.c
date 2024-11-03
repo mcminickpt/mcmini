@@ -94,7 +94,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
         // FIXME: We assume that this is a normal mutex. For other mutex
         // types, we'd need to behave differently
         visible_object vo = {
-            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
+            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED, .init_thread_id = pthread_self()};
         mutex_record = add_rec_entry_record_mode(&vo);
       }
       libpthread_mutex_unlock(&rec_list_lock);
@@ -170,7 +170,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       rec_list *mutex_record = find_object_record_mode(mutex);
       if (mutex_record == NULL) {
         visible_object vo = {
-            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
+            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED, .init_thread_id = pthread_self()};
         mutex_record = add_rec_entry_record_mode(&vo);
       }
       libpthread_mutex_unlock(&rec_list_lock);
@@ -613,3 +613,176 @@ unsigned mc_sleep(unsigned duration) {
       return libc_sleep(duration);
   }
 }
+
+int mc_pthread_cond_init(pthread_cond_t *cond,
+                         const pthread_condattr_t *attr) {
+  switch (get_current_mode()) {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
+      return libpthread_cond_init(cond, attr);
+    }
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *cond_record = find_object_record_mode(cond);
+      if (cond_record == NULL) {
+        //Initialize the condition variable
+        visible_object vo = {
+            .type = CONDITION_VARIABLE, .location = cond, 
+            .cond_state = { .status = CV_UNINITIALIZED, .waiting_thread = 0, .associated_mutex = NULL, 
+            .count = 0 }
+        };
+        cond_record = add_rec_entry_record_mode(&vo);
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
+      
+      int rc = libpthread_cond_init(cond, attr);
+      if (rc == 0) {
+        libpthread_mutex_lock(&rec_list_lock);
+        cond_record->vo.cond_state.status = CV_INITIALIZED;
+        cond_record->vo.cond_state.waiting_thread = 0;
+        //we typically don't know which mutex will be associated with the 
+        //condition variable until a thread actually waits on it.
+        cond_record->vo.cond_state.associated_mutex = NULL; 
+        cond_record->vo.cond_state.count = 0;
+        libpthread_mutex_unlock(&rec_list_lock);
+      }
+      return rc;
+    }
+      case DMTCP_RESTART: {
+        volatile runner_mailbox *mb = thread_get_mailbox();
+        mb->type = COND_INIT_TYPE;
+        memcpy_v(mb->cnts, &cond, sizeof(cond));
+        notify_template_thread();
+        thread_await_scheduler();
+        return libpthread_cond_init(cond, attr);
+      }
+      case TARGET_BRANCH:
+      case TARGET_BRANCH_AFTER_RESTART: {
+        volatile runner_mailbox *mb = thread_get_mailbox();
+        mb->type = COND_INIT_TYPE;
+        memcpy_v(mb->cnts, &cond, sizeof(cond));
+        thread_wake_scheduler_and_wait();
+        return libpthread_cond_init(cond, attr);
+      }
+      default: {
+        libc_abort();
+      }
+  }
+}
+
+int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
+  switch (get_current_mode()) {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
+      return libpthread_cond_wait(cond, mutex);
+    }
+    case RECORD:
+    case PRE_CHECKPOINT:{
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *cond_record = find_object_record_mode(cond);
+      if (cond_record == NULL) {
+      //Initialize the condition variable
+        visible_object vo = {
+          .type = CONDITION_VARIABLE, .location = cond, .cond_state = { .status= CV_INITIALIZED, .waiting_thread = pthread_self(), 
+          .associated_mutex = mutex, .count = 0 }
+        };
+        cond_record = add_rec_entry_record_mode(&vo);
+      }
+      
+      libpthread_mutex_unlock(&rec_list_lock);
+      int rc = libpthread_cond_wait(cond, mutex);
+      if (rc == 0) {
+        libpthread_mutex_lock(&rec_list_lock);
+        cond_record->vo.cond_state.status = CV_WAITING;
+        cond_record->vo.cond_state.waiting_thread = pthread_self();
+        cond_record->vo.cond_state.associated_mutex = mutex;
+        cond_record->vo.cond_state.count++;
+        libpthread_mutex_unlock(&rec_list_lock);
+        return rc;
+      }
+    }
+    case DMTCP_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_WAIT_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
+      notify_template_thread();
+      thread_await_scheduler();
+      return libpthread_cond_wait(cond, mutex);      
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_WAIT_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
+      thread_wake_scheduler_and_wait();
+      return libpthread_cond_wait(cond, mutex);
+    }
+    default: {
+      // Wrapper functions should not be executing
+      // inside the template! If we reach this point, it
+      // means that this is a template process. This
+      // method must have been directly called
+      // erroneously.
+      libc_abort();
+    }
+  }
+}
+
+int mc_pthread_cond_signal(pthread_cond_t *cond) {
+  switch (get_current_mode()) {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
+      return libpthread_cond_signal(cond);
+    }
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *cond_record = find_object_record_mode(cond);
+      if (cond_record == NULL) {
+        fprintf(stderr,
+                "Undefined behavior: attempting to signal an uninitialized"
+                "condition variable %p",
+                cond);
+        libc_abort();
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
+      int rc = libpthread_cond_signal(cond);
+      if (rc == 0) {
+        libpthread_mutex_lock(&rec_list_lock);
+        cond_record->vo.cond_state.status = CV_SIGNALLED;
+        cond_record->vo.cond_state.count--;
+        libpthread_mutex_unlock(&rec_list_lock);
+      }
+      return rc;
+    }
+    case DMTCP_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_SIGNAL_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      notify_template_thread();
+      thread_await_scheduler();
+      return libpthread_cond_signal(cond);
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_SIGNAL_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      thread_wake_scheduler_and_wait();
+      return libpthread_cond_signal(cond);
+    }
+    default: {
+      // Wrapper functions should not be executing
+      // inside the template! If we reach this point, it
+      // means that this is a template process. This
+      // method must have been directly called
+      // erroneously.
+      libc_abort();
+    }
+  }
+}
+
+   
