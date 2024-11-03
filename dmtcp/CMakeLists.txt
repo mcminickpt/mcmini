@@ -7,8 +7,10 @@ project(McMini-Revamp
 # Require C11 and C++11
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
 
 # Project configuration
 option(BUILD_TESTS OFF)
@@ -33,6 +35,10 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/detached_state.cpp
   src/mcmini/model/diff_state.cpp
   src/mcmini/model/program.cpp
+  src/mcmini/model/cond_var_arbitrary_policy.cpp
+  src/mcmini/model/cond_var_default_policy.cpp
+  src/mcmini/model/cond_var_single_grp_policy.cpp
+  src/mcmini/model/cond_var_wakegroup.cpp
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model/transition_sequence.cpp
   src/mcmini/model/transitions/mutex.cpp
@@ -61,6 +67,7 @@ set(LIBMCMINI_C_SRC
   src/lib/template/loop.c
   src/lib/template/sig.c
   src/lib/wrappers.c
+  src/mcmini/Thread_queue.c
 )
 
 set(MCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror)

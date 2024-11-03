@@ -27,6 +27,7 @@ typeof(&sem_init) sem_init_ptr;
 typeof(&sem_destroy) sem_destroy_ptr;
 typeof(&pthread_cond_init) pthread_cond_init_ptr;
 typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
+typeof(&pthread_cond_timedwait) pthread_cond_timedwait_ptr;
 typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
 typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 typeof(&sleep) sleep_ptr;
@@ -75,6 +76,7 @@ void mc_load_intercepted_pthread_functions(void) {
   sem_init_ptr = dlsym(libpthread_handle, "sem_init");
   pthread_cond_init_ptr = dlsym(libpthread_handle, "pthread_cond_init");
   pthread_cond_wait_ptr = dlsym(libpthread_handle, "pthread_cond_wait");
+  pthread_cond_timedwait_ptr = dlsym(libpthread_handle, "pthread_cond_timedwait");
   pthread_cond_signal_ptr = dlsym(libpthread_handle, "pthread_cond_signal");
   pthread_cond_broadcast_ptr = dlsym(libpthread_handle, "pthread_cond_broadcast");
   sleep_ptr = dlsym(libc_handle, "sleep");
@@ -142,6 +144,39 @@ int libpthread_mutex_unlock(pthread_mutex_t *mut) {
 int libpthread_mutex_destroy(pthread_mutex_t *mut) {
   libmcmini_init();
   return (*pthread_mutex_destroy_ptr)(mut);
+}
+
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
+  return mc_pthread_cond_init(cond, attr);
+}
+
+int libpthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
+  libmcmini_init();
+  return (*pthread_cond_init_ptr)(cond, attr);
+}
+
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mut) {
+  return mc_pthread_cond_wait(cond, mut);
+}
+
+int libpthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mut) {
+  libmcmini_init();
+  return (*pthread_cond_wait_ptr)(cond, mut);
+}
+
+int libpthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mut,
+                              const struct timespec *abstime) {
+  libmcmini_init();
+  return (*pthread_cond_timedwait_ptr)(cond, mut, abstime);
+}
+
+int pthread_cond_signal(pthread_cond_t *cond) {
+  return mc_pthread_cond_signal(cond);
+}
+
+int libpthread_cond_signal(pthread_cond_t *cond) {
+  libmcmini_init();
+  return (*pthread_cond_signal_ptr)(cond);
 }
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
