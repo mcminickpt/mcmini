@@ -8,6 +8,7 @@
 #include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/thread.hpp"
+#include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
