@@ -61,6 +61,9 @@ typedef struct transition {
     mutex_init init;
     mutex_lock lock;
     mutex_unlock unlock;
+    cond_init cv_init;
+    cond_wait cv_wait;
+    cond_signal cv_signal;
   };
 } transition;
 

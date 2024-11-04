@@ -42,6 +42,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model/transition_sequence.cpp
   src/mcmini/model/transitions/mutex.cpp
+  src/mcmini/model/transitions/condition_variables.cpp
   src/mcmini/model/transitions/thread.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
   src/mcmini/model_checking/algorithms/clock_vector.cpp
