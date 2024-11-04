@@ -8,6 +8,7 @@
 #include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/thread.hpp"
+#include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
@@ -15,6 +16,7 @@
 #include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/transitions/mutex/callbacks.hpp"
 #include "mcmini/model/transitions/thread/callbacks.hpp"
+#include "mcmini/model/transitions/condition_variables/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/fifo.hpp"
@@ -58,6 +60,17 @@ visible_object_state* translate_recorded_object_to_model(
     case MUTEX: {
       return new objects::mutex(
           static_cast<objects::mutex::state>(recorded_object.mut_state));
+    }
+    case CONDITION_VARIABLE: {
+      // Create the condition variable model object with full state information
+      auto cv_state = static_cast<objects::condition_variable::state>(
+          recorded_object.cond_state.status);
+      pthread_t waiting_thread = recorded_object.cond_state.waiting_thread;
+      pthread_mutex_t* associated_mutex = recorded_object.cond_state.associated_mutex;
+      int count = recorded_object.cond_state.count;
+
+      // Construct the condition variable with additional fields
+      return new objects::condition_variable(cv_state,waiting_thread,associated_mutex,count);
     }
     // Other objects here
     // case ...  { }
@@ -134,6 +147,9 @@ void do_model_checking(const config& config) {
   tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
+  tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
+  tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
+  tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
 
   const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));
@@ -163,6 +179,18 @@ void do_model_checking(const config& config) {
   dr.register_dd_entry<const transitions::mutex_lock,
                        const transitions::mutex_lock>(
       &transitions::mutex_lock::depends);
+  dr.register_dd_entry<const transitions::condition_variable_wait,
+                      const transitions::condition_variable_init>(
+      &transitions::condition_variable_wait::depends);
+  dr.register_dd_entry<const transitions::condition_variable_wait,
+                      const transitions::mutex_lock>(
+                        &transitions::condition_variable_wait::depends);
+  dr.register_dd_entry<const transitions::condition_variable_signal,
+                      const transitions::condition_variable_wait>(
+                        &transitions::condition_variable_signal::depends);
+  dr.register_dd_entry<const transitions::condition_variable_signal,
+                      const transitions::mutex_lock>(
+                        &transitions::condition_variable_signal::depends);
   cr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::coenabled_with);
   cr.register_dd_entry<const transitions::thread_join>(
@@ -170,6 +198,13 @@ void do_model_checking(const config& config) {
   cr.register_dd_entry<const transitions::mutex_lock,
                        const transitions::mutex_unlock>(
       &transitions::mutex_lock::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_signal::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::mutex_unlock>(
+      &transitions::condition_variable_signal::coenabled_with);
+  
 
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
@@ -206,6 +241,10 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
+  tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
+  tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
+  tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
+
 
   coordinator coordinator(model::program(), tr,
                           std::move(dmtcp_template_handle));
@@ -287,6 +326,18 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   dr.register_dd_entry<const transitions::mutex_lock,
                        const transitions::mutex_lock>(
       &transitions::mutex_lock::depends);
+  dr.register_dd_entry<const transitions::condition_variable_wait,
+                      const transitions::condition_variable_init>(
+      &transitions::condition_variable_wait::depends);
+  dr.register_dd_entry<const transitions::condition_variable_wait,
+                      const transitions::mutex_lock>(
+                        &transitions::condition_variable_wait::depends);
+  dr.register_dd_entry<const transitions::condition_variable_signal,
+                      const transitions::condition_variable_wait>(
+                        &transitions::condition_variable_signal::depends);
+  dr.register_dd_entry<const transitions::condition_variable_signal,
+                      const transitions::mutex_lock>(
+                        &transitions::condition_variable_signal::depends);
   cr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::coenabled_with);
   cr.register_dd_entry<const transitions::thread_join>(
@@ -294,6 +345,13 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   cr.register_dd_entry<const transitions::mutex_lock,
                        const transitions::mutex_unlock>(
       &transitions::mutex_lock::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_signal::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::mutex_unlock>(
+      &transitions::condition_variable_signal::coenabled_with);
+
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
 

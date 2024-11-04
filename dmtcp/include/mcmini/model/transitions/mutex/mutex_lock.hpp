@@ -3,6 +3,7 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
+#include "mcmini/model/transitions/mutex/mutex_init.hpp"
 
 namespace model {
 namespace transitions {
@@ -24,7 +25,7 @@ struct mutex_lock : public model::transition {
     if (ms->is_locked()) {
       return status::disabled;
     }
-    s.add_state_for_obj(mutex_id, new mutex(mutex::locked));
+    s.add_state_for_obj(mutex_id, new mutex(mutex::locked, ms->get_location(), this->executor));
     return status::exists;
   }
   state::objid_t get_id() const { return this->mutex_id; }
