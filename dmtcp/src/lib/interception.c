@@ -27,6 +27,7 @@ typeof(&sem_init) sem_init_ptr;
 typeof(&sem_destroy) sem_destroy_ptr;
 typeof(&pthread_cond_init) pthread_cond_init_ptr;
 typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
+typeof(&pthread_cond_timedwait) pthread_cond_timedwait_ptr;
 typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
 typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
 typeof(&sleep) sleep_ptr;
@@ -75,6 +76,7 @@ void mc_load_intercepted_pthread_functions(void) {
   sem_init_ptr = dlsym(libpthread_handle, "sem_init");
   pthread_cond_init_ptr = dlsym(libpthread_handle, "pthread_cond_init");
   pthread_cond_wait_ptr = dlsym(libpthread_handle, "pthread_cond_wait");
+  pthread_cond_timedwait_ptr = dlsym(libpthread_handle, "pthread_cond_timedwait");
   pthread_cond_signal_ptr = dlsym(libpthread_handle, "pthread_cond_signal");
   pthread_cond_broadcast_ptr = dlsym(libpthread_handle, "pthread_cond_broadcast");
   sleep_ptr = dlsym(libc_handle, "sleep");
@@ -160,6 +162,12 @@ int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mut) {
 int libpthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mut) {
   libmcmini_init();
   return (*pthread_cond_wait_ptr)(cond, mut);
+}
+
+int libpthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mut,
+                              const struct timespec *abstime) {
+  libmcmini_init();
+  return (*pthread_cond_timedwait_ptr)(cond, mut, abstime);
 }
 
 int pthread_cond_signal(pthread_cond_t *cond) {

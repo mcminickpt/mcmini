@@ -671,14 +671,14 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
   }
 }
 
-int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
-  switch (get_current_mode()) {
+int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
+  switch (get_current_mode()){
     case PRE_DMTCP_INIT:
     case PRE_CHECKPOINT_THREAD: {
       return libpthread_cond_wait(cond, mutex);
     }
     case RECORD:
-    case PRE_CHECKPOINT:{
+    case PRE_CHECKPOINT: {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *cond_record = find_object_record_mode(cond);
       if (cond_record == NULL) {
@@ -691,16 +691,79 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
       }
       
       libpthread_mutex_unlock(&rec_list_lock);
-      int rc = libpthread_cond_wait(cond, mutex);
-      if (rc == 0) {
-        libpthread_mutex_lock(&rec_list_lock);
-        cond_record->vo.cond_state.status = CV_WAITING;
-        cond_record->vo.cond_state.waiting_thread = pthread_self();
-        cond_record->vo.cond_state.associated_mutex = mutex;
-        cond_record->vo.cond_state.count++;
-        libpthread_mutex_unlock(&rec_list_lock);
-        return rc;
+      
+      struct timespec wait_time = {.tv_sec = 2};
+      int rc;
+
+      // The thread will enter in the outer waiting room first. Here its state will be
+      // CV_TRANSITIONAL. It is done to avoid race condition that might occur due to checkpointing
+      // between relasing the mutex and actually getting into wait state.
+      libpthread_mutex_lock(&rec_list_lock);
+      cond_record->vo.cond_state.status = CV_TRANSITIONAL;
+      libpthread_mutex_unlock(&rec_list_lock);
+      while (1) {
+        rc = libpthread_cond_timedwait(cond, mutex, &wait_time);
+        if (rc == 0) {
+          // The thread has successfully entered the waiting state.
+          libpthread_mutex_lock(&rec_list_lock);
+          cond_record->vo.cond_state.status = CV_WAITING;
+          cond_record->vo.cond_state.waiting_thread = pthread_self();
+          cond_record->vo.cond_state.associated_mutex = mutex;
+          cond_record->vo.cond_state.count++;
+          libpthread_mutex_unlock(&rec_list_lock);
+          return rc;
+        }
+        else if (rc == ETIMEDOUT) {
+          // Timeout case: The thread did not manage to enter the wait state
+          // within the given time frame. In a regular run, this could simply 
+          // mean the condition was not signaled, but here in model checking 
+          // mode, it serves a critical purpose:
+          //
+          // During recording, we do NOT want threads to block indefinitely.
+          // Each thread must complete its current visible operation and yield 
+          // control back to the model checker. Therefore, any thread that times 
+          // out here (failing to enter the wait state) will check if the model 
+          // checker requires it to retry. The timeout gives us a way to ensure 
+          // that threads are not permanently stuck in transition due to an 
+          // unforeseen checkpoint.
+          //
+          // After a DMTCP_EVENT_RESTART event, exactly one thread will ultimately 
+          // succeed in fully acquiring the condition and transitioning to the 
+          // wait state. Other threads should detect this change and eventually 
+          // escape from this loop to avoid unnecessary blocking.
+
+          // The purpose of CV_TRANSITION state and Inner/Outer Waiting Room:
+          //
+          // By setting the state to CV_TRANSITION, we create a two-part "waiting room" mechanism:
+          // - The "outer waiting room" corresponds to the transition period right after the thread 
+          //   has released the mutex but has not fully entered the wait state.
+          // - Once the thread enters the full wait state (pthread_cond_wait), it moves into the "inner 
+          //   waiting room," and its state is set to CV_WAITING. This distinction is critical for 
+          //   checkpoint safety:
+          // - If a checkpoint occurs while the thread is still in the CV_TRANSITION (outer waiting room), 
+          //   we know it has not fully transitioned to a waiting state and can handle it accordingly.
+          // - If the thread is in CV_WAITING (inner waiting room), we know it has entered a stable wait 
+          //   state, ensuring the mutex-conditional interaction is checkpoint-safe.
+          if (get_current_mode() == DMTCP_RESTART) {
+            // If in restart mode, but still in the outer waiting room
+            if (cond_record->vo.cond_state.status == CV_TRANSITIONAL) {
+              continue; //Retry until the thread enters the wait state
+            }
+            else {
+              break; //The thread has entered the wait state
+            }
+          }
+        } 
+        else {
+          // A "true" error: something went wrong with locking
+          // and we pass this on to the end user
+          return rc;
+        }
       }
+      // Clear the transitional state and set the thread to waiting state
+      libpthread_mutex_lock(&rec_list_lock);
+      cond_record->vo.cond_state.status = CV_WAITING;
+      libpthread_mutex_unlock(&rec_list_lock);
     }
     case DMTCP_RESTART: {
       volatile runner_mailbox *mb = thread_get_mailbox();

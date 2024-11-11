@@ -43,7 +43,8 @@ typedef enum condition_variable_status{
   CV_UNINITIALIZED,
   CV_INITIALIZED,
   CV_WAITING, 
-  CV_SIGNALLED
+  CV_SIGNALLED,
+  CV_TRANSITIONAL
 }condition_variable_status;
 
 typedef struct condition_variable_state{
