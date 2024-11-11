@@ -3,6 +3,7 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/model/transitions/mutex/mutex_unlock.hpp"
+#include "mcmini/model/transitions/mutex/mutex_init.hpp"
 
 namespace model {
 namespace transitions {

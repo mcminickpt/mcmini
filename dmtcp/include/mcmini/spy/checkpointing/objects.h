@@ -57,15 +57,10 @@ typedef struct condition_variable_state{
 typedef struct visible_object {
   visible_object_type type;
   void *location;
-  union {
-    struct{
-      mutex_state mut_state;
-      pthread_t init_thread_id;
-    };
-    semaphore_state sem_state;
-    condition_variable_state cond_state;
-    thread_state thrd_state;
-  };
+  mutex_state mut_state;
+  semaphore_state sem_state;
+  condition_variable_state cond_state;
+  thread_state thrd_state;
 } visible_object;
 
 extern visible_object empty_visible_obj;
