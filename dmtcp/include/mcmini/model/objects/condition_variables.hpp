@@ -22,6 +22,7 @@ struct condition_variable : public model::visible_object_state {
   condition_variable(const condition_variable &) = default;
   condition_variable(state s) : current_state(s) {}
   condition_variable(state s, int count) : current_state(s), waiting_count(count) {}
+  condition_variable(state s, pthread_t waiting_thread, pthread_mutex_t *mutex, int count) : current_state(s), waiting_count(count) {}
   int get_waiting_count() const { return waiting_count; }
   // ---- State Observation --- //
   bool operator==(const condition_variable &other) const {
@@ -36,7 +37,7 @@ struct condition_variable : public model::visible_object_state {
   bool is_waiting() const { return this->current_state == cv_waiting && this->waiting_count > 0; }
   bool is_signalled() const { return this->current_state == cv_signalled && this->waiting_count >=0; }
   bool is_uninitialized() const { return this->current_state == cv_uninitialized && this->waiting_count == 0; }
-  bool is_transitional() const { return this->current_state == cv_transitional && this->waiting_count == 0; }
+  bool is_transitional() const { return this->current_state == cv_transitional;}
      
   std::unique_ptr<visible_object_state> clone() const override {
     return extensions::make_unique<condition_variable>(*this);

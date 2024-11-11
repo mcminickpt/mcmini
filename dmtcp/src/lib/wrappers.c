@@ -94,7 +94,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
         // FIXME: We assume that this is a normal mutex. For other mutex
         // types, we'd need to behave differently
         visible_object vo = {
-            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED, .init_thread_id = pthread_self()};
+            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
         mutex_record = add_rec_entry_record_mode(&vo);
       }
       libpthread_mutex_unlock(&rec_list_lock);
@@ -170,8 +170,10 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       rec_list *mutex_record = find_object_record_mode(mutex);
       if (mutex_record == NULL) {
         visible_object vo = {
-            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED, .init_thread_id = pthread_self()};
+            .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
         mutex_record = add_rec_entry_record_mode(&vo);
+        printf("After adding record entry\n");
+        print_rec_list(mutex_record);
       }
       libpthread_mutex_unlock(&rec_list_lock);
 
@@ -181,6 +183,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
         if (rc == 0) {  // Lock succeeded
           libpthread_mutex_lock(&rec_list_lock);
           mutex_record->vo.mut_state = LOCKED;
+          printf("After using timedlock\n");
+          print_rec_list(mutex_record);
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         } else if (rc == ETIMEDOUT) {  // If the lock failed.
@@ -688,6 +692,8 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           .associated_mutex = mutex, .count = 0 }
         };
         cond_record = add_rec_entry_record_mode(&vo);
+        printf("After adding record entry\n");
+        print_rec_list(cond_record);
       }
       
       libpthread_mutex_unlock(&rec_list_lock);
@@ -697,9 +703,11 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
 
       // The thread will enter in the outer waiting room first. Here its state will be
       // CV_TRANSITIONAL. It is done to avoid race condition that might occur due to checkpointing
-      // between relasing the mutex and actually getting into wait state.
+      // between releasing the mutex and actually getting into wait state.
       libpthread_mutex_lock(&rec_list_lock);
       cond_record->vo.cond_state.status = CV_TRANSITIONAL;
+      printf("After setting transitional state\n");
+      print_rec_list(cond_record);
       libpthread_mutex_unlock(&rec_list_lock);
       while (1) {
         rc = libpthread_cond_timedwait(cond, mutex, &wait_time);
@@ -710,6 +718,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           cond_record->vo.cond_state.waiting_thread = pthread_self();
           cond_record->vo.cond_state.associated_mutex = mutex;
           cond_record->vo.cond_state.count++;
+          printf("After cond_timedwait \n");
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         }
@@ -754,7 +763,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
             }
           }
         } 
-        else {
+        else if (rc != 0 && rc != ETIMEDOUT) {
           // A "true" error: something went wrong with locking
           // and we pass this on to the end user
           return rc;
@@ -817,6 +826,8 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
         libpthread_mutex_lock(&rec_list_lock);
         cond_record->vo.cond_state.status = CV_SIGNALLED;
         cond_record->vo.cond_state.count--;
+        printf("After cond_signal\n");
+        print_rec_list(cond_record);
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;

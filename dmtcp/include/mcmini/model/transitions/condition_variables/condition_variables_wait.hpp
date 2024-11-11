@@ -2,6 +2,7 @@
 
 #include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/objects/mutex.hpp"
+#include "mcmini/model/transitions/mutex/mutex_lock.hpp"
 #include "mcmini/model/transition.hpp"
 #include "mcmini/model/transitions/condition_variables/condition_variables_signal.hpp"
 #include "mcmini/model/transitions/condition_variables/condition_variables_init.hpp"
@@ -53,11 +54,8 @@ struct condition_variable_wait : public model::transition {
     bool depends(const condition_variable_init* ci) const {
         return this->cond_id == ci->get_id();
     }
-    bool depends(const condition_variable_wait* cw) const {
-        return this->cond_id == cw->get_id();
-    }
-    bool coenabled_with(const condition_variable_signal* cs) const {
-        return this->cond_id != cs->get_id();
+    bool depends(const mutex_lock* ml) const {
+        return this->mutex_id == ml->get_id();
     }
 };
 } // namespace transitions
