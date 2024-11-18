@@ -88,23 +88,9 @@ void coordinator::return_to_depth(uint32_t n) {
   for (const model::transition *t : this->current_program_model.get_trace()) {
     this->current_process_handle->execute_runner(t->get_executor());
   }
-
-  std::cerr
-      << "\n\n**************** AFTER RESTORATION *********************\n\n"
-      << this->current_program_model.get_state_sequence().back().debug_string();
-
-  std::stringstream ss;
-  const auto &program_model = get_current_program_model();
-  for (const auto &t : program_model.get_trace()) {
-    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
-  }
-  ss << "\nNEXT THREAD OPERATIONS\n";
-  for (const auto &tpair : program_model.get_pending_transitions()) {
-    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
-  }
-  std::cerr << ss.str()
-            << "\n\n**************** AFTER RESTORATION  "
-               "*********************\n\n";
+  std::cerr << "\n\n**************** AFTER RESTORATION *********************\n\n";
+  get_current_program_model().dump_state(std::cerr);
+  std::cerr << "\n\n**************** AFTER RESTORATION *********************\n\n";
   std::cerr.flush();
 }
 

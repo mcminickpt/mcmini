@@ -8,6 +8,7 @@
 
 #include <csignal>
 #include <cstring>
+#include <iostream>
 
 #include "mcmini/real_world/process_source.hpp"
 
