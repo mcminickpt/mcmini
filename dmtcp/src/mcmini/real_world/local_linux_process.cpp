@@ -19,6 +19,18 @@ using namespace real_world;
 local_linux_process::local_linux_process(pid_t pid)
     : pid(pid) {}
 
+local_linux_process::local_linux_process(local_linux_process &&other)
+    : local_linux_process(other.pid) {
+  other.pid = -1;
+}
+
+local_linux_process &local_linux_process::operator=(
+    local_linux_process &&other) {
+  this->pid = other.pid;
+  other.pid = -1;
+  return *this;
+}
+
 local_linux_process::~local_linux_process() {
   if (pid <= 0) {
     return;
