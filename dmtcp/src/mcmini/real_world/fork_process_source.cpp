@@ -127,7 +127,7 @@ void fork_process_source::make_new_template_process() {
   // to erroneously think that there is a template process when indeed there
   // isn't one.
   this->template_pid = fork_process_source::no_template;
-  this->template_pid = this->target_program.fork();
+  this->template_pid = this->target_program.launch_dont_wait();
 }
 
 fork_process_source::~fork_process_source() {

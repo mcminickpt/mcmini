@@ -4,11 +4,13 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <cassert>
+#include <fstream>
 #include <iostream>
 
 #include "mcmini/common/shm_config.h"
@@ -21,37 +23,32 @@ using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {
-  target("dmtcp_coordinator",
-         {"--daemon", "--port",
-          std::to_string(xpc_resources::dmtcp_coordinator_port)})
-      .fork();
-  // FIXME: Returning from the call to `fork()` does _NOT_ guarantee
+  unlink("mcmini_dmtcp_coordinator_port");
+  target("dmtcp_coordinator", {"--daemon", "--port", "0", "--port-file",
+                               "mcmini_dmtcp_coordinator_port"})
+      .launch_dont_wait();
+  // Returning from the call to `fork()` does _NOT_ guarantee
   // that the forked child process has completed its `execvp()`.
-  // To avoid a race in which the coordinator is not yet ready before
-  // calling the first `dmtcp_restart`, we probably need some  call to
-  // `dmtcp_get_coordinator_status()`
+  // We need to wait for the coordinator to be ready
   //
-  // Busy waiting works here for now
-  // int num_peers;
-  // int is_running = 0;
-  // while (!is_running) {
-  //   dmtcp_get_coordinator_status(&num_peers, &is_running);
-  //   usleep(10000);
-  // }
-
-  // FIXME: Fix the race condition noted above
-  sleep(2);
+  // TODO: Remove the busy wait here
+  std::ifstream dmtcp_coord_port_stream("mcmini_dmtcp_coordinator_port");
+  while (!dmtcp_coord_port_stream.is_open()) {
+    usleep(100000);
+    dmtcp_coord_port_stream.open("mcmini_dmtcp_coordinator_port");
+  }
+  dmtcp_coord_port_stream >> this->dmtcp_coordinator_port;
+  unlink("mcmini_dmtcp_coordinator_port");
 }
 
 pid_t dmtcp_process_source::make_new_branch() {
-  target dmtcp_restart(
-      "dmtcp_restart",
-      {"--join-coordinator", "--port",
-       std::to_string(xpc_resources::dmtcp_coordinator_port), this->ckpt_file});
+  target dmtcp_restart("dmtcp_restart", {"--join-coordinator", "--port",
+                                         std::to_string(dmtcp_coordinator_port),
+                                         this->ckpt_file});
   if (!has_transferred_recorded_objects) {
     dmtcp_restart.set_env("MCMINI_MULTIPLE_RESTARTS", "1");
   }
-  return dmtcp_restart.fork();
+  return dmtcp_restart.launch_dont_wait();
 }
 
 std::unique_ptr<process> dmtcp_process_source::make_new_process() {
@@ -70,7 +67,8 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
 
   if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
     throw process_source::process_creation_exception(
-        "The template thread (in process with PID " + std::to_string(target_branch_pid) +
+        "The template thread (in process with PID " +
+        std::to_string(target_branch_pid) +
         ") did not synchronize correctly with the McMini process: " +
         std::string(strerror(errno)));
   }
@@ -89,8 +87,7 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
 }
 
 dmtcp_process_source::~dmtcp_process_source() {
-  target(
-      "dmtcp_command",
-      {"-q", "--port", std::to_string(xpc_resources::dmtcp_coordinator_port)})
-      .fork();
+  target("dmtcp_command",
+         {"-q", "--port", std::to_string(this->dmtcp_coordinator_port)})
+      .launch_and_wait();
 }

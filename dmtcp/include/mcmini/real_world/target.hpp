@@ -9,10 +9,6 @@ namespace real_world {
 
 struct target {
  private:
-  /// Wheter processes created via this target receive
-  /// a SIGTERM when this process (i.e. `mcmini`) exits
-  bool receive_sigterm_on_mcmini_exit = true;
-
   // The name of the program which we should exec() into with libmcmini.so
   // preloaded.
   // NOTE: Favor std::filesystem::path if C++17 is eventually supported
@@ -36,15 +32,21 @@ struct target {
 
   const std::string &name() const { return this->target_program; }
 
-  void disable_sigterm_on_mcmini_exit() {
-    receive_sigterm_on_mcmini_exit = false;
-  }
   void set_env(const char *name, const char *value) {
     environment_vars.insert({std::string(name), std::string(value)});
   }
 
   /// @brief Creates a new process running this program
-  pid_t fork();
+  ///
+  /// @return the process id of the newly created process.
+  pid_t launch_dont_wait();
+
+  /// @brief Executes the target program as a separate process
+  /// and waits for that process to finish execution.
+  ///
+  /// @throws a `process::execution_exception` is raised if the
+  /// process exits unexpectedly
+  void launch_and_wait();
 
   /// @brief Turn this process into the target via `execvp()`
   ///

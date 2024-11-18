@@ -37,7 +37,7 @@ void target::execvp() const {
   // child processes when the `mcmini` process exits (whether normally
   // or abnormally), but a child process is also responsible for killing
   // the `dmtcp_coordinator`.
-  // prctl(PR_SET_PDEATHSIG, SIGTERM);
+  prctl(PR_SET_PDEATHSIG, SIGTERM);
 
   // Ensures that the child will accept the reception of all signals (see
   // `install_process_wide_signal_handlers()` where we explicitly block the
@@ -56,7 +56,7 @@ void target::execvp() const {
   ::execvp(this->target_program.c_str(), args.data());
 }
 
-pid_t target::fork() {
+pid_t target::launch_dont_wait() {
   int pipefd[2];
   if (pipe(pipefd) == -1) {
     throw std::runtime_error("Failed to open pipe(2): " +
@@ -135,5 +135,24 @@ pid_t target::fork() {
     // Parent process case
     // *******************
     return child_pid;
+  }
+}
+
+void target::launch_and_wait() {
+  int status = 0;
+  pid_t child = launch_dont_wait();
+  if (waitpid(child, &status, 0) == -1) {
+    throw process::execution_exception(
+        "Failed to create a cleanup zombied child process (waitpid(2) "
+        "returned -1): " +
+        std::string(strerror(errno)));
+  }
+  if (WIFEXITED(status)) {
+    std::cerr << "Exited with status" << WEXITSTATUS(status);
+  } else if (WIFSIGNALED(status)) {
+    throw process::execution_exception(
+        "The child process was signaled (received :" + std::to_string(WTERMSIG(status)) + ")");
+  } else {
+    throw process::execution_exception("The child process exited abnormally");
   }
 }
