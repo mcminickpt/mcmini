@@ -53,7 +53,8 @@ void writes_to_the_fifo() {
 
 int main(int argc, const char **argv) {
   int fifo_fd = -1;
-  if ((fifo_fd = mkfifo(fifo_name, 0666)) != 0 && errno != EEXIST) {
+  if ((fifo_fd = mkfifo(fifo_name, S_IRUSR | S_IWUSR)) != 0 &&
+      errno != EEXIST) {
     std::cerr << "Error (mkfifo failed): " << strerror(errno) << std::endl;
     return EXIT_FAILURE;
   }
