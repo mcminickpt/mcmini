@@ -25,15 +25,35 @@ namespace model_checking {
 struct stack_item final {
  private:
   /**
-   * @brief The clock vector associated with the
-   * transition _resulting_ in this state
+   * @brief The clock vector associated with the transition _resulting_ in this
+   * state
+   *
+   * @note See line 14.5 of the original DPOR paper. This clock vector
+   * corresponds to the value set for |S'| :
+   *
+   * """"
+   * let C' = C[p := cv2, |S'| := cv2]
+   * """"
+   *
+   * cv here refers to the `cv2` value computed at some point in time prior to
+   * creating this stack item. This object merely stores it for later use
    */
   const clock_vector cv;
+
+  /**
+   * @brief The clock vector associated with each runner in this state
+   *
+   * @note See line 14.5 of the original DPOR paper. Here, instead of keeping
+   * around a single  per-vector clock for the threads for _all_ state items, we
+   * instead store one _per_ state item. This eases DPOR model-checking state
+   * regeneration.
+   */
+  std::array<runner_item, MAX_TOTAL_THREADS_IN_PROGRAM> per_runner_clocks;
 
   /// @brief The transition which DPOR decided to schedule from this state.
   ///
   /// @note the item does not own this transition; it is instead owned by the
-  /// trace of the model which the DPOR algorithm manipulates. It is up to the
+  /// trace of the model which the DPOR algorithm manipulates.
   const model::transition *out_transition = nullptr;
 
   /**
@@ -104,10 +124,14 @@ struct stack_item final {
   stack_item() : stack_item(clock_vector()) {}
   stack_item(clock_vector cv) : cv(std::move(cv)) {}
   stack_item(clock_vector cv, std::unordered_set<runner_id_t> enabled_runners)
-      : stack_item(std::move(cv), nullptr, std::move(enabled_runners)) {}
-  stack_item(clock_vector cv, const model::transition *out_transition,
-             std::unordered_set<runner_id_t> enabled_runners)
+      : cv(std::move(cv)), enabled_runners(std::move(enabled_runners)) {}
+  stack_item(
+      clock_vector cv,
+      std::array<runner_item, MAX_TOTAL_THREADS_IN_PROGRAM> per_runner_clocks,
+      const model::transition *out_transition,
+      std::unordered_set<runner_id_t> enabled_runners)
       : cv(std::move(cv)),
+        per_runner_clocks(std::move(per_runner_clocks)),
         out_transition(out_transition),
         enabled_runners(std::move(enabled_runners)) {}
 
@@ -196,6 +220,10 @@ struct stack_item final {
   }
 
   clock_vector get_clock_vector() const { return this->cv; }
+  const std::array<runner_item, MAX_TOTAL_THREADS_IN_PROGRAM>
+      &get_per_runner_clocks() const {
+    return this->per_runner_clocks;
+  }
   runner_id_t get_first_enabled_runner() const {
     runner_id_t r = RUNNER_ID_MAX;
     for (runner_id_t p : this->enabled_runners) {
