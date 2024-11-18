@@ -33,6 +33,10 @@ class local_linux_process : public process {
  public:
   local_linux_process() : local_linux_process(-1) {}
   local_linux_process(pid_t pid);
+  local_linux_process(const local_linux_process&) = delete;
+  local_linux_process(local_linux_process&&);
+  local_linux_process& operator=(const local_linux_process&) = delete;
+  local_linux_process& operator=(local_linux_process&&);
   virtual ~local_linux_process();
   volatile runner_mailbox *execute_runner(runner_id_t) override;
 };
