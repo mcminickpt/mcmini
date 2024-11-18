@@ -107,7 +107,17 @@ void found_undefined_behavior(const coordinator& c,
 
 void found_deadlock(const coordinator& c) {
   std::cerr << "DEADLOCK" << std::endl;
-  finished_trace_classic_dpor(c);
+  std::stringstream ss;
+  const auto& program_model = c.get_current_program_model();
+  for (const auto& t : program_model.get_trace()) {
+    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  }
+  ss << "\nNEXT THREAD OPERATIONS\n";
+  for (const auto& tpair : program_model.get_pending_transitions()) {
+    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
+  }
+  std::cout << ss.str();
+  std::cout.flush();
 }
 
 void do_model_checking(const config& config) {
@@ -137,6 +147,11 @@ void do_model_checking(const config& config) {
                           std::move(tr),
                           make_unique<fork_process_source>(target_program));
 
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  coordinator.get_current_program_model().dump_state(std::cerr);
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  std::cerr.flush();
+
   dr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::depends);
   dr.register_dd_entry<const transitions::thread_join>(
@@ -158,6 +173,7 @@ void do_model_checking(const config& config) {
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
   c.trace_completed = &finished_trace_classic_dpor;
+  c.deadlock = &found_deadlock;
   c.undefined_behavior = &found_undefined_behavior;
   classic_dpor_checker.verify_using(coordinator, c);
   std::cout << "Model checking completed!" << std::endl;
@@ -244,6 +260,11 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     }
   }
 
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  coordinator.get_current_program_model().dump_state(std::cerr);
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  std::cerr.flush();
+
   classic_dpor::dependency_relation_type dr;
   classic_dpor::coenabled_relation_type cr;
   dr.register_dd_entry<const transitions::thread_create>(
@@ -268,6 +289,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
 
   c.trace_completed = &finished_trace_classic_dpor;
   c.undefined_behavior = &found_undefined_behavior;
+  c.deadlock = &found_deadlock;
   classic_dpor_checker.verify_using(coordinator, c);
   std::cerr << "Deep debugging completed!" << std::endl;
 }

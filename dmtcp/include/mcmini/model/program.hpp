@@ -120,6 +120,7 @@ class program {
 
   // MARK: Program State
   bool is_in_deadlock() const;
+  std::ostream &dump_state(std::ostream&) const;
 };
 //
 

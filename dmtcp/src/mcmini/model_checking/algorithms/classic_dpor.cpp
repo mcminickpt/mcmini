@@ -5,6 +5,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <iostream>
 #include <set>
 #include <stdexcept>
 #include <string>
