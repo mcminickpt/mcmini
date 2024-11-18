@@ -26,7 +26,6 @@ using namespace model_checking;
 struct classic_dpor::dpor_context {
   ::coordinator &coordinator;
   std::vector<model_checking::stack_item> stack;
-  std::array<runner_item, MAX_TOTAL_THREADS_IN_PROGRAM> per_runner_clocks;
 
   dpor_context(::coordinator &c) : coordinator(c) {}
 
@@ -74,7 +73,8 @@ bool classic_dpor::happens_before(const dpor_context &context, size_t i,
 bool classic_dpor::happens_before_thread(const dpor_context &context, size_t i,
                                          runner_id_t p) const {
   const runner_id_t rid = context.get_transition(i)->get_executor();
-  const clock_vector &cv = context.per_runner_clocks[p].get_clock_vector();
+  const clock_vector &cv =
+      context.stack.back().get_per_runner_clocks()[p].get_clock_vector();
   return i <= cv.value_for(rid);
 }
 
@@ -201,9 +201,11 @@ void classic_dpor::grow_stack_after_running(dpor_context &context) {
   // conceptually captured through the DPOR stack and the per-thread DPOR data.
   // The former contains the per-state clock vectors while the latter the
   // per-thread clock vectors (among other data).
-  context.per_runner_clocks[t_n->get_executor()].set_clock_vector(cv);
+  auto s_n_per_runner_clocks = context.stack.back().get_per_runner_clocks();
+  s_n_per_runner_clocks[t_n->get_executor()].set_clock_vector(cv);
   context.stack.emplace_back(
-      cv, t_n, coordinator.get_current_program_model().get_enabled_runners());
+      cv, std::move(s_n_per_runner_clocks), t_n,
+      coordinator.get_current_program_model().get_enabled_runners());
   stack_item &s_n = context.stack.at(context.stack.size() - 2);
   stack_item &s_n_plus_1 = context.stack.back();
 
