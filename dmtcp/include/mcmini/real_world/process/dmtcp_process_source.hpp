@@ -26,6 +26,7 @@ class dmtcp_process_source : public process_source {
  private:
   std::string ckpt_file;
   bool has_transferred_recorded_objects = false;
+  int dmtcp_coordinator_port = -1;
 
 private:
   pid_t make_new_branch();
