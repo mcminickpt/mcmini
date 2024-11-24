@@ -1,7 +1,6 @@
 #include "mcmini/real_world/process/fork_process_source.hpp"
 
 #include <fcntl.h>
-#include <libgen.h>
 #include <semaphore.h>
 #include <signal.h>
 #include <stdlib.h>
@@ -28,6 +27,7 @@
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/process/local_linux_process.hpp"
+#include "mcmini/real_world/process/multithreaded_fork_process_source.hpp"
 #include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/real_world/process/template_process.h"
 #include "mcmini/real_world/process_source.hpp"
@@ -37,36 +37,19 @@
 using namespace real_world;
 using namespace extensions;
 
-std::atomic_uint32_t fork_process_source::num_children_in_flight;
+fork_process_source::fork_process_source(real_world::target&& tp)
+    : fork_process_source(tp) {}
 
 fork_process_source::fork_process_source(
     const real_world::target& target_program)
     : target_program(target_program) {
-  // NOTE: According to the man page `dirname(const char *path)` "may modify
-  // the contents of `path`...", so we use the storage of the local instead.
-  // We don't want to use `std::string` either since it doesn't expect its
-  // contents to be modified indirectly
-  std::vector<char> target_program_mutable_name(
-      this->target_program.name().begin(), this->target_program.name().end());
-  char buf[1000];
-  buf[sizeof(buf) - 1] = '\0';
-  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
-           (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
-           dirname(target_program_mutable_name.data()));
-  this->target_program.set_env("LD_PRELOAD", buf);
-  this->target_program.set_env("MCMINI_TEMPLATE_LOOP", "1");
+  this->target_program.set_preload_libmcmini();
+  this->target_program.set_is_template();
 }
 
 std::unique_ptr<process> fork_process_source::make_new_process() {
   shared_memory_region* rw_region =
       xpc_resources::get_instance().get_rw_region();
-
-  // Assert: only a single child should be in-flight at any point
-  if (fork_process_source::num_children_in_flight.load(
-          std::memory_order_relaxed) >= 1) {
-    throw process_creation_exception(
-        "At most one active child process can be in flight at any given time.");
-  }
 
   // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
   xpc_resources::get_instance().reset_binary_semaphores_for_new_branch();
@@ -116,9 +99,6 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         "(errno " +
         std::to_string(tstruct->err) + "): " + strerror(tstruct->err));
   }
-
-  fork_process_source::num_children_in_flight.fetch_add(
-      1, std::memory_order_relaxed);
   return extensions::make_unique<local_linux_process>(tstruct->cpid);
 }
 
@@ -143,4 +123,14 @@ fork_process_source::~fork_process_source() {
     std::cerr << "Error waiting for process (waitpid) " << template_pid << ": "
               << strerror(errno) << std::endl;
   }
+}
+
+multithreaded_fork_process_source::multithreaded_fork_process_source(
+    const std::string& ckpt_file) {
+  this->coordinator_target.launch_and_wait();
+  this->target_program = target(
+      "dmtcp_restart",
+      {"--join-coordinator", "--port",
+       std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
+  this->target_program.set_is_template();
 }

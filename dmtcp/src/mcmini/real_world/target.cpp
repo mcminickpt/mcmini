@@ -8,8 +8,10 @@
 
 #include <csignal>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 
+#include "mcmini/real_world/process/dmtcp_coordinator.hpp"
 #include "mcmini/real_world/process_source.hpp"
 
 using namespace real_world;
@@ -152,8 +154,29 @@ void target::launch_and_wait() {
     std::cerr << "Exited with status" << WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
     throw process::execution_exception(
-        "The child process was signaled (received :" + std::to_string(WTERMSIG(status)) + ")");
+        "The child process was signaled (received :" +
+        std::to_string(WTERMSIG(status)) + ")");
   } else {
     throw process::execution_exception("The child process exited abnormally");
   }
+}
+
+dmtcp_coordinator::dmtcp_coordinator()
+    : target("dmtcp_coordinator", {"--daemon", "--port", "0", "--port-file",
+                                   "mcmini_dmtcp_coordinator_port"}) {}
+
+void dmtcp_coordinator::launch_and_wait() {
+  target::launch_and_wait();
+  // Returning from the call to `fork()` does _NOT_ guarantee
+  // that the forked child process has completed its `execvp()`.
+  // We need to wait for the coordinator to be ready
+  //
+  // TODO: Remove the busy wait here
+  std::ifstream dmtcp_coord_port_stream("mcmini_dmtcp_coordinator_port");
+  while (!dmtcp_coord_port_stream.is_open()) {
+    usleep(100000);
+    dmtcp_coord_port_stream.open("mcmini_dmtcp_coordinator_port");
+  }
+  dmtcp_coord_port_stream >> this->port;
+  unlink("mcmini_dmtcp_coordinator_port");
 }

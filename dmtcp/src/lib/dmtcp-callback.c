@@ -15,11 +15,31 @@
 int dmtcp_mcmini_is_loaded() { return 1; }
 
 static sem_t template_thread_sem;
+static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
+
+void thread_handle_after_dmtcp_restart(void) {
+  notify_template_thread();
+  if (getenv("MCMINI_TEMPLATE_LOOP")) {
+    // For userspace threads in the template process, the threads
+    // must wait _forever_. Since these userspace threads will eventually
+    // become active and start listening to the model checker in the
+    // multithreaded fork process, we need to be able to control
+    // when these threads should begin listening to the model checker.
+    // This is accomplished by using the current "mode" of libmcmini:
+    // as long as we're not in the `TARGET_BRANCH_AFTER_RESTART` case, we
+    // simply ignore any wakeups
+    pthread_mutex_lock(&template_thread_mut);
+    while (get_current_mode() != TARGET_BRANCH)
+      pthread_cond_wait(&template_thread_cond, &template_thread_mut);
+    pthread_mutex_unlock(&template_thread_mut);
+  }
+  thread_await_scheduler();
+}
 
 static void *template_thread(void *unused) {
   libpthread_sem_wait(&template_thread_sem);
 
-  // Determine how many times
   int thread_count = 0;
   struct dirent *entry;
   DIR *dp = opendir("/proc/self/task");
@@ -28,11 +48,9 @@ static void *template_thread(void *unused) {
     mc_exit(EXIT_FAILURE);
   }
 
-  while ((entry = readdir(dp))) {
-    if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+  while ((entry = readdir(dp)))
+    if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
       thread_count++;
-    }
-  }
 
   // We don't want to count the template thread nor
   // the checkpoint thread, but these will appear in
@@ -60,15 +78,10 @@ static void *template_thread(void *unused) {
   // Wait for McMini to signal us to create a new target branch.
   // Here it's simple enough: we are the target branch!
   // So we don't even need
-
-  // TODO: For multithreaded fork, we'll need this line.
-  // See the function `mc_template_process_loop_forever()`
-  // in `src/lib/template/loop.c` for details.
-  // sem_wait((sem_t *)&tpt->libmcmini_sem);
   tpt->cpid = target_branch_pid;
   sem_post((sem_t *)&tpt->mcmini_process_sem);
 
-  if (!getenv("MCMINI_MULTIPLE_RESTARTS")) {
+  if (!getenv("MCMINI_MULTIPLE_RESTARTS") && !getenv("MCMINI_TEMPLATE_LOOP")) {
     printf("The template thread is finished... restarting...\n");
 
     // FIXME: There appears to be an issue with opening the FIFO
@@ -112,7 +125,15 @@ static void *template_thread(void *unused) {
     close(fd);
   }
 
-  // TODO: Multithreaded fork would go here
+  if (getenv("MCMINI_TEMPLATE_LOOP")) {
+    libmcmini_mode = TARGET_TEMPLATE_AFTER_RESTART;
+    mc_template_process_loop_forever(&multithreaded_fork);
+
+    // In the target branch.
+    pthread_mutex_lock(&template_thread_mut);
+    pthread_cond_broadcast(&template_thread_cond);
+    pthread_mutex_unlock(&template_thread_mut);
+  }
 
   // Exiting from the template thread is fine:
   // once we're in the target branch, we no longer care
@@ -190,7 +211,12 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       // calling the equivalent function in `libphread.so`.
       //
       // The checkpoint thread will be created immediately after
-      // DMTCP sends the `DMTCP_EVENT_INIT`
+      // DMTCP sends the `DMTCP_EVENT_INIT` but it has _not_ yet been
+      // created. This means that is it not safe to move into `RECORD` mode
+      // yet: we have to wait until the checkpoint thread has been created
+      // before moving into `RECORD` mode.
+      //
+      // Why? If we set
       atomic_store(&libmcmini_mode, PRE_CHECKPOINT_THREAD);
       printf("DMTCP_EVENT_INIT\n");
       break;

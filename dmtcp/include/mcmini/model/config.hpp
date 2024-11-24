@@ -34,6 +34,13 @@ struct config {
   bool record_target_executable_only = false;
 
   /**
+   * Informs McMini that model checking with the checkpoint file should occur
+   * using `multithreaded_fork()` + a template process instead of
+   * `dmtcp_restart` to create new branches
+   */
+  bool use_multithreaded_fork = false;
+
+  /**
    * The time between consecutive checkpoint images when `libmcmini.so` is
    * running in record mode.
    */

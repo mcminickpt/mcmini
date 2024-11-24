@@ -23,28 +23,14 @@ using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {
-  unlink("mcmini_dmtcp_coordinator_port");
-  target("dmtcp_coordinator", {"--daemon", "--port", "0", "--port-file",
-                               "mcmini_dmtcp_coordinator_port"})
-      .launch_dont_wait();
-  // Returning from the call to `fork()` does _NOT_ guarantee
-  // that the forked child process has completed its `execvp()`.
-  // We need to wait for the coordinator to be ready
-  //
-  // TODO: Remove the busy wait here
-  std::ifstream dmtcp_coord_port_stream("mcmini_dmtcp_coordinator_port");
-  while (!dmtcp_coord_port_stream.is_open()) {
-    usleep(100000);
-    dmtcp_coord_port_stream.open("mcmini_dmtcp_coordinator_port");
-  }
-  dmtcp_coord_port_stream >> this->dmtcp_coordinator_port;
-  unlink("mcmini_dmtcp_coordinator_port");
+  this->coordinator_target.launch_and_wait();
 }
 
 pid_t dmtcp_process_source::make_new_branch() {
-  target dmtcp_restart("dmtcp_restart", {"--join-coordinator", "--port",
-                                         std::to_string(dmtcp_coordinator_port),
-                                         this->ckpt_file});
+  target dmtcp_restart(
+      "dmtcp_restart",
+      {"--join-coordinator", "--port",
+       std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
   if (!has_transferred_recorded_objects) {
     dmtcp_restart.set_env("MCMINI_MULTIPLE_RESTARTS", "1");
   }
@@ -88,6 +74,6 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
 
 dmtcp_process_source::~dmtcp_process_source() {
   target("dmtcp_command",
-         {"-q", "--port", std::to_string(this->dmtcp_coordinator_port)})
+         {"-q", "--port", std::to_string(this->coordinator_target.get_port())})
       .launch_and_wait();
 }
