@@ -35,8 +35,9 @@ struct target {
 
   const std::string &name() const { return this->target_program; }
 
-  void set_env(const char *name, const char *value) {
-    environment_vars.insert({std::string(name), std::string(value)});
+  void unset_env(std::string name) { environment_vars.erase(std::move(name)); }
+  void set_env(std::string name, std::string value) {
+    environment_vars.insert({std::move(name), std::move(value)});
   }
 
   /// @brief A convenience method for setting the `LD_PRELOAD` environment

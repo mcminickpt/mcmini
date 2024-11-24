@@ -32,7 +32,7 @@ pid_t dmtcp_process_source::make_new_branch() {
       {"--join-coordinator", "--port",
        std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
   if (!has_transferred_recorded_objects) {
-    dmtcp_restart.set_env("MCMINI_MULTIPLE_RESTARTS", "1");
+    dmtcp_restart.set_env("MCMINI_NEEDS_STATE", "1");
   }
   return dmtcp_restart.launch_dont_wait();
 }

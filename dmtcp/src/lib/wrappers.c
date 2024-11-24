@@ -109,7 +109,8 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       }
       return rc;
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_INIT_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
@@ -195,7 +196,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
           // After the DMTCP_EVENT_RESTART event, exactly one thread will
           // successfully acquire the lock. Other threads must notice that
           // the record phase has ended or else they could loop forever.
-          if (get_current_mode() == DMTCP_RESTART) {
+          if (is_in_restart_mode()) {
             break;
           }
         } else if (rc != 0 && rc != ETIMEDOUT) {
@@ -206,7 +207,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       }
       // Explicit fallthrough
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_LOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
@@ -260,7 +262,8 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       }
       return rc;
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_UNLOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
@@ -345,7 +348,8 @@ void *mc_thread_routine_wrapper(void *arg) {
     }
     case RECORD:
     case PRE_CHECKPOINT:
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       // If we've noticed we're executing after a `DMTCP_EVENT_RESTART`, we
       // simply let the thread continue executing until one of two things
       // happens:
@@ -398,7 +402,8 @@ void *mc_thread_routine_wrapper(void *arg) {
       libpthread_mutex_unlock(&rec_list_lock);
       return rv;
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       thread_get_mailbox()->type = THREAD_EXIT_TYPE;
       thread_handle_after_dmtcp_restart();
       thread_awake_scheduler_for_thread_finish_transition();
@@ -437,7 +442,7 @@ void record_main_thread(void) {
   // makes the first call to `pthread_create` to create the checkpoint thread.
   // Since the checkpoint thread is about to be created, it is safe to begin
   // recording.
-  atomic_store(&libmcmini_mode, RECORD);
+  set_current_mode(RECORD);
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
@@ -462,7 +467,8 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     }
     case RECORD:
     case PRE_CHECKPOINT:
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       // TODO: add support for thread attributes
       struct mc_thread_routine_arg *libmcmini_controlled_thread_arg =
           malloc(sizeof(struct mc_thread_routine_arg));
@@ -566,7 +572,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
           // After the DMTCP_EVENT_RESTART event, exactly one thread will
           // successfully acquire the lock. Other threads must notice that
           // the record phase has ended or else they would loop forever.
-          if (get_current_mode() == DMTCP_RESTART) {
+          if (is_in_restart_mode()) {
             break;
           }
         } else if (rc != 0 && rc != ETIMEDOUT) {
@@ -577,7 +583,8 @@ int mc_pthread_join(pthread_t t, void **rv) {
       }
     }
     // Explicit fallthrough here
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
       thread_get_mailbox()->type = THREAD_JOIN_TYPE;
       thread_handle_after_dmtcp_restart();
@@ -598,8 +605,9 @@ int mc_pthread_join(pthread_t t, void **rv) {
 
 unsigned mc_sleep(unsigned duration) {
   switch (get_current_mode()) {
-    case DMTCP_RESTART:
     case TARGET_BRANCH:
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE:
     case TARGET_BRANCH_AFTER_RESTART: {
       // Ignore actually putting this thread to sleep:
       // it doesn't affect correctness neither for model
