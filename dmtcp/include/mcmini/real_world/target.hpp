@@ -1,5 +1,7 @@
 #pragma once
 
+#include <libgen.h>
+
 #include <ostream>
 #include <string>
 #include <unordered_map>
@@ -22,6 +24,7 @@ struct target {
   std::unordered_map<std::string, std::string> environment_vars;
 
  public:
+  target() = default;
   explicit target(const std::string &target_program)
       : target(target_program, std::vector<std::string>()) {}
 
@@ -36,6 +39,30 @@ struct target {
     environment_vars.insert({std::string(name), std::string(value)});
   }
 
+  /// @brief A convenience method for setting the `LD_PRELOAD` environment
+  /// variable for `libmcmini.so`.
+  void set_preload_libmcmini() {
+    // NOTE: According to the man page `dirname(const char *path)` "may modify
+    // the contents of `path`...", so we use the storage of the local instead.
+    // We don't want to use `std::string` either since it doesn't expect its
+    // contents to be modified indirectly
+    std::vector<char> target_program_mutable_name(this->name().begin(),
+                                                  this->name().end());
+    char buf[1000];
+    buf[sizeof(buf) - 1] = '\0';
+    snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
+             (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
+             dirname(target_program_mutable_name.data()));
+    this->set_env("LD_PRELOAD", buf);
+  }
+
+  /// @brief A convenience method for setting the `MCMINI_TEMPLATE_LOOP`
+  /// environment variable for the child process
+  ///
+  /// A child process with `MCMINI_TEMPLATE_LOOP` set indicates that the child
+  /// will be used as a template process for McMini
+  void set_is_template() { this->set_env("MCMINI_TEMPLATE_LOOP", "1"); }
+
   /// @brief Creates a new process running this program
   ///
   /// @return the process id of the newly created process.
@@ -46,7 +73,7 @@ struct target {
   ///
   /// @throws a `process::execution_exception` is raised if the
   /// process exits unexpectedly
-  void launch_and_wait();
+  virtual void launch_and_wait();
 
   /// @brief Turn this process into the target via `execvp()`
   ///

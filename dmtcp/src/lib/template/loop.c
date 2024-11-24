@@ -16,7 +16,8 @@
 void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // IMPORTANT: If the THREAD in the template process ever exits, this will
   // prove problematic as it is when the THREAD which called `fork()` exits that
-  // the signal will be delivered to this process.
+  // the signal will be delivered to this process (and not when the process as a
+  // whole exits)
   if (prctl(PR_SET_PDEATHSIG, SIGTERM) == -1) {
     perror("prctl");
     abort();
@@ -48,7 +49,7 @@ void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   libmcmini_mode = TARGET_BRANCH;
 }
 
-void mc_template_process_loop_forever(void) {
+void mc_template_process_loop_forever(pid_t (*make_new_process)(void)) {
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
   while (1) {
@@ -57,7 +58,7 @@ void mc_template_process_loop_forever(void) {
     wait(NULL);
     sem_wait((sem_t *)&tpt->libmcmini_sem);
     const pid_t ppid_before_fork = getpid();
-    const pid_t cpid = fork();
+    const pid_t cpid = make_new_process();
     if (cpid == -1) {
       // `fork()` failed
       tpt->err = errno;

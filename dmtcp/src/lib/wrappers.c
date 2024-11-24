@@ -63,11 +63,13 @@ void thread_awake_scheduler_for_thread_finish_transition(void) {
   mc_wake_scheduler(thread_get_mailbox());
 }
 
-void thread_block_indefinitely() {
+void thread_block_indefinitely(void) {
   while (1) {
     pause();
   }
 }
+
+void thread_handle_after_dmtcp_restart(void);
 
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *attr) {
@@ -111,8 +113,7 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_INIT_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-      notify_template_thread();
-      thread_await_scheduler();
+      thread_handle_after_dmtcp_restart();
       return libpthread_mutex_init(mutex, attr);
     }
     case TARGET_BRANCH:
@@ -209,8 +210,7 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_LOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-      notify_template_thread();
-      thread_await_scheduler();
+      thread_handle_after_dmtcp_restart();
       return libpthread_mutex_lock(mutex);
     }
     case TARGET_BRANCH:
@@ -264,8 +264,7 @@ int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = MUTEX_UNLOCK_TYPE;
       memcpy_v(mb->cnts, &mutex, sizeof(mutex));
-      notify_template_thread();
-      thread_await_scheduler();
+      thread_handle_after_dmtcp_restart();
       return libpthread_mutex_unlock(mutex);
     }
     case TARGET_BRANCH:
@@ -401,8 +400,7 @@ void *mc_thread_routine_wrapper(void *arg) {
     }
     case DMTCP_RESTART: {
       thread_get_mailbox()->type = THREAD_EXIT_TYPE;
-      notify_template_thread();
-      thread_await_scheduler();
+      thread_handle_after_dmtcp_restart();
       thread_awake_scheduler_for_thread_finish_transition();
       break;
     }
@@ -582,8 +580,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
     case DMTCP_RESTART: {
       memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
       thread_get_mailbox()->type = THREAD_JOIN_TYPE;
-      notify_template_thread();
-      thread_await_scheduler();
+      thread_handle_after_dmtcp_restart();
       return 0;
     }
     case TARGET_BRANCH:

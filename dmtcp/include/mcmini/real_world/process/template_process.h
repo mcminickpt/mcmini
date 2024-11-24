@@ -35,6 +35,8 @@ struct template_process_t {
   // MARK: DMTCP ONLY
 };
 
+extern pid_t multithreaded_fork(void);
+
 #ifdef __cplusplus
 }
 #endif  // extern "C"

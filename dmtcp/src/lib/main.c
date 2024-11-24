@@ -90,7 +90,7 @@ __attribute__((constructor)) void libmcmini_main() {
 
   if (getenv("MCMINI_TEMPLATE_LOOP")) {
     libmcmini_mode = TARGET_TEMPLATE;
-    mc_template_process_loop_forever();
+    mc_template_process_loop_forever(&fork);
   }
   thread_await_scheduler();
 }

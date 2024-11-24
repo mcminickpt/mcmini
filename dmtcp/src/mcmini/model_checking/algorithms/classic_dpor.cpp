@@ -127,6 +127,12 @@ void classic_dpor::verify_using(coordinator &coordinator,
       try {
         this->continue_dpor_by_expanding_trace_with(
             dpor_stack.back().get_first_enabled_runner(), context);
+        // std::cerr << "******************************"
+        //           << "\n";
+        // std::cerr << "State " << coordinator.get_depth_into_program() <<
+        // "\n"; coordinator.get_current_program_model().dump_state(std::cerr);
+        // std::cerr << "******************************"
+        //           << "\n";
       } catch (const model::undefined_behavior_exception &ube) {
         callbacks.undefined_behavior(coordinator, ube);
         return;

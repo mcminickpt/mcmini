@@ -143,6 +143,12 @@ rec_list *add_rec_entry_record_mode(const visible_object *);
  */
 void notify_template_thread();
 
+/**
+ * @brief Either waits for the model checker `McMini` OR the template thread to
+ * be awoken.
+ */
+void thread_wait_after_dmtcp_restart();
+
 #ifdef __cplusplus
 }
 #endif  // extern "C"

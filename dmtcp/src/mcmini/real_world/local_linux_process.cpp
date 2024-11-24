@@ -8,16 +8,15 @@
 #include <iostream>
 
 #include "mcmini/common/shm_config.h"
-#include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
+#include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/real_world/shm.hpp"
 #include "mcmini/signal.hpp"
 
 using namespace real_world;
 
-local_linux_process::local_linux_process(pid_t pid)
-    : pid(pid) {}
+local_linux_process::local_linux_process(pid_t pid) : pid(pid) {}
 
 local_linux_process::local_linux_process(local_linux_process &&other)
     : local_linux_process(other.pid) {
@@ -39,16 +38,11 @@ local_linux_process::~local_linux_process() {
     std::cerr << "Error sending SIGUSR1 to process " << pid << ": "
               << strerror(errno) << std::endl;
   }
-  // NOTE: The process `pid` is NOT a child of this process: it
-  // is a child of the template process (it is a grandchild of this
-  // process); hence, `waitpid()` is not an appropriate call and should occur
-  // instead in the `libmcmini.so` template process
-  fork_process_source::num_children_in_flight.fetch_sub(
-      1, std::memory_order_relaxed);
 }
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
-  shared_memory_region *shm_slice = xpc_resources::get_instance().get_rw_region();
+  shared_memory_region *shm_slice =
+      xpc_resources::get_instance().get_rw_region();
   volatile runner_mailbox *rmb =
       &(shm_slice->as_array_of<mcmini_shm_file>()->mailboxes[id]);
 
