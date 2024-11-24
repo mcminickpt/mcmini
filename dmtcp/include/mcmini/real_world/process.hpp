@@ -10,6 +10,15 @@
 namespace real_world {
 
 /**
+ * @brief An abstract reference to a process different than the one which owns
+ * this one.
+ */
+struct process_handle {
+  virtual ~process_handle() = default;
+  virtual pid_t get_pid() const = 0;
+};
+
+/**
  * @brief A proxy for a process running on the CPU.
  *
  * A `real_world::process` is a proxy for running code. It represents a
@@ -27,15 +36,19 @@ namespace real_world {
  * New runners may appear during the  during execution is assigned a unique
  * id (one for every thread creation call) and is tracked by the process.
  */
-struct process {
+struct process : public process_handle {
  public:
   using runner_id_t = ::runner_id_t;
 
  public:
-  struct execution_exception : public std::runtime_error {
-    explicit execution_exception(const char *c) : std::runtime_error(c) {}
-    explicit execution_exception(const std::string &s)
-        : std::runtime_error(s) {}
+  struct execution_error : public std::runtime_error {
+    explicit execution_error(const char *c) : std::runtime_error(c) {}
+    explicit execution_error(const std::string &s) : std::runtime_error(s) {}
+  };
+
+  struct termination_error : public std::runtime_error {
+    explicit termination_error(const char *c) : std::runtime_error(c) {}
+    explicit termination_error(const std::string &s) : std::runtime_error(s) {}
   };
 
   /**
@@ -58,7 +71,7 @@ struct process {
    * `model::transition_registry::rttid`. The McMini coordinator will
    * use this identifier to invoke the appropriate callback function to
    * transform the remaining contents of the stream into its model.
-   * @throws an `execution_exception` is raised if the provided runner doesn't
+   * @throws an `execution_error` is raised if the provided runner doesn't
    * yet exist or if the runner exists but something went wrong during
    * execution.
    * TODO: We assume at the moment that the number of runners is fixed and that

@@ -72,7 +72,7 @@ struct target {
   /// @brief Executes the target program as a separate process
   /// and waits for that process to finish execution.
   ///
-  /// @throws a `process::execution_exception` is raised if the
+  /// @throws a `process::execution_error` is raised if the
   /// process exits unexpectedly
   virtual void launch_and_wait();
 

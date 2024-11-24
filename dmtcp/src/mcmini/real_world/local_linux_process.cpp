@@ -35,9 +35,13 @@ local_linux_process::~local_linux_process() {
     return;
   }
   if (kill(pid, SIGUSR1) == -1) {
-    std::cerr << "Error sending SIGUSR1 to process " << pid << ": "
-              << strerror(errno) << std::endl;
+    std::cerr << "Error sending SIGUSR1 to `" << (pid)
+              << "`: " << strerror(errno);
   }
+  int status;
+  if (waitpid(pid, &status, 0) == -1)
+    std::cerr << "Error waiting for process (waitpid) `" << pid
+              << "`: " << strerror(errno);
 }
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
@@ -52,6 +56,14 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   // sem_wait() call, we'd still have deadlock. A happy medium is to call
   // `sem_timedwait()` with a sufficiently long wait value (perhaps 1 second)
   // and poll for existence if we haven't heard from the child in a long time.
+
+  // NOTE: At the moment, each process has the entire view of the
+  // shared memory region at its disposal. If desired, an extra layer could be
+  // added on top which manages allocating slices of a `shared_memory_region`
+  // and "allocates" them to different processes. This would look similar to
+  // `malloc()/free()`, where the `free()` would be triggered by the destructor
+  // of the slice. This is overly complicated at the moment, and we simply
+  // restrict the number of proxy processes to one.
   mc_wake_thread(rmb);
 
   errno = 0;
