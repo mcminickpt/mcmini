@@ -89,8 +89,13 @@ __attribute__((constructor)) void libmcmini_main() {
   atexit(&mc_deallocate_shared_memory_region);
 
   if (getenv("MCMINI_TEMPLATE_LOOP")) {
-    libmcmini_mode = TARGET_TEMPLATE;
+    set_current_mode(TARGET_TEMPLATE);
     mc_template_process_loop_forever(&fork);
+
+    // Reaching this point means that we're in the branch: the
+    // parent process (aka the template) will never exit
+    // the above call to `mc_template_process_loop_forever()`.
   }
+  set_current_mode(TARGET_BRANCH);
   thread_await_scheduler();
 }

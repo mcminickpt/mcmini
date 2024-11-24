@@ -36,25 +36,39 @@ void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // continue working
   //
   // NOTE: `atexit()`-handlers can be invoked when a dynamic
-  // library is unloaded. When we integrate DMTCP, we may need
-  // to consider this.
+  // library is unloaded.
   atexit(&mc_exit_main_thread_in_child);
 
+  // TODO: It's not clear if we need to do this or not...
+  //
   // Remove all signal handlers or the child
   //   struct sigaction action;
   //   action.sa_handler = SIG_DFL;
   //   sigemptyset(&action.sa_mask);
   //   sigaction(SIGINT, &action, NULL);
   //   sigaction(SIGCHLD, &action, NULL);
-  libmcmini_mode = TARGET_BRANCH;
 }
 
 void mc_template_process_loop_forever(pid_t (*make_new_process)(void)) {
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
   while (1) {
-    // Before creating any more children, ensure that the previous one has
-    // definitely stopped execution
+    // IMPORTANT: Before creating any more children, ensure that the previous
+    // one has definitely stopped execution.
+    //
+    // Why is this needed? When `mcmini` wants to explore a new branch of the
+    // state space, it kills the old process using `kill(2)` but does _not_ wait
+    // for that process to exit after sending kill necessarily (i.e. by calling
+    // `waitpid()`).
+    //
+    // Calling `wait()` avoids the following race:
+    //
+    // 1. `mcmini` sends `kill(3)` to the branch `B` (the child of this
+    // template) but the branch process `B` has not received the signal yet
+    // 2. `mcmini` continues execution and decides it wants to explore a new
+    // branch, so it signals the template process (this process) to create a new
+    // branch `B'`.
+    // 3. `B'` uses the same mode of communication as the
     wait(NULL);
     sem_wait((sem_t *)&tpt->libmcmini_sem);
     const pid_t ppid_before_fork = getpid();

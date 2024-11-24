@@ -12,6 +12,7 @@ extern "C" {
 
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdbool.h>
 
 /**
  * @brief Describes the different behaviors that `libmcmini.so` should exhibit
@@ -25,32 +26,29 @@ extern "C" {
  * loaded. Below is a description on the different ways `libmcmini.so` can
  * behave.
  *
+ * I. Classic Model Checking (No Deep Debugging)
+ *
  * TARGET_TEMPLATE:
- *   In this mode, the `mcmini` `fork()/exec()`-ed a new process (the template)
- *   running the target program with `libmcmini.so` preloaded. In this mode,
- *   `mcmini` expects to be able to repeatedly signal this process when the
- * model checker wants to explore a new branch of the state space.
- * `libmcmini.so` enters an infinite loop waiting for the signal to `fork()`.
- * Wrapper functions simply forward calls to the next available function found
- * by `dlsym(3)` using `RTLD_NEXT`.
+ *   In this mode, `libmcmini.so` enters an infinite loop waiting for the signal
+ *   from the `mcmini` process to produce a new branch via `fork()`.
  *
  * TARGET_BRANCH:
- *   In this mode, `mcmini` has signaled the template process and expects a new
- * process to be created. In this process, the wrapper functions in
- * `libmcmini.so` will now behave as if under the control of the model checker
- * in `mcmini`.
+ *   In this mode, `libmcmini.so` will now behave as if under the control of the
+ * model checker in the `mcmini` process.
+ *
+ * II. Recording
  *
  * PRE_DMTCP_INIT:
- *   In this mode, the `mcmini` process has `exec()`-ed into `dmtcp_launch` with
- * `libmcmini.so` as a DMTCP plugin. Here, DMTCP will preload mcmini. Prior to
- * DMTCP alerting us with the `DMTCP_EVENT_INIT`, wrapper functions simply
- * forward calls to `libpthread.so`
+ *    In this mode, the `mcmini` process has `exec()`-ed into `dmtcp_launch`
+ * with `libmcmini.so` as a DMTCP plugin. Here, DMTCP will preload mcmini. Prior
+ * to DMTCP sending the `DMTCP_EVENT_INIT` to `libmcmini.so`, wrapper functions
+ * simply forward calls to `libpthread.so`
  *
  * PRE_CHECKPOINT_THREAD:
  *   In this mode, DMTCP has sent the `DMTCP_EVENT_INIT` event but has not
  * yet created the checkpoint thread. All wrappers (except `pthread_create`)
- * behave as in `PRE_DMTCP_INIT`. For `pthread_create`, the call is _only_ forwarded
- * into DMTCP instead -- the checkpoint thread is NOT recorded.
+ * behave as in `PRE_DMTCP_INIT`. For `pthread_create`, the call is _only_
+ * forwarded into DMTCP instead -- the checkpoint thread is NOT recorded.
  *
  * RECORD:
  *   In this mode, `libmcmini.so` performs a light-weight recording of the
@@ -61,33 +59,56 @@ extern "C" {
  * PRE_CHECKPOINT:
  *   In this mode, `libmcmini.so` has been alerted about the end of the
  * recording session. Wrapper functions again forward their calls to the next
- * available function.
+ * available function. Wrappers may eventually change their behavior from RECORD
+ * mode if necessary.
+ *
+ * II.i. Deep Debugging with `dmtcp_restart`
+ *
+ * DMTCP_RESTART_INTO_BRANCH:
+ *   In this mode, the DMTCP plugin has been notified of the
+ *   `DMTCP_EVENT_RESTART` event. The user-space threads will transition into a
+ *   stable state before the template thread and the scheduler process proceed
+ *   with model checking. The userspace threads assume that they are immediately
+ * under the control of the model checker.
+ *
+ * II.i. Deep Debugging with `dmtcp_restart`
+ *
+ * DMTCP_RESTART_INTO_TEMPLATE:
+ *   In this mode, the DMTCP plugin has been notified of the
+ *   `DMTCP_EVENT_RESTART` event. The user-space threads will transition into a
+ *   stable state before the template thread and the scheduler process proceed
+ *   with model checking. However, unlike `DMTCP_RESTART_INTO_BRANCH`, the
+ * userspace threads assume that they are in a template _process_. The template
+ * thread in this template process will repeatedly call `multithreaded_fork()`.
  *
  * TARGET_TEMPLATE_AFTER_RESTART:
  *   In this mode, `libmcmini.so` has been restored by `dmtcp_launch` from a
- * checkpoint image. Here, `libmcmini.so` will first attempt to communicate with
- * `mcmini` and transfer over the state information recorded during the RECORD
- * phase. After transfer has completed, `libmcmini.so` will behave the same as
- * `TARGET_TEMPLATE`.
+ *   checkpoint image. Here, `libmcmini.so` will first attempt to communicate
+ * with `mcmini` and transfer over the state information recorded during the
+ * RECORD phase. After transfer has completed, `libmcmini.so` will behave the
+ * same as `TARGET_TEMPLATE`, except this time the template thread will call
+ * `multithreaded_fork()` instead of `fork()`. Other userspace threads in the
+ * template process are blocked indefinitely and will not communicate with the
+ * model checker `mcmini`. Only after a `multithreaded_fork()` will the
+ * (duplicates of) these threads participate in model checking.
+ *
+ * III. Deep Debugging Under the Modeler
  *
  * TARGET_BRANCH_AFTER_RESTART:
- *   In this mode, `mcmini` has signaled the restarted template process and
- * expects a new process to be created. Here, `libmcmini.so` must now have
- * wrapper functions behave as if under the control of the model checker as with
- * `TARGET_BRANCH`.
+ *   In this mode, `libmcmini.so` behaves exactly as in the classic case of
+ * `TARGET_BRANCH`. The only difference is that the userspace threads appear
+ * after a `dmtcp_restart` of a program in the middle of execution instead
+ * directly launching the program. Userspace threads assume they are under the
+ * control of the model checker.
  *
- * DMTCP_RESTART:
- *   In this mode, the DMTCP plugin has been notified of the
- * `DMTCP_EVENT_RESTART` event. The user-space threads will transition into a
- * stable state before the template thread and the scheduler process proceed
- * with model checking.
  */
 enum libmcmini_mode {
   PRE_DMTCP_INIT,
   PRE_CHECKPOINT_THREAD,
   RECORD,
   PRE_CHECKPOINT,
-  DMTCP_RESTART,
+  DMTCP_RESTART_INTO_BRANCH,
+  DMTCP_RESTART_INTO_TEMPLATE,
   TARGET_TEMPLATE_AFTER_RESTART,
   TARGET_BRANCH_AFTER_RESTART,
 
@@ -111,7 +132,9 @@ enum libmcmini_mode {
  * to acquire the lock, we'd have deadlock.
  */
 extern atomic_int libmcmini_mode;
+bool is_in_restart_mode(void);
 enum libmcmini_mode get_current_mode();
+void set_current_mode(enum libmcmini_mode);
 
 typedef struct visible_object visible_object;
 typedef struct rec_list rec_list;

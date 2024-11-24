@@ -47,6 +47,23 @@ fork_process_source::fork_process_source(
   this->target_program.set_is_template();
 }
 
+multithreaded_fork_process_source::multithreaded_fork_process_source(
+    const std::string& ckpt_file) {
+  this->coordinator_target.launch_and_wait();
+  this->target_program = target(
+      "dmtcp_restart",
+      {"--join-coordinator", "--port",
+       std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
+  this->target_program.set_is_template();
+
+  // Here `libmcmini.so` doesn't need to be preloaded: it is assumed that
+  // `mcmini` is contained in the checkpoint image that is restored by
+  // `dmtcp_restart`. Hence we can omit
+  // ```
+  // this->target_program.set_preload_libmcmini();
+  // ```
+}
+
 std::unique_ptr<process> fork_process_source::make_new_process() {
   shared_memory_region* rw_region =
       xpc_resources::get_instance().get_rw_region();
@@ -123,14 +140,4 @@ fork_process_source::~fork_process_source() {
     std::cerr << "Error waiting for process (waitpid) " << template_pid << ": "
               << strerror(errno) << std::endl;
   }
-}
-
-multithreaded_fork_process_source::multithreaded_fork_process_source(
-    const std::string& ckpt_file) {
-  this->coordinator_target.launch_and_wait();
-  this->target_program = target(
-      "dmtcp_restart",
-      {"--join-coordinator", "--port",
-       std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
-  this->target_program.set_is_template();
 }
