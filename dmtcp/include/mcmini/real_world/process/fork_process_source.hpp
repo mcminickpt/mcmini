@@ -23,25 +23,19 @@ namespace real_world {
  */
 class fork_process_source : public process_source {
  protected:
-  target target_program;
-
-  /// @brief The process id of the template process whose libmcmini performs
-  /// a `sem_wait` loop ad infinitum.
-  ///
-  /// This value refers to the process id of the process that is repeatedly
-  /// asked to invoke the `fork(2)` system call.
-  pid_t template_pid = no_template;
-  constexpr static pid_t no_template = -1;
+  target template_program;
+  std::unique_ptr<process_handle> template_process_handle;
 
   void make_new_template_process();
-  bool has_template_process_alive() const { return template_pid != -1; }
+  bool has_template_process_alive() const {
+    return template_process_handle != nullptr;
+  }
   friend local_linux_process;
 
  public:
   fork_process_source() = default;
   fork_process_source(real_world::target&&);
   fork_process_source(const real_world::target&);
-  ~fork_process_source();
   std::unique_ptr<process> make_new_process() override;
 };
 

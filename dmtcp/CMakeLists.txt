@@ -50,6 +50,7 @@ set(MCMINI_CPP_SRC
 set(LIBMCMINI_C_SRC
   src/common/exit.c
   src/common/mem.c
+  src/common/multithreaded_fork.c
   src/common/runner_mailbox.c
   src/common/shm_config.c
   src/lib/dmtcp-callback.c

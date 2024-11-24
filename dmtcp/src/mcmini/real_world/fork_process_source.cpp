@@ -42,19 +42,17 @@ fork_process_source::fork_process_source(real_world::target&& tp)
 
 fork_process_source::fork_process_source(
     const real_world::target& target_program)
-    : target_program(target_program) {
-  this->target_program.set_preload_libmcmini();
-  this->target_program.set_is_template();
+    : template_program(target_program) {
+  this->template_program.set_preload_libmcmini();
 }
 
 multithreaded_fork_process_source::multithreaded_fork_process_source(
     const std::string& ckpt_file) {
   this->coordinator_target.launch_and_wait();
-  this->target_program = target(
+  this->template_program = target(
       "dmtcp_restart",
       {"--join-coordinator", "--port",
        std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
-  this->target_program.set_is_template();
 
   // Here `libmcmini.so` doesn't need to be preloaded: it is assumed that
   // `mcmini` is contained in the checkpoint image that is restored by
@@ -70,22 +68,13 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
 
   // 1. Set up phase (LD_PRELOAD, binary sempahores, template process creation)
   xpc_resources::get_instance().reset_binary_semaphores_for_new_branch();
-  if (!has_template_process_alive()) {
-    make_new_template_process();
-  }
+  if (!has_template_process_alive()) make_new_template_process();
 
   // 2. Check if the current template process has previously exited; if so, it
   // would have delivered a `SIGCHLD` to this process. By default this signal is
   // ignored, but McMini explicitly captures it (see `signal_tracker`).
   if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
-    if (waitpid(this->template_pid, nullptr, 0) == -1) {
-      this->template_pid = fork_process_source::no_template;
-      throw process_source::process_creation_exception(
-          "Failed to create a cleanup zombied child process (waitpid(2) "
-          "returned -1): " +
-          std::string(strerror(errno)));
-    }
-    this->template_pid = fork_process_source::no_template;
+    this->template_process_handle = nullptr;
     throw process_source::process_creation_exception(
         "Failed to create a new process (template process died)");
   }
@@ -98,14 +87,16 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
 
   if (sem_post((sem_t*)&tstruct->libmcmini_sem) != 0) {
     throw process_source::process_creation_exception(
-        "The template process (" + std::to_string(template_pid) +
+        "The template process (" +
+        std::to_string(this->template_process_handle->get_pid()) +
         ") was not synchronized with correctly: " +
         std::string(strerror(errno)));
   }
 
   if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
     throw process_source::process_creation_exception(
-        "The template process (" + std::to_string(template_pid) +
+        "The template process (" +
+        std::to_string(this->template_process_handle->get_pid()) +
         ") was not synchronized with correctly: " +
         std::string(strerror(errno)));
   }
@@ -123,21 +114,8 @@ void fork_process_source::make_new_template_process() {
   // Reset first. If an exception is raised in subsequent steps, we don't want
   // to erroneously think that there is a template process when indeed there
   // isn't one.
-  this->template_pid = fork_process_source::no_template;
-  this->template_pid = this->target_program.launch_dont_wait();
-}
-
-fork_process_source::~fork_process_source() {
-  if (template_pid <= 0) {
-    return;
-  }
-  if (kill(template_pid, SIGUSR1) == -1) {
-    std::cerr << "Error sending SIGUSR1 to process " << template_pid << ": "
-              << strerror(errno) << std::endl;
-  }
-  int status;
-  if (waitpid(template_pid, &status, 0) == -1) {
-    std::cerr << "Error waiting for process (waitpid) " << template_pid << ": "
-              << strerror(errno) << std::endl;
-  }
+  this->template_program.set_is_template();
+  this->template_process_handle = nullptr;
+  this->template_process_handle = extensions::make_unique<local_linux_process>(
+      this->template_program.launch_dont_wait());
 }

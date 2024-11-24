@@ -157,7 +157,7 @@ class coordinator {
    * newly discovered. After execution, any such objects will be recorded.
    *
    * @param id the runner (thread) which should run.
-   * @param execution_exception is raised if the runner cannot be executed by
+   * @param execution_error is raised if the runner cannot be executed by
    * the coordinator.
    */
   void execute_runner(real_world::process::runner_id_t id);
@@ -187,6 +187,11 @@ class coordinator {
     // calls the destructor for the current process handle and THEN creates the
     // new one, but not concurrently (see C++ evaluation ordering on
     // cppreference for more details).
+    //
+    // NOTE: This assumes that by the time the `real_world::process` has been
+    // destroyed, the process to which is corresponds no longer exists. That is,
+    // the process must be destroyed _synchronously_ upon destruction or else
+    // already be destroyed prior to destruction.
     this->current_process_handle = nullptr;
     this->current_process_handle = this->process_source->force_new_process();
   }

@@ -22,15 +22,8 @@ class local_linux_process : public process {
  private:
   pid_t pid;
 
-  // NOTE: At the moment, each process has the entire view of the
-  // shared memory region at its disposal. If desired, an extra layer could be
-  // added on top which manages allocating slices of a `shared_memory_region`
-  // and "allocates" them to different processes. This would look similar to
-  // `malloc()/free()`, where the `free()` would be triggered by the destructor
-  // of the slice. This is overly complicated at the moment, and we simply
-  // restrict the number of proxy processes to one.
-
  public:
+  pid_t get_pid() const override { return pid; }
   local_linux_process() : local_linux_process(-1) {}
   local_linux_process(pid_t pid);
   local_linux_process(const local_linux_process&) = delete;
@@ -38,6 +31,6 @@ class local_linux_process : public process {
   local_linux_process& operator=(const local_linux_process&) = delete;
   local_linux_process& operator=(local_linux_process&&);
   virtual ~local_linux_process();
-  volatile runner_mailbox *execute_runner(runner_id_t) override;
+  volatile runner_mailbox* execute_runner(runner_id_t) override;
 };
 }  // namespace real_world

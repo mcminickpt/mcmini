@@ -19,6 +19,7 @@ static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
 
 void thread_handle_after_dmtcp_restart(void) {
+  printf("thread_handle_after_dmtcp_restart\n");
   // IMPORTANT: There's a potential race between
   // notifying the template thread and accessing
   // the new current mode. We care about how
@@ -109,6 +110,8 @@ static void *template_thread(void *unused) {
   for (int i = 0; i < thread_count; i++) {
     libpthread_sem_wait(&dmtcp_restart_sem);
   }
+  printf("The threads are now in a consistent state: %s\n",
+         getenv("MCMINI_NEEDS_STATE"));
 
   // Phase 3. Once in a stable state, check if `mcmini` needs to construct
   // a model of what we've recorded.
@@ -161,6 +164,8 @@ static void *template_thread(void *unused) {
 
   switch (get_current_mode()) {
     case DMTCP_RESTART_INTO_BRANCH: {
+      printf("DMTCP_RESTART_INTO_BRANCH\n");
+
       pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
       tpt->cpid = target_branch_pid;
       sem_post((sem_t *)&tpt->mcmini_process_sem);
@@ -168,6 +173,7 @@ static void *template_thread(void *unused) {
       break;
     }
     case DMTCP_RESTART_INTO_TEMPLATE: {
+      printf("DMTCP_RESTART_INTO_TEMPLATE\n");
       mc_template_process_loop_forever(&multithreaded_fork);
 
       // Reaching this point means that we're in the branch: the

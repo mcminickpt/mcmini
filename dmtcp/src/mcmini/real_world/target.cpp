@@ -35,11 +35,6 @@ void target::execvp() const {
   // exits. Since McMini is currently single-threaded, this is equivalent to
   // saying if McMini ever exits. Note that this `prctl(2)` persists across
   // `execvp(2)`.
-
-  // FIXME: The goal of prctl here is to automatically clean up
-  // child processes when the `mcmini` process exits (whether normally
-  // or abnormally), but a child process is also responsible for killing
-  // the `dmtcp_coordinator`.
   prctl(PR_SET_PDEATHSIG, SIGTERM);
 
   // Ensures that the child will accept the reception of all signals (see
@@ -145,7 +140,7 @@ void target::launch_and_wait() {
   int status = 0;
   pid_t child = launch_dont_wait();
   if (waitpid(child, &status, 0) == -1) {
-    throw process::execution_exception(
+    throw process::execution_error(
         "Failed to create a cleanup zombied child process (waitpid(2) "
         "returned -1): " +
         std::string(strerror(errno)));
@@ -153,11 +148,11 @@ void target::launch_and_wait() {
   if (WIFEXITED(status)) {
     std::cerr << "Exited with status" << WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
-    throw process::execution_exception(
+    throw process::execution_error(
         "The child process was signaled (received :" +
         std::to_string(WTERMSIG(status)) + ")");
   } else {
-    throw process::execution_exception("The child process exited abnormally");
+    throw process::execution_error("The child process exited abnormally");
   }
 }
 
