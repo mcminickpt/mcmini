@@ -315,6 +315,7 @@ void do_recording(const config& config) {
   dmtcp_launch_args.push_back(std::to_string(config.checkpoint_period.count()));
   dmtcp_launch_args.push_back("--with-plugin");
   dmtcp_launch_args.push_back(libmcmini_path);
+  dmtcp_launch_args.push_back("--modify-env");
   dmtcp_launch_args.push_back(config.target_executable);
   for (const std::string& target_arg : config.target_executable_args)
     dmtcp_launch_args.push_back(target_arg);
