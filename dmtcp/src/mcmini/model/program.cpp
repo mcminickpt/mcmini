@@ -1,5 +1,6 @@
 #include "mcmini/model/program.hpp"
 
+#include <sstream>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -121,4 +122,19 @@ bool program::is_in_deadlock() const {
     if (this->state_seq.get_state_of_runner(p)->is_active()) return true;
   }
   return false;
+}
+
+std::ostream &program::dump_state(std::ostream& os) const {
+  os << this->get_state_sequence().back().debug_string();
+  std::stringstream ss;
+  ss << "\nTHREAD TRACE\n";
+  for (const auto &t : get_trace()) {
+    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  }
+  ss << "\nNEXT THREAD OPERATIONS\n";
+  for (const auto &tpair : get_pending_transitions()) {
+    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
+  }
+  os << ss.str();
+  return os;
 }
