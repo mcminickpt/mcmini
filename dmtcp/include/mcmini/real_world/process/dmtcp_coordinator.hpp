@@ -1,10 +1,10 @@
 #pragma once
 
-#include "mcmini/real_world/target.hpp"
+#include "mcmini/real_world/dmtcp_target.hpp"
 
 namespace real_world {
 
-struct dmtcp_coordinator : public target {
+struct dmtcp_coordinator : public dmtcp_target {
  public:
   dmtcp_coordinator();
 

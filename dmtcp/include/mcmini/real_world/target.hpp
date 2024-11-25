@@ -5,12 +5,13 @@
 #include <ostream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace real_world {
 
 struct target {
- private:
+ protected:
   // The name of the program which we should exec() into with libmcmini.so
   // preloaded.
   // NOTE: Favor std::filesystem::path if C++17 is eventually supported
@@ -20,8 +21,12 @@ struct target {
   /// @brief The list of arguments to pass to the target program.
   std::vector<std::string> target_program_args;
 
-  /// @brief A list of environment variables to set prior to fork()/exec()
-  std::unordered_map<std::string, std::string> environment_vars;
+  /// @brief A list of environment variables to set prior to `fork()/exec()`.
+  std::unordered_map<std::string, std::string> setenv_vars;
+
+  /// @brief A list of environment variable names for which `unsetenv()` should
+  /// be invoked prior to a `fork()/exec()`.
+  std::unordered_set<std::string> unsetenv_vars;
 
  public:
   target() = default;
@@ -35,9 +40,18 @@ struct target {
 
   const std::string &name() const { return this->target_program; }
 
-  void unset_env(std::string name) { environment_vars.erase(std::move(name)); }
+  // The semantics
+  void dont_unset_env(std::string name) {
+    unsetenv_vars.erase(std::move(name));
+  }
+  void dont_set_env(std::string name) { setenv_vars.erase(std::move(name)); }
+  void unset_env(std::string name) {
+    unsetenv_vars.insert(name);
+    dont_set_env(std::move(name));
+  }
   void set_env(std::string name, std::string value) {
-    environment_vars.insert({std::move(name), std::move(value)});
+    setenv_vars.insert({name, std::move(value)});
+    dont_unset_env(std::move(name));
   }
 
   /// @brief A convenience method for setting the `LD_PRELOAD` environment
@@ -67,7 +81,7 @@ struct target {
   /// @brief Creates a new process running this program
   ///
   /// @return the process id of the newly created process.
-  pid_t launch_dont_wait();
+  virtual pid_t launch_dont_wait();
 
   /// @brief Executes the target program as a separate process
   /// and waits for that process to finish execution.

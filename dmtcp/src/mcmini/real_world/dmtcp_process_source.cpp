@@ -24,17 +24,16 @@ using namespace extensions;
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {
   this->coordinator_target.launch_and_wait();
+  this->dmtcp_restart_target =
+      dmtcp_target("dmtcp_restart",
+                   {"--join-coordinator", "--port",
+                    std::to_string(this->coordinator_target.get_port())},
+                   this->ckpt_file);
+  this->dmtcp_restart_target.set_env("MCMINI_NEEDS_STATE", "1");
 }
 
 pid_t dmtcp_process_source::make_new_branch() {
-  target dmtcp_restart(
-      "dmtcp_restart",
-      {"--join-coordinator", "--port",
-       std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
-  if (!has_transferred_recorded_objects) {
-    dmtcp_restart.set_env("MCMINI_NEEDS_STATE", "1");
-  }
-  return dmtcp_restart.launch_dont_wait();
+  return dmtcp_restart_target.launch_dont_wait();
 }
 
 std::unique_ptr<process> dmtcp_process_source::make_new_process() {
@@ -46,7 +45,7 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
       xpc_resources::get_instance().get_rw_region();
   xpc_resources::get_instance().reset_binary_semaphores_for_new_branch();
   pid_t target_branch_pid = make_new_branch();
-  this->has_transferred_recorded_objects = true;
+  this->dmtcp_restart_target.unset_env("MCMINI_NEEDS_STATE");
 
   const volatile template_process_t* tstruct =
       &(rw_region->as<mcmini_shm_file>()->tpt);

@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <assert.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -110,8 +111,18 @@ static void *template_thread(void *unused) {
   for (int i = 0; i < thread_count; i++) {
     libpthread_sem_wait(&dmtcp_restart_sem);
   }
-  printf("The threads are now in a consistent state: %s\n",
-         getenv("MCMINI_NEEDS_STATE"));
+  printf("The threads are now in a consistent state\n");
+
+  if (get_current_mode() == DMTCP_RESTART_INTO_BRANCH) {
+    atexit(&mc_exit_main_thread_in_child);
+    set_current_mode(TARGET_BRANCH_AFTER_RESTART);
+  }
+
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
+  pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
+  tpt->cpid = target_branch_pid;
+  sem_post((sem_t *)&tpt->mcmini_process_sem);
 
   // Phase 3. Once in a stable state, check if `mcmini` needs to construct
   // a model of what we've recorded.
@@ -159,39 +170,23 @@ static void *template_thread(void *unused) {
     close(fd);
   }
 
-  volatile struct mcmini_shm_file *shm_file = global_shm_start;
-  volatile struct template_process_t *tpt = &shm_file->tpt;
+  if (get_current_mode() == DMTCP_RESTART_INTO_TEMPLATE) {
+    printf("DMTCP_RESTART_INTO_TEMPLATE\n");
+    mc_template_process_loop_forever(&multithreaded_fork);
 
-  switch (get_current_mode()) {
-    case DMTCP_RESTART_INTO_BRANCH: {
-      printf("DMTCP_RESTART_INTO_BRANCH\n");
+    // Reaching this point means that we're in the branch: the
+    // parent process (aka the template) will never exit
+    // the above call to `mc_template_process_loop_forever()`.
+    set_current_mode(TARGET_BRANCH_AFTER_RESTART);
 
-      pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
-      tpt->cpid = target_branch_pid;
-      sem_post((sem_t *)&tpt->mcmini_process_sem);
-      atexit(&mc_exit_main_thread_in_child);
-      break;
-    }
-    case DMTCP_RESTART_INTO_TEMPLATE: {
-      printf("DMTCP_RESTART_INTO_TEMPLATE\n");
-      mc_template_process_loop_forever(&multithreaded_fork);
-
-      // Reaching this point means that we're in the branch: the
-      // parent process (aka the template) will never exit
-      // the above call to `mc_template_process_loop_forever()`.
-      set_current_mode(TARGET_BRANCH_AFTER_RESTART);
-
-      // Recall that the userspace threads in the template process
-      // were idling/doing nothing. Indeed, those threads exist ONLY
-      // to ensure that `multithreaded_fork()` clones them.
-      //
-      // Now that we're finally in the branch, we can
-      pthread_mutex_lock(&template_thread_mut);
-      pthread_cond_broadcast(&template_thread_cond);
-      pthread_mutex_unlock(&template_thread_mut);
-    }
-    default:
-      break;
+    // Recall that the userspace threads in the template process
+    // were idling/doing nothing. Indeed, those threads exist ONLY
+    // to ensure that `multithreaded_fork()` clones them.
+    //
+    // Now that we're finally in the branch, we can
+    pthread_mutex_lock(&template_thread_mut);
+    pthread_cond_broadcast(&template_thread_cond);
+    pthread_mutex_unlock(&template_thread_mut);
   }
 
   // Exiting from the template thread is fine:
@@ -293,6 +288,13 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       printf("DMTCP_EVENT_RESUME\n");
       break;
     case DMTCP_EVENT_RESTART: {
+      if (getenv("MCMINI_TEMPLATE_LOOP")) {
+        set_current_mode(DMTCP_RESTART_INTO_TEMPLATE);
+        printf("MCMINI_TEMPLATE_LOOP set \n");
+      } else {
+        set_current_mode(DMTCP_RESTART_INTO_BRANCH);
+        printf("MCMINI_TEMPLATE_LOOP not set\n");
+      }
       // During record mode, the shared memory
       // used by the `mcmini` process to control
       // the userspace threads in this process
@@ -311,12 +313,6 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       snprintf(shm_name, sizeof(shm_name), "/mcmini-%s-%lu", getenv("USER"), (long)dmtcp_virtual_to_real_pid(getppid()));
       shm_name[sizeof(shm_name) - 1] = '\0';
       mc_allocate_shared_memory_region(shm_name);
-
-      if (getenv("MCMINI_TEMPLATE_LOOP")) {
-        set_current_mode(DMTCP_RESTART_INTO_TEMPLATE);
-      } else {
-        set_current_mode(DMTCP_RESTART_INTO_BRANCH);
-      }
 
       // NOTE: The template thread has been sleeping
       // on `template_thread_sem` during the entire
