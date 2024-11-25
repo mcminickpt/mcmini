@@ -1,0 +1,5 @@
+add_executable(hello-world hello-world.c)
+add_executable(deadly-embrace deadly-embrace.c)
+add_executable(fifo-example fifo.cpp)
+target_link_libraries(hello-world PUBLIC -pthread)
+target_link_libraries(deadly-embrace PUBLIC -pthread)
