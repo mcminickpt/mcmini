@@ -63,6 +63,7 @@ set(LIBMCMINI_C_SRC
   src/lib/dmtcp-callback.c
   src/lib/entry.c
   src/lib/interception.c
+  src/lib/log.c
   src/lib/main.c
   src/lib/record.c
   src/lib/template/loop.c
@@ -76,7 +77,7 @@ set(MCMINI_EXTRA_COMPILER_DEFINITIONS "")
 set(MCMINI_EXTRA_LINK_FLAGS -lrt -pthread)
 
 set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror -fPIC)
-set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
+set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1 LOGGING_ROOT="${CMAKE_SOURCE_PATH}")
 
 # -lrt -> shared memory
 # -pthread -> libpthread.so
