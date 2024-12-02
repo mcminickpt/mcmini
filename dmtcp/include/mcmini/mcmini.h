@@ -9,6 +9,7 @@
 #include "mcmini/lib/entry.h"
 #include "mcmini/lib/sig.h"
 #include "mcmini/lib/template.h"
+#include "mcmini/lib/log.h"
 #include "mcmini/mem.h"
 #include "mcmini/plugins.h"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
