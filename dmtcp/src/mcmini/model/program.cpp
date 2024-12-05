@@ -1,7 +1,7 @@
 #include "mcmini/model/program.hpp"
 
-#include <sstream>
 #include <cstdint>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -116,21 +116,22 @@ state::runner_id_t program::discover_runner(const runner_state *initial_state,
 
 bool program::is_in_deadlock() const {
   // If any transition is enabled, we are not in deadlock
-  for (const auto &pair : this->get_pending_transitions()) {
-    if (pair.second->is_enabled_in(this->state_seq)) return false;
-  }
-  // If there are NO enabled transitions, we need to check if this is because
-  // all runners are no longer active, i.e. whether they even have more
+  //
+  // Furthermore, if there are NO enabled transitions, we need to check if this
+  // is because all runners have exited, i.e. whether they even have more
   // transitions to execute. If they do, then then it would be a deadlock in
   // the traditional sense since there are threads which haven't completed but
-  // are blocked.
-  for (runner_id_t p = 0; p < get_num_runners(); p++) {
-    if (this->state_seq.get_state_of_runner(p)->is_active()) return true;
+  // are blocked. If they've all exited, we shouldn't say this is a deadlock:
+  // the program trivially can't do anything else.
+  for (const auto &pair : this->get_pending_transitions()) {
+    if (pair.second->is_enabled_in(this->state_seq) ||
+        this->state_seq.get_state_of_runner(pair.first)->has_exited())
+      return false;
   }
-  return false;
+  return true;
 }
 
-std::ostream &program::dump_state(std::ostream& os) const {
+std::ostream &program::dump_state(std::ostream &os) const {
   os << this->get_state_sequence().back().debug_string();
   std::stringstream ss;
   ss << "\nTHREAD TRACE\n";
