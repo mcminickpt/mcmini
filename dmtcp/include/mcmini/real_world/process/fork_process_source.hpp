@@ -23,7 +23,7 @@ namespace real_world {
  */
 class fork_process_source : public process_source {
  protected:
-  target template_program;
+  std::unique_ptr<target> template_program;
   std::unique_ptr<process_handle> template_process_handle;
 
   void make_new_template_process();

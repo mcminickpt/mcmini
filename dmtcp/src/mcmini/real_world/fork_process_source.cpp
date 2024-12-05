@@ -42,17 +42,22 @@ fork_process_source::fork_process_source(real_world::target&& tp)
 
 fork_process_source::fork_process_source(
     const real_world::target& target_program)
-    : template_program(target_program) {
-  this->template_program.set_preload_libmcmini();
+    : template_program(extensions::make_unique<target>(target_program)) {
+  this->template_program->set_preload_libmcmini();
 }
 
 multithreaded_fork_process_source::multithreaded_fork_process_source(
     const std::string& ckpt_file) {
   this->coordinator_target.launch_and_wait();
-  this->template_program = target(
-      "dmtcp_restart",
-      {"--join-coordinator", "--port",
-       std::to_string(this->coordinator_target.get_port()), this->ckpt_file});
+  this->template_program = extensions::make_unique<dmtcp_target>(
+      std::string("dmtcp_restart"),
+      std::vector<std::string>{
+          "--join-coordinator", "--port",
+          std::to_string(this->coordinator_target.get_port())},
+      ckpt_file);
+  this->template_program->set_env("MCMINI_NEEDS_STATE", "1");
+
+  // Possibly a dmtcp program...
 
   // Here `libmcmini.so` doesn't need to be preloaded: it is assumed that
   // `mcmini` is contained in the checkpoint image that is restored by
@@ -114,8 +119,8 @@ void fork_process_source::make_new_template_process() {
   // Reset first. If an exception is raised in subsequent steps, we don't want
   // to erroneously think that there is a template process when indeed there
   // isn't one.
-  this->template_program.set_is_template();
+  this->template_program->set_is_template();
   this->template_process_handle = nullptr;
   this->template_process_handle = extensions::make_unique<local_linux_process>(
-      this->template_program.launch_dont_wait());
+      this->template_program->launch_dont_wait());
 }
