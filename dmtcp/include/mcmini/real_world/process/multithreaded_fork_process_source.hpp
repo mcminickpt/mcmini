@@ -21,7 +21,6 @@ namespace real_world {
  */
 class multithreaded_fork_process_source : public fork_process_source {
  private:
-  std::string ckpt_file;
   dmtcp_coordinator coordinator_target;
 
  public:
