@@ -189,7 +189,6 @@ static void *template_thread(void *unused) {
     }
     int sz = write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
     assert(sz == sizeof(visible_object));
-    printf("The template thread has completed: exiting...\n");
     fsync(fd);
     fsync(0);
     close(fd);
@@ -220,6 +219,7 @@ static void *template_thread(void *unused) {
   //
   // NOTE: This is true for both repeated `dmtcp_restart` AND for multithreaded
   // forking.
+  printf("The template thread has completed: exiting...\n");
   return NULL;
 }
 static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
