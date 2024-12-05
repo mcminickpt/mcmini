@@ -3,10 +3,10 @@
 
 #include <assert.h>
 #include <dlfcn.h>
+#include <dmtcp.h>
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "dmtcp.h"
 #include "mcmini/spy/intercept/wrappers.h"
 
 pthread_once_t libmcini_init = PTHREAD_ONCE_INIT;
