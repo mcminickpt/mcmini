@@ -131,7 +131,7 @@ enum libmcmini_mode {
  * hence is also the owner at restart-time). If the checkpoint thread then tried
  * to acquire the lock, we'd have deadlock.
  */
-extern atomic_int libmcmini_mode;
+extern volatile atomic_int libmcmini_mode;
 bool is_in_restart_mode(void);
 enum libmcmini_mode get_current_mode();
 void set_current_mode(enum libmcmini_mode);
