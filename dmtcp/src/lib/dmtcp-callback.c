@@ -20,7 +20,6 @@ static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
 
 void thread_handle_after_dmtcp_restart(void) {
-  printf("thread_handle_after_dmtcp_restart\n");
   // IMPORTANT: There's a potential race between
   // notifying the template thread and accessing
   // the new current mode. We care about how
@@ -164,7 +163,6 @@ static void *template_thread(void *unused) {
     }
     int sz = write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
     assert(sz == sizeof(visible_object));
-    printf("The template thread has completed: exiting...\n");
     fsync(fd);
     fsync(0);
     close(fd);
@@ -195,6 +193,7 @@ static void *template_thread(void *unused) {
   //
   // NOTE: This is true for both repeated `dmtcp_restart` AND for multithreaded
   // forking.
+  printf("The template thread has completed: exiting...\n");
   return NULL;
 }
 
