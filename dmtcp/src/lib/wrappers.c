@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <assert.h>
+#include <stdio.h>
 #include <dmtcp.h>
 #include <errno.h>
 #include <pthread.h>
@@ -71,8 +72,6 @@ void thread_block_indefinitely(void) {
     pause();
   }
 }
-
-void thread_handle_after_dmtcp_restart(void);
 
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
                           const pthread_mutexattr_t *attr) {
@@ -447,6 +446,7 @@ void record_main_thread(void) {
   // Since the checkpoint thread is about to be created, it is safe to begin
   // recording.
   set_current_mode(RECORD);
+  printf("RECORDMODESET\n");
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
@@ -466,6 +466,7 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
       assert(0);
     }
     case PRE_CHECKPOINT_THREAD: {
+      printf("PRE_CHECKPOINT_THREAD\n");
       pthread_once(&main_thread_once, &record_main_thread);
       int rc = libdmtcp_pthread_create(thread, attr, routine, arg);
       ckpt_pthread_descriptor = *thread;

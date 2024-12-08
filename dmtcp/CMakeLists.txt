@@ -44,6 +44,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/transitions/mutex.cpp
   src/mcmini/model/transitions/condition_variables.cpp
   src/mcmini/model/transitions/thread.cpp
+  src/mcmini/model/transitions/semaphore.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
   src/mcmini/model_checking/algorithms/clock_vector.cpp
   src/mcmini/real_world/dmtcp_process_source.cpp
@@ -66,6 +67,7 @@ set(LIBMCMINI_C_SRC
   src/lib/log.c
   src/lib/main.c
   src/lib/record.c
+  src/lib/sem-wrappers.c
   src/lib/template/loop.c
   src/lib/template/sig.c
   src/lib/wrappers.c

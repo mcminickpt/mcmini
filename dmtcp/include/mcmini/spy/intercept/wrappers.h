@@ -8,6 +8,7 @@
 void thread_await_scheduler(void);
 void thread_wake_scheduler_and_wait(void);
 void thread_awake_scheduler_for_thread_finish_transition(void);
+void thread_handle_after_dmtcp_restart(void);
 volatile runner_mailbox *thread_get_mailbox(void);
 
 int mc_pthread_mutex_init(pthread_mutex_t *mutex,
@@ -16,10 +17,12 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex);
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex);
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                     void *(*routine)(void *), void *arg);
-int mc_sem_init(sem_t *, int, int);
 int mc_sem_post(sem_t *);
 int mc_sem_wait(sem_t *);
 int mc_pthread_join(pthread_t, void**);
+int mc_sem_init(sem_t*, int, unsigned);
+int mc_sem_post(sem_t*);
+int mc_sem_wait(sem_t*);
 unsigned mc_sleep(unsigned);
 int mc_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
 int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);

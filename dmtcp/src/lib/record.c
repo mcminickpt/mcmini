@@ -2,6 +2,7 @@
 #include "mcmini/spy/checkpointing/rec_list.h"
 #include "mcmini/spy/checkpointing/objects.h"
 #include "mcmini/spy/checkpointing/transitions.h"
+#include "mcmini/spy/intercept/interception.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,8 +143,7 @@ rec_list *add_rec_entry_record_mode(const visible_object *vo) {
 //   }
 // }
 
-
-void notify_template_thread() { sem_post(&dmtcp_restart_sem); }
+void notify_template_thread() { libpthread_sem_post(&dmtcp_restart_sem); }
 
 bool is_in_restart_mode(void) {
   enum libmcmini_mode mode = get_current_mode();
