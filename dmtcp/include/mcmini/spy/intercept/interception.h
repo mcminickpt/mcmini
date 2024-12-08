@@ -34,6 +34,10 @@ int libpthread_mutex_timedlock(pthread_mutex_t *, struct timespec *);
 int libpthread_mutex_unlock(pthread_mutex_t *);
 int libpthread_mutex_destroy(pthread_mutex_t *);
 
+
+int sem_init(sem_t*, int, unsigned);
+int sem_post(sem_t*);
+int sem_wait(sem_t*);
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);
