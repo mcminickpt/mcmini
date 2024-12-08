@@ -15,7 +15,6 @@
 #include "mcmini/spy/checkpointing/record.h"
 #include "mcmini/spy/intercept/interception.h"
 
-
 void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // IMPORTANT: If the THREAD in the template process ever exits, this will
   // prove problematic as it is when the THREAD which called `fork()` exits that
@@ -60,7 +59,7 @@ void mc_template_process_loop_forever(pid_t (*make_new_process)(void)) {
     log_debug("Waiting for child process");
     wait(NULL);
     log_debug("Waiting for `mcmini` to signal a fork");
-    sem_wait((sem_t *)&tpt->libmcmini_sem);
+    libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
     const pid_t ppid_before_fork = getpid();
     const pid_t cpid = make_new_process();
@@ -76,6 +75,6 @@ void mc_template_process_loop_forever(pid_t (*make_new_process)(void)) {
     // `libmcmini.so` acting as a template process.
     printf("The template process created child with pid %d\n", cpid);
     tpt->cpid = cpid;
-    sem_post((sem_t *)&tpt->mcmini_process_sem);
+    libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
   }
 }
