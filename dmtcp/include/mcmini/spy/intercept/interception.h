@@ -44,6 +44,9 @@ int libpthread_cond_signal(pthread_cond_t*);
 int libpthread_cond_broadcast(pthread_cond_t*);
 int libpthread_cond_destroy(pthread_cond_t*);
 
+int sem_init(sem_t*, int, unsigned);
+int sem_post(sem_t*);
+int sem_wait(sem_t*);
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);

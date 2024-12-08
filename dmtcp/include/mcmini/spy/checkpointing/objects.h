@@ -37,7 +37,7 @@ typedef enum semaphore_status {
 } semaphore_status;
 
 typedef struct semaphore_state {
-  int count;
+  unsigned count;
   semaphore_status status;
 } semaphore_state;
 
