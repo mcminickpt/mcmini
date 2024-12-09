@@ -15,21 +15,33 @@
  * License along with DMTCP.  If not, see <http://www.gnu.org/licenses/>.    *
  *****************************************************************************/
 
-// Remove this 'define' if using this with other software.
-// FIXME:  the virtual_to_real logic is not yet working, when not using
-// libdmtcp.so Define this if using this with DMTCP: #define DMTCP
+// NOTE: This version of fork() does not support pthread_atfork(),
+//        and it doesn't do the weird stuff about cancellation points,
+//        or robust mutexes.
 
+// Remove this 'define' if using this with other software.
+// #define STANDALONE
+
+// FIXME:  the virtual_to_real logic is not yet working, when not using libdmtcp.so
+// Define this if using this with DMTCP:
+// #define DMTCP
+
+// FIXME:  glibc-2.28 and earlier don't define _Fork().  Replace by syscall and test.
+// FIXME:  Check all SYS_gettid, SYS_tgkill, get_child_threads for whether
+//         they use virtual or real tid; Probably extract declarations
+//         from DMTCP, and then optionally test DMTCP.via dmtcp_is_enabled(),
+//         or simply convert tall tids to virtual.
+//         MODIFY: get_child_threads to return virtual tid.
+//         NOTE:  syscall(SYS_tgkill, ...) takes a virtual tid.
 // FIXME:  This is arguably a bug in glibc:
-//         glibc returns EBUSY if pthread_join() is called and succeeds and
-//         pthread_tryjoin_np is then called. It's because pthread_join() sets
-//         tid to -1, and then pthread_tryjoin_np tests 'if (tid != 0) {EBUSY;}'
-//         It should return ESRCH rather than EBUSY if the child thread has
-//         already joined.
+//         glibc returns EBUSY if pthread_join() is called and succeeds and pthread_tryjoin_np is then called.
+//         It's because pthread_join() sets tid to -1, and then pthread_tryjoin_np tests 'if (tid != 0) {EBUSY;}'
+//         It should return ESRCH rather than EBUSY if the child thread has already joined.
 // FIXME:  Change _Fork to syscall(SYS_fork/SYS_clone, ...) (support all libc's)
 //           and add comment about _Fork() for robust mutex if desired.
 // FIXME:  After ARCH_SET_FS, errno becomes 22.  Why?
-// FIXME:  We should clean up the temporary child thread stack after doing
-// setcontext. This code still has to:
+// FIXME:  We should clean up the temporary child thread stack after doing setcontext.
+// This code still has to:
 //   1. add the current tid to the thread descriptor (pthread_t)
 //      DONE:  See getTLSPointer()/getTLSPointer()
 //   2. set restore the TLS:  src/tls.cpp:TLSInfo_RestoreTLSPointer()
@@ -41,29 +53,59 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h>  // man 2 open
-#include <pthread.h>
-#include <sched.h>  // For clone()
+#include <fcntl.h> // man 2 open
 #include <semaphore.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <pthread.h>
 #include <sys/syscall.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <ucontext.h>
 #include <unistd.h>
+#include <ucontext.h>
+#include <sched.h> // For clone()
 #ifdef DMTCP
-#include "dmtcp.h"
+# include "dmtcp.h"
+
+// FIXME:  These two macros should be in dmtcp.h, not here.
+# define dmtcp_real_to_virtual_pid(PID) \
+    (dmtcp_real_to_virtual_pid != NULL ? dmtcp_real_to_virtual_pid(PID) : 0)
+# define dmtcp_virtual_to_real_pid(PID) \
+    (dmtcp_virtual_to_real_pid != NULL ? dmtcp_virtual_to_real_pid(PID) : 0)
 #endif
 
-// In DMTCP, 'struct threadinfo' is declared as
-// DMTCP:src/threadinfo.h:ThreadTLSInfo
+#ifdef MC_SHARED_LIBRARY
+#include "mcmini/real_world/process/template_process.h"
+#include "mcmini/spy/intercept/interception.h"
+#endif
+
+// These are for debugging, only.  If segfault, do infinite loop,
+//   and later, we can attach with GDB.
+#ifdef STANDALONE
+static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
+  while(1);
+}
+static int AddSegvHandler() {
+  struct sigaction act;
+  static struct sigaction old_act;
+
+  act.sa_sigaction = &SegvfaultHandler;
+  act.sa_flags = SA_RESTART | SA_SIGINFO;
+  sigemptyset(&act.sa_mask);
+  if (sigaction(SIGSEGV, &act, &old_act)) {
+    perror("Failed to install segv handler");
+    return -1;
+  }
+  return 0;
+}
+#endif
+
+// In DMTCP, 'struct threadinfo' is declared as DMTCP:src/threadinfo.h:ThreadTLSInfo
 struct threadinfo {
-  pid_t
-      origTid;  // Used for debugging, and 'origTid == 0'  if not a valid entry.
+  pid_t origTid; // Used for debugging, and 'origTid == 0'  if not a valid entry.
   ucontext_t context;
   // fs and gs only used in __x86_64__
   unsigned long fs;
@@ -76,14 +118,14 @@ struct threadinfo {
   // glibc:pthread_create and pthread_self use this, but not the clone call:
   pthread_t pthread_descriptor;
 } childThread[1000];
-int threadIdx =
-    0;  // threadInfo[threadIdx] is 'struct threadinfo' for next thread.
+int threadIdx = 0; // threadInfo[threadIdx] is 'struct threadinfo' for next thread.
 
 #ifdef __x86_64__
-#include <asm/prctl.h>
-#include <sys/prctl.h>
+# include <asm/prctl.h>
+# include <sys/prctl.h>
 
 void getTLSPointer(struct threadinfo *localThreadInfo) {
+
   assert(syscall(SYS_arch_prctl, ARCH_GET_FS, &localThreadInfo->fs) == 0);
   assert(syscall(SYS_arch_prctl, ARCH_GET_GS, &localThreadInfo->gs) == 0);
 }
@@ -94,24 +136,26 @@ void setTLSPointer(struct threadinfo *localThreadInfo) {
 }
 #elif defined(__aarch64__)
 // 1776 valid for glibc-2.17 and beyond
-void getTLSPointer(struct threadinfo *localThreadInfo) {
+static void getTLSPointer(struct threadinfo *localThreadInfo) {
   unsigned long int addr;
-  asm volatile("mrs   %0, tpidr_el0" : "=r"(addr));
+  asm volatile ("mrs   %0, tpidr_el0" : "=r" (addr));
   localThreadInfo->tlsAddr = addr - 1776;  // sizeof(struct pthread) = 1776
 }
-void setTLSPointer(struct threadinfo *localThreadInfo) {
+static void setTLSPointer(struct threadinfo *localThreadInfo) {
   unsigned long int addr = localThreadInfo->tlsAddr + 1776;
-  asm volatile("msr     tpidr_el0, %[gs]" : : [gs] "r"(addr));
+  asm volatile ("msr     tpidr_el0, %[gs]" : :[gs] "r" (addr));
 }
 #elif defined(__riscv)
-void getTLSPointer(struct threadinfo *localThreadInfo) {
+void getTLSPointer(struct threadinfo *localThreadInfo)
+{
   unsigned long int addr;
-  asm volatile("addi %0, tp, 0" : "=r"(addr));
+  asm volatile ("addi %0, tp, 0" : "=r" (addr));
   localThreadInfo->tlsAddr = addr - 1856;  // sizeof(struct pthread)=1856
 }
-void setTLSPointer(struct threadinfo *localThreadInfo) {
+void setTLSPointer(struct threadinfo *localThreadInfo)
+{
   unsigned long int addr = localThreadInfo->tlsAddr + 1856;
-  asm volatile("addi tp, %[gs], 0" : : [gs] "r"(addr));
+  asm volatile("addi tp, %[gs], 0" : : [gs] "r" (addr));
 }
 #else
 void getTLSPointer(struct threadinfo *localThreadInfo) {}
@@ -133,22 +177,21 @@ int pthreadDescriptorTidOffset() {
 #endif
   return offset;
 }
-pid_t patchThreadDescriptor(pthread_t pthreadSelf) {
+pid_t get_tid_from_pthread_descriptor(pthread_t pthread_descriptor) {
+  int offset = pthreadDescriptorTidOffset();
+  pid_t ctid = *(pid_t*)((char*)(pthread_descriptor) + offset);
+#ifdef DMTCP
+  pid_t virttid = dmtcp_real_to_virtual_pid(ctid);
+  ctid = (virttid ? virttid : ctid);
+#endif
+  return ctid;
+}
+static pid_t patchThreadDescriptor(pthread_t pthreadSelf) {
   int offset = pthreadDescriptorTidOffset();
   pid_t oldtid = *(pid_t *)((char *)pthreadSelf + offset);
   // Since glibc.2.25, tid, but not pid, is stored in pthread_t.
   // gettid() supported only in glibc-2.30; So, we use syscall().
-  pid_t curtid = syscall(SYS_gettid);
-#ifdef DMTCP
-  // FIXME:  These two macros should be in dmtcp.h, not here.
-#define dmtcp_real_to_virtual_pid(PID) \
-  (dmtcp_real_to_virtual_pid != NULL ? dmtcp_real_to_virtual_pid(PID) : 0)
-#define dmtcp_virtual_to_real_pid(PID) \
-  (dmtcp_virtual_to_real_pid != NULL ? dmtcp_virtual_to_real_pid(PID) : 0)
-  oldtid = dmtcp_real_to_virtual_pid(oldtid) || oldtid;
-  curtid = dmtcp_virtual_to_real_pid(curtid) || curtid;
-#endif
-  *(pid_t *)((char *)pthreadSelf + offset) = curtid;
+  *(pid_t *)((char *)pthreadSelf + offset) = syscall(SYS_gettid);
   return oldtid;
 }
 
@@ -161,39 +204,43 @@ sem_t sem_fork_child;
 void restart_child_threads();
 void multithreaded_fork_child_handler(int sig);
 
-#define SIG_MULTITHREADED_FORK (SIGRTMIN + 6)
+#define SIG_MULTITHREADED_FORK (SIGRTMIN+6)
 
 int get_child_threads(int child_threads[]) {
-  DIR *dir;
-  struct dirent *entry;
-  dir = opendir("/proc/self/task");
-  if (dir == NULL) {
-    perror("opendir");
-    return -1;
-  }
-  int i = 0;
-  while ((entry = readdir(dir)) != NULL) {
-    if (atoi(entry->d_name) != 0) {
-      child_threads[i++] = atoi(entry->d_name);
+    DIR *dir;
+    struct dirent *entry;
+    dir = opendir("/proc/self/task");
+    if (dir == NULL) {
+      perror("opendir");
+      return -1;
     }
-  }
-  child_threads[i] = 0;
-  closedir(dir);
-  return i;
+    int i = 0;
+    while ((entry = readdir(dir)) != NULL) {
+      if (atoi(entry->d_name) != 0) {
+        pid_t nexttid = atoi(entry->d_name);
+#ifdef DMTCP
+        pid_t virttid = dmtcp_real_to_virtual_pid(nexttid);
+        nexttid = (virttid ? virttid : nexttid);
+#endif
+        child_threads[i++] = nexttid;
+      }
+    }
+    child_threads[i] = 0;
+    closedir(dir);
+    return i;
 }
 
 // Optimization: could skip pthread_sigmask for targets not using it
 //   (We would need a wrapper function to test it.)
-void saveThreadStateBeforeFork(struct threadinfo *threadInfo) {
+void saveThreadStateBeforeFork(struct threadinfo* threadInfo) {
   threadInfo->origTid = syscall(SYS_gettid);
 
   // For verification only; not needed for functionality
   pid_t oldTid = patchThreadDescriptor(pthread_self());
   if (oldTid != syscall(SYS_gettid)) {
-    fprintf(stderr,
-            "PID %d: multithreaded_fork(): patchThreadDescriptor:"
-            "bad offset:\n        Run: DMTCP:util/check-pthread-tid-offset.c\n",
-            getpid());
+    fprintf(stderr, "PID %d: multithreaded_fork(): patchThreadDescriptor:"
+         "bad offset:\n        Run: DMTCP:util/check-pthread-tid-offset.c\n",
+         getpid());
     abort();
   }
   threadInfo->pthread_descriptor = pthread_self();
@@ -205,85 +252,107 @@ void saveThreadStateBeforeFork(struct threadinfo *threadInfo) {
   sigset_t sigtest;
   pthread_sigmask(SIG_BLOCK, NULL, &sigtest);
   sigdelset(&sigtest, SIG_MULTITHREADED_FORK);
-  if (!sigisemptyset(&sigtest)) {
-    fprintf(stderr,
-            "PID %d: multithreaded_fork() not yet implemented"
-            " for non-empty thread signaks\n",
-            getpid());
+  if (! sigisemptyset(&sigtest)) {
+    fprintf(stderr, "PID %d: multithreaded_fork() not yet implemented"
+                    " for non-empty thread signaks\n", getpid());
     abort();
   }
 }
 
-void restoreThreadStateAfterFork(struct threadinfo *threadInfo) {
-  setTLSPointer(threadInfo);  // Set the fs register (set thread-local address)
-                              // FIXME:
-  // NOTE:  glibc clone allocated a new pthread descriptor on the temporary
-  // stack used by child_setcontext
-  //        But the tcb (Thread Control Block) always starts at %fs:0 (or
-  //        tpidr_el0 for aarch64 or tp for riscv). And glibc finds the current
-  //        pthread_descriptor as pointed to by %fs:0x10 Now that we have
-  //        restored %fs, we can restore the pthread descriptor. Caveat:  I hope
-  //        that the %fs used in glibc clone didn't overwrite our restored %fs
-  //        and
-  //          then overwrite the tcb.  If it did, we would have to restore the
-  //          full tcb.
-  //        QUESTION:  Does glibc fork() keep the same %fs:0 address in child?
-  //  NOTE:  pthread_tryjoin_np() was signaling an error, until we did this.
-  //         But pthread_join() has an error: errno 2: No such file or directory
-  //         IN:
-  //           rc1 error: perror("****** Child process: parent thread:
-  //           pthread_join");
-  patchThreadDescriptor(threadInfo->pthread_descriptor);  // Update the tid
+void restoreThreadStateAfterFork(struct threadinfo* threadInfo) {
+  setTLSPointer(threadInfo); // Set the fs register (set thread-local address)
+// FIXME:
+// NOTE:  glibc clone allocated a new pthread descriptor on the temporary stack used by child_setcontext
+//        But the tcb (Thread Control Block) always starts at %fs:0 (or tpidr_el0 for aarch64 or tp for riscv).
+//        And glibc finds the current pthread_descriptor as pointed to by %fs:0x10
+//        Now that we have restored %fs, we can restore the pthread descriptor.
+//        Caveat:  I hope that the %fs used in glibc clone didn't overwrite our restored %fs and
+//          then overwrite the tcb.  If it did, we would have to restore the full tcb.
+//        QUESTION:  Does glibc fork() keep the same %fs:0 address in child?
+//  NOTE:  pthread_tryjoin_np() was signaling an error, until we did this.
+//         But pthread_join() has an error: errno 2: No such file or directory  IN:
+//           rc1 error: perror("****** Child process: parent thread: pthread_join");
+  patchThreadDescriptor(threadInfo->pthread_descriptor); // Update the tid
 }
 
-#define STRINGIFY2(x) #x
-#define STRINGIFY(x) STRINGIFY2(x)
+
+# define STRINGIFY2(x) #x
+# define STRINGIFY(x) STRINGIFY2(x)
 void signal_multithreaded_fork_handler() {
   sigset_t emptyset;
   sigemptyset(&emptyset);
   struct sigaction new = {.sa_handler = multithreaded_fork_child_handler,
-                          .sa_flags = SA_RESTART,
-                          .sa_mask = emptyset};
+                          .sa_flags = SA_RESTART, .sa_mask = emptyset};
   struct sigaction old;
   sigaction(SIG_MULTITHREADED_FORK, &new, &old);
   if (old.sa_handler != SIG_DFL) {
-    fprintf(
-        stderr,
-        "\n***************************************************************\n"
-        "* WARNING:  There was a previous handler for signal %s\n"
-        "*           And multithreaded_fork() is overwriting it.\n"
-        "*           Maybe change SIG_MULTITHREADED_FORK in source code.\n"
-        "***************************************************************\n\n",
-        STRINGIFY(SIG_MULTITHREADED_FORK));
+    fprintf(stderr,
+            "\n***************************************************************\n"
+              "* WARNING:  There was a previous handler for signal %s\n"
+              "*           And multithreaded_fork() is overwriting it.\n"
+              "*           Maybe change SIG_MULTITHREADED_FORK in source code.\n"
+              "***************************************************************\n\n",
+            STRINGIFY(SIG_MULTITHREADED_FORK));
   }
 }
 
 pid_t multithreaded_fork() {
   static int initialized = 0;
-  if (!initialized) {
+  if (! initialized) {
     sem_init(&sem_fork_child, 0, 0);
     sem_init(&sem_fork_parent, 0, 0);
-    threadIdx = 0;  // Needed for multiple calls to multithreaded_fork()
+    threadIdx = 0; // Needed for multiple calls to multithreaded_fork()
     initialized = 1;
   }
 
   static int handler_is_declared = 0;
-  if (!handler_is_declared) {
+  if (! handler_is_declared) {
     signal_multithreaded_fork_handler();
     handler_is_declared = 1;
   }
 
   int child_threads[1000];
   int num_threads = get_child_threads(child_threads);
-  pid_t mytid = syscall(SYS_gettid);
+  const pid_t mytid = syscall(SYS_gettid);
+
+#ifdef MC_SHARED_LIBRARY
+  const pid_t ckpt_tid = get_tid_from_pthread_descriptor(ckpt_pthread_descriptor);
+#endif
+
   for (int i = 0; i < num_threads; i++) {
+
+    // FIXME: We don't have to check `mytid` below since we check it
+    // here already.
+    if (child_threads[i] == mytid) {
+      childThread[i].origTid = 0;
+      continue;
+    }
+
+#ifdef MC_SHARED_LIBRARY
+    if (child_threads[i] == ckpt_tid) {
+      childThread[i].origTid = 0;
+      continue;
+    }
+#endif
+#ifdef DMTCP
+    if (child_threads[i] != mytid && child_threads[i] != ckpt_tid) {
+#else
     if (child_threads[i] != mytid) {
+#endif
       syscall(SYS_tgkill, getpid(), child_threads[i], SIG_MULTITHREADED_FORK);
     }
   }
-  for (int i = 0; i < num_threads - 1; i++) {
-    sem_wait(
-        &sem_fork_parent);  // Wait until children have initialized context.
+
+#ifdef DMTCP
+  // NOTE: `(num_threads - 2) =  # user space threads - this thread (1) - checkpoint thread (1)
+  int num_secondary_threads = num_threads - 2;
+#else
+  // NOTE: `(num_threads - 1) =  # user space threads - this thread (1)
+  int num_secondary_threads = num_threads - 1;
+#endif
+
+  for (int i = 0; i < num_secondary_threads; i++) {
+    sem_wait(&sem_fork_parent); // Wait until children have initialized context.
   }
 
   /*********************************************************************
@@ -313,21 +382,46 @@ pid_t multithreaded_fork() {
   // NOT YET FULLY DEVELOPED:
   int flags = CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID | SIGCHLD;
   int childpid;
-  syscall(SYS_clone, child_fork, flags, 0, NULL, &childpid, 0);
+// syscall(SYS_clone, ...);
+// stack must be NULL
+// https://stackoverflow.com/questions/2898579/clone-equivalent-of-fork
+//   But that says to use only SIGCHLD for flags, and glibc uses the above.
+//   But it's okay, since we're setting ctid and tls to NULL.
+// FIXME:  If we're going to set the last 3 args to NULL, who cares in what order they're found!
+# ifdef __x86_64__
+           long clone(unsigned long flags, void *stack,
+                      int *parent_tid, int *child_tid,
+                      unsigned long tls);
+# elif defined(__aarch64__)
+           long clone(unsigned long flags, void *stack,
+                     int *parent_tid, unsigned long tls,
+                     int *child_tid);
+# elif defined(__riscv)
+#  error Unimplemented CPU architecture
+https://github.com/bminor/glibc/blob/master/sysdeps/unix/sysv/linux/riscv/clone.S
+int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg,
+	     void *parent_tidptr, void *tls, void *child_tidptr) */
+	/* The syscall expects the args to be in different slots.  */
+	mv		a0,a2
+	mv		a2,a4
+	mv		a3,a5
+	mv		a4,a6
+# endif
 #endif
   initialized = 0;  // Reset for next call to multithreaded_fork()
 
-  if (childpid > 0) {  // if parent process
-    for (int i = 0; i < num_threads - 1; i++) {
+  if (childpid > 0) { // if parent process
+    for (int i = 0; i < num_secondary_threads; i++) {
       sem_post(&sem_fork_child);
     }
-  } else {  // else if child process
-    restart_child_threads();
-    for (int i = 0; i < num_threads - 1; i++) {
+  } else { // else if child process
+
+    restart_child_threads(num_threads);
+    for (int i = 0; i < num_secondary_threads; i++) {
       sem_post(&sem_fork_child);
     }
     // Wait until child thread posts to us before leaving handler.
-    for (int i = 0; i < num_threads - 1; i++) {
+    for (int i = 0; i < num_secondary_threads; i++) {
       sem_wait(&sem_fork_parent);
     }
   }
@@ -335,14 +429,13 @@ pid_t multithreaded_fork() {
 }
 
 // This could be optimized for performance:
-//   orig_pid could be static var, get/setTLSPointer could use assembly (cf
-//   MANA)
+//   orig_pid could be static var, get/setTLSPointer could use assembly (cf MANA)
 void multithreaded_fork_child_handler(int sig) {
   if (sig == SIG_MULTITHREADED_FORK) {
     // The handler is called before fork().  So, this will always be parent pid
     pid_t orig_pid = getpid();
     int origThreadIdx = __sync_fetch_and_add(&threadIdx, 1);
-    struct threadinfo *threadInfo = &childThread[origThreadIdx];
+    struct threadinfo* threadInfo = &childThread[origThreadIdx];
     // We could set next origThreadIdx to 0, but another thread might it
     // childThread[origThreadIdx+1].origTid = 0;
 
@@ -352,8 +445,8 @@ void multithreaded_fork_child_handler(int sig) {
     // setcontext() returns to here after fork() and clone() of
     //   child thread (setcontext) and setTLSPointer()
 
-    sem_post(&sem_fork_parent);  // Before fork, to parent thread: did getctxt()
-    if (getpid() != orig_pid) {  // if we forked (if we are child process)
+    sem_post(&sem_fork_parent); // Before fork, to parent thread: did getctxt()
+    if (getpid() != orig_pid) { // if we forked (if we are child process)
       // Child thread did setcontext and returned above into getcontext.
       // Let's post that we, the child thread, now exist.
       // Then we, the child thread, will wait on sem_fork_child until
@@ -371,28 +464,36 @@ void multithreaded_fork_child_handler(int sig) {
 #endif
 // 'int' return type required by 'clone()'
 int child_setcontext(void *arg) {
-  struct threadinfo *threadInfo = arg;
-
+  struct threadinfo* threadInfo = arg;
+  // restoreThreadStateAfterFork(threadInfo);
+  setTLSPointer(threadInfo);
+  patchThreadDescriptor(threadInfo->pthread_descriptor);
   setcontext(&(threadInfo->context));
-  return 0;  // not reached
+  return 0; // not reached
 }
 
-void restart_child_threads() {
-  for (int i = 0; childThread[i].origTid != 0; i++) {
+void restart_child_threads(int num_threads) {
+  for (int i = 0; i < num_threads; i++) {
+    if (childThread[i].origTid == 0) continue;
+
     // int clone(int (*fn)(void *), void *stack, int flags, void *arg, ...
     //           /* pid_t *parent_tid, void *tls, pid_t *child_tid */ );
-    int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SYSVSEM |
-                       CLONE_SIGHAND | CLONE_THREAD | CLONE_SETTLS |
-                       CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID | 0);
+    int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SYSVSEM
+                       | CLONE_SIGHAND | CLONE_THREAD
+                       | CLONE_SETTLS | CLONE_PARENT_SETTID
+                       | CLONE_CHILD_CLEARTID
+                       | 0);
     // This is a temporary stack, to be replaced after setcontext.
     // FIXME: This stack is a memory leak.  We should free it later.
-    void *stack = malloc(0x10000) + 0x10000 - 128;  // 64 KB
+    void *stack = malloc(0x10000) + 0x10000 - 128; // 64 KB
     int offset = pthreadDescriptorTidOffset();
-    pid_t *ctid = (pid_t *)((char *)childThread[i].pthread_descriptor + offset);
+    pid_t *ctid = (pid_t*)((char*)childThread[i].pthread_descriptor + offset);
     pid_t *ptid = ctid;
     // For more insight, read 'man set_tid_address'.
-    clone(child_setcontext, stack, clone_flags, (void *)&childThread[i], ptid,
-          childThread[i].fs, ctid);
+    clone(child_setcontext,
+                      stack,
+                      clone_flags,
+                      (void *)&childThread[i], ptid, childThread[i].fs, ctid);
   }
 }
 
@@ -415,12 +516,11 @@ void printf_thread(const char *format_string, int pid) {
 }
 
 void *child_thread(void *dummy) {
-  printf("=============== 3. (char *)pthread_self()+720: %p\n",
-         (char *)pthread_self() + 720);
-  int orig_pid = getpid();  // We do this before forking; So, it's the parent.
+printf("=============== 3. (char *)pthread_self()+720: %p\n", (char *)pthread_self()+720);
+  int orig_pid = getpid(); // We do this before forking; So, it's the parent.
   pthread_t orig_pthread_self = pthread_self();
   sem_post(&sem_parent);
-  int rc = sem_wait(&sem_child);  // Wait while parent does multithreaded fork()
+  int rc = sem_wait(&sem_child); // Wait while parent does multithreaded fork()
   // Parent has done multithreaded_fork();  we are in child or parent process
   if (rc != 0) {
     perror("sem_wait");
@@ -436,50 +536,45 @@ void *child_thread(void *dummy) {
   if (getpid() != orig_pid) {
     assert(pthread_equal(pthread_self(), orig_pthread_self));
   }
+if (getpid() != orig_pid) {
+printf("=============== 4. (char *)pthread_self()+720: %p\n", (char *)pthread_self()+720);
+printf("=============== 4b. *(int *)((char *)pthread_self()+720): %d\n", *(int *)((char *)pthread_self()+720));
+printf("=============== 5. (char *)pthread_self()+720: %p\n", (char *)pthread_self()+720);
+printf("=============== 5b. *(int *)((char *)pthread_self()+720): %d\n", *(int *)((char *)pthread_self()+720));
+}
   if (getpid() != orig_pid) {
-    printf("=============== 4. (char *)pthread_self()+720: %p\n",
-           (char *)pthread_self() + 720);
-    printf("=============== 4b. *(int *)((char *)pthread_self()+720): %d\n",
-           *(int *)((char *)pthread_self() + 720));
-    printf("=============== 5. (char *)pthread_self()+720: %p\n",
-           (char *)pthread_self() + 720);
-    printf("=============== 5b. *(int *)((char *)pthread_self()+720): %d\n",
-           *(int *)((char *)pthread_self() + 720));
-  }
-  if (getpid() != orig_pid) {
-    sleep(1);  // Let's see if parent or child process joins with this thread.
+    sleep(1); // Let's see if parent or child process joins with this thread.
   }
   char format[] = "Child thread %ld of %s process is exiting.";
   char *return_string = malloc(50);
   snprintf(return_string, 50, format, syscall(SYS_gettid),
-           (getpid() == orig_pid ? "parent" : "child"));
+    (getpid() == orig_pid ? "parent" : "child"));
   return return_string;
 }
 
 #pragma GCC diagnostic ignored "-Wformat-security"
 #ifndef NUM_THREADS
-#define NUM_THREADS 3
+# define NUM_THREADS 3
 #endif
 int main() {
   sem_init(&sem_parent, 0, 0);
   sem_init(&sem_child, 0, 0);
-  AddSegvHandler();
-  pthread_t thread[NUM_THREADS - 1];
-  for (int i = 0; i < NUM_THREADS - 1; i++) {
+AddSegvHandler();
+  pthread_t thread[NUM_THREADS-1];
+  for (int i = 0; i < NUM_THREADS-1; i++) {
     pthread_create(&thread[i], NULL, child_thread, NULL);
   }
-  for (int i = 0; i < NUM_THREADS - 1; i++) {
+  for (int i = 0; i < NUM_THREADS-1; i++) {
     sem_wait(&sem_parent);
   }
-  printf("=============== 2. (char *)thread[0]+720: %p\n",
-         (char *)thread[0] + 720);
+printf("=============== 2. (char *)thread[0]+720: %p\n", (char *)thread[0]+720);
   printf("Forking ...\n");
   pid_t childpid = multithreaded_fork();
-  for (int i = 0; i < NUM_THREADS - 1; i++) {
-    sem_post(&sem_child);  // Let child thread move on.
+  for (int i = 0; i < NUM_THREADS-1; i++) {
+    sem_post(&sem_child); // Let child thread move on.
   }
 
-  if (childpid > 0) {  // If parent process (parent thread)
+  if (childpid > 0) { // If parent process (parent thread)
     // Wait and allow parent thread of child process to do pthread_join first.
     int status;
     assert(waitpid(childpid, &status, 0) == childpid);
@@ -495,19 +590,18 @@ int main() {
     }
   }
 
-  if (childpid == 0) {
-    printf("=============== 6. (char *)thread[0]+720: %p\n",
-           (char *)thread[0] + 720);
-  }
+if (childpid == 0) {
+printf("=============== 6. (char *)thread[0]+720: %p\n", (char *)thread[0]+720);
+}
   void *child_return_string;
-  for (int i = 0; i < NUM_THREADS - 1; i++) {
+  for (int i = 0; i < NUM_THREADS-1; i++) {
     assert(pthread_join(thread[i], &child_return_string) == 0);
-    printf("Child thread has joined %ld: %s\n", syscall(SYS_gettid),
-           (char *)child_return_string);
-    free(child_return_string);  // Was malloc'ed in child thread
+    printf("Child thread has joined %ld: %s\n",
+                  syscall(SYS_gettid), (char *)child_return_string);
+    free(child_return_string); // Was malloc'ed in child thread
   }
 
-  if (childpid == 0) {  // if child process (parent thread)
+  if (childpid == 0) { // if child process (parent thread)
     // NOTE: glibc:pthread_tryjoin_np has a bug.  If pthread_join is called
     //   first, then the tid field of 'struct pthread' will be '-1',
     //   and so pthread_tryjoin_np returns EBUSY, instead of ESARCH.
@@ -523,17 +617,15 @@ int main() {
                      "*** NOTE: The 'pthread_join' likely returned success.\n"
                      "***       without joining to any child thread.\n"
                      "***       Run: DMTCP:util/check-pthread-tid-offset.c\n\n",
-                     getpid());
+                    getpid());
       fflush(stderr);
       return 0;
     } else if (rc2 == EINVAL) {
       printf_thread("*** PID %d: pthread_tryjoin_np returned EINVAL\n",
                     getpid());
     } else {
-      printf_thread(
-          "PID %d: And pthread_tryjoin_np shows that there are"
-          " no more child threads.\n",
-          getpid());
+      printf_thread("PID %d: And pthread_tryjoin_np shows that there are"
+                    " no more child threads.\n", getpid());
     }
   }
 
@@ -564,8 +656,8 @@ The first three fields of tcbhead_t are:
   void *self;           /* Pointer to the thread descriptor.  */
 
 THREAD_SELF is defined as:
-#define THREAD_SELF \
-  (*(struct pthread * __seg_fs *)offsetof(struct pthread, header.self))
+  #  define THREAD_SELF \
+     (*(struct pthread *__seg_fs *) offsetof (struct pthread, header.self))
 where the macro is referring to the 'header' field at the beginning of 'struct pthread'.
 In fact, pthread_self(), internally, is simply returning THREAD_SELF.
 NOTE ON THREAD_SELF:  Apparently, the notation '*__seg_fs' tells the compiler to use the

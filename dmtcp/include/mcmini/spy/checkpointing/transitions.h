@@ -17,7 +17,11 @@ typedef enum transition_type {
   THREAD_CREATE_TYPE,
   THREAD_JOIN_TYPE,
   THREAD_EXIT_TYPE,
-  PROCESS_EXIT_TYPE
+  PROCESS_EXIT_TYPE,
+  SEM_INIT_TYPE,
+  SEM_WAIT_TYPE,
+  SEM_POST_TYPE,
+  SEM_DESTROY_TYPE
   // sem_init,
   // sem_wait,
   // sem_post,

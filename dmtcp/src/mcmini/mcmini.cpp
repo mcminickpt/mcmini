@@ -8,10 +8,7 @@
 #include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/thread.hpp"
-#include "mcmini/model/program.hpp"
-#include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
-#include "mcmini/model/transition.hpp"
 #include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/transitions/mutex/callbacks.hpp"
 #include "mcmini/model/transitions/thread/callbacks.hpp"
@@ -27,6 +24,7 @@
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
@@ -325,6 +323,40 @@ void do_recording(const config& config) {
   target_program.execvp();
 }
 
+std::string find_first_ckpt_file_in_cwd() {
+  try {
+    // Open the current directory
+    DIR* dir = opendir(".");
+    if (dir == nullptr) {
+      perror("opendir");
+      return "";
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+      // Check if the entry is a regular file and has the .foo extension
+      if (entry->d_type == DT_REG) {  // DT_REG indicates a regular file
+        std::string filename(entry->d_name);
+        std::cout << filename << std::endl;
+        if (filename.size() >= 6 &&
+            filename.substr(filename.size() - 6) == ".dmtcp") {
+          std::cout << "Found file: " << filename << std::endl;
+          closedir(dir);
+          return filename;
+        }
+      }
+    }
+    std::cout
+        << "No file with the `.dmtcp` extension found in the current directory."
+        << std::endl;
+    closedir(dir);
+    return "";
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return "";
+  }
+}
+
 int main_cpp(int argc, const char** argv) {
   model::config mcmini_config;
 
@@ -357,6 +389,9 @@ int main_cpp(int argc, const char** argv) {
                strcmp(cur_arg[0], "-ckpt") == 0) {
       mcmini_config.checkpoint_file = cur_arg[1];
       cur_arg += 2;
+    } else if (strcmp(cur_arg[0], "--from-first-checkpoint") == 0) {
+      mcmini_config.checkpoint_file = find_first_ckpt_file_in_cwd();
+      cur_arg += 1;
     } else if (strcmp(cur_arg[0], "--multithreaded-fork") == 0 ||
                strcmp(cur_arg[0], "-mtf") == 0) {
       mcmini_config.use_multithreaded_fork = true;
@@ -384,14 +419,15 @@ int main_cpp(int argc, const char** argv) {
       cur_arg++;
     } else if (strcmp(cur_arg[0], "--help") == 0 ||
                strcmp(cur_arg[0], "-h") == 0) {
-      fprintf(stderr,
-              "Usage: mcmini (experimental)\n"
-              "              [--record|-r <seconds>] \n"
-              "              [--from-checkpoint <ckpt>] \n"
-              "              [--max-depth-per-thread|-m <num>]\n"
-              "              [--first-deadlock|--first|-f]\n"
-              "              [--help|-h]\n"
-              "              target_executable\n");
+      fprintf(
+          stderr,
+          "Usage: mcmini (experimental)\n"
+          "              [--record|-r <seconds>] \n"
+          "              [--from-checkpoint <ckpt>] [--multithreaded-fork] \n"
+          "              [--max-depth-per-thread|-m <num>]\n"
+          "              [--first-deadlock|--first|-f]\n"
+          "              [--help|-h]\n"
+          "              target_executable\n");
       exit(1);
     } else {
       printf("mcmini: unrecognized option: %s\n", cur_arg[0]);
