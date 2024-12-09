@@ -2,6 +2,7 @@
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
+#include "mcmini/misc/cond/cond_var_policy.hpp"
 #include <string>
 
 namespace model {
@@ -10,17 +11,25 @@ namespace objects {
 struct condition_variable : public model::visible_object_state {
  public:
   /* The four possible states for a condition variable */
-  enum state { cv_uninitialized, cv_initialized, cv_waiting, cv_signalled, cv_transitional };
+  enum state { 
+        cv_uninitialized, 
+        cv_initialized, 
+        cv_waiting, 
+        cv_signalled, 
+        cv_transitional 
+        };
 
  private:
   state current_state = state::cv_uninitialized;
   int waiting_count = 0;
+  std::unique_ptr<ConditionVariablePolicy> policy;
 
  public:
   condition_variable() = default;
   ~condition_variable() = default;
   condition_variable(const condition_variable &) = default;
   condition_variable(state s) : current_state(s) {}
+  condition_variable(state s, std::unique_ptr<ConditionVariablePolicy> p) : current_state(s), policy(std::move(p)) {}
   condition_variable(state s, int count) : current_state(s), waiting_count(count) {}
   condition_variable(state s, pthread_t waiting_thread, pthread_mutex_t *mutex, int count) : current_state(s), waiting_count(count) {}
   int get_waiting_count() const { return waiting_count; }
