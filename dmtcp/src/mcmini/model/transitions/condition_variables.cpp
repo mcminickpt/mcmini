@@ -1,7 +1,7 @@
 #include "mcmini/mem.h"
 #include "mcmini/model/exception.hpp"
 #include "mcmini/model/transitions/condition_variables/callbacks.hpp"
-
+#include "../include/mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
 using namespace model;
 using namespace objects;
 
@@ -13,9 +13,18 @@ model::transition* cond_init_callback(runner_id_t p,
   memcpy_v(&remote_cond, (volatile void*)rmb.cnts, sizeof(pthread_cond_t*));
 
   // Locate the corresponding model of this object
-  if (!m.contains(remote_cond))
-    m.observe_object(remote_cond, new condition_variable(condition_variable::state::cv_uninitialized));
-  
+  if (!m.contains(remote_cond)) {
+    // FIXME: Allow dynamic selection of wakeup policies.
+    // For now, we hard-code it here. Not great, but at least
+    // we can change it relatively easily still
+    auto policy = std::unique_ptr<ConditionVariablePolicy>(
+      new ConditionVariableArbitraryPolicy());
+      m.observe_object(remote_cond, 
+      new condition_variable(
+        condition_variable::state::cv_initialized, 
+        std::move(policy)));  
+  }
+    
   state::objid_t const cond = m.get_model_of_object(remote_cond);
   return new transitions::condition_variable_init(p, cond);
 }
