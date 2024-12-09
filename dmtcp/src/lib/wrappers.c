@@ -466,7 +466,9 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     }
     case PRE_CHECKPOINT_THREAD: {
       pthread_once(&main_thread_once, &record_main_thread);
-      return libdmtcp_pthread_create(thread, attr, routine, arg);
+      int rc = libdmtcp_pthread_create(thread, attr, routine, arg);
+      ckpt_pthread_descriptor = *thread;
+      return rc;
     }
     case RECORD:
     case PRE_CHECKPOINT:

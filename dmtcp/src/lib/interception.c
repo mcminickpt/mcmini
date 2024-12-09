@@ -22,6 +22,7 @@ typeof(&pthread_mutex_timedlock) pthread_mutex_timedlock_ptr;
 typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 typeof(&pthread_mutex_destroy) pthread_mutex_destroy_ptr;
 typeof(&sem_wait) sem_wait_ptr;
+typeof(&sem_timedwait) sem_timedwait_ptr;
 typeof(&sem_post) sem_post_ptr;
 typeof(&sem_init) sem_init_ptr;
 typeof(&sem_destroy) sem_destroy_ptr;
@@ -34,6 +35,7 @@ typeof(&pthread_cond_destroy) pthread_cond_destroy_ptr;
 typeof(&sleep) sleep_ptr;
 __attribute__((__noreturn__)) typeof(&exit) exit_ptr;
 __attribute__((__noreturn__)) typeof(&abort) abort_ptr;
+typeof(&fork) fork_ptr;
 
 void libmcmini_init(void) {
   pthread_once(&libmcini_init, &mc_load_intercepted_pthread_functions);
@@ -73,6 +75,7 @@ void mc_load_intercepted_pthread_functions(void) {
   pthread_mutex_unlock_ptr = dlsym(libpthread_handle, "pthread_mutex_unlock");
   pthread_mutex_destroy_ptr = dlsym(libpthread_handle, "pthread_mutex_destroy");
   sem_wait_ptr = dlsym(libpthread_handle, "sem_wait");
+  sem_timedwait_ptr = dlsym(libpthread_handle, "sem_timedwait");
   sem_post_ptr = dlsym(libpthread_handle, "sem_post");
   sem_init_ptr = dlsym(libpthread_handle, "sem_init");
   pthread_cond_init_ptr = dlsym(libpthread_handle, "pthread_cond_init");
@@ -84,9 +87,8 @@ void mc_load_intercepted_pthread_functions(void) {
   sleep_ptr = dlsym(libc_handle, "sleep");
   exit_ptr = dlsym(libc_handle, "exit");
   abort_ptr = dlsym(libc_handle, "abort");
-
+  fork_ptr = dlsym(libc_handle, "fork");
   dlclose(libpthread_handle);
-
   dlclose(libc_handle);
 
   if (dmtcp_is_enabled()) {
@@ -254,6 +256,10 @@ MCMINI_NO_RETURN void libc_exit(int status) {
   libmcmini_init();
   (*exit_ptr)(status);
 }
+pid_t libc_fork(void) {
+  libmcmini_init();
+  return (*fork_ptr)();
+}
 
 int libpthread_sem_init(sem_t *sem, int pshared, int value) {
   libmcmini_init();
@@ -266,4 +272,8 @@ int libpthread_sem_post(sem_t *sem) {
 int libpthread_sem_wait(sem_t *sem) {
   libmcmini_init();
   return (*sem_wait_ptr)(sem);
+}
+int libpthread_sem_timedwait(sem_t *sem, struct timespec *ts) {
+  libmcmini_init();
+  return (*sem_timedwait_ptr)(sem, ts);
 }

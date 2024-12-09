@@ -16,6 +16,9 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex);
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex);
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                     void *(*routine)(void *), void *arg);
+int mc_sem_init(sem_t *, int, int);
+int mc_sem_post(sem_t *);
+int mc_sem_wait(sem_t *);
 int mc_pthread_join(pthread_t, void**);
 unsigned mc_sleep(unsigned);
 int mc_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
