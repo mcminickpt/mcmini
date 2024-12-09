@@ -145,4 +145,12 @@ void print_rec_list(const rec_list *head) {
 
 void notify_template_thread() { sem_post(&dmtcp_restart_sem); }
 
+bool is_in_restart_mode(void) {
+  enum libmcmini_mode mode = get_current_mode();
+  return mode == DMTCP_RESTART_INTO_BRANCH ||
+         mode == DMTCP_RESTART_INTO_TEMPLATE;
+}
 enum libmcmini_mode get_current_mode() { return atomic_load(&libmcmini_mode); }
+void set_current_mode(enum libmcmini_mode new_mode) {
+  atomic_store(&libmcmini_mode, new_mode);
+}

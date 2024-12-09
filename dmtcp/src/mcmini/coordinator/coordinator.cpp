@@ -34,7 +34,7 @@ coordinator::coordinator(
 
 void coordinator::execute_runner(process::runner_id_t runner_id) {
   if (!current_process_handle) {
-    throw real_world::process::execution_exception(
+    throw real_world::process::execution_error(
         "Failed to execute runner with id \"" + std::to_string(runner_id) +
         "\": the process is not alive");
   }
@@ -45,7 +45,7 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
   model::transition_registry::transition_discovery_callback callback_function =
       runtime_transition_mapping.get_callback_for(rttid);
   if (!callback_function) {
-    throw real_world::process::execution_exception(
+    throw real_world::process::execution_error(
         "Execution resulted in a runner scheduled to execute the transition "
         "type with the RTTID '" +
         std::to_string(rttid) +
@@ -58,7 +58,7 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
   model::transition *pending_operation =
       callback_function(runner_id, *mb, remote_address_mapping);
   if (!pending_operation) {
-    throw real_world::process::execution_exception(
+    throw real_world::process::execution_error(
         "Failed to translate the data written into the mailbox of runner " +
         std::to_string(runner_id));
   }
@@ -88,23 +88,9 @@ void coordinator::return_to_depth(uint32_t n) {
   for (const model::transition *t : this->current_program_model.get_trace()) {
     this->current_process_handle->execute_runner(t->get_executor());
   }
-
-  std::cerr
-      << "\n\n**************** AFTER RESTORATION *********************\n\n"
-      << this->current_program_model.get_state_sequence().back().debug_string();
-
-  std::stringstream ss;
-  const auto &program_model = get_current_program_model();
-  for (const auto &t : program_model.get_trace()) {
-    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
-  }
-  ss << "\nNEXT THREAD OPERATIONS\n";
-  for (const auto &tpair : program_model.get_pending_transitions()) {
-    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
-  }
-  std::cerr << ss.str()
-            << "\n\n**************** AFTER RESTORATION  "
-               "*********************\n\n";
+  std::cerr << "\n\n**************** AFTER RESTORATION *********************\n\n";
+  get_current_program_model().dump_state(std::cerr);
+  std::cerr << "\n\n**************** AFTER RESTORATION *********************\n\n";
   std::cerr.flush();
 }
 

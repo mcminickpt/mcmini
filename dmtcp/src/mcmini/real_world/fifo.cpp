@@ -14,7 +14,7 @@ fifo::fifo(const std::string& name) : name(name) {
   if (mkfifo(name.c_str(), S_IRUSR | S_IWUSR) != 0) {
     if (errno == EEXIST) {
       std::cerr << "The FIFO `" << name
-                << "` already exist. We'll use the existing one";
+                << "` already exists. We'll use the existing one";
     } else {
       std::perror("mkfifo");
       std::exit(EXIT_FAILURE);

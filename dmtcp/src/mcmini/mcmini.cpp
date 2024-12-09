@@ -21,7 +21,7 @@
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/fifo.hpp"
 #include "mcmini/real_world/process/dmtcp_process_source.hpp"
-#include "mcmini/real_world/process/fork_process_source.hpp"
+#include "mcmini/real_world/process/multithreaded_fork_process_source.hpp"
 #include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/signal.hpp"
 #include "mcmini/spy/checkpointing/objects.h"
@@ -95,7 +95,7 @@ runner_state* translate_recorded_runner_to_model(
 }
 
 void finished_trace_classic_dpor(const coordinator& c) {
-  static uint32_t trace_id = 0;
+  static uint32_t trace_id = 1;
 
   std::stringstream ss;
   const auto& program_model = c.get_current_program_model();
@@ -120,7 +120,17 @@ void found_undefined_behavior(const coordinator& c,
 
 void found_deadlock(const coordinator& c) {
   std::cerr << "DEADLOCK" << std::endl;
-  finished_trace_classic_dpor(c);
+  std::stringstream ss;
+  const auto& program_model = c.get_current_program_model();
+  for (const auto& t : program_model.get_trace()) {
+    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  }
+  ss << "\nNEXT THREAD OPERATIONS\n";
+  for (const auto& tpair : program_model.get_pending_transitions()) {
+    ss << "thread " << tpair.first << ": " << tpair.second->to_string() << "\n";
+  }
+  std::cout << ss.str();
+  std::cout.flush();
 }
 
 void do_model_checking(const config& config) {
@@ -148,10 +158,16 @@ void do_model_checking(const config& config) {
   program model_for_program_starting_at_main(state_of_program_at_main,
                                              std::move(initial_first_steps));
 
-  target target_program(config.target_executable, config.target_executable_args);
+  target target_program(config.target_executable,
+                        config.target_executable_args);
   coordinator coordinator(std::move(model_for_program_starting_at_main),
                           std::move(tr),
                           make_unique<fork_process_source>(target_program));
+
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  coordinator.get_current_program_model().dump_state(std::cerr);
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  std::cerr.flush();
 
   dr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::depends);
@@ -193,6 +209,7 @@ void do_model_checking(const config& config) {
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
   c.trace_completed = &finished_trace_classic_dpor;
+  c.deadlock = &found_deadlock;
   c.undefined_behavior = &found_undefined_behavior;
   classic_dpor_checker.verify_using(coordinator, c);
   std::cout << "Model checking completed!" << std::endl;
@@ -201,8 +218,17 @@ void do_model_checking(const config& config) {
 void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   volatile mcmini_shm_file* rw_region =
       xpc_resources::get_instance().get_rw_region()->as<mcmini_shm_file>();
-  auto dmtcp_template_handle =
-      extensions::make_unique<dmtcp_process_source>(config.checkpoint_file);
+
+  std::unique_ptr<process_source> dmtcp_template_handle;
+
+  if (config.use_multithreaded_fork) {
+    dmtcp_template_handle =
+        extensions::make_unique<multithreaded_fork_process_source>(
+            config.checkpoint_file);
+  } else {
+    dmtcp_template_handle =
+        extensions::make_unique<dmtcp_process_source>(config.checkpoint_file);
+  }
 
   // Make sure that `dmtcp_restart` has executed and that the template
   // process is ready for execution; otherwise, the state restoration will not
@@ -283,6 +309,11 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     }
   }
 
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  coordinator.get_current_program_model().dump_state(std::cerr);
+  std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
+  std::cerr.flush();
+
   classic_dpor::dependency_relation_type dr;
   classic_dpor::coenabled_relation_type cr;
   dr.register_dd_entry<const transitions::thread_create>(
@@ -326,6 +357,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
 
   c.trace_completed = &finished_trace_classic_dpor;
   c.undefined_behavior = &found_undefined_behavior;
+  c.deadlock = &found_deadlock;
   classic_dpor_checker.verify_using(coordinator, c);
   std::cerr << "Deep debugging completed!" << std::endl;
 }
@@ -341,6 +373,7 @@ void do_recording(const config& config) {
   dmtcp_launch_args.push_back(std::to_string(config.checkpoint_period.count()));
   dmtcp_launch_args.push_back("--with-plugin");
   dmtcp_launch_args.push_back(libmcmini_path);
+  dmtcp_launch_args.push_back("--modify-env");
   dmtcp_launch_args.push_back(config.target_executable);
   for (const std::string& target_arg : config.target_executable_args)
     dmtcp_launch_args.push_back(target_arg);
@@ -372,7 +405,8 @@ int main_cpp(int argc, const char** argv) {
         exit(1);
       }
       cur_arg += 2;
-    } else if (strcmp(cur_arg[0], "--interval") == 0 || strcmp(cur_arg[0], "-i") == 0) {
+    } else if (strcmp(cur_arg[0], "--interval") == 0 ||
+               strcmp(cur_arg[0], "-i") == 0) {
       mcmini_config.record_target_executable_only = true;
       mcmini_config.checkpoint_period =
           std::chrono::seconds(strtoul(cur_arg[1], nullptr, 10));
@@ -381,6 +415,10 @@ int main_cpp(int argc, const char** argv) {
                strcmp(cur_arg[0], "-ckpt") == 0) {
       mcmini_config.checkpoint_file = cur_arg[1];
       cur_arg += 2;
+    } else if (strcmp(cur_arg[0], "--multithreaded-fork") == 0 ||
+               strcmp(cur_arg[0], "-mtf") == 0) {
+      mcmini_config.use_multithreaded_fork = true;
+      cur_arg++;
     } else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
       mcmini_config.max_thread_execution_depth =
           strtoul(cur_arg[1], nullptr, 10);
