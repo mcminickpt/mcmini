@@ -47,6 +47,7 @@ int libpthread_cond_destroy(pthread_cond_t*);
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);
+int libpthread_sem_timedwait(sem_t*, struct timespec *);
 
 unsigned sleep(unsigned);
 unsigned libc_sleep(unsigned);
@@ -56,3 +57,5 @@ MCMINI_NO_RETURN void libc_exit(int);
 
 void abort(void);
 MCMINI_NO_RETURN void libc_abort(void);
+
+pid_t libc_fork(void);

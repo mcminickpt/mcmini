@@ -1,3 +1,4 @@
+#include "mcmini/Thread_queue.h"
 #include "mcmini/common/shm_config.h"
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/coordinator/model_to_system_map.hpp"
@@ -6,17 +7,16 @@
 #include "mcmini/mem.h"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/config.hpp"
+#include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/thread.hpp"
-#include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
-#include "mcmini/model/transition.hpp"
 #include "mcmini/model/transition_registry.hpp"
+#include "mcmini/model/transitions/condition_variables/callbacks.hpp"
 #include "mcmini/model/transitions/mutex/callbacks.hpp"
 #include "mcmini/model/transitions/thread/callbacks.hpp"
-#include "mcmini/model/transitions/condition_variables/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/fifo.hpp"
@@ -26,10 +26,10 @@
 #include "mcmini/signal.hpp"
 #include "mcmini/spy/checkpointing/objects.h"
 #include "mcmini/spy/checkpointing/transitions.h"
-#include "mcmini/Thread_queue.h"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <linux/limits.h>
 #include <sys/stat.h>
@@ -54,30 +54,41 @@ using namespace objects;
 using namespace real_world;
 
 visible_object_state* translate_recorded_object_to_model(
-    const ::visible_object& recorded_object , 
-    const std::unordered_map<void*, std::vector<std::pair<runner_id_t, condition_variable_status>>> cv_waiting_threads) {
+    const ::visible_object& recorded_object,
+    const std::unordered_map<
+        void*, std::vector<std::pair<runner_id_t, condition_variable_status>>>
+        cv_waiting_threads) {
   // TODO: A function table would be slightly better, but this works perfectly
   // fine too.
   switch (recorded_object.type) {
     case MUTEX: {
-      auto mutex_state = static_cast<objects::mutex::state>(recorded_object.mut_state);
-      pthread_mutex_t* mutex_location = (pthread_mutex_t*)recorded_object.location;
+      auto mutex_state =
+          static_cast<objects::mutex::state>(recorded_object.mut_state);
+      pthread_mutex_t* mutex_location =
+          (pthread_mutex_t*)recorded_object.location;
       return new objects::mutex(mutex_state, mutex_location);
     }
     case CONDITION_VARIABLE: {
       // Create the condition variable model object with full state information
       auto cv_state = static_cast<objects::condition_variable::state>(
           recorded_object.cond_state.status);
-    
-      runner_id_t interacting_thread = recorded_object.cond_state.interacting_thread;
-      pthread_mutex_t* associated_mutex = recorded_object.cond_state.associated_mutex;
+
+      runner_id_t interacting_thread =
+          recorded_object.cond_state.interacting_thread;
+      pthread_mutex_t* associated_mutex =
+          recorded_object.cond_state.associated_mutex;
       int count = recorded_object.cond_state.count;
       // get waiting threads from the map
       auto it = cv_waiting_threads.find(recorded_object.location);
-      std::vector<std::pair<runner_id_t, condition_variable_status>> waiters_with_state = 
-      (it != cv_waiting_threads.end()) ? it->second : std::vector<std::pair<runner_id_t, condition_variable_status>>();
-      return new objects::condition_variable(
-          cv_state, interacting_thread, associated_mutex, count, waiters_with_state);
+      std::vector<std::pair<runner_id_t, condition_variable_status>>
+          waiters_with_state =
+              (it != cv_waiting_threads.end())
+                  ? it->second
+                  : std::vector<
+                        std::pair<runner_id_t, condition_variable_status>>();
+      return new objects::condition_variable(cv_state, interacting_thread,
+                                             associated_mutex, count,
+                                             waiters_with_state);
     }
     // Other objects here
     // case ...  { }
@@ -155,7 +166,8 @@ void do_model_checking(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
   tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
-  tr.register_transition(COND_ENQUEUE_TYPE, &cond_waiting_thread_enqueue_callback);
+  tr.register_transition(COND_ENQUEUE_TYPE,
+                         &cond_waiting_thread_enqueue_callback);
   tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
   tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
@@ -190,17 +202,17 @@ void do_model_checking(const config& config) {
                        const transitions::mutex_lock>(
       &transitions::mutex_lock::depends);
   dr.register_dd_entry<const transitions::condition_variable_wait,
-                      const transitions::condition_variable_init>(
+                       const transitions::condition_variable_init>(
       &transitions::condition_variable_wait::depends);
   dr.register_dd_entry<const transitions::condition_variable_wait,
-                      const transitions::mutex_lock>(
-                        &transitions::condition_variable_wait::depends);
+                       const transitions::mutex_lock>(
+      &transitions::condition_variable_wait::depends);
   dr.register_dd_entry<const transitions::condition_variable_signal,
-                      const transitions::condition_variable_wait>(
-                        &transitions::condition_variable_signal::depends);
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_signal::depends);
   dr.register_dd_entry<const transitions::condition_variable_signal,
-                      const transitions::mutex_lock>(
-                        &transitions::condition_variable_signal::depends);
+                       const transitions::mutex_lock>(
+      &transitions::condition_variable_signal::depends);
   cr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::coenabled_with);
   cr.register_dd_entry<const transitions::thread_join>(
@@ -216,16 +228,16 @@ void do_model_checking(const config& config) {
       &transitions::condition_variable_signal::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_broadcast,
                        const transitions::condition_variable_wait>(
-        &transitions::condition_variable_broadcast::coenabled_with);
+      &transitions::condition_variable_broadcast::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_broadcast,
                        const transitions::mutex_unlock>(
-        &transitions::condition_variable_broadcast::coenabled_with);                                          
+      &transitions::condition_variable_broadcast::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_destroy,
-                        const transitions::condition_variable_wait>(
-        &transitions::condition_variable_destroy::coenabled_with);
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_destroy::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_destroy,
-                        const transitions::condition_variable_signal>(
-        &transitions::condition_variable_destroy::coenabled_with);
+                       const transitions::condition_variable_signal>(
+      &transitions::condition_variable_destroy::coenabled_with);
 
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
@@ -263,7 +275,8 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
   tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
-  tr.register_transition(COND_ENQUEUE_TYPE, &cond_waiting_thread_enqueue_callback);
+  tr.register_transition(COND_ENQUEUE_TYPE,
+                         &cond_waiting_thread_enqueue_callback);
   tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
   tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
@@ -277,23 +290,22 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     fifo fifo("/tmp/mcmini-fifo");
     ::visible_object current_obj;
     std::vector<::visible_object> recorded_threads;
-    std::unordered_map<void*, std::vector<std::pair<runner_id_t, condition_variable_status>>> cv_waiting_threads;
+    std::unordered_map<
+        void*, std::vector<std::pair<runner_id_t, condition_variable_status>>>
+        cv_waiting_threads;
     while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       if (current_obj.type == THREAD) {
         recorded_threads.emplace_back(std::move(current_obj));
-      }else if (current_obj.type == CV_WAITERS_QUEUE){
-      // Capture both thread ID and state
-        cv_waiting_threads[current_obj.waiting_queue_state.cv_location].push_back(
-          std::make_pair(
-            current_obj.waiting_queue_state.waiting_id,
-            current_obj.waiting_queue_state.cv_state
-          )
-        );
-      }
-      else {
-        recorder.observe_object(
-            current_obj.location,
-            translate_recorded_object_to_model(current_obj,cv_waiting_threads));
+      } else if (current_obj.type == CV_WAITERS_QUEUE) {
+        // Capture both thread ID and state
+        cv_waiting_threads[current_obj.waiting_queue_state.cv_location]
+            .push_back(
+                std::make_pair(current_obj.waiting_queue_state.waiting_id,
+                               current_obj.waiting_queue_state.cv_state));
+      } else {
+        recorder.observe_object(current_obj.location,
+                                translate_recorded_object_to_model(
+                                    current_obj, cv_waiting_threads));
       }
     }
 
@@ -359,17 +371,17 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
                        const transitions::mutex_lock>(
       &transitions::mutex_lock::depends);
   dr.register_dd_entry<const transitions::condition_variable_wait,
-                      const transitions::condition_variable_init>(
+                       const transitions::condition_variable_init>(
       &transitions::condition_variable_wait::depends);
   dr.register_dd_entry<const transitions::condition_variable_wait,
-                      const transitions::mutex_lock>(
-                        &transitions::condition_variable_wait::depends);
+                       const transitions::mutex_lock>(
+      &transitions::condition_variable_wait::depends);
   dr.register_dd_entry<const transitions::condition_variable_signal,
-                      const transitions::condition_variable_wait>(
-                        &transitions::condition_variable_signal::depends);
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_signal::depends);
   dr.register_dd_entry<const transitions::condition_variable_signal,
-                      const transitions::mutex_lock>(
-                        &transitions::condition_variable_signal::depends);
+                       const transitions::mutex_lock>(
+      &transitions::condition_variable_signal::depends);
   cr.register_dd_entry<const transitions::thread_create>(
       &transitions::thread_create::coenabled_with);
   cr.register_dd_entry<const transitions::thread_join>(
@@ -385,17 +397,16 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
       &transitions::condition_variable_signal::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_broadcast,
                        const transitions::condition_variable_wait>(
-        &transitions::condition_variable_broadcast::coenabled_with);
+      &transitions::condition_variable_broadcast::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_broadcast,
                        const transitions::mutex_unlock>(
-        &transitions::condition_variable_broadcast::coenabled_with);                                          
+      &transitions::condition_variable_broadcast::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_destroy,
-                        const transitions::condition_variable_wait>(
-        &transitions::condition_variable_destroy::coenabled_with);
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_destroy::coenabled_with);
   cr.register_dd_entry<const transitions::condition_variable_destroy,
-                        const transitions::condition_variable_signal>(
-        &transitions::condition_variable_destroy::coenabled_with);
-
+                       const transitions::condition_variable_signal>(
+      &transitions::condition_variable_destroy::coenabled_with);
 
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
@@ -426,6 +437,40 @@ void do_recording(const config& config) {
 
   std::cout << "Recording: " << target_program << std::endl;
   target_program.execvp();
+}
+
+std::string find_first_ckpt_file_in_cwd() {
+  try {
+    // Open the current directory
+    DIR* dir = opendir(".");
+    if (dir == nullptr) {
+      perror("opendir");
+      return "";
+    }
+
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+      // Check if the entry is a regular file and has the .foo extension
+      if (entry->d_type == DT_REG) {  // DT_REG indicates a regular file
+        std::string filename(entry->d_name);
+        std::cout << filename << std::endl;
+        if (filename.size() >= 6 &&
+            filename.substr(filename.size() - 6) == ".dmtcp") {
+          std::cout << "Found file: " << filename << std::endl;
+          closedir(dir);
+          return filename;
+        }
+      }
+    }
+    std::cout
+        << "No file with the `.dmtcp` extension found in the current directory."
+        << std::endl;
+    closedir(dir);
+    return "";
+  } catch (const std::exception& e) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return "";
+  }
 }
 
 int main_cpp(int argc, const char** argv) {
@@ -460,6 +505,9 @@ int main_cpp(int argc, const char** argv) {
                strcmp(cur_arg[0], "-ckpt") == 0) {
       mcmini_config.checkpoint_file = cur_arg[1];
       cur_arg += 2;
+    } else if (strcmp(cur_arg[0], "--from-first-checkpoint") == 0) {
+      mcmini_config.checkpoint_file = find_first_ckpt_file_in_cwd();
+      cur_arg += 1;
     } else if (strcmp(cur_arg[0], "--multithreaded-fork") == 0 ||
                strcmp(cur_arg[0], "-mtf") == 0) {
       mcmini_config.use_multithreaded_fork = true;
@@ -487,14 +535,15 @@ int main_cpp(int argc, const char** argv) {
       cur_arg++;
     } else if (strcmp(cur_arg[0], "--help") == 0 ||
                strcmp(cur_arg[0], "-h") == 0) {
-      fprintf(stderr,
-              "Usage: mcmini (experimental)\n"
-              "              [--record|-r <seconds>] \n"
-              "              [--from-checkpoint <ckpt>] \n"
-              "              [--max-depth-per-thread|-m <num>]\n"
-              "              [--first-deadlock|--first|-f]\n"
-              "              [--help|-h]\n"
-              "              target_executable\n");
+      fprintf(
+          stderr,
+          "Usage: mcmini (experimental)\n"
+          "              [--record|-r <seconds>] \n"
+          "              [--from-checkpoint <ckpt>] [--multithreaded-fork] \n"
+          "              [--max-depth-per-thread|-m <num>]\n"
+          "              [--first-deadlock|--first|-f]\n"
+          "              [--help|-h]\n"
+          "              target_executable\n");
       exit(1);
     } else {
       printf("mcmini: unrecognized option: %s\n", cur_arg[0]);
