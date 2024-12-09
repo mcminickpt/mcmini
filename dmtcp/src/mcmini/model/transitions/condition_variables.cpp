@@ -1,7 +1,7 @@
 #include "mcmini/mem.h"
 #include "mcmini/model/exception.hpp"
 #include "mcmini/model/transitions/condition_variables/callbacks.hpp"
-
+#include "../include/mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
 using namespace model;
 using namespace objects;
 

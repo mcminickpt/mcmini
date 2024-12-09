@@ -75,6 +75,8 @@ struct condition_variable : public model::visible_object_state {
   }
 
 
+  pthread_mutex_t* get_mutex() const {return this->associated_mutex;}
+
   bool has_waiters() const {return this->policy->has_waiters();}
   void remove_waiter(runner_id_t tid) const  {
         this->policy->wake_thread(tid);
