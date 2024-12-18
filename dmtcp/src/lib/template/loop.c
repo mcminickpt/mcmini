@@ -15,12 +15,6 @@
 #include "mcmini/spy/checkpointing/record.h"
 #include "mcmini/spy/intercept/interception.h"
 
-// // These are for debugging, only.  If segfault, do infinite loop,
-// //   and later, we can attach with GDB.
-// static void SegvfaultHandler(int signum) {
-//   while (1)
-//     ;
-// }
 
 void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // IMPORTANT: If the THREAD in the template process ever exits, this will

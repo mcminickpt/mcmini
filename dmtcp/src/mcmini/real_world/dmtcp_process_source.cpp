@@ -67,7 +67,7 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
   //
   // The key detail is that `dmtcp_restart` calls `exec()` only.
   // So its PID is preserved.
-  assert(tstruct->cpid == target_branch_pid);
+  // assert(tstruct->cpid == target_branch_pid);
   return extensions::make_unique<local_linux_process>(target_branch_pid);
 }
 

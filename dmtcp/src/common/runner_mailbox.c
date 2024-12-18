@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "mcmini/lib/log.h"
 #include "mcmini/defines.h"
 #include "string.h"
 
