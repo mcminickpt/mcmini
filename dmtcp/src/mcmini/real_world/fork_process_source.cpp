@@ -124,3 +124,22 @@ void fork_process_source::make_new_template_process() {
   this->template_process_handle = extensions::make_unique<local_linux_process>(
       this->template_program->launch_dont_wait());
 }
+
+void multithreaded_fork_process_source::make_new_template_process() {
+  fork_process_source::make_new_template_process();
+
+  // Here we need, in addition, to wait for the template thread
+  // to have heard back from all userspace threads before declaing the template
+  // process is ready.
+  shared_memory_region* rw_region =
+      xpc_resources::get_instance().get_rw_region();
+  const volatile template_process_t* tstruct =
+      &(rw_region->as<mcmini_shm_file>()->tpt);
+  if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
+    throw process_source::process_creation_exception(
+        "The template process (" +
+        std::to_string(this->template_process_handle->get_pid()) +
+        ") was not synchronized with correctly: " +
+        std::string(strerror(errno)));
+  }
+}

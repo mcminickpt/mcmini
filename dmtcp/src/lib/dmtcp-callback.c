@@ -1,10 +1,12 @@
 #define _GNU_SOURCE
 #include <assert.h>
+#include <errno.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -75,6 +77,39 @@ void thread_handle_after_dmtcp_restart(void) {
   thread_await_scheduler();
 }
 
+void mc_template_thread_loop_forever() {
+  bool has_transferred_state = false;
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
+  while (1) {
+    log_debug("Waiting for child process");
+    wait(NULL);
+    log_debug("Waiting for `mcmini` to signal a fork");
+    sem_wait((sem_t *)&tpt->libmcmini_sem);
+    log_debug("`mcmini` signaled a fork!");
+    const pid_t ppid_before_fork = getpid();
+    const pid_t cpid = multithreaded_fork();
+    if (cpid == -1) {
+      // `fork()` failed
+      tpt->err = errno;
+      tpt->cpid = TEMPLATE_FORK_FAILED;
+    } else if (cpid == 0) {
+      // Child case: Simply return and escape into the child process.
+      mc_prepare_new_child_process(ppid_before_fork);
+      return;
+    }
+    // `libmcmini.so` acting as a template process.
+    printf("The template process created child with pid %d\n", cpid);
+    tpt->cpid = cpid;
+    sem_post((sem_t *)&tpt->mcmini_process_sem);
+
+    if (!has_transferred_state) {
+      has_transferred_state = true;
+      unsetenv("MCMINI_NEEDS_STATE");
+    }
+  }
+}
+
 static void *template_thread(void *unused) {
   // Phase 1. The template thread is created at record-time
   // _prior_ to checkpoint. It must not intervene until exclusively
@@ -139,13 +174,30 @@ static void *template_thread(void *unused) {
   // The post below attempts to handle this; however, there is
   // a race in which the cpid is not overwritten with the latest value
   // before the
-  //
-  //
-  // volatile struct mcmini_shm_file *shm_file = global_shm_start;
-  // volatile struct template_process_t *tpt = &shm_file->tpt;
-  // pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
-  // tpt->cpid = target_branch_pid;
-  // sem_post((sem_t *)&tpt->mcmini_process_sem);
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
+  pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
+  tpt->cpid = target_branch_pid;
+  libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
+
+  if (get_current_mode() == DMTCP_RESTART_INTO_TEMPLATE) {
+    printf("DMTCP_RESTART_INTO_TEMPLATE\n");
+    mc_template_thread_loop_forever();
+
+    // Reaching this point means that we're in the branch: the
+    // parent process (aka the template) will never exit
+    // the above call to `mc_template_process_loop_forever()`.
+    set_current_mode(TARGET_BRANCH_AFTER_RESTART);
+
+    // Recall that the userspace threads in the template process
+    // were idling/doing nothing. Indeed, those threads exist ONLY
+    // to ensure that `multithreaded_fork()` clones them.
+    //
+    // Now that we're finally in the branch, we can
+    libpthread_mutex_lock(&template_thread_mut);
+    pthread_cond_broadcast(&template_thread_cond);
+    libpthread_mutex_unlock(&template_thread_mut);
+  }
 
   // Phase 3. Once in a stable state, check if `mcmini` needs to construct
   // a model of what we've recorded.
@@ -215,25 +267,6 @@ static void *template_thread(void *unused) {
     fsync(fd);
     fsync(0);
     close(fd);
-  }
-
-  if (get_current_mode() == DMTCP_RESTART_INTO_TEMPLATE) {
-    printf("DMTCP_RESTART_INTO_TEMPLATE\n");
-    mc_template_process_loop_forever(&multithreaded_fork);
-
-    // Reaching this point means that we're in the branch: the
-    // parent process (aka the template) will never exit
-    // the above call to `mc_template_process_loop_forever()`.
-    set_current_mode(TARGET_BRANCH_AFTER_RESTART);
-
-    // Recall that the userspace threads in the template process
-    // were idling/doing nothing. Indeed, those threads exist ONLY
-    // to ensure that `multithreaded_fork()` clones them.
-    //
-    // Now that we're finally in the branch, we can
-    libpthread_mutex_lock(&template_thread_mut);
-    pthread_cond_broadcast(&template_thread_cond);
-    libpthread_mutex_unlock(&template_thread_mut);
   }
 
   // Exiting from the template thread is fine:

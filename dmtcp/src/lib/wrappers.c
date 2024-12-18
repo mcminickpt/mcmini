@@ -296,6 +296,7 @@ void mc_exit_thread_in_child(void) {
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
   thread_wake_scheduler_and_wait();
   thread_awake_scheduler_for_thread_finish_transition();
+  thread_block_indefinitely();
 }
 
 void mc_exit_main_thread_in_child(void) {

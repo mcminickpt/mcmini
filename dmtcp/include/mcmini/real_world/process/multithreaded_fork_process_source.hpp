@@ -24,6 +24,7 @@ class multithreaded_fork_process_source : public fork_process_source {
   dmtcp_coordinator coordinator_target;
 
  public:
+  void make_new_template_process() override;
   multithreaded_fork_process_source(const std::string &ckpt_file);
 };
 
