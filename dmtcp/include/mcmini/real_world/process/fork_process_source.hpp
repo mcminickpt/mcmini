@@ -26,7 +26,7 @@ class fork_process_source : public process_source {
   std::unique_ptr<target> template_program;
   std::unique_ptr<process_handle> template_process_handle;
 
-  void make_new_template_process();
+  virtual void make_new_template_process();
   bool has_template_process_alive() const {
     return template_process_handle != nullptr;
   }
