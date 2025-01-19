@@ -65,6 +65,7 @@ model::transition* cond_wait_callback(runner_id_t p,
     throw undefined_behavior_exception(
         "Attempting to wait on a condition variable with an uninitialized mutex");
 
+
   state::objid_t const cond = m.get_model_of_object(remote_cond);
   state::objid_t const mut = m.get_model_of_object(remote_mut);
   return new transitions::condition_variable_wait(p, cond, mut);

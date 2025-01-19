@@ -53,17 +53,15 @@ struct condition_variable : public model::visible_object_state {
   
   // ---- State Observation --- //
   bool operator==(const condition_variable &other) const {
-  return this->current_state == other.current_state &&
-          this->waiting_count == other.waiting_count;
+  return this->current_state == other.current_state;
   }
   bool operator!=(const condition_variable &other) const {
-  return this->current_state != other.current_state ||
-          this->waiting_count != other.waiting_count;
+  return this->current_state != other.current_state;
   }
-  bool is_initialized() const { return this->current_state == cv_initialized && this->waiting_count == 0; }
-  bool is_waiting() const { return this->current_state == cv_waiting && this->waiting_count > 0; }
-  bool is_signalled() const { return this->current_state == cv_signalled && this->waiting_count >=0; }
-  bool is_uninitialized() const { return this->current_state == cv_uninitialized && this->waiting_count == 0; }
+  bool is_initialized() const { return this->current_state == cv_initialized ; }
+  bool is_waiting() const { return this->current_state == cv_waiting ; }
+  bool is_signalled() const { return this->current_state == cv_signalled ; }
+  bool is_uninitialized() const { return this->current_state == cv_uninitialized ;}
   bool is_transitional() const { return this->current_state == cv_transitional;}
   bool is_destroyed() const { return this->current_state == cv_destroyed;}
 
@@ -108,8 +106,7 @@ struct condition_variable : public model::visible_object_state {
     return extensions::make_unique<condition_variable>(*this);
   }
   std::string to_string() const override {
-    return "condition_variable(state: " + std::to_string(current_state) +
-           ", waiting_count: " + std::to_string(waiting_count) + ")";  
+    return "condition_variable(state: " + std::to_string(current_state);  
     }
 };
 }  // namespace objects

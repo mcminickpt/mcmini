@@ -91,9 +91,10 @@ typedef enum condition_variable_status{
   CV_DESTROYED
 }condition_variable_status;
 
+
 typedef struct condition_variable_state{
   condition_variable_status status;
-  pthread_t waiting_thread;     // The thread that is waiting on this condition variable
+  runner_id_t interacting_thread;     // The thread that iscurrently interacting with this condition variable
   pthread_mutex_t *associated_mutex;  // The mutex that is associated with this condition variable
   int count;                    // The number of threads waiting on this condition variable
   thread_queue* waiting_threads; // The queue of threads waiting on this condition variable

@@ -653,14 +653,13 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
       if (rc == 0) {
         libpthread_mutex_lock(&rec_list_lock);
         cond_record->vo.cond_state.status = CV_INITIALIZED;
-        cond_record->vo.cond_state.waiting_thread = 0;
+        cond_record->vo.cond_state.interacting_thread = 0;
         //we typically don't know which mutex will be associated with the 
         //condition variable until a thread actually waits on it.
         cond_record->vo.cond_state.associated_mutex = NULL; 
         cond_record->vo.cond_state.waiting_threads = create_thread_queue();
         // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
         cond_record->vo.cond_state.count = 0;
-        
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
@@ -697,12 +696,15 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
     }
     case RECORD:
     case PRE_CHECKPOINT: {
+      pthread_t this_thread = pthread_self();
       libpthread_mutex_lock(&rec_list_lock);
+      rec_list *thrd_record = find_thread_record_mode(this_thread);
       rec_list *cond_record = find_object_record_mode(cond);
+      runner_id_t tmp = thrd_record->vo.thrd_state.id;
       if (cond_record == NULL) {
       //Initialize the condition variable
         visible_object vo = {
-          .type = CONDITION_VARIABLE, .location = cond, .cond_state = { .status= CV_INITIALIZED, .waiting_thread = pthread_self(), 
+          .type = CONDITION_VARIABLE, .location = cond, .cond_state = { .status= CV_INITIALIZED, .interacting_thread = tmp, 
           .associated_mutex = mutex, .count = 0 }
         };
 
@@ -794,23 +796,28 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
       memcpy_v(mb->cnts, &cond, sizeof(cond));
       memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
       thread_handle_after_dmtcp_restart();
-
       libpthread_mutex_unlock(mutex);
       mb->type = COND_WAIT_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
       memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
-      notify_template_thread();
-      thread_await_scheduler();
-      return libpthread_cond_wait(cond, mutex);      
+      thread_handle_after_dmtcp_restart();
+      libpthread_mutex_lock(mutex);
+      return 0;   
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
       volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_ENQUEUE_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
+      thread_wake_scheduler_and_wait();
+      libpthread_mutex_unlock(mutex);
       mb->type = COND_WAIT_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
       memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
       thread_wake_scheduler_and_wait();
-      return libpthread_cond_wait(cond, mutex);
+      libpthread_mutex_lock(mutex);
+      return 0;   
     }
     default: {
       // Wrapper functions should not be executing
