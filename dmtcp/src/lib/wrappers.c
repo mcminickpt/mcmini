@@ -12,6 +12,7 @@
 
 #include "mcmini/mcmini.h"
 #include "mcmini/common/exit.h"
+#include "dmtcp/include/mcmini/Thread_queue.h"
 
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
@@ -654,11 +655,13 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
         //condition variable until a thread actually waits on it.
         cond_record->vo.cond_state.associated_mutex = NULL; 
         cond_record->vo.cond_state.count = 0;
+        
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
     }
-      case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
         volatile runner_mailbox *mb = thread_get_mailbox();
         mb->type = COND_INIT_TYPE;
         memcpy_v(mb->cnts, &cond, sizeof(cond));
@@ -758,7 +761,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           //   we know it has not fully transitioned to a waiting state and can handle it accordingly.
           // - If the thread is in CV_WAITING (inner waiting room), we know it has entered a stable wait 
           //   state, ensuring the mutex-conditional interaction is checkpoint-safe.
-          if (get_current_mode() == DMTCP_RESTART) {
+          if (is_in_restart_mode()) {
             // If in restart mode, but still in the outer waiting room
             if (cond_record->vo.cond_state.status == CV_TRANSITIONAL) {
               continue; //Retry until the thread enters the wait state
@@ -779,7 +782,8 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
       cond_record->vo.cond_state.status = CV_WAITING;
       libpthread_mutex_unlock(&rec_list_lock);
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE:{
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = COND_WAIT_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
@@ -837,7 +841,8 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
       }
       return rc;
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = COND_SIGNAL_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
