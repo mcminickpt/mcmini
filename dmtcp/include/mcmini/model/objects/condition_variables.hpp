@@ -21,7 +21,9 @@ struct condition_variable : public model::visible_object_state {
 
  private:
   state current_state = state::cv_uninitialized;
-  int waiting_count = 0;
+//   int waiting_count = 0;
+  bool hadwaiters;
+  unsigned int numRemainingSpuriousWakeups = 0;
   std::unique_ptr<ConditionVariablePolicy> policy;
 
  public:
@@ -30,30 +32,50 @@ struct condition_variable : public model::visible_object_state {
   condition_variable(const condition_variable &) = default;
   condition_variable(state s) : current_state(s) {}
   condition_variable(state s, std::unique_ptr<ConditionVariablePolicy> p) : current_state(s), policy(std::move(p)) {}
-  condition_variable(state s, int count) : current_state(s), waiting_count(count) {}
-  condition_variable(state s, pthread_t waiting_thread, pthread_mutex_t *mutex, int count) : current_state(s), waiting_count(count) {}
-  int get_waiting_count() const { return waiting_count; }
+  condition_variable(state s, int count) : current_state(s) {}
+  condition_variable(state s, pthread_t waiting_thread, pthread_mutex_t *mutex) : current_state(s){}
   // ---- State Observation --- //
   bool operator==(const condition_variable &other) const {
-  return this->current_state == other.current_state &&
-          this->waiting_count == other.waiting_count;
+  return this->current_state == other.current_state;
   }
   bool operator!=(const condition_variable &other) const {
-  return this->current_state != other.current_state ||
-          this->waiting_count != other.waiting_count;
+  return this->current_state != other.current_state;
   }
-  bool is_initialized() const { return this->current_state == cv_initialized && this->waiting_count == 0; }
-  bool is_waiting() const { return this->current_state == cv_waiting && this->waiting_count > 0; }
-  bool is_signalled() const { return this->current_state == cv_signalled && this->waiting_count >=0; }
-  bool is_uninitialized() const { return this->current_state == cv_uninitialized && this->waiting_count == 0; }
+  bool is_initialized() const { return this->current_state == cv_initialized ; }
+  bool is_waiting() const { return this->current_state == cv_waiting ; }
+  bool is_signalled() const { return this->current_state == cv_signalled ; }
+  bool is_uninitialized() const { return this->current_state == cv_uninitialized ;}
   bool is_transitional() const { return this->current_state == cv_transitional;}
+
+  bool has_waiters() const {return this->policy->has_waiters();}
+  bool remove_waiter(runner_id_t tid) {
+        this->policy->wake_thread(tid);
+        // If there are any spurious wake ups allowed,
+        // we always allow the thread to wake up
+        // due to a spurious wake up and decrement the
+        // number of future such wakeups allowed
+        if (this->numRemainingSpuriousWakeups > 0) {
+            this->numRemainingSpuriousWakeups--;
+        }
+  }
+  bool waiter_can_exit(runner_id_t tid) {
+    return this->numRemainingSpuriousWakeups > 0 || 
+    this->policy->thread_can_exit(tid);
+  }
+
+  void send_signal_message() {
+        this->policy->receive_signal_message();
+  }
+
+  void send_broadcast_message() {
+        this->policy->receive_broadcast_message();
+  }
      
   std::unique_ptr<visible_object_state> clone() const override {
     return extensions::make_unique<condition_variable>(*this);
   }
   std::string to_string() const override {
-    return "condition_variable(state: " + std::to_string(current_state) +
-           ", waiting_count: " + std::to_string(waiting_count) + ")";  
+    return "condition_variable(state: " + std::to_string(current_state);  
     }
 };
 }  // namespace objects

@@ -3,6 +3,7 @@
 #include <pthread.h>
 
 #include "mcmini/defines.h"
+#include "dmtcp/include/mcmini/Thread_queue.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,24 +48,27 @@ typedef enum condition_variable_status{
   CV_TRANSITIONAL
 }condition_variable_status;
 
+
 typedef struct condition_variable_state{
   condition_variable_status status;
-  pthread_t waiting_thread;     // The thread that is waiting on this condition variable
+  runner_id_t interacting_thread;     // The thread that iscurrently interacting with this condition variable
   pthread_mutex_t *associated_mutex;  // The mutex that is associated with this condition variable
   int count;                    // The number of threads waiting on this condition variable
+  thread_queue waiting_threads; // The queue of threads waiting on this condition variable
 } condition_variable_state;
 
 typedef struct visible_object {
   visible_object_type type;
   void *location;
+  union{
   mutex_state mut_state;
   semaphore_state sem_state;
   condition_variable_state cond_state;
   thread_state thrd_state;
+  };
 } visible_object;
 
-extern visible_object empty_visible_obj;
-
+//extern visible_object empty_object;
 #ifdef __cplusplus
 }
 #endif  // extern "C"
