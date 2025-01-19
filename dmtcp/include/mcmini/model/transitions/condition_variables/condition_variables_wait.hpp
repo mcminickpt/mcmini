@@ -70,6 +70,9 @@ struct condition_variable_wait : public model::transition {
     bool depends(const mutex_lock* ml) const {
         return this->mutex_id == ml->get_id();
     }
+    bool coenabled_with(const condition_variable_wait* cw) const {
+        return this->cond_id != cw->get_id();
+    }
 };
 } // namespace transitions
 } // namespace model
