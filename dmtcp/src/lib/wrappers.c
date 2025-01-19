@@ -660,11 +660,13 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
         cond_record->vo.cond_state.waiting_threads = create_thread_queue();
         // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
         cond_record->vo.cond_state.count = 0;
+        
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
     }
-      case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
         volatile runner_mailbox *mb = thread_get_mailbox();
         mb->type = COND_INIT_TYPE;
         memcpy_v(mb->cnts, &cond, sizeof(cond));
@@ -785,7 +787,8 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
         }
       }
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE:{
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = COND_ENQUEUE_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
@@ -851,7 +854,8 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
       }
       return rc;
     }
-    case DMTCP_RESTART: {
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = COND_SIGNAL_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
