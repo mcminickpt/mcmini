@@ -47,11 +47,22 @@ typedef enum condition_variable_status{
   CV_TRANSITIONAL
 }condition_variable_status;
 
+typedef struct thread_queue_node {
+  pthread_t thread;
+  struct thread_queue_node *next;
+} thread_queue_node;
+
+typedef struct waiting_thread_queue {
+  thread_queue_node *head;
+  thread_queue_node *tail;
+} waiting_thread_queue;
+
 typedef struct condition_variable_state{
   condition_variable_status status;
-  pthread_t waiting_thread;     // The thread that is waiting on this condition variable
+  pthread_t waiting_thread;     // The thread that iscurrently interacting with this condition variable
   pthread_mutex_t *associated_mutex;  // The mutex that is associated with this condition variable
   int count;                    // The number of threads waiting on this condition variable
+  thread_queue_node *waiting_threads;
 } condition_variable_state;
 
 typedef struct visible_object {
