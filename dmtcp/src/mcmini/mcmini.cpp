@@ -58,19 +58,20 @@ visible_object_state* translate_recorded_object_to_model(
   // fine too.
   switch (recorded_object.type) {
     case MUTEX: {
-      return new objects::mutex(
-          static_cast<objects::mutex::state>(recorded_object.mut_state));
+      auto mutex_state = static_cast<objects::mutex::state>(recorded_object.mut_state);
+      pthread_mutex_t* mutex_location = (pthread_mutex_t*)recorded_object.location;
+      return new objects::mutex(mutex_state, mutex_location);
     }
     case CONDITION_VARIABLE: {
       // Create the condition variable model object with full state information
       auto cv_state = static_cast<objects::condition_variable::state>(
           recorded_object.cond_state.status);
-      pthread_t waiting_thread = recorded_object.cond_state.waiting_thread;
+      runner_id_t interacting_thread = recorded_object.cond_state.interacting_thread;
       pthread_mutex_t* associated_mutex = recorded_object.cond_state.associated_mutex;
       int count = recorded_object.cond_state.count;
-
+      thread_queue waiting_thread = recorded_object.cond_state.waiting_threads;
       // Construct the condition variable with additional fields
-      return new objects::condition_variable(cv_state,waiting_thread,associated_mutex,count);
+      return new objects::condition_variable(cv_state, interacting_thread, associated_mutex);
     }
     // Other objects here
     // case ...  { }
@@ -148,6 +149,7 @@ void do_model_checking(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
   tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
+  tr.register_transition(COND_ENQUEUE_TYPE, &cond_waiting_thread_enqueue_callback);
   tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
 
@@ -242,6 +244,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
   tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
+  tr.register_transition(COND_ENQUEUE_TYPE, &cond_waiting_thread_enqueue_callback);
   tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
 
