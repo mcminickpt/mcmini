@@ -1,14 +1,11 @@
-#include "dmtcp/include/mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
+#include "mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
 #include <algorithm>
 #include <memory>
 
-
-
-std::unique_ptr<ConditionVariablePolicy>
+ConditionVariablePolicy*
 ConditionVariableArbitraryPolicy::clone() const
 {
-  return std::unique_ptr<ConditionVariableArbitraryPolicy>(
-    new ConditionVariableArbitraryPolicy(*this));
+  return new ConditionVariableArbitraryPolicy(*this);
 }
 
 void
@@ -24,5 +21,13 @@ bool
 ConditionVariableArbitraryPolicy::has_waiters() const
 {
   return ! this->wait_queue.empty();
+}
+
+std::deque<runner_id_t> ConditionVariableArbitraryPolicy::return_wait_queue() const {
+  return this->wait_queue;
+}
+
+std::vector<WakeGroup> ConditionVariableArbitraryPolicy::return_wake_groups() const {
+  return this->wake_groups;
 }
 

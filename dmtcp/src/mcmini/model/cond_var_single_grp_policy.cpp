@@ -1,5 +1,5 @@
 /* This file is inspired by classic mcmini */
-#include "dmtcp/include/mcmini/misc/cond/cond_var_single_grp_policy.hpp"
+#include "mcmini/misc/cond/cond_var_single_grp_policy.hpp"
 
 #include <algorithm>
 

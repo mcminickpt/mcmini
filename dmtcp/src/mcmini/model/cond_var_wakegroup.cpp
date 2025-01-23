@@ -1,4 +1,4 @@
-#include "dmtcp/include/mcmini/misc/cond/cond_var_wakegroup.hpp"
+#include "mcmini/misc/cond/cond_var_wakegroup.hpp"
 #include <algorithm>
 
 

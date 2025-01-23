@@ -1,4 +1,4 @@
-#include "dmtcp/include/mcmini/misc/cond/cond_var_default_policy.hpp"
+#include "cond_var_default_policy.hpp"
 
 #include <deque>
 

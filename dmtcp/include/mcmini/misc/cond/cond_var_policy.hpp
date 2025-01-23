@@ -1,11 +1,12 @@
 #pragma once
 
 #include "mcmini/defines.h"
-#include "mcmini/misc/cond/cond_var_wakegroup.hpp"
+#include "cond_var_wakegroup.hpp"
 
 
 #include <exception>
 #include <memory>
+#include <deque>
 
 
 /**
@@ -117,9 +118,12 @@ public:
 
   virtual bool has_waiters() const = 0;
 
-  virtual std::unique_ptr<ConditionVariablePolicy> clone() const = 0;
+  virtual ConditionVariablePolicy* clone() const = 0;
 
   virtual ~ConditionVariablePolicy() = default;
+
+  virtual std::deque<runner_id_t> return_wait_queue() const = 0;
+  virtual std::vector<WakeGroup> return_wake_groups() const = 0;
 
   struct invalid_thread_addition : public std::exception {
     const char *

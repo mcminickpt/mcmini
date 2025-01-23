@@ -1,5 +1,5 @@
 /* File inspired by classic mcmini*/
-#include "dmtcp/include/mcmini/misc/cond/cond_var_default_policy.hpp"
+#include "mcmini/misc/cond/cond_var_default_policy.hpp"
 #include <algorithm>
 #include <memory>
 #include <cassert>

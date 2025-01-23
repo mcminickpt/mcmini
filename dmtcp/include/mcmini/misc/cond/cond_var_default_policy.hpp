@@ -1,5 +1,5 @@
-#include "dmtcp/include/mcmini/misc/cond/cond_var_wakegroup.hpp"
-#include "dmtcp/include/mcmini/misc/cond/cond_var_policy.hpp"
+#include "cond_var_wakegroup.hpp"
+#include "cond_var_policy.hpp"
 
 #include <deque>
 #include <unordered_set>

@@ -47,7 +47,7 @@ public:
 
   template<class InputIt>
   WakeGroup(InputIt first, InputIt last)
-    : std::vector<tid_t>(first, last)
+    : std::vector<runner_id_t>(first, last)
   {}
 
   /**
