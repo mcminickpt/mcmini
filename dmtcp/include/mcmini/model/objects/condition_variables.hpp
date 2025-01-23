@@ -2,7 +2,8 @@
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
-#include "mcmini/misc/cond/cond_var_policy.hpp"
+#include "mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
+#include "mcmini/model/objects/mutex.hpp"
 #include <string>
 
 namespace model {
@@ -21,10 +22,13 @@ struct condition_variable : public model::visible_object_state {
 
  private:
   state current_state = state::cv_uninitialized;
-//   int waiting_count = 0;
+   int waiting_count = 0;
   bool hadwaiters;
   unsigned int numRemainingSpuriousWakeups = 0;
-  std::unique_ptr<ConditionVariablePolicy> policy;
+  runner_id_t running_thread;
+  pthread_mutex_t* associated_mutex;
+  std::unique_ptr<ConditionVariablePolicy> policy = std::make_unique<ConditionVariableArbitraryPolicy>();
+  
 
  public:
   condition_variable() = default;
@@ -33,7 +37,13 @@ struct condition_variable : public model::visible_object_state {
   condition_variable(state s) : current_state(s) {}
   condition_variable(state s, std::unique_ptr<ConditionVariablePolicy> p) : current_state(s), policy(std::move(p)) {}
   condition_variable(state s, int count) : current_state(s) {}
-  condition_variable(state s, pthread_t waiting_thread, pthread_mutex_t *mutex) : current_state(s){}
+  condition_variable(state s, runner_id_t tid, pthread_mutex_t* mutex) 
+    : current_state(s), running_thread(tid), associated_mutex(mutex) {
+    if (this->policy) {
+        this->policy->add_waiter(tid);
+        waiting_count++; // Increment the count of waiting threads if needed
+    }
+}
   // ---- State Observation --- //
   bool operator==(const condition_variable &other) const {
   return this->current_state == other.current_state;
@@ -47,6 +57,8 @@ struct condition_variable : public model::visible_object_state {
   bool is_uninitialized() const { return this->current_state == cv_uninitialized ;}
   bool is_transitional() const { return this->current_state == cv_transitional;}
 
+  pthread_mutex_t* get_mutex() const {return this->associated_mutex;}
+
   bool has_waiters() const {return this->policy->has_waiters();}
   bool remove_waiter(runner_id_t tid) {
         this->policy->wake_thread(tid);
@@ -57,6 +69,9 @@ struct condition_variable : public model::visible_object_state {
         if (this->numRemainingSpuriousWakeups > 0) {
             this->numRemainingSpuriousWakeups--;
         }
+  }
+  void add_waiter(runner_id_t tid) {
+    this->policy->add_waiter(tid);
   }
   bool waiter_can_exit(runner_id_t tid) {
     return this->numRemainingSpuriousWakeups > 0 || 
