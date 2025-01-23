@@ -9,7 +9,7 @@ void init_thread_queue(thread_queue *queue) {
     queue->size = 0;
 }
 
-void enqueue_thread(thread_queue *queue, pthread_t thread) {
+void enqueue_thread(thread_queue *queue, runner_id_t thread) {
     thread_queue_node *new_node = malloc(sizeof(thread_queue_node));
     if (!new_node) {
         perror("Failed to allocate memory for thread queue node");
@@ -30,7 +30,7 @@ void enqueue_thread(thread_queue *queue, pthread_t thread) {
     queue->size++;
 }
 
-pthread_t dequeue_thread(thread_queue *queue) {
+runner_id_t dequeue_thread(thread_queue *queue) {
     if (queue->front == NULL) {
         fprintf(stderr, "Error: Attempt to dequeue from an empty queue\n");
         exit(EXIT_FAILURE);
@@ -49,7 +49,7 @@ pthread_t dequeue_thread(thread_queue *queue) {
     return thread;
 }
 
-pthread_t peek_thread(thread_queue *queue) {
+runner_id_t peek_thread(thread_queue *queue) {
     if (queue->front == NULL) {
         fprintf(stderr, "Error: Attempt to peek at an empty queue\n");
         exit(EXIT_FAILURE);

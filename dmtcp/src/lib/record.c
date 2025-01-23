@@ -118,7 +118,7 @@ void print_rec_list(const rec_list *head) {
           case CV_TRANSITIONAL: printf("TRANSITIONAL\n"); break;
           default: printf("UNKNOWN STATUS\n"); break;
         }
-        printf("  Waiting Thread: %p\n", (void *)vo->cond_state.waiting_thread);
+        printf("  Waiting Thread: %p\n", (void *)vo->cond_state.interacting_thread);
         printf("  Associated Mutex: %p\n", (void *)vo->cond_state.associated_mutex);
         printf("  Waiting Count: %d\n", vo->cond_state.count);
         break;

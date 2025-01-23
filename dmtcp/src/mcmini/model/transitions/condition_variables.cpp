@@ -29,6 +29,29 @@ model::transition* cond_init_callback(runner_id_t p,
   return new transitions::condition_variable_init(p, cond);
 }
 
+model::transition* cond_waiting_thread_enqueue_callback(runner_id_t p,
+                                                        const volatile runner_mailbox& rmb,
+                                                        model_to_system_map& m){
+  pthread_cond_t* remote_cond;
+  pthread_mutex_t* remote_mut;
+  runner_id_t thread_id;
+  memcpy_v(&remote_cond, (volatile void*)rmb.cnts, sizeof(pthread_cond_t*));
+  memcpy_v(&remote_mut, (volatile void*)(rmb.cnts + sizeof(pthread_cond_t*)), sizeof(pthread_mutex_t*));
+  memcpy_v(&thread_id, (volatile void*)(rmb.cnts + sizeof(pthread_cond_t*) + sizeof(pthread_mutex_t*)), sizeof(runner_id_t));
+
+  if(!m.contains(remote_cond))
+    throw undefined_behavior_exception(
+        "Attempting to wait on an uninitialized condition variable");
+
+  if(!m.contains(remote_mut))
+    throw undefined_behavior_exception(
+        "Attempting to wait on a condition variable with an uninitialized mutex");
+  
+  state::objid_t const cond = m.get_model_of_object(remote_cond);
+  state::objid_t const mut = m.get_model_of_object(remote_mut);
+  return new transitions::condition_variable_enqueue_thread(p, cond, mut, thread_id);
+}
+
 model::transition* cond_wait_callback(runner_id_t p, 
                                       const volatile runner_mailbox& rmb,
                                       model_to_system_map& m) {
@@ -45,6 +68,7 @@ model::transition* cond_wait_callback(runner_id_t p,
   if (!m.contains(remote_mut))
     throw undefined_behavior_exception(
         "Attempting to wait on a condition variable with an uninitialized mutex");
+
 
   state::objid_t const cond = m.get_model_of_object(remote_cond);
   state::objid_t const mut = m.get_model_of_object(remote_mut);
