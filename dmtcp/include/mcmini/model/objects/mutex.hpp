@@ -13,12 +13,14 @@ struct mutex : public model::visible_object_state {
 
  private:
   state current_state = state::uninitialized;
+  pthread_mutex_t* location;
 
  public:
   mutex() = default;
   ~mutex() = default;
   mutex(const mutex &) = default;
   mutex(state s) : current_state(s) {}
+  mutex(state s, pthread_mutex_t* loc) : current_state(s), location(loc) {}
   // ---- State Observation --- //
   bool operator==(const mutex &other) const {
     return this->current_state == other.current_state;
@@ -30,6 +32,8 @@ struct mutex : public model::visible_object_state {
   bool is_unlocked() const { return this->current_state == unlocked; }
   bool is_destroyed() const { return this->current_state == destroyed; }
   bool is_initialized() const { return this->current_state != uninitialized; }
+
+  pthread_mutex_t* get_location() const { return this->location; }
 
   std::unique_ptr<visible_object_state> clone() const override {
     return extensions::make_unique<mutex>(*this);

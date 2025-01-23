@@ -18,6 +18,10 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                     void *(*routine)(void *), void *arg);
 int mc_pthread_join(pthread_t, void**);
 unsigned mc_sleep(unsigned);
+int mc_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+int mc_pthread_cond_signal(pthread_cond_t *cond);
+
 
 /*
   An `atexit()` handler is installed in libmcmini.so with this function.
