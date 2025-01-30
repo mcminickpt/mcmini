@@ -28,8 +28,14 @@ typedef enum thread_status {
   EXITED,
 } thread_status;
 
+typedef enum semaphore_status {
+  SEM_UNINITIALIZED,
+  SEM_INITIALIZED,
+} semaphore_status;
+
 typedef struct semaphore_state {
   int count;
+  semaphore_status status;
 } semaphore_state;
 
 typedef struct thread_state {

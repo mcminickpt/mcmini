@@ -10,7 +10,7 @@
 sem_t dmtcp_restart_sem;
 pthread_mutex_t rec_list_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t pending_op_lock = PTHREAD_MUTEX_INITIALIZER;
-atomic_int libmcmini_mode = PRE_DMTCP_INIT;
+volatile atomic_int libmcmini_mode = PRE_DMTCP_INIT;
 visible_object empty_visible_obj = {.type = UNKNOWN, .location = NULL};
 rec_list *head_record_mode = NULL;
 rec_list *current_record_mode = NULL;

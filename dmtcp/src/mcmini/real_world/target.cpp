@@ -111,7 +111,6 @@ pid_t target::launch_dont_wait() {
 
     // Should never be reached --> implies quick_exit returned
     std::abort();
-    return child_pid;
   } else {
     // *******************
     // Parent process case

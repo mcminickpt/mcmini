@@ -293,6 +293,7 @@ void mc_exit_thread_in_child(void) {
   thread_get_mailbox()->type = THREAD_EXIT_TYPE;
   thread_wake_scheduler_and_wait();
   thread_awake_scheduler_for_thread_finish_transition();
+  thread_block_indefinitely();
 }
 
 void mc_exit_main_thread_in_child(void) {
@@ -463,7 +464,9 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     }
     case PRE_CHECKPOINT_THREAD: {
       pthread_once(&main_thread_once, &record_main_thread);
-      return libdmtcp_pthread_create(thread, attr, routine, arg);
+      int rc = libdmtcp_pthread_create(thread, attr, routine, arg);
+      ckpt_pthread_descriptor = *thread;
+      return rc;
     }
     case RECORD:
     case PRE_CHECKPOINT:

@@ -35,6 +35,9 @@ struct template_process_t {
   // MARK: DMTCP ONLY
 };
 
+// The VIRTUAL tid of the checkpoint thread
+// as it appeared at record-time
+extern pthread_t ckpt_pthread_descriptor;
 extern pid_t multithreaded_fork(void);
 
 #ifdef __cplusplus
