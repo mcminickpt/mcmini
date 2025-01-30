@@ -163,17 +163,6 @@ static void *template_thread(void *unused) {
     set_current_mode(TARGET_BRANCH_AFTER_RESTART);
   }
 
-  // FIXME: Remove this when the code is working.
-  //
-  // Recall that the fork process source first is created
-  // at the time of the coordinator. The coordinator first
-  // creates the template which then  waits for the fifo to
-  // be created, but MCMini first waits for the template
-  // to give it a child process and we're left in a deadlock...
-  //
-  // The post below attempts to handle this; however, there is
-  // a race in which the cpid is not overwritten with the latest value
-  // before the
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
   pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
