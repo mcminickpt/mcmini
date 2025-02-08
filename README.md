@@ -12,7 +12,7 @@
 * `./mcmini ./a.out <ARGS>`
 * `./mcmini -m20 -f -q ./a.out <ARGS>`
 * `./mcmini-gdb -m20 -f -q ./a.out <ARGS>`
-* [ See: [Read the docs](https://mcmini-doc.readthedocs.io/en/latest/) ]
+* [ See: [Read the docs](https://mcmini-doc.readthedocs.io) ]
 
 # High-Level Overview of Functionality
 
@@ -45,7 +45,7 @@ Below is a screenshot of a McMini session within GDB.
 ![Screenshot of a McMini session](https://github.com/mcminickpt/mcmini-doc/docs/source/usage/transitions-middle-subtle-small.png?raw=true)
 
 If you'd like to try out McMini, then:
-* [Read the docs](https://mcmini-doc.readthedocs.io/en/latest/); and
+* [Read the docs](https://mcmini-doc.readthedocs.io); and
 * Download and install McMini: `git clone https://github.com/mcminickpt/mcmini.git`
 
 # Installation:  Building McMini
