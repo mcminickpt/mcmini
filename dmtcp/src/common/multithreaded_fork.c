@@ -79,6 +79,7 @@
 
 #ifdef MC_SHARED_LIBRARY
 #include "mcmini/real_world/process/template_process.h"
+#include "mcmini/spy/checkpointing/record.h"
 #include "mcmini/spy/intercept/interception.h"
 #endif
 
@@ -299,8 +300,8 @@ void signal_multithreaded_fork_handler() {
 pid_t multithreaded_fork() {
   static int initialized = 0;
   if (! initialized) {
-    sem_init(&sem_fork_child, 0, 0);
-    sem_init(&sem_fork_parent, 0, 0);
+    libpthread_sem_init(&sem_fork_child, 0, 0);
+    libpthread_sem_init(&sem_fork_parent, 0, 0);
     threadIdx = 0; // Needed for multiple calls to multithreaded_fork()
     initialized = 1;
   }
@@ -352,7 +353,8 @@ pid_t multithreaded_fork() {
 #endif
 
   for (int i = 0; i < num_secondary_threads; i++) {
-    sem_wait(&sem_fork_parent); // Wait until children have initialized context.
+    libpthread_sem_wait(
+        &sem_fork_parent);  // Wait until children have initialized context.
   }
 
   /*********************************************************************
@@ -412,17 +414,17 @@ int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg,
 
   if (childpid > 0) { // if parent process
     for (int i = 0; i < num_secondary_threads; i++) {
-      sem_post(&sem_fork_child);
+      libpthread_sem_post(&sem_fork_child);
     }
   } else { // else if child process
 
     restart_child_threads(num_threads);
     for (int i = 0; i < num_secondary_threads; i++) {
-      sem_post(&sem_fork_child);
+      libpthread_sem_post(&sem_fork_child);
     }
     // Wait until child thread posts to us before leaving handler.
     for (int i = 0; i < num_secondary_threads; i++) {
-      sem_wait(&sem_fork_parent);
+      libpthread_sem_wait(&sem_fork_parent);
     }
   }
   return childpid;
@@ -445,15 +447,16 @@ void multithreaded_fork_child_handler(int sig) {
     // setcontext() returns to here after fork() and clone() of
     //   child thread (setcontext) and setTLSPointer()
 
-    sem_post(&sem_fork_parent); // Before fork, to parent thread: did getctxt()
+    libpthread_sem_post(
+        &sem_fork_parent);      // Before fork, to parent thread: did getctxt()
     if (getpid() != orig_pid) { // if we forked (if we are child process)
       // Child thread did setcontext and returned above into getcontext.
       // Let's post that we, the child thread, now exist.
       // Then we, the child thread, will wait on sem_fork_child until
       // the parent thread of the child process posts to us.
-      sem_post(&sem_fork_parent);
+      libpthread_sem_post(&sem_fork_parent);
     }
-    sem_wait(&sem_fork_child);
+    libpthread_sem_wait(&sem_fork_child);
   }
 }
 
