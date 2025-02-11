@@ -53,3 +53,18 @@ model::transition* sem_wait_callback(runner_id_t p,
   const state::objid_t model_sem = m.get_model_of_object(remote_sem);
   return new transitions::sem_wait(p, model_sem);
 }
+
+model::transition* sem_destroy_callback(runner_id_t p,
+                                        const volatile runner_mailbox& rmb,
+                                        model_to_system_map& m) {
+  sem_t* remote_sem;
+  memcpy_v(&remote_sem, (volatile void*)rmb.cnts, sizeof(sem_t*));
+
+  if (!m.contains(remote_sem))
+    throw undefined_behavior_exception(
+        "Attempting to wait on an uninitialized semaphore");
+
+  // const state::objid_t model_sem = m.get_model_of_object(remote_sem);
+  // return new transitions::sem_destroy(p, model_sem);
+  return nullptr;  // TODO: Implement sem_destroy in the model
+}
