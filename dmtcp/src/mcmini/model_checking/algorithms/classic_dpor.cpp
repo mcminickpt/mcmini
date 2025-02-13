@@ -17,6 +17,11 @@
 #include "mcmini/model/exception.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/transition.hpp"
+#include "mcmini/model/transitions/condition_variables/callbacks.hpp"
+#include "mcmini/model/transitions/mutex/callbacks.hpp"
+#include "mcmini/model/transitions/mutex/mutex_init.hpp"
+#include "mcmini/model/transitions/semaphore/callbacks.hpp"
+#include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor/clock_vector.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor/runner_item.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor/stack_item.hpp"
@@ -60,7 +65,7 @@ bool classic_dpor::are_coenabled(const model::transition &t1,
 bool classic_dpor::are_dependent(const model::transition &t1,
                                  const model::transition &t2) const {
   return t1.get_executor() == t2.get_executor() ||
-         this->dependency_relation.call_or(false, &t1, &t2);
+         this->dependency_relation.call_or(true, &t1, &t2);
 }
 
 bool classic_dpor::happens_before(const dpor_context &context, size_t i,
@@ -377,4 +382,61 @@ bool classic_dpor::dynamically_update_backtrack_sets_at_index(
     }
   }
   return has_reversible_race;
+}
+
+classic_dpor::dependency_relation_type classic_dpor::default_dependencies() {
+  classic_dpor::dependency_relation_type dr;
+  dr.register_dd_entry<const transitions::thread_create>(
+      &transitions::thread_create::depends);
+  dr.register_dd_entry<const transitions::thread_join>(
+      &transitions::thread_join::depends);
+  dr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_init>(
+      &transitions::mutex_lock::depends);
+  dr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_lock>(
+      &transitions::mutex_lock::depends);
+  dr.register_dd_entry<const transitions::condition_variable_wait,
+                       const transitions::condition_variable_init>(
+      &transitions::condition_variable_wait::depends);
+  dr.register_dd_entry<const transitions::condition_variable_wait,
+                       const transitions::mutex_lock>(
+      &transitions::condition_variable_wait::depends);
+  dr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_signal::depends);
+  dr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::mutex_lock>(
+      &transitions::condition_variable_signal::depends);
+  return dr;
+}
+
+classic_dpor::coenabled_relation_type classic_dpor::default_coenabledness() {
+  classic_dpor::dependency_relation_type cr;
+  cr.register_dd_entry<const transitions::thread_create>(
+      &transitions::thread_create::coenabled_with);
+  cr.register_dd_entry<const transitions::thread_join>(
+      &transitions::thread_join::coenabled_with);
+  cr.register_dd_entry<const transitions::mutex_lock,
+                       const transitions::mutex_unlock>(
+      &transitions::mutex_lock::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_signal::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_signal,
+                       const transitions::mutex_unlock>(
+      &transitions::condition_variable_signal::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_broadcast,
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_broadcast::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_broadcast,
+                       const transitions::mutex_unlock>(
+      &transitions::condition_variable_broadcast::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_destroy,
+                       const transitions::condition_variable_wait>(
+      &transitions::condition_variable_destroy::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_destroy,
+                       const transitions::condition_variable_signal>(
+      &transitions::condition_variable_destroy::coenabled_with);
+  return cr;
 }

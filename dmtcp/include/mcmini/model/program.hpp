@@ -58,6 +58,7 @@ class program {
           pending_transitions &&initial_first_steps);
   program(program &&) = default;
   program(const program &) = delete;
+  static program starting_from_main();
 
   std::unordered_set<runner_id_t> get_enabled_runners() const;
   size_t get_num_runners() const { return next_steps.size(); }
