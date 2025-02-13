@@ -40,6 +40,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/cond_var_single_grp_policy.cpp
   src/mcmini/model/cond_var_wakegroup.cpp
   src/mcmini/model/state_sequence.cpp
+  src/mcmini/model/transition_registry.cpp
   src/mcmini/model/transition_sequence.cpp
   src/mcmini/model/transitions/mutex.cpp
   src/mcmini/model/transitions/condition_variables.cpp

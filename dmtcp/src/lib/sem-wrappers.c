@@ -8,14 +8,16 @@
 int mc_sem_init(sem_t *sem, int p, unsigned count) {
   // TODO: Does not handle interprocess semaphores
   assert(p == 0);
+  log_debug("mc_sem_init");
 
   switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libpthread_sem_init(sem, p, count);
     }
     case RECORD:
-    case PRE_CHECKPOINT: {
+    case PRE_CHECKPOINT:  {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *sem_record = find_object_record_mode(sem);
       if (sem_record == NULL) {
@@ -74,8 +76,6 @@ int mc_sem_destroy(sem_t *sem) {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *sem_record = find_object_record_mode(sem);
       if (sem_record == NULL) {
-        log_debug("SEMAPHORE");
-        printf("%u\n", tid_self);
         visible_object vo = {.type = SEMAPHORE,
                              .location = sem,
                              .sem_state.status = SEM_UNINITIALIZED};
@@ -88,8 +88,6 @@ int mc_sem_destroy(sem_t *sem) {
         libpthread_mutex_lock(&rec_list_lock);
         rec_list *sem_record = find_object_record_mode(sem);
         assert(sem_record != NULL);
-        log_debug("SEMAPHORE");
-        printf("%u\n", tid_self);
         visible_object vo = {.type = SEMAPHORE,
                              .location = sem,
                              .sem_state.status = SEM_DESTROYED};
@@ -176,11 +174,12 @@ mc_sem_post(sem_t *sem) {
 int mc_sem_wait(sem_t *sem) {
   switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libpthread_sem_wait(sem);
     }
     case RECORD:
-    case PRE_CHECKPOINT: {
+    case PRE_CHECKPOINT:  {
       libpthread_mutex_lock(&rec_list_lock);
       rec_list *sem_record = find_object_record_mode(sem);
       if (sem_record == NULL) {

@@ -7,14 +7,6 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/semaphore.hpp"
 #include "mcmini/model/objects/thread.hpp"
-#include "mcmini/model/program.hpp"
-#include "mcmini/model/state.hpp"
-#include "mcmini/model/state/detached_state.hpp"
-#include "mcmini/model/transition_registry.hpp"
-#include "mcmini/model/transitions/condition_variables/callbacks.hpp"
-#include "mcmini/model/transitions/mutex/callbacks.hpp"
-#include "mcmini/model/transitions/semaphore/callbacks.hpp"
-#include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/fifo.hpp"
@@ -22,8 +14,6 @@
 #include "mcmini/real_world/process/multithreaded_fork_process_source.hpp"
 #include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/signal.hpp"
-#include "mcmini/spy/checkpointing/objects.h"
-#include "mcmini/spy/checkpointing/transitions.h"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -158,98 +148,17 @@ void found_deadlock(const coordinator& c) {
 
 void do_model_checking(const config& config) {
   algorithm::callbacks c;
-  transition_registry tr;
-  detached_state state_of_program_at_main;
-  pending_transitions initial_first_steps;
-  classic_dpor::dependency_relation_type dr;
-  classic_dpor::coenabled_relation_type cr;
-
-  tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
-  tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
-  tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
-  tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
-  tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
-  tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
-  tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
-  tr.register_transition(COND_ENQUEUE_TYPE,
-                         &cond_waiting_thread_enqueue_callback);
-  tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
-  tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
-  tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
-  tr.register_transition(COND_DESTROY_TYPE, &cond_destroy_callback);
-  tr.register_transition(SEM_INIT_TYPE, &sem_init_callback);
-  tr.register_transition(SEM_DESTROY_TYPE, &sem_destroy_callback);
-  tr.register_transition(SEM_POST_TYPE, &sem_post_callback);
-  tr.register_transition(SEM_WAIT_TYPE, &sem_wait_callback);
-
-  const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
-      new objects::thread(objects::thread::state::running));
-  initial_first_steps.set_transition(
-      new transitions::thread_start(main_thread_id));
-  program model_for_program_starting_at_main(state_of_program_at_main,
-                                             std::move(initial_first_steps));
-
   target target_program(config.target_executable,
                         config.target_executable_args);
-  coordinator coordinator(std::move(model_for_program_starting_at_main),
-                          std::move(tr),
+  coordinator coordinator(program::starting_from_main(),
+                          transition_registry::default_registry(),
                           make_unique<fork_process_source>(target_program));
-
   std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
   coordinator.get_current_program_model().dump_state(std::cerr);
   std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
   std::cerr.flush();
 
-  dr.register_dd_entry<const transitions::thread_create>(
-      &transitions::thread_create::depends);
-  dr.register_dd_entry<const transitions::thread_join>(
-      &transitions::thread_join::depends);
-  dr.register_dd_entry<const transitions::mutex_lock,
-                       const transitions::mutex_init>(
-      &transitions::mutex_lock::depends);
-  dr.register_dd_entry<const transitions::mutex_lock,
-                       const transitions::mutex_lock>(
-      &transitions::mutex_lock::depends);
-  dr.register_dd_entry<const transitions::condition_variable_wait,
-                       const transitions::condition_variable_init>(
-      &transitions::condition_variable_wait::depends);
-  dr.register_dd_entry<const transitions::condition_variable_wait,
-                       const transitions::mutex_lock>(
-      &transitions::condition_variable_wait::depends);
-  dr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_signal::depends);
-  dr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::mutex_lock>(
-      &transitions::condition_variable_signal::depends);
-  cr.register_dd_entry<const transitions::thread_create>(
-      &transitions::thread_create::coenabled_with);
-  cr.register_dd_entry<const transitions::thread_join>(
-      &transitions::thread_join::coenabled_with);
-  cr.register_dd_entry<const transitions::mutex_lock,
-                       const transitions::mutex_unlock>(
-      &transitions::mutex_lock::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_signal::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::mutex_unlock>(
-      &transitions::condition_variable_signal::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_broadcast,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_broadcast::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_broadcast,
-                       const transitions::mutex_unlock>(
-      &transitions::condition_variable_broadcast::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_destroy,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_destroy::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_destroy,
-                       const transitions::condition_variable_signal>(
-      &transitions::condition_variable_destroy::coenabled_with);
-
-  model_checking::classic_dpor classic_dpor_checker(std::move(dr),
-                                                    std::move(cr));
+  model_checking::classic_dpor classic_dpor_checker;
   c.trace_completed = &finished_trace_classic_dpor;
   c.deadlock = &found_deadlock;
   c.undefined_behavior = &found_undefined_behavior;
@@ -276,23 +185,8 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   // process is ready for execution; otherwise, the state restoration will not
   // work as expected.
   algorithm::callbacks c;
-  transition_registry tr;
-  tr.register_transition(MUTEX_INIT_TYPE, &mutex_init_callback);
-  tr.register_transition(MUTEX_LOCK_TYPE, &mutex_lock_callback);
-  tr.register_transition(MUTEX_UNLOCK_TYPE, &mutex_unlock_callback);
-  tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
-  tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
-  tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
-  tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
-  tr.register_transition(COND_ENQUEUE_TYPE,
-                         &cond_waiting_thread_enqueue_callback);
-  tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
-  tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
-  tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
-  tr.register_transition(COND_DESTROY_TYPE, &cond_destroy_callback);
-
-  coordinator coordinator(model::program(), tr,
-                          std::move(dmtcp_template_handle));
+  transition_registry tr = transition_registry::default_registry();
+  coordinator coordinator(program(), tr, std::move(dmtcp_template_handle));
   {
     model_to_system_map recorder(coordinator);
 
@@ -341,6 +235,10 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
       volatile runner_mailbox* mb = &rw_region->mailboxes[recorded_id];
       transition_registry::transition_discovery_callback callback =
           tr.get_callback_for(mb->type);
+      if (!callback) {
+        throw std::runtime_error("Expected a callback for " +
+                                 std::to_string(mb->type));
+      }
       const size_t num_objects_before =
           coordinator.get_current_program_model().get_state_sequence().count();
       recorder.observe_runner_transition(callback(recorded_id, *mb, recorder));
@@ -367,59 +265,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   std::cerr << "\n\n**************** INTIAL STATE *********************\n\n";
   std::cerr.flush();
 
-  classic_dpor::dependency_relation_type dr;
-  classic_dpor::coenabled_relation_type cr;
-  dr.register_dd_entry<const transitions::thread_create>(
-      &transitions::thread_create::depends);
-  dr.register_dd_entry<const transitions::thread_join>(
-      &transitions::thread_join::depends);
-  dr.register_dd_entry<const transitions::mutex_lock,
-                       const transitions::mutex_init>(
-      &transitions::mutex_lock::depends);
-  dr.register_dd_entry<const transitions::mutex_lock,
-                       const transitions::mutex_lock>(
-      &transitions::mutex_lock::depends);
-  dr.register_dd_entry<const transitions::condition_variable_wait,
-                       const transitions::condition_variable_init>(
-      &transitions::condition_variable_wait::depends);
-  dr.register_dd_entry<const transitions::condition_variable_wait,
-                       const transitions::mutex_lock>(
-      &transitions::condition_variable_wait::depends);
-  dr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_signal::depends);
-  dr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::mutex_lock>(
-      &transitions::condition_variable_signal::depends);
-  cr.register_dd_entry<const transitions::thread_create>(
-      &transitions::thread_create::coenabled_with);
-  cr.register_dd_entry<const transitions::thread_join>(
-      &transitions::thread_join::coenabled_with);
-  cr.register_dd_entry<const transitions::mutex_lock,
-                       const transitions::mutex_unlock>(
-      &transitions::mutex_lock::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_signal::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_signal,
-                       const transitions::mutex_unlock>(
-      &transitions::condition_variable_signal::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_broadcast,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_broadcast::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_broadcast,
-                       const transitions::mutex_unlock>(
-      &transitions::condition_variable_broadcast::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_destroy,
-                       const transitions::condition_variable_wait>(
-      &transitions::condition_variable_destroy::coenabled_with);
-  cr.register_dd_entry<const transitions::condition_variable_destroy,
-                       const transitions::condition_variable_signal>(
-      &transitions::condition_variable_destroy::coenabled_with);
-
-  model_checking::classic_dpor classic_dpor_checker(std::move(dr),
-                                                    std::move(cr));
-
+  model_checking::classic_dpor classic_dpor_checker;
   c.trace_completed = &finished_trace_classic_dpor;
   c.undefined_behavior = &found_undefined_behavior;
   c.deadlock = &found_deadlock;

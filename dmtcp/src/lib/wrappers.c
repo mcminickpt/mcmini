@@ -84,7 +84,8 @@ int mc_pthread_mutex_init(pthread_mutex_t *mutex,
 
   switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libpthread_mutex_init(mutex, attr);
     }
     case RECORD:
@@ -162,7 +163,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
   // tracking.
   switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libpthread_mutex_lock(mutex);
     }
     case RECORD:
@@ -239,7 +241,8 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
 int mc_pthread_mutex_unlock(pthread_mutex_t *mutex) {
   switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libpthread_mutex_unlock(mutex);
     }
     case RECORD:
@@ -343,10 +346,11 @@ void *mc_thread_routine_wrapper(void *arg) {
   struct mc_thread_routine_arg *unwrapped_arg = arg;
   switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       fprintf(stderr,
       "In `PRE_DMTCP_INIT` mode, `mc_pthread_create` always directly calls DMTCP."
-      "Reaching this point means that the McMini wrapper would be an error.\n");
+      "Reaching this point would be an error.\n");
       libc_abort();
     }
     case RECORD:
@@ -546,7 +550,8 @@ int mc_pthread_join(pthread_t t, void **rv) {
       // NOTE: Explicit fallthrough intended
       assert(0);
     }
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libdmtcp_pthread_join(t, rv);
     }
     case RECORD:
