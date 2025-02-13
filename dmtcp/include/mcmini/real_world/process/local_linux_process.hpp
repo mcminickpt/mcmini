@@ -21,11 +21,13 @@ namespace real_world {
 class local_linux_process : public process {
  private:
   pid_t pid;
+  bool should_wait; /* Whether `wait(3)` should be called on destruction */
 
  public:
   pid_t get_pid() const override { return pid; }
   local_linux_process() : local_linux_process(-1) {}
-  local_linux_process(pid_t pid);
+  local_linux_process(pid_t pid) : local_linux_process(pid, true) {}
+  local_linux_process(pid_t pid, bool should_wait);
   local_linux_process(const local_linux_process&) = delete;
   local_linux_process(local_linux_process&&);
   local_linux_process& operator=(const local_linux_process&) = delete;

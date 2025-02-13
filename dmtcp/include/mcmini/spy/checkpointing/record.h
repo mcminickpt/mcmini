@@ -10,6 +10,16 @@ extern "C" {
 #include <stdatomic.h>
 #endif
 
+#ifndef ATOMIC_BOOL_LOCK_FREE
+#error \
+    "Atomic booleans must be lock free, but the compiler has indicated this is not the case"
+#endif
+
+#ifndef ATOMIC_INT_LOCK_FREE
+#error \
+    "Atomic integers must be lock free, but the compiler has indicated this is not the case"
+#endif
+
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdbool.h>
@@ -142,17 +152,24 @@ enum libmcmini_mode {
  * to acquire the lock, we'd have deadlock.
  */
 extern volatile atomic_int libmcmini_mode;
+
 bool is_in_restart_mode(void);
 enum libmcmini_mode get_current_mode();
 void set_current_mode(enum libmcmini_mode);
+
+extern pthread_t ckpt_pthread_descriptor;
+extern volatile atomic_bool libmcmini_has_recorded_checkpoint_thread;
+bool is_checkpoint_thread(void);
 
 typedef struct visible_object visible_object;
 typedef struct rec_list rec_list;
 
 extern sem_t dmtcp_restart_sem;
-extern rec_list *head_record_mode;
-extern rec_list *current_record_mode;
 extern pthread_mutex_t rec_list_lock;
+extern pthread_mutex_t dmtcp_list_lock;
+extern rec_list *head_record_mode;
+// The VIRTUAL tid of the checkpoint thread
+// as it appeared while recording.
 
 /// @brief Retrieves the stored state for the given object
 /// @return a pointer to the node in the list formed by `head`,
@@ -162,6 +179,8 @@ extern pthread_mutex_t rec_list_lock;
 rec_list *find_object(void *addr, rec_list *);
 rec_list *find_thread_record_mode(pthread_t);
 rec_list *find_object_record_mode(void *addr);
+rec_list *find_dmtcp_object(void *addr);
+bool is_dmtcp_object(void *addr);
 
 /// @brief Adds a new element to the list `head`.
 ///
@@ -169,6 +188,7 @@ rec_list *find_object_record_mode(void *addr);
 rec_list *add_rec_entry(const visible_object *, rec_list **, rec_list **);
 rec_list *add_rec_entry_record_mode(const visible_object *);
 void print_rec_list(const rec_list *);
+rec_list *add_dmctp_object(const visible_object *);
 
 /**
  * @brief Notifies the template thread spawned during DMTCP_RESTART
@@ -182,6 +202,9 @@ void notify_template_thread();
  * be awoken.
  */
 void thread_wait_after_dmtcp_restart();
+
+// Spawns a new process with all threads of this process duplicated.
+pid_t multithreaded_fork(void);
 
 #ifdef __cplusplus
 }
