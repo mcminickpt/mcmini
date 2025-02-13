@@ -5,6 +5,7 @@
 #include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/objects/mutex.hpp"
+#include "mcmini/model/objects/semaphore.hpp"
 #include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/state.hpp"
@@ -12,6 +13,7 @@
 #include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/transitions/condition_variables/callbacks.hpp"
 #include "mcmini/model/transitions/mutex/callbacks.hpp"
+#include "mcmini/model/transitions/semaphore/callbacks.hpp"
 #include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
@@ -86,10 +88,17 @@ visible_object_state* translate_recorded_object_to_model(
                                              associated_mutex, count,
                                              waiters_with_state);
     }
+    case SEMAPHORE: {
+      return new objects::semaphore(static_cast<objects::semaphore::state>(
+                                        recorded_object.sem_state.status),
+                                    recorded_object.sem_state.count);
+    }
     // Other objects here
     // case ...  { }
     // ...
     default: {
+      std::cerr << "The new object type" << recorded_object.type
+                << "hasn't been implemented yet\n";
       std::abort();
     }
   }
@@ -168,6 +177,10 @@ void do_model_checking(const config& config) {
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
   tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
   tr.register_transition(COND_DESTROY_TYPE, &cond_destroy_callback);
+  tr.register_transition(SEM_INIT_TYPE, &sem_init_callback);
+  tr.register_transition(SEM_DESTROY_TYPE, &sem_destroy_callback);
+  tr.register_transition(SEM_POST_TYPE, &sem_post_callback);
+  tr.register_transition(SEM_WAIT_TYPE, &sem_wait_callback);
 
   const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));

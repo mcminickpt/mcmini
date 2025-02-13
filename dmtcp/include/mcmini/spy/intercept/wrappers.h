@@ -23,6 +23,7 @@ int mc_pthread_join(pthread_t, void**);
 int mc_sem_init(sem_t*, int, unsigned);
 int mc_sem_post(sem_t*);
 int mc_sem_wait(sem_t*);
+int mc_sem_destroy(sem_t *sem);
 unsigned mc_sleep(unsigned);
 int mc_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
 int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
