@@ -29,6 +29,7 @@ class transition_registry final {
   using transition_discovery_callback =
       transition *(*)(state::runner_id_t, const volatile runner_mailbox &,
                       model_to_system_map &);
+  static transition_registry default_registry();
 
   /**
    * @brief Marks the specified transition subclass as possible to encounter at

@@ -26,11 +26,11 @@ class classic_dpor final : public algorithm {
     callbacks no_callbacks;
     this->verify_using(coordinator, no_callbacks);
   }
-
-  classic_dpor() : classic_dpor(dependency_relation_type()) {}
+  static dependency_relation_type default_dependencies();
+  static coenabled_relation_type default_coenabledness();
   classic_dpor(
-      dependency_relation_type dependency_relation,
-      coenabled_relation_type coenabled_relation = coenabled_relation_type())
+      dependency_relation_type dependency_relation = default_dependencies(),
+      coenabled_relation_type coenabled_relation = default_coenabledness())
       : dependency_relation(std::move(dependency_relation)),
         coenabled_relation(std::move(coenabled_relation)) {}
 

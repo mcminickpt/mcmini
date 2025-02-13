@@ -8,10 +8,12 @@
 #include <unordered_set>
 #include <utility>
 
+#include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transition.hpp"
+#include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
 using namespace model;
@@ -21,6 +23,16 @@ program::program() : program(detached_state(), pending_transitions()) {}
 program::program(const state &initial_state,
                  pending_transitions &&initial_first_steps)
     : state_seq(initial_state), next_steps(std::move(initial_first_steps)) {}
+
+program program::starting_from_main() {
+  detached_state state_of_program_at_main;
+  pending_transitions initial_first_steps;
+  const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
+      new objects::thread(objects::thread::state::running));
+  initial_first_steps.set_transition(
+      new transitions::thread_start(main_thread_id));
+  return program(state_of_program_at_main, std::move(initial_first_steps));
+}
 
 std::unordered_set<state::runner_id_t> program::get_enabled_runners() const {
   std::unordered_set<runner_id_t> enabled_runners;
