@@ -1,9 +1,9 @@
 #define _GNU_SOURCE
 #include <assert.h>
-#include <stdio.h>
 #include <dmtcp.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,9 +11,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "mcmini/mcmini.h"
 #include "mcmini/common/exit.h"
 #include "mcmini/Thread_queue.h"
+#include "mcmini/mcmini.h"
 
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
@@ -28,6 +28,9 @@ runner_id_t mc_register_this_thread(void) {
 }
 
 volatile runner_mailbox *thread_get_mailbox() {
+  assert(!is_checkpoint_thread());
+  assert(tid_self != RID_INVALID);
+  assert(tid_self != RID_CHECKPOINT_THREAD);
   return &((volatile struct mcmini_shm_file *)(global_shm_start))
               ->mailboxes[tid_self];
 }
@@ -442,15 +445,29 @@ void record_main_thread(void) {
                        .thrd_state.status = ALIVE};
   thread_record = add_rec_entry_record_mode(&vo);
   libpthread_mutex_unlock(&rec_list_lock);
+}
 
-  // Recording the presence of the main thread means that the main
+void record_checkpoint_thread(void) {
+  tid_self = RID_CHECKPOINT_THREAD;
+  ckpt_pthread_descriptor = pthread_self();
+  atomic_store(&libmcmini_has_recorded_checkpoint_thread, true);
+
+  // Recording the presence of the checkpoint thread means that the main
   // thread has made its first call to `pthread_create`. The assumption
   // is that DMTCP (executing in the main thread before the `main` routine)
   // makes the first call to `pthread_create` to create the checkpoint thread.
   // Since the checkpoint thread is about to be created, it is safe to begin
   // recording.
   set_current_mode(RECORD);
-  printf("RECORDMODESET\n");
+}
+
+void *dmtcp_create_checkpoint_thread_wrapper(void *arg) {
+  record_checkpoint_thread();
+  struct mc_thread_routine_arg *unwrapped_arg = arg;
+  libpthread_sem_post(&unwrapped_arg->mc_pthread_create_binary_sem);
+  void *rv = unwrapped_arg->routine(unwrapped_arg->arg);
+  free(arg);
+  return rv;
 }
 
 int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
@@ -465,16 +482,45 @@ int mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     case PRE_DMTCP_INIT: {
       // This case implies that DMTCP attempted to create
       // a thread BEFORE the `DMTCP_EVENT_INIT` was delivered
-      // to `libmcmini`'s callback.
+      // to `libmcmini`'s callback. This
       // NOTE: Explicit fallthrough intended
       assert(0);
     }
     case PRE_CHECKPOINT_THREAD: {
-      printf("PRE_CHECKPOINT_THREAD\n");
       pthread_once(&main_thread_once, &record_main_thread);
-      int rc = libdmtcp_pthread_create(thread, attr, routine, arg);
-      ckpt_pthread_descriptor = *thread;
+
+      // We must be able to at runtime determine which thread is the checkpoint
+      // thread. Here we record the `pthread_t` struct assigned to the
+      // checkpoint thread and later compare it with the value returned by
+      // `pthread_create()`.
+      //
+      // NOTE: The semaphore is necessary here as the child thread in this
+      // instance will be the checkpoint thread and will hence call into DMTCP.
+      // Since the goal of detecting if the caller is the checkpoint thread
+      // inside of wrappers is to prevent the checkpoint thread from interacting
+      // with McMini wrappers, and since we write the checkpoint thread's
+      // `pthread_t` into a globally accessible location, we must synchronize
+      // with the checkpoint thread.
+      struct mc_thread_routine_arg *wrapped_arg =
+          malloc(sizeof(struct mc_thread_routine_arg));
+      wrapped_arg->arg = arg;
+      wrapped_arg->routine = routine;
+      libpthread_sem_init(&wrapped_arg->mc_pthread_create_binary_sem, 0, 0);
+      int rc = libdmtcp_pthread_create(
+          thread, attr, &dmtcp_create_checkpoint_thread_wrapper, wrapped_arg);
+      libpthread_sem_wait(&wrapped_arg->mc_pthread_create_binary_sem);
       return rc;
+    }
+    case CHECKPOINT_THREAD: {
+      log_warn(
+          "The checkpoint thread is creating another thread. Calls from this "
+          "thread should probably be ignored by the McMini library, as "
+          "creating a thread indicates the checkpoint thread is doing "
+          "background work. The DMTCP library and McMini must not interefere. "
+          "However, the current implementation "
+          "only prevents calls by the checkpoint thread from entering wrapper "
+          "functions.");
+      return libdmtcp_pthread_create(thread, attr, routine, arg);
     }
     case RECORD:
     case PRE_CHECKPOINT:

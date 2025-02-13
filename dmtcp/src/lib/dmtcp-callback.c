@@ -19,9 +19,14 @@ int dmtcp_mcmini_is_loaded() { return 1; }
 int counter = 0;
 
 pthread_t ckpt_pthread_descriptor;
+volatile atomic_bool libmcmini_has_recorded_checkpoint_thread;
 static sem_t template_thread_sem;
 static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
+
+bool is_checkpoint_thread(void) {
+  return pthread_equal(pthread_self(), ckpt_pthread_descriptor);
+}
 
 void thread_handle_after_dmtcp_restart(void) {
   // IMPORTANT: There's a potential race between
@@ -80,7 +85,7 @@ void mc_template_thread_loop_forever() {
     log_debug("Waiting for child process");
 
     // This `wait()` call is important here, as it ensures that there
-    // exists only a single branch alive at any given time. If multiple 
+    // exists only a single branch alive at any given time. If multiple
     // branches were alive at once, they would contend for the shared
     // memory and cause data races. By transitivity, the McMini process
     // also waits until the previous branch has completed its execution
@@ -105,7 +110,6 @@ void mc_template_thread_loop_forever() {
     tpt->cpid = cpid;
     libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
-    // Recall that state transfers occur inside th
     if (!has_transferred_state) {
       has_transferred_state = true;
       unsetenv("MCMINI_NEEDS_STATE");
@@ -389,6 +393,7 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
         set_current_mode(DMTCP_RESTART_INTO_BRANCH);
         log_debug("`MCMINI_TEMPLATE_LOOP` was not set at restart-time\n");
       }
+
       // During record mode, the shared memory
       // used by the `mcmini` process to control
       // the userspace threads in this process

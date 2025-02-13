@@ -112,7 +112,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         "(errno " +
         std::to_string(tstruct->err) + "): " + strerror(tstruct->err));
   }
-  return extensions::make_unique<local_linux_process>(tstruct->cpid);
+  return extensions::make_unique<local_linux_process>(tstruct->cpid, false);
 }
 
 void fork_process_source::make_new_template_process() {
