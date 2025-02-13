@@ -22,8 +22,13 @@ void mc_runner_mailbox_init(volatile runner_mailbox* r) {
 
 void mc_runner_mailbox_destroy(volatile runner_mailbox* r) {
   runner_mailbox_ref ref = (runner_mailbox_ref)(r);
+#ifdef MC_SHARED_LIBRARY
+  libpthread_sem_destroy(&ref->model_side_sem);
+  libpthread_sem_destroy(&ref->child_side_sem);
+#else
   sem_destroy(&ref->model_side_sem);
   sem_destroy(&ref->child_side_sem);
+#endif
 }
 
 int mc_wait_for_thread(volatile runner_mailbox* r) {

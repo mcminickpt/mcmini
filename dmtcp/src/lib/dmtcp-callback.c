@@ -42,23 +42,17 @@ void thread_handle_after_dmtcp_restart(void) {
       // This is accomplished by using the current "mode" of libmcmini:
       // as long as we're not in the `TARGET_BRANCH_AFTER_RESTART` case, we
       // simply ignore any wakeups
-      printf("[%u:%u:%p] Before broadcast\n", (uint32_t)getpid(),
-      (uint32_t)gettid(), (void*)pthread_self());
       libpthread_mutex_lock(&template_thread_mut);
       while (get_current_mode() != TARGET_BRANCH_AFTER_RESTART) {
-        printf("[%u:%u:%p] INSID broadcast\n", (uint32_t)getpid(),
-          (uint32_t)gettid(), (void*)pthread_self());
         pthread_cond_wait(&template_thread_cond, &template_thread_mut);
       }
       libpthread_mutex_unlock(&template_thread_mut);
-      printf("[%u:%u:%p] After broadcast\n", (uint32_t)getpid(),
-      (uint32_t)gettid(), (void*)pthread_self());
       break;
     }
     case DMTCP_RESTART_INTO_BRANCH: {
       // In the case of calling `dmtcp_restart` fpr each branch, we
       // are expected to immediately talk to the model checker.
-      printf("DMTCP_RESTART_INTO_BRANCH after restart!\n");
+      log_debug("Restarting into branch (DMTCP_RESTART_INTO_BRANCH)\n");
       break;
     }
     default: {
@@ -79,13 +73,21 @@ void thread_handle_after_dmtcp_restart(void) {
 
 void mc_template_thread_loop_forever() {
   bool has_transferred_state = false;
+
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
   while (1) {
     log_debug("Waiting for child process");
+
+    // This `wait()` call is important here, as it ensures that there
+    // exists only a single branch alive at any given time. If multiple 
+    // branches were alive at once, they would contend for the shared
+    // memory and cause data races. By transitivity, the McMini process
+    // also waits until the previous branch has completed its execution
+    // by waiting on the template
     wait(NULL);
     log_debug("Waiting for `mcmini` to signal a fork");
-    sem_wait((sem_t *)&tpt->libmcmini_sem);
+    libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
     const pid_t ppid_before_fork = getpid();
     const pid_t cpid = multithreaded_fork();
@@ -101,8 +103,9 @@ void mc_template_thread_loop_forever() {
     // `libmcmini.so` acting as a template process.
     printf("The template process created child with pid %d\n", cpid);
     tpt->cpid = cpid;
-    sem_post((sem_t *)&tpt->mcmini_process_sem);
+    libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
+    // Recall that state transfers occur inside th
     if (!has_transferred_state) {
       has_transferred_state = true;
       unsetenv("MCMINI_NEEDS_STATE");
@@ -170,7 +173,7 @@ static void *template_thread(void *unused) {
   libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
   if (get_current_mode() == DMTCP_RESTART_INTO_TEMPLATE) {
-    printf("DMTCP_RESTART_INTO_TEMPLATE\n");
+    log_debug("Restarting into template (DMTCP_RESTART_INTO_TEMPLATE)\n");
     mc_template_thread_loop_forever();
 
     // Reaching this point means that we're in the branch: the
@@ -223,8 +226,11 @@ static void *template_thread(void *unused) {
         printf("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
                entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size, 
                entry->vo.cond_state.waiting_threads);
-      }
-      else {
+      } else if (entry->vo.type == SEMAPHORE) {
+        printf("Writing semaphore entry %p (count %d, status: %d)\n",
+               (void *)entry->vo.location,
+               entry->vo.sem_state.count, entry->vo.sem_state.status);
+      } else {
         libc_abort();
       }
       if (entry->vo.type == CONDITION_VARIABLE) {
