@@ -56,14 +56,9 @@ void *consumer(void *cno)
 
 int main(int argc, char* argv[])
 {
-    if (argc < 4) {
-      printf("Usage: %s <NUM_PRODUCERS> <NUM_CONSUMERS> <DEBUG>\n", argv[0]);
-      return 1;
-    }
-
-    int NUM_PRODUCERS = atoi(argv[1]);
-    int NUM_CONSUMERS = atoi(argv[2]);
-    DEBUG = atoi(argv[3]);
+    int NUM_PRODUCERS = 1;
+    int NUM_CONSUMERS = 1;
+    DEBUG = 1;
 
     pthread_t pro[NUM_PRODUCERS],con[NUM_CONSUMERS];
 
