@@ -34,6 +34,7 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/diff_state.cpp
   src/mcmini/model/program.cpp
   src/mcmini/model/state_sequence.cpp
+  src/mcmini/model/transition_registry.cpp
   src/mcmini/model/transition_sequence.cpp
   src/mcmini/model/transitions/mutex.cpp
   src/mcmini/model/transitions/thread.cpp
