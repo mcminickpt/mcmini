@@ -3,9 +3,11 @@
 #include "mcmini/coordinator/restore-objects.hpp"
 #include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/mutex.hpp"
+#include "mcmini/model/objects/semaphore.hpp"
 #include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/transitions/mutex/callbacks.hpp"
+#include "mcmini/model/transitions/semaphore/callbacks.hpp"
 #include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
@@ -45,17 +47,22 @@ using namespace real_world;
 
 visible_object_state* translate_recorded_object_to_model(
     const ::visible_object& recorded_object) {
-  // TODO: A function table would be slightly better, but this works perfectly
-  // fine too.
   switch (recorded_object.type) {
     case MUTEX: {
       return new objects::mutex(
           static_cast<objects::mutex::state>(recorded_object.mut_state));
     }
+    case SEMAPHORE: {
+      return new objects::semaphore(static_cast<objects::semaphore::state>(
+                                        recorded_object.sem_state.status),
+                                    recorded_object.sem_state.count);
+    }
     // Other objects here
     // case ...  { }
     // ...
     default: {
+      std::cerr << "The new object type" << recorded_object.type
+                << "hasn't been implemented yet\n";
       std::abort();
     }
   }
@@ -127,6 +134,10 @@ void do_model_checking(const config& config) {
   tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
+  tr.register_transition(SEM_INIT_TYPE, &sem_init_callback);
+  tr.register_transition(SEM_DESTROY_TYPE, &sem_destroy_callback);
+  tr.register_transition(SEM_POST_TYPE, &sem_post_callback);
+  tr.register_transition(SEM_WAIT_TYPE, &sem_wait_callback);
 
   const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));

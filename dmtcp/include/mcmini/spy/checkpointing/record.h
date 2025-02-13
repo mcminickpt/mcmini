@@ -50,6 +50,15 @@ extern "C" {
  * behave as in `PRE_DMTCP_INIT`. For `pthread_create`, the call is _only_
  * forwarded into DMTCP instead -- the checkpoint thread is NOT recorded.
  *
+ * CHECKPOINT_THREAD:
+ *   In this mode, DMTCP has created the checkpoint thread. The checkpoint
+ * thread should not interact with McMini in any way, but the two interact
+ * because the functions `libmcmini.so` overrides are used by `dmtcp`
+ * extensively (e.g. `sem_wait()`). This mode, special to the library when
+ * executing from the perspective of the checkpoint thread, indicates that DMTCP
+ * has called directly into McMini. In most cases, this probably means
+ * forwarding the call to DMTCP's wrapper functions of to `libpthread.so`.
+ *
  * RECORD:
  *   In this mode, `libmcmini.so` performs a light-weight recording of the
  * primitives it encounters and keeps track of their state. Only after doing so
@@ -105,6 +114,7 @@ extern "C" {
 enum libmcmini_mode {
   PRE_DMTCP_INIT,
   PRE_CHECKPOINT_THREAD,
+  CHECKPOINT_THREAD,
   RECORD,
   PRE_CHECKPOINT,
   DMTCP_RESTART_INTO_BRANCH,

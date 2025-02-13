@@ -62,11 +62,70 @@ int mc_sem_init(sem_t *sem, int p, unsigned count) {
   }
 }
 
+int mc_sem_destroy(sem_t *sem) {
+  switch (get_current_mode()) {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
+      return libpthread_sem_destroy(sem);
+    }
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *sem_record = find_object_record_mode(sem);
+      if (sem_record == NULL) {
+        log_debug("SEMAPHORE");
+        printf("%u\n", tid_self);
+        visible_object vo = {.type = SEMAPHORE,
+                             .location = sem,
+                             .sem_state.status = SEM_UNINITIALIZED};
+        sem_record = add_rec_entry_record_mode(&vo);
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
+
+      int rc = libpthread_sem_destroy(sem);
+      if (rc == 0) {
+        libpthread_mutex_lock(&rec_list_lock);
+        rec_list *sem_record = find_object_record_mode(sem);
+        assert(sem_record != NULL);
+        log_debug("SEMAPHORE");
+        printf("%u\n", tid_self);
+        visible_object vo = {.type = SEMAPHORE,
+                             .location = sem,
+                             .sem_state.status = SEM_DESTROYED};
+        sem_record->vo = vo;
+        libpthread_mutex_unlock(&rec_list_lock);
+      }
+      return rc;
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART:
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = SEM_DESTROY_TYPE;
+      memcpy_v(mb->cnts, &sem, sizeof(sem));
+      is_in_restart_mode() ? thread_handle_after_dmtcp_restart()
+                           : thread_wake_scheduler_and_wait();
+      return libpthread_sem_destroy(sem);
+    }
+    default: {
+      // Wrapper functions should not be executing
+      // inside the template! If we reach this point, it
+      // means that this is a template process. This
+      // method must have been directly called
+      // erroneously.
+      libc_abort();
+    }
+  }
+}
+
 int
 mc_sem_post(sem_t *sem) {
-switch (get_current_mode()) {
+  switch (get_current_mode()) {
     case PRE_DMTCP_INIT:
-    case PRE_CHECKPOINT_THREAD: {
+    case PRE_CHECKPOINT_THREAD:
+    case CHECKPOINT_THREAD: {
       return libpthread_sem_post(sem);
     }
     case RECORD:

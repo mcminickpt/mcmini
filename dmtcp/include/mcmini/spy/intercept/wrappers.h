@@ -23,6 +23,7 @@ int mc_pthread_join(pthread_t, void**);
 int mc_sem_init(sem_t*, int, unsigned);
 int mc_sem_post(sem_t*);
 int mc_sem_wait(sem_t*);
+int mc_sem_destroy(sem_t *sem);
 unsigned mc_sleep(unsigned);
 
 /*

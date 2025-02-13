@@ -13,3 +13,6 @@ model::transition* sem_post_callback(runner_id_t,
 model::transition* sem_wait_callback(runner_id_t,
                                      const volatile runner_mailbox&,
                                      model_to_system_map&);
+model::transition* sem_destroy_callback(runner_id_t,
+                                        const volatile runner_mailbox&,
+                                        model_to_system_map&);
