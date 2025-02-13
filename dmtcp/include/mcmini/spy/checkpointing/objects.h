@@ -31,10 +31,11 @@ typedef enum thread_status {
 typedef enum semaphore_status {
   SEM_UNINITIALIZED,
   SEM_INITIALIZED,
+  SEM_DESTROYED,
 } semaphore_status;
 
 typedef struct semaphore_state {
-  int count;
+  unsigned count;
   semaphore_status status;
 } semaphore_state;
 

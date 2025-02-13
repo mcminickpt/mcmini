@@ -1,5 +1,7 @@
 add_executable(hello-world hello-world.c)
 add_executable(deadly-embrace deadly-embrace.c)
 add_executable(fifo-example fifo.cpp)
+add_executable(producer-consumer producer-consumer.c)
 target_link_libraries(hello-world PUBLIC -pthread)
 target_link_libraries(deadly-embrace PUBLIC -pthread)
+target_link_libraries(producer-consumer PUBLIC -pthread)

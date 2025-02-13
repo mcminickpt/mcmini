@@ -2,6 +2,7 @@
 #include "mcmini/spy/checkpointing/rec_list.h"
 #include "mcmini/spy/checkpointing/objects.h"
 #include "mcmini/spy/checkpointing/transitions.h"
+#include "mcmini/spy/intercept/interception.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,14 +78,26 @@ rec_list *add_rec_entry_record_mode(const visible_object *vo) {
   return new_node;
 }
 
-void notify_template_thread() { sem_post(&dmtcp_restart_sem); }
+void notify_template_thread() { libpthread_sem_post(&dmtcp_restart_sem); }
 
 bool is_in_restart_mode(void) {
   enum libmcmini_mode mode = get_current_mode();
   return mode == DMTCP_RESTART_INTO_BRANCH ||
          mode == DMTCP_RESTART_INTO_TEMPLATE;
 }
-enum libmcmini_mode get_current_mode() { return atomic_load(&libmcmini_mode); }
+
+enum libmcmini_mode get_current_mode() {
+  // INVARIANT (imposed by the code in `mc_pthread_create()`):
+  // The checkpoint thread is guaranteed to reach the line
+  // "is_checkpoint_thread()", because the only time in which the atomic is
+  // stored is BEFORE the checkpoint thread has executed DMTCP code.
+  if (atomic_load(&libmcmini_has_recorded_checkpoint_thread)) {
+    if (is_checkpoint_thread()) {
+      return CHECKPOINT_THREAD;
+    }
+  }
+  return atomic_load(&libmcmini_mode);
+}
 void set_current_mode(enum libmcmini_mode new_mode) {
   atomic_store(&libmcmini_mode, new_mode);
 }

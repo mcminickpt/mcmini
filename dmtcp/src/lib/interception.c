@@ -72,10 +72,12 @@ void mc_load_intercepted_pthread_functions(void) {
   pthread_mutex_timedlock_ptr = dlsym(libpthread_handle, "pthread_mutex_timedlock");
   pthread_mutex_unlock_ptr = dlsym(libpthread_handle, "pthread_mutex_unlock");
   pthread_mutex_destroy_ptr = dlsym(libpthread_handle, "pthread_mutex_destroy");
+  sem_timedwait_ptr = dlsym(libpthread_handle, "sem_timedwait");
   sem_wait_ptr = dlsym(libpthread_handle, "sem_wait");
   sem_timedwait_ptr = dlsym(libpthread_handle, "sem_timedwait");
   sem_post_ptr = dlsym(libpthread_handle, "sem_post");
   sem_init_ptr = dlsym(libpthread_handle, "sem_init");
+  sem_destroy_ptr = dlsym(libpthread_handle, "sem_destroy");
   pthread_cond_init_ptr = dlsym(libpthread_handle, "pthread_cond_init");
   pthread_cond_wait_ptr = dlsym(libpthread_handle, "pthread_cond_wait");
   pthread_cond_signal_ptr = dlsym(libpthread_handle, "pthread_cond_signal");
@@ -206,13 +208,27 @@ pid_t libc_fork(void) {
   return (*fork_ptr)();
 }
 
+int sem_init(sem_t*sem, int p, unsigned count) {
+  return mc_sem_init(sem, p, count);
+}
+int sem_destroy(sem_t *sem) { return mc_sem_destroy(sem); }
 int libpthread_sem_init(sem_t *sem, int pshared, int value) {
   libmcmini_init();
   return (*sem_init_ptr)(sem, pshared, value);
 }
+int libpthread_sem_destroy(sem_t *sem) {
+  libmcmini_init();
+  return (*sem_destroy_ptr)(sem);
+}
+int sem_post(sem_t* sem) {
+  return mc_sem_post(sem);
+}
 int libpthread_sem_post(sem_t *sem) {
   libmcmini_init();
   return (*sem_post_ptr)(sem);
+}
+int sem_wait(sem_t *sem) {
+  return mc_sem_wait(sem);
 }
 int libpthread_sem_wait(sem_t *sem) {
   libmcmini_init();

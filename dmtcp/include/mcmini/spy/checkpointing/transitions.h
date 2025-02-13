@@ -22,9 +22,6 @@ typedef enum transition_type {
   SEM_WAIT_TYPE,
   SEM_POST_TYPE,
   SEM_DESTROY_TYPE
-  // sem_init,
-  // sem_wait,
-  // sem_post,
   // thread_create,
   // thread_join
   //...
