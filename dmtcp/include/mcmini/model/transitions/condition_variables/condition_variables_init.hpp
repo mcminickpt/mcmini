@@ -17,7 +17,7 @@ struct condition_variable_init : public model::transition{
 
   status modify(model::mutable_state& s) const override {
     using namespace model::objects;
-    s.add_state_for_obj(condition_variable_id, new condition_variable(condition_variable::cv_uninitialized));
+    s.add_state_for_obj(condition_variable_id, new condition_variable(condition_variable::cv_initialized));
     return status::exists;
   }
   state::objid_t get_id() const { return this->condition_variable_id; }

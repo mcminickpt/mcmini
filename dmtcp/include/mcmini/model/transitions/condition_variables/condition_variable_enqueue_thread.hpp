@@ -27,12 +27,14 @@ public:
     if(m->is_unlocked()){
       return status::disabled;
     }
-    //Currently assuming that we only have one mutex .
-    if(cv->get_mutex() == m->get_location()){
-    s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting, executor, m->get_location()));
+
+    // Add to wait queue
+    cv->get_policy()->add_waiter(executor);
+    const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
+    
+    s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting, executor, m->get_location(), new_waiting_count));
     s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked));
     return status::exists;
-    }
   }
   state::objid_t get_id() const { return this->cond_id; }
   state::objid_t get_mutex_id() const { return this->mutex_id; }
