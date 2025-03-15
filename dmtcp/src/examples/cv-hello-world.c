@@ -1,151 +1,129 @@
-#include <assert.h>
+// NOTE:  You can choose WRITER_PREFERRED, READER_PREFERRED, or default
+// NOTE:  The bug still exists if you change the reader function to do 1 task:
+//          for (i = 0; i < 1; i++) { ... }
+//        However, with 2 reader tasks, running will show the deadlock.
+// NOTE:  With 1 reader task, running will not show the deadlock.
+//          and McMini has a bug, and fails to catch the reader-writer bug.
+//        So, I recommend running as is (without McMini) in this case.
+
+// TO COMPILE:  gcc -g3 -O0 THIS_FILE -pthread
 #include <pthread.h>
-#include <semaphore.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-#include <assert.h>
-#include <pthread.h>
-#include <assert.h>
-#include <sched.h>
 
-#ifdef __linux__
-#include <semaphore.h>
+
+// Uncomment preferred policy, or accept default (balanced) policy
+//#define WRITER_PREFERRED
+#define READER_PREFERRED
+
+int num_active_readers = 0;
+int num_active_writers = 0;
+int num_waiting_readers = 0;
+int num_waiting_writers = 0;
+pthread_mutex_t mut = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond;
+int quiet = 0;
+
+void *reader(void *arg) {
+  int *reader_num = arg;
+  int i;
+  for (i = 0; i < 3; i++) {
+    // Acquire permission    
+    sleep(6);
+    pthread_mutex_lock(&mut);
+#ifdef WRITER_PREFERRED
+    while (num_active_writers > 0 || num_waiting_writers > 0) /*Prefer Writer*/
+#elif defined(READER_PREFERRED)
+    while (num_active_writers > 0) /* Reader Preferred */
+#else
+    while (num_active_writers > 0) /* Default */
 #endif
-
-#define Pthread_create(thread, attr, start_routine, arg) assert(pthread_create(thread, attr, start_routine, arg) == 0);
-#define Pthread_join(thread, value_ptr)                  assert(pthread_join(thread, value_ptr) == 0);
-
-#define Pthread_mutex_lock(m)                            assert(pthread_mutex_lock(m) == 0);
-#define Pthread_mutex_unlock(m)                          assert(pthread_mutex_unlock(m) == 0);
-#define Pthread_cond_signal(cond)                        assert(pthread_cond_signal(cond) == 0);
-#define Pthread_cond_wait(cond, mutex)                   assert(pthread_cond_wait(cond, mutex) == 0);
-
-#define Mutex_init(m)                                    assert(pthread_mutex_init(m, NULL) == 0);
-#define Mutex_lock(m)                                    assert(pthread_mutex_lock(m) == 0);
-#define Mutex_unlock(m)                                  assert(pthread_mutex_unlock(m) == 0);
-#define Cond_init(cond)                                  assert(pthread_cond_init(cond, NULL) == 0);
-#define Cond_signal(cond)                                assert(pthread_cond_signal(cond) == 0);
-#define Cond_wait(cond, mutex)                           assert(pthread_cond_wait(cond, mutex) == 0);
-
-#ifdef __linux__
-#define Sem_init(sem, value)                             assert(sem_init(sem, 0, value) == 0);
-#define Sem_wait(sem)                                    assert(sem_wait(sem) == 0);
-#define Sem_post(sem)                                    assert(sem_post(sem) == 0);
-#endif // __linux__
-
-double GetTime() {
-    struct timeval t;
-    int rc = gettimeofday(&t, NULL);
-    assert(rc == 0);
-    return (double) t.tv_sec + (double) t.tv_usec/1e6;
+    {
+      num_waiting_readers++;
+      pthread_cond_wait(&cond, &mut);
+      num_waiting_readers--;
+    }
+    num_active_readers++;
+    pthread_mutex_unlock(&mut);
+    // Do task
+    if (! quiet) {
+      printf("reader %d did task %d.\n", *reader_num, i+1);
+    }
+    // Release permission   
+    pthread_mutex_lock(&mut);
+    num_active_readers--;
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&mut);
+  }
+  return NULL;
 }
 
-void Spin(int howlong) {
-    double t = GetTime();
-    while ((GetTime() - t) < (double) howlong)
-	; // do nothing in loop
+void *writer(void *arg) {
+  int *writer_num = arg;
+  int i;
+  for (i = 0; i < 2; i++) {
+    // Acquire permission  
+    sleep(6);
+    pthread_mutex_lock(&mut);
+    
+#ifdef WRITER_PREFERRED
+    while (num_active_readers > 0 || num_active_writers > 0) /* Prefer Writer */
+#elif defined(READER_PREFERRED)
+    while (num_active_readers > 0 || num_active_writers > 0 ||
+           num_waiting_readers > 0) /* Reader Preferred */
+#else
+    while (num_active_readers > 0 || num_active_writers > 0) /* Default */
+#endif
+    {
+      num_waiting_writers++;
+      pthread_cond_wait(&cond, &mut);
+      num_waiting_writers--;
+    }
+    num_active_writers++;
+    pthread_mutex_unlock(&mut);
+    
+    // Do task
+    if (! quiet) {
+      printf("writer %d did task %d.\n", *writer_num, i+1);
+    }
+    // Release permission    
+    pthread_mutex_lock(&mut);
+    num_active_writers--;
+    pthread_cond_signal(&cond);
+    pthread_mutex_unlock(&mut);
+  }
+  return NULL;
 }
 
+int main(int argc, char *argv[]) {
+  int num_readers = 2;
+  int num_writers = 2;
+  int i;
+  int thread_number[3] = {1, 2, 3};
+  if (argc == 2 && strcmp(argv[1], "--quiet") == 0) {
+    quiet = 1;
+  }
+  // This next stmt not needed, but McMini doesn't yet detect const. initializer
+  pthread_mutex_init(&mut, NULL);
+  pthread_t reader_thread[3]; // Create 3 pthread_t even if we don't use it all
+  pthread_t writer_thread[3]; // Create 3 pthread_t even if we don't use it all
+  pthread_cond_init(&cond, NULL); 
+  for (i = 0; i < num_readers; i++) {
+    // Pass in argument 'i'
+    pthread_create(&reader_thread[i], NULL, reader, &thread_number[i]);
+  }
+  for (i = 0; i < num_writers; i++) {
+    // Pass in argument 'i'
+    pthread_create(&writer_thread[i], NULL, writer, &thread_number[i]);
+  }
 
-
-int max;
-int loops;
-int *buffer; 
-
-int use_ptr  = 0;
-int fill_ptr = 0;
-int num_full = 0;
-
-pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-
-int consumers = 1;
-int verbose = 1;
-
-
-void do_fill(int value) {
-    buffer[fill_ptr] = value;
-    fill_ptr = (fill_ptr + 1) % max;
-    num_full++;
-}
-
-int do_get() {
-    int tmp = buffer[use_ptr];
-    use_ptr = (use_ptr + 1) % max;
-    num_full--;
-    return tmp;
-}
-
-void *producer(void *arg) {
-    int i;
-    for (i = 0; i < loops; i++) {
-	Mutex_lock(&m);            // p1
-	while (num_full == max)    // p2
-	    Cond_wait(&cv, &m);    // p3
-	do_fill(i);                // p4
-	Cond_signal(&cv);          // p5
-	Mutex_unlock(&m);          // p6
-    }
-
-    // end case: put an end-of-production marker (-1) 
-    // into shared buffer, one per consumer
-    for (i = 0; i < consumers; i++) {
-	Mutex_lock(&m);
-	while (num_full == max) 
-	    Cond_wait(&cv, &m);
-	do_fill(-1);
-	Cond_signal(&cv);
-	Mutex_unlock(&m);
-    }
-
-    return NULL;
-}
-                                                                               
-void *consumer(void *arg) {
-    int tmp = 0;
-    // consumer: keep pulling data out of shared buffer
-    // until you receive a -1 (end-of-production marker)
-    while (tmp != -1) { 
-	Mutex_lock(&m);           // c1
-	while (num_full == 0)     // c2 
-	    Cond_wait(&cv, &m);   // c3
-	tmp = do_get();           // c4
-	Cond_signal(&cv);         // c5
-	Mutex_unlock(&m);         // c6
-    }
-    return NULL;
-}
-
-int
-main(int argc, char *argv[])
-{
-    if (argc != 4) {
-	fprintf(stderr, "usage: %s <buffersize> <loops> <consumers>\n", argv[0]);
-	exit(1);
-    }
-    max = atoi(argv[1]);
-    loops = atoi(argv[2]);
-    consumers = atoi(argv[3]);
-
-    buffer = (int *) malloc(max * sizeof(int));
-    assert(buffer != NULL);
-
-    int i;
-    for (i = 0; i < max; i++) {
-	buffer[i] = 0;
-    }
-
-    pthread_t pid, cid[consumers];
-    Pthread_create(&pid, NULL, producer, NULL); 
-    for (i = 0; i < consumers; i++) {
-	Pthread_create(&cid[i], NULL, consumer, (void *) (long long int) i); 
-    }
-    Pthread_join(pid, NULL); 
-    for (i = 0; i < consumers; i++) {
-	Pthread_join(cid[i], NULL); 
-    }
-    return 0;
+  for (i = 0; i < num_readers; i++) {
+    pthread_join(reader_thread[i], NULL);
+  }
+  for (i = 0; i < num_writers; i++) {
+    pthread_join(writer_thread[i], NULL);
+  }
+  return 0;
 }

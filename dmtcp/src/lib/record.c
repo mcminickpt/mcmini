@@ -78,69 +78,69 @@ rec_list *add_rec_entry_record_mode(const visible_object *vo) {
 }
 
 //debugging puropses, will remove later
-void print_rec_list(const rec_list *head) {
-  const rec_list *current = head;
-  while (current != NULL) {
-    const visible_object *vo = &current->vo;
+// void print_rec_list(const rec_list *head) {
+//   const rec_list *current = head;
+//   while (current != NULL) {
+//     const visible_object *vo = &current->vo;
 
-    printf("Record:\n");
-    printf("  Type: ");
-    switch (vo->type) {
-      case UNKNOWN:
-        printf("UNKNOWN\n");
-        break;
-      case MUTEX:
-        printf("MUTEX\n");
-        printf("  Location: %p\n", vo->location);
-        printf("  Mutex State: ");
-        switch (vo->mut_state) {
-          case UNINITIALIZED: printf("UNINITIALIZED\n"); break;
-          case UNLOCKED: printf("UNLOCKED\n"); break;
-          case LOCKED: printf("LOCKED\n"); break;
-          case DESTROYED: printf("DESTROYED\n"); break;
-          default: printf("UNKNOWN STATE\n"); break;
-        }
-        break;
-      case SEMAPHORE:
-        printf("SEMAPHORE\n");
-        printf("  Location: %p\n", vo->location);
-        printf("  Count: %d\n", vo->sem_state.count);
-        break;
-      case CONDITION_VARIABLE:
-        printf("CONDITION VARIABLE\n");
-        printf("  Location: %p\n", vo->location);
-        printf("  Status: ");
-        switch (vo->cond_state.status) {
-          case CV_UNINITIALIZED: printf("UNINITIALIZED\n"); break;
-          case CV_INITIALIZED: printf("INITIALIZED\n"); break;
-          case CV_WAITING: printf("WAITING\n"); break;
-          case CV_SIGNALLED: printf("SIGNALLED\n"); break;
-          case CV_TRANSITIONAL: printf("TRANSITIONAL\n"); break;
-          default: printf("UNKNOWN STATUS\n"); break;
-        }
-        printf("  Waiting Thread: %p\n", (void *)vo->cond_state.interacting_thread);
-        printf("  Associated Mutex: %p\n", (void *)vo->cond_state.associated_mutex);
-        printf("  Waiting Count: %d\n", vo->cond_state.count);
-        break;
-      case THREAD:
-        printf("THREAD\n");
-        printf("  Thread Descriptor: %p\n", (void *)vo->thrd_state.pthread_desc);
-        printf("  Runner ID: %u\n", vo->thrd_state.id);
-        printf("  Status: ");
-        switch (vo->thrd_state.status) {
-          case ALIVE: printf("ALIVE\n"); break;
-          case EXITED: printf("EXITED\n"); break;
-          default: printf("UNKNOWN STATUS\n"); break;
-        }
-        break;
-      default:
-        printf("INVALID TYPE\n");
-        break;
-    }
+//     printf("Record:\n");
+//     printf("  Type: ");
+//     switch (vo->type) {
+//       case UNKNOWN:
+//         printf("UNKNOWN\n");
+//         break;
+//       case MUTEX:
+//         printf("MUTEX\n");
+//         printf("  Location: %p\n", vo->location);
+//         printf("  Mutex State: ");
+//         switch (vo->mut_state) {
+//           case UNINITIALIZED: printf("UNINITIALIZED\n"); break;
+//           case UNLOCKED: printf("UNLOCKED\n"); break;
+//           case LOCKED: printf("LOCKED\n"); break;
+//           case DESTROYED: printf("DESTROYED\n"); break;
+//           default: printf("UNKNOWN STATE\n"); break;
+//         }
+//         break;
+//       case SEMAPHORE:
+//         printf("SEMAPHORE\n");
+//         printf("  Location: %p\n", vo->location);
+//         printf("  Count: %d\n", vo->sem_state.count);
+//         break;
+//       case CONDITION_VARIABLE:
+//         printf("CONDITION VARIABLE\n");
+//         printf("  Location: %p\n", vo->location);
+//         printf("  Status: ");
+//         switch (vo->cond_state.status) {
+//           case CV_UNINITIALIZED: printf("UNINITIALIZED\n"); break;
+//           case CV_INITIALIZED: printf("INITIALIZED\n"); break;
+//           case CV_WAITING: printf("WAITING\n"); break;
+//           case CV_SIGNALLED: printf("SIGNALLED\n"); break;
+//           case CV_TRANSITIONAL: printf("TRANSITIONAL\n"); break;
+//           default: printf("UNKNOWN STATUS\n"); break;
+//         }
+//         printf("  Waiting Thread: %p\n", (void *)vo->cond_state.interacting_thread);
+//         printf("  Associated Mutex: %p\n", (void *)vo->cond_state.associated_mutex);
+//         printf("  Waiting Count: %d\n", vo->cond_state.count);
+//         break;
+//       case THREAD:
+//         printf("THREAD\n");
+//         printf("  Thread Descriptor: %p\n", (void *)vo->thrd_state.pthread_desc);
+//         printf("  Runner ID: %u\n", vo->thrd_state.id);
+//         printf("  Status: ");
+//         switch (vo->thrd_state.status) {
+//           case ALIVE: printf("ALIVE\n"); break;
+//           case EXITED: printf("EXITED\n"); break;
+//           default: printf("UNKNOWN STATUS\n"); break;
+//         }
+//         break;
+//       default:
+//         printf("INVALID TYPE\n");
+//         break;
+//     }
 
-    current = current->next;
-  }
-}
+//     current = current->next;
+//   }
+// }
 
 
 void notify_template_thread() { sem_post(&dmtcp_restart_sem); }
