@@ -26,6 +26,7 @@
 #include "mcmini/signal.hpp"
 #include "mcmini/spy/checkpointing/objects.h"
 #include "mcmini/spy/checkpointing/transitions.h"
+#include "mcmini/Thread_queue.h"
 
 #define _XOPEN_SOURCE_EXTENDED 1
 
@@ -53,7 +54,8 @@ using namespace objects;
 using namespace real_world;
 
 visible_object_state* translate_recorded_object_to_model(
-    const ::visible_object& recorded_object) {
+    const ::visible_object& recorded_object , 
+    const std::unordered_map<void*, std::vector<runner_id_t>>& cv_waiting_threads) {
   // TODO: A function table would be slightly better, but this works perfectly
   // fine too.
   switch (recorded_object.type) {
@@ -66,12 +68,16 @@ visible_object_state* translate_recorded_object_to_model(
       // Create the condition variable model object with full state information
       auto cv_state = static_cast<objects::condition_variable::state>(
           recorded_object.cond_state.status);
+    
       runner_id_t interacting_thread = recorded_object.cond_state.interacting_thread;
       pthread_mutex_t* associated_mutex = recorded_object.cond_state.associated_mutex;
       int count = recorded_object.cond_state.count;
-      thread_queue waiting_thread = recorded_object.cond_state.waiting_threads;
-      // Construct the condition variable with additional fields
-      return new objects::condition_variable(cv_state, interacting_thread, associated_mutex);
+      // get waiting threads from the map
+      auto it = cv_waiting_threads.find(recorded_object.location);
+      std::vector<runner_id_t> waiting_thread_ids = 
+      (it != cv_waiting_threads.end()) ? it->second : std::vector<runner_id_t>();
+      return new objects::condition_variable(
+          cv_state, interacting_thread, associated_mutex, count, waiting_thread_ids);
     }
     // Other objects here
     // case ...  { }
@@ -257,14 +263,19 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     fifo fifo("/tmp/mcmini-fifo");
     ::visible_object current_obj;
     std::vector<::visible_object> recorded_threads;
-
+// maybe add another else for cv for linked list
+std::unordered_map<void*, std::vector<runner_id_t>> cv_waiting_threads;
     while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       if (current_obj.type == THREAD) {
         recorded_threads.emplace_back(std::move(current_obj));
-      } else {
+      }else if (current_obj.type == CV_WAITING_QUEUE){
+        // Extract waiting thread ID and link to parent CV
+        cv_waiting_threads[current_obj.waiting_queue_state.cv_location].push_back(current_obj.waiting_queue_state.waiting_id);
+      }
+      else {
         recorder.observe_object(
             current_obj.location,
-            translate_recorded_object_to_model(current_obj));
+            translate_recorded_object_to_model(current_obj,cv_waiting_threads));
       }
     }
 
