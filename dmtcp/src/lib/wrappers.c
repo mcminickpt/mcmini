@@ -12,7 +12,7 @@
 
 #include "mcmini/mcmini.h"
 #include "mcmini/common/exit.h"
-#include "dmtcp/include/mcmini/Thread_queue.h"
+#include "mcmini/Thread_queue.h"
 
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
@@ -32,6 +32,8 @@ volatile runner_mailbox *thread_get_mailbox() {
 }
 
 void thread_wake_scheduler_and_wait(void) {
+  fprintf(stdout, "thread_wake_scheduler_and_wait\n");
+  fflush(stdout);
   assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
   errno = 0;
@@ -175,8 +177,6 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
         visible_object vo = {
             .type = MUTEX, .location = mutex, .mut_state = UNINITIALIZED};
         mutex_record = add_rec_entry_record_mode(&vo);
-        printf("After adding record entry\n");
-        print_rec_list(mutex_record);
       }
       libpthread_mutex_unlock(&rec_list_lock);
 
@@ -186,8 +186,6 @@ int mc_pthread_mutex_lock(pthread_mutex_t *mutex) {
         if (rc == 0) {  // Lock succeeded
           libpthread_mutex_lock(&rec_list_lock);
           mutex_record->vo.mut_state = LOCKED;
-          printf("After using timedlock\n");
-          print_rec_list(mutex_record);
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         } else if (rc == ETIMEDOUT) {  // If the lock failed.
@@ -393,7 +391,6 @@ void *mc_thread_routine_wrapper(void *arg) {
       libc_abort();
     }
   }
-
   void *rv = unwrapped_arg->routine(unwrapped_arg->arg);
   free(arg);
 
@@ -404,6 +401,8 @@ void *mc_thread_routine_wrapper(void *arg) {
       rec_list *thread_record = find_thread_record_mode(pthread_self());
       assert(thread_record != NULL);
       thread_record->vo.thrd_state.status = EXITED;
+      fprintf(stdout, "\n\nexited\n\n"); fflush(stdout);
+      // print_rec_list(thread_record);
       libpthread_mutex_unlock(&rec_list_lock);
       return rv;
     }
@@ -640,7 +639,7 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
         visible_object vo = {
             .type = CONDITION_VARIABLE, .location = cond, 
             .cond_state = { .status = CV_UNINITIALIZED, .interacting_thread = 0, .associated_mutex = NULL, 
-            .count = 0  }
+            .count = 0 }
         };
         cond_record = add_rec_entry_record_mode(&vo);
       }
@@ -654,7 +653,8 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
         //we typically don't know which mutex will be associated with the 
         //condition variable until a thread actually waits on it.
         cond_record->vo.cond_state.associated_mutex = NULL; 
-        init_thread_queue(&(cond_record->vo.cond_state.waiting_threads));
+        cond_record->vo.cond_state.waiting_threads = create_thread_queue();
+        // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
         cond_record->vo.cond_state.count = 0;
         libpthread_mutex_unlock(&rec_list_lock);
       }
@@ -665,8 +665,9 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
         volatile runner_mailbox *mb = thread_get_mailbox();
         mb->type = COND_INIT_TYPE;
         memcpy_v(mb->cnts, &cond, sizeof(cond));
-        notify_template_thread();
-        thread_await_scheduler();
+        // notify_template_thread();
+        // thread_await_scheduler();
+        thread_handle_after_dmtcp_restart();
         return libpthread_cond_init(cond, attr);
       }
       case TARGET_BRANCH:
@@ -703,10 +704,8 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           .associated_mutex = mutex, .count = 0 }
         };
 
-        init_thread_queue(&(cond_record->vo.cond_state.waiting_threads));
+        cond_record->vo.cond_state.waiting_threads = create_thread_queue();
         cond_record = add_rec_entry_record_mode(&vo);
-        printf("After adding record entry\n");
-        print_rec_list(cond_record);
       }
       
       libpthread_mutex_unlock(&rec_list_lock);
@@ -718,9 +717,16 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
       // CV_TRANSITIONAL. It is done to avoid race condition that might occur due to checkpointing
       // between releasing the mutex and actually getting into wait state.
       libpthread_mutex_lock(&rec_list_lock);
+      cond_record->vo.cond_state.interacting_thread = tmp;
+      //check if thread is not already in the waiting room
+      if(!is_in_thread_queue(cond_record->vo.cond_state.waiting_threads, tmp)){
+        //add the thread to the waiting room
+      enqueue_thread((cond_record->vo.cond_state.waiting_threads), cond_record->vo.cond_state.interacting_thread);
       cond_record->vo.cond_state.status = CV_TRANSITIONAL;
-      printf("After setting transitional state\n");
-      print_rec_list(cond_record);
+      cond_record->vo.cond_state.associated_mutex = mutex;
+      cond_record->vo.cond_state.count++;
+      }
+      // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
       libpthread_mutex_unlock(&rec_list_lock);
       while (1) {
         rc = libpthread_cond_timedwait(cond, mutex, &wait_time);
@@ -728,12 +734,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           // The thread has successfully entered the waiting state.
           libpthread_mutex_lock(&rec_list_lock);
           cond_record->vo.cond_state.status = CV_WAITING;
-          cond_record->vo.cond_state.interacting_thread = thrd_record->vo.thrd_state.id;
-          cond_record->vo.cond_state.associated_mutex = mutex;
-
-          cond_record->vo.cond_state.count++;
-          enqueue_thread(&(cond_record->vo.cond_state.waiting_threads), cond_record->vo.cond_state.interacting_thread);
-          printf("After cond_timedwait \n");
+          
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         }
@@ -769,25 +770,18 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           // - If the thread is in CV_WAITING (inner waiting room), we know it has entered a stable wait 
           //   state, ensuring the mutex-conditional interaction is checkpoint-safe.
           if (is_in_restart_mode()) {
-            // If in restart mode, but still in the outer waiting room
-            if (cond_record->vo.cond_state.status == CV_TRANSITIONAL) {
-              continue; //Retry until the thread enters the wait state
-            }
-            else {
-              break; //The thread has entered the wait state
-            }
-          }
-        } 
-        else if (rc != 0 && rc != ETIMEDOUT) {
+            // When thread is cancelled either before timeout or getting into the wait state mutex is acquired by the thread. 
+            // So we can safely unlock the mutex here so that thread can proceed.
+            if(cond_record->vo.cond_state.status != CV_WAITING){
+            libpthread_mutex_unlock(mutex);
+            break;
+          }}
+        } else if (rc != 0 && rc != ETIMEDOUT) {
           // A "true" error: something went wrong with locking
           // and we pass this on to the end user
           return rc;
         }
       }
-      // Clear the transitional state and set the thread to waiting state
-      libpthread_mutex_lock(&rec_list_lock);
-      cond_record->vo.cond_state.status = CV_WAITING;
-      libpthread_mutex_unlock(&rec_list_lock);
     }
     case DMTCP_RESTART_INTO_BRANCH:
     case DMTCP_RESTART_INTO_TEMPLATE:{
@@ -796,6 +790,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
       memcpy_v(mb->cnts, &cond, sizeof(cond));
       memcpy_v(mb->cnts + sizeof(cond), &mutex, sizeof(mutex));
       thread_handle_after_dmtcp_restart();
+
       libpthread_mutex_unlock(mutex);
       mb->type = COND_WAIT_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
@@ -852,10 +847,11 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
       if (rc == 0) {
         libpthread_mutex_lock(&rec_list_lock);
         cond_record->vo.cond_state.status = CV_SIGNALLED;
-        cond_record->vo.cond_state.count--;
-        dequeue_thread(&(cond_record->vo.cond_state.waiting_threads));
-        printf("After cond_signal\n");
-        print_rec_list(cond_record);
+        if(!is_queue_empty(cond_record->vo.cond_state.waiting_threads)){
+          cond_record->vo.cond_state.count--;
+          dequeue_thread((cond_record->vo.cond_state.waiting_threads));
+          // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
+        }
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
@@ -865,8 +861,9 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = COND_SIGNAL_TYPE;
       memcpy_v(mb->cnts, &cond, sizeof(cond));
-      notify_template_thread();
-      thread_await_scheduler();
+      // notify_template_thread();
+      // thread_await_scheduler();
+      thread_handle_after_dmtcp_restart();
       return libpthread_cond_signal(cond);
     }
     case TARGET_BRANCH:
