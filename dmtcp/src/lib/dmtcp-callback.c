@@ -14,13 +14,13 @@
 // We probably won't need the '#undef', but just in case a .h file defined it:
 #undef dmtcp_mcmini_is_loaded
 int dmtcp_mcmini_is_loaded() { return 1; }
+int counter = 0;
 
 static sem_t template_thread_sem;
 static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
 
 void thread_handle_after_dmtcp_restart(void) {
-  printf("thread_handle_after_dmtcp_restart\n");
   // IMPORTANT: There's a potential race between
   // notifying the template thread and accessing
   // the new current mode. We care about how
@@ -101,16 +101,16 @@ static void *template_thread(void *unused) {
   // We don't want to count the template thread nor
   // the checkpoint thread, but these will appear in
   // `/proc/self/tasks`
+
   thread_count -= 2;
   closedir(dp);
-
   printf(
       "There are %d threads... waiting for them to get into a consistent "
       "state...\n",
       thread_count);
-  for (int i = 0; i < thread_count; i++) {
-    libpthread_sem_wait(&dmtcp_restart_sem);
-  }
+      for (int i = 0; i < thread_count; i++) {
+        libpthread_sem_wait(&dmtcp_restart_sem);
+      }
   printf("The threads are now in a consistent state\n");
 
   if (get_current_mode() == DMTCP_RESTART_INTO_BRANCH) {
@@ -148,6 +148,8 @@ static void *template_thread(void *unused) {
     }
     for (rec_list *entry = head_record_mode; entry != NULL;
          entry = entry->next) {
+      // fprintf(stdout, "--- Debugging: type: %d location: %p\n",
+              // entry->vo.type, entry->vo.location);
       if (entry->vo.type == MUTEX) {
         printf("Writing mutex entry %p (state %d)\n", entry->vo.location,
                entry->vo.mut_state);
@@ -155,12 +157,38 @@ static void *template_thread(void *unused) {
         printf("Writing thread entry %p (id %d, status: %d)\n",
                (void *)entry->vo.thrd_state.pthread_desc,
                entry->vo.thrd_state.id, entry->vo.thrd_state.status);
-      } else {
+      }else if (entry->vo.type == CONDITION_VARIABLE) {
+        printf("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
+               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size, entry->vo.cond_state.waiting_threads);
+      }
+      else {
         libc_abort();
       }
+      if(entry->vo.type == CONDITION_VARIABLE){
+        // Here we are trying to modify the variables that are a part of union,
+        // so doing so is not ideal because it will change other varibale as memory is overlapped.
+        thread_queue_node* current = entry->vo.cond_state.waiting_threads->front;
+        while(current != NULL){
+          visible_object waiting_queue_vo = {
+            .type = CV_WAITING_QUEUE,
+            .location = current,
+            .waiting_queue_state.cv_location = entry->vo.location,
+            .waiting_queue_state.waiting_id = current->thread
 
+          };
+          int sz = write(fd, &waiting_queue_vo, sizeof(visible_object));
+          fprintf(stdout, "bytes written : %d\n", sz); fflush(stdout);
+          fflush(stdout);
+          // assert(sz == sizeof(visible_object));
+          current = current->next;
+        }
+        int sz = write(fd, &entry->vo, sizeof(visible_object));
+        assert(sz == sizeof(visible_object));
+      }
+      else{
       int sz = write(fd, &entry->vo, sizeof(visible_object));
       assert(sz == sizeof(visible_object));
+      }
     }
     int sz = write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
     assert(sz == sizeof(visible_object));
@@ -197,8 +225,25 @@ static void *template_thread(void *unused) {
   // forking.
   return NULL;
 }
+static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
+  while(1);
+}
+static int AddSegvHandler() {
+  struct sigaction act;
+  static struct sigaction old_act;
 
+  act.sa_sigaction = &SegvfaultHandler;
+  act.sa_flags = SA_RESTART | SA_SIGINFO;
+  sigemptyset(&act.sa_mask);
+  if (sigaction(SIGSEGV, &act, &old_act)) {
+    perror("Failed to install segv handler");
+    return -1;
+  }
+  return 0;
+}
 __attribute__((constructor)) void libmcmini_event_late_init() {
+  
+  AddSegvHandler();  
   if (!dmtcp_is_enabled()) {
     return;
   }
