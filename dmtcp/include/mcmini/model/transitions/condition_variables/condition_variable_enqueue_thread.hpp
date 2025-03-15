@@ -27,7 +27,6 @@ public:
     if(m->is_unlocked()){
       return status::disabled;
     }
-<<<<<<< HEAD
 
     // Add to wait queue
     cv->get_policy()->add_waiter(executor);
@@ -36,14 +35,6 @@ public:
     s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting, executor, m->get_location(), new_waiting_count));
     s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked));
     return status::exists;
-=======
-    //Currently assuming that we only have one mutex .
-    if(cv->get_mutex() == m->get_location()){
-    s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting, executor, m->get_location()));
-    s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked));
-    return status::exists;
-    }
->>>>>>> 4454172f95948d5649ebc5f4dc6bfd479d3f77b8
   }
   state::objid_t get_id() const { return this->cond_id; }
   state::objid_t get_mutex_id() const { return this->mutex_id; }

@@ -14,10 +14,7 @@ struct mutex : public model::visible_object_state {
  private:
   state current_state = state::uninitialized;
   pthread_mutex_t* location;
-<<<<<<< HEAD
   runner_id_t owner;
-=======
->>>>>>> 4454172f95948d5649ebc5f4dc6bfd479d3f77b8
 
  public:
   mutex() = default;
@@ -25,11 +22,8 @@ struct mutex : public model::visible_object_state {
   mutex(const mutex &) = default;
   mutex(state s) : current_state(s) {}
   mutex(state s, pthread_mutex_t* loc) : current_state(s), location(loc) {}
-<<<<<<< HEAD
   mutex(state s, pthread_mutex_t* loc, runner_id_t tid): current_state(s), location(loc), owner(tid) {}
   
-=======
->>>>>>> 4454172f95948d5649ebc5f4dc6bfd479d3f77b8
   // ---- State Observation --- //
   bool operator==(const mutex &other) const {
     return this->current_state == other.current_state && this->owner == other.owner;
@@ -45,10 +39,7 @@ struct mutex : public model::visible_object_state {
   bool is_destroyed() const { return this->current_state == destroyed; }
   bool is_initialized() const { return this->current_state != uninitialized; }
 
-<<<<<<< HEAD
   
-=======
->>>>>>> 4454172f95948d5649ebc5f4dc6bfd479d3f77b8
   pthread_mutex_t* get_location() const { return this->location; }
 
   std::unique_ptr<visible_object_state> clone() const override {
