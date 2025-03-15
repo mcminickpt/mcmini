@@ -65,7 +65,6 @@ struct condition_variable : public model::visible_object_state {
   bool is_transitional() const { return this->current_state == cv_transitional;}
   bool is_destroyed() const { return this->current_state == cv_destroyed;}
 
-  pthread_mutex_t* get_mutex() const {return this->associated_mutex;}
   ConditionVariablePolicy* get_policy() const {return this->policy;}
 
   void set_associated_mutex(pthread_mutex_t* mutex) {
