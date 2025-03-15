@@ -325,7 +325,6 @@ transition::status state_sequence::follow(const transition &t) {
       this->visible_objects[new_state.first].push_state(
           new_state.second.consume_into_current_state().release());
     this->push_state_snapshot();
-    return transition::status::exists;
   }
-  return transition::status::disabled;
+  return result.second;
 }
