@@ -27,20 +27,40 @@ struct condition_variable_wait : public model::transition {
     const condition_variable* cv = s.get_state_of_object<condition_variable>(cond_id);
     const mutex* m = s.get_state_of_object<mutex>(mutex_id);
 
-    if (cv->is_initialized() && m->is_locked()) {
-      // If the condition variable is initialized or signalled, we move to the transitional state
-      s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_transitional));
-    } else {
-      s.add_state_for_obj(mutex_id, new mutex(mutex::locked));
-      
+    if(cv->is_uninitialized() || cv->is_destroyed()) {
+      return status::undefined;
     }
-    s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting));
 
+    // For the resumption phase, we now expect that the thread is currently waiting , so it should not already hold the mutex.
+    if(m->is_locked_by(executor)) {
+      return status::disabled;
+    }
+
+    if(!(cv->waiter_can_exit(executor) && m->get_location() == cv->get_mutex() && m->is_unlocked())){
+      return status::disabled;
+    }
+    
+    
+    // Reacquire the mutex: update its state to "locked" with the executor.
+    s.add_state_for_obj(mutex_id, new mutex(mutex::locked, m->get_location(), executor));
+
+    // remove the executor from the wake group
+    cv->remove_waiter(executor);
+    
+    const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
+    condition_variable::state new_state = new_waiting_count > 0
+                                          ? condition_variable::cv_waiting
+                                          : condition_variable::cv_signalled;
+    s.add_state_for_obj(cond_id, new condition_variable(new_state, executor, m->get_location(), new_waiting_count));
     return status::exists;
   }
   state::objid_t get_id() const { return this->cond_id; }
+  // std::string to_string() const override {
+  //   return "pthread_cond_wait(cond:" + std::to_string(cond_id) + ", mutex:" + std::to_string(mutex_id) + ")";
+  // }
   std::string to_string() const override {
-    return "pthread_cond_wait(cond:" + std::to_string(cond_id) + ", mutex:" + std::to_string(mutex_id) + ")";
+    return "thread: " + std::to_string(executor) + " pthread_cond_wait (cond: )" + std::to_string(cond_id)
+            + ", mutex: " + std::to_string(mutex_id) + ") (asleep -> awake)";
   }
 
   // MARK: Model checking functions
