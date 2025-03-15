@@ -27,6 +27,7 @@ struct condition_variable_wait : public model::transition {
     const condition_variable* cv = s.get_state_of_object<condition_variable>(cond_id);
     const mutex* m = s.get_state_of_object<mutex>(mutex_id);
 
+<<<<<<< HEAD
     if(cv->is_uninitialized() || cv->is_destroyed()) {
       return status::undefined;
     }
@@ -52,6 +53,17 @@ struct condition_variable_wait : public model::transition {
                                           ? condition_variable::cv_waiting
                                           : condition_variable::cv_signalled;
     s.add_state_for_obj(cond_id, new condition_variable(new_state, executor, m->get_location(), new_waiting_count));
+=======
+    if (cv->is_initialized() && m->is_locked()) {
+      // If the condition variable is initialized or signalled, we move to the transitional state
+      s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_transitional));
+    } else {
+      s.add_state_for_obj(mutex_id, new mutex(mutex::locked));
+      
+    }
+    s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting));
+
+>>>>>>> 4454172f95948d5649ebc5f4dc6bfd479d3f77b8
     return status::exists;
   }
   state::objid_t get_id() const { return this->cond_id; }
