@@ -31,3 +31,26 @@ std::vector<WakeGroup> ConditionVariableArbitraryPolicy::return_wake_groups() co
   return this->wake_groups;
 }
 
+void ConditionVariableArbitraryPolicy::add_to_wake_groups(const std::vector<runner_id_t>& threads) {
+  if (!threads.empty()) {
+    this->wake_groups.push_back(WakeGroup(threads.begin(), threads.end()));
+  }
+}
+
+// Add thread with specific state
+void ConditionVariableArbitraryPolicy::add_waiter_with_state(runner_id_t tid, condition_variable_status state) {
+  add_waiter(tid);
+  this->threads_with_states[tid] = state;
+}
+
+// Get thread's current state
+condition_variable_status ConditionVariableArbitraryPolicy::get_thread_cv_state(runner_id_t tid) {
+  auto it = this->threads_with_states.find(tid);
+  return (it != this->threads_with_states.end()) ? it->second : CV_UNINITIALIZED;
+}
+
+void ConditionVariableArbitraryPolicy::update_thread_cv_state(runner_id_t tid, condition_variable_status state) {
+  this->threads_with_states[tid] = state;
+}
+
+

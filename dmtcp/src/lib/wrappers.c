@@ -774,6 +774,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           // - If the thread is in CV_WAITING (inner waiting room), we know it has entered a stable wait 
           //   state, ensuring the mutex-conditional interaction is checkpoint-safe.
           if (is_in_restart_mode()) {
+<<<<<<< HEAD
             // When thread is cancelled either before timeout or getting into the wait state mutex is acquired by the thread. 
             // So we can safely unlock the mutex here so that thread can proceed.
             libpthread_mutex_lock(&rec_list_lock);
@@ -782,6 +783,16 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
             libpthread_mutex_unlock(mutex);
             libpthread_mutex_unlock(&rec_list_lock);
             break;
+=======
+            //libpthread_mutex_lock(&rec_list_lock);
+            // thrd_record = find_thread_record_mode(pthread_self());
+            // if (get_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id) == CV_PREWAITING) {
+            //   libpthread_mutex_unlock(&rec_list_lock);
+              break;
+            // } else {
+            //   break;
+            // }
+>>>>>>> 7215852 (some changes)
           }
         }
         } else if (rc != 0 && rc != ETIMEDOUT) {
