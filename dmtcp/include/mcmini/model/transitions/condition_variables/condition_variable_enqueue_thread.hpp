@@ -28,8 +28,13 @@ public:
       return status::disabled;
     }
 
-    // Add to wait queue
-    cv->get_policy()->add_waiter(executor);
+    condition_variable_status current_state = cv->get_policy()->get_thread_cv_state(executor);
+    if (current_state == CV_PREWAITING) {
+    // Thread not fully in wait state - update to WAITING before proceeding
+      cv->get_policy()->update_thread_cv_state(executor, CV_WAITING);
+    }
+
+    cv->get_policy()->add_waiter_with_state(executor, CV_WAITING);
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
     
     s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting, executor, m->get_location(), new_waiting_count));

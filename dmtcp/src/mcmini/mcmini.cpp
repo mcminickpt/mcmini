@@ -55,7 +55,7 @@ using namespace real_world;
 
 visible_object_state* translate_recorded_object_to_model(
     const ::visible_object& recorded_object , 
-    const std::unordered_map<void*, std::vector<runner_id_t>>& cv_waiting_threads) {
+    const std::unordered_map<void*, std::vector<std::pair<runner_id_t, condition_variable_status>>> cv_waiting_threads) {
   // TODO: A function table would be slightly better, but this works perfectly
   // fine too.
   switch (recorded_object.type) {
@@ -74,10 +74,10 @@ visible_object_state* translate_recorded_object_to_model(
       int count = recorded_object.cond_state.count;
       // get waiting threads from the map
       auto it = cv_waiting_threads.find(recorded_object.location);
-      std::vector<runner_id_t> waiting_thread_ids = 
-      (it != cv_waiting_threads.end()) ? it->second : std::vector<runner_id_t>();
+      std::vector<std::pair<runner_id_t, condition_variable_status>> waiters_with_state = 
+      (it != cv_waiting_threads.end()) ? it->second : std::vector<std::pair<runner_id_t, condition_variable_status>>();
       return new objects::condition_variable(
-          cv_state, interacting_thread, associated_mutex, count, waiting_thread_ids);
+          cv_state, interacting_thread, associated_mutex, count, waiters_with_state);
     }
     // Other objects here
     // case ...  { }
@@ -263,14 +263,18 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     fifo fifo("/tmp/mcmini-fifo");
     ::visible_object current_obj;
     std::vector<::visible_object> recorded_threads;
-// maybe add another else for cv for linked list
-std::unordered_map<void*, std::vector<runner_id_t>> cv_waiting_threads;
+    std::unordered_map<void*, std::vector<std::pair<runner_id_t, condition_variable_status>>> cv_waiting_threads;
     while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       if (current_obj.type == THREAD) {
         recorded_threads.emplace_back(std::move(current_obj));
       }else if (current_obj.type == CV_WAITING_QUEUE){
-        // Extract waiting thread ID and link to parent CV
-        cv_waiting_threads[current_obj.waiting_queue_state.cv_location].push_back(current_obj.waiting_queue_state.waiting_id);
+      // Capture both thread ID and state
+        cv_waiting_threads[current_obj.waiting_queue_state.cv_location].push_back(
+          std::make_pair(
+            current_obj.waiting_queue_state.waiting_id,
+            current_obj.waiting_queue_state.cv_state
+          )
+        );
       }
       else {
         recorder.observe_object(

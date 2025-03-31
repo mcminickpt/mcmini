@@ -40,6 +40,11 @@ struct condition_variable_wait : public model::transition {
       return status::disabled;
     }
     
+    // condition_variable_status current_state = cv->get_policy()->get_thread_cv_state(executor);
+    // if (current_state == CV_PREWAITING) {
+    // // Thread not fully in wait state - update to WAITING before proceeding
+    //   cv->get_policy()->update_thread_cv_state(executor, CV_WAITING);
+    // }
     
     // Reacquire the mutex: update its state to "locked" with the executor.
     s.add_state_for_obj(mutex_id, new mutex(mutex::locked, m->get_location(), executor));
