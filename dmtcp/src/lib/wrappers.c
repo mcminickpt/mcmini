@@ -654,7 +654,6 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
         //condition variable until a thread actually waits on it.
         cond_record->vo.cond_state.associated_mutex = NULL; 
         cond_record->vo.cond_state.waiting_threads = create_thread_queue();
-        // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
         cond_record->vo.cond_state.count = 0;
         libpthread_mutex_unlock(&rec_list_lock);
       }
@@ -701,40 +700,45 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
       //Initialize the condition variable
         visible_object vo = {
           .type = CONDITION_VARIABLE, .location = cond, .cond_state = { .status= CV_INITIALIZED, .interacting_thread = tmp, 
-          .associated_mutex = mutex, .count = 0 }
+          .associated_mutex = mutex, .count = 0, .waiting_threads = create_thread_queue() }
         };
-
-        cond_record->vo.cond_state.waiting_threads = create_thread_queue();
         cond_record = add_rec_entry_record_mode(&vo);
       }
-      
-      libpthread_mutex_unlock(&rec_list_lock);
-      
-      struct timespec wait_time = {.tv_sec = 2};
-      int rc;
-
       // The thread will enter in the outer waiting room first. Here its state will be
       // CV_TRANSITIONAL. It is done to avoid race condition that might occur due to checkpointing
       // between releasing the mutex and actually getting into wait state.
-      libpthread_mutex_lock(&rec_list_lock);
       cond_record->vo.cond_state.interacting_thread = tmp;
       //check if thread is not already in the waiting room
       if(!is_in_thread_queue(cond_record->vo.cond_state.waiting_threads, tmp)){
         //add the thread to the waiting room
-      enqueue_thread((cond_record->vo.cond_state.waiting_threads), cond_record->vo.cond_state.interacting_thread);
-      cond_record->vo.cond_state.status = CV_TRANSITIONAL;
+      enqueue_thread(cond_record->vo.cond_state.waiting_threads,tmp,CV_TRANSITIONAL); 
+      }
       cond_record->vo.cond_state.associated_mutex = mutex;
       cond_record->vo.cond_state.count++;
-      }
-      // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
       libpthread_mutex_unlock(&rec_list_lock);
+      
+      struct timespec wait_time = {.tv_sec = 2};
+      int rc;
       while (1) {
         rc = libpthread_cond_timedwait(cond, mutex, &wait_time);
         if (rc == 0) {
           // The thread has successfully entered the waiting state.
+          // TOdO: check interacting pthread_self with thread record 
+          // get its id and then update the per thread status.
           libpthread_mutex_lock(&rec_list_lock);
-          cond_record->vo.cond_state.status = CV_WAITING;
+          thrd_record = find_thread_record_mode(pthread_self());
           
+          //Check if this thread was signalled (CV_SIGNALLED state)
+          condition_variable_status cv_state = get_thread_cv_state(cond_record->vo.cond_state.waiting_threads, thrd_record->vo.thrd_state.id);
+          
+          if (cv_state == CV_SIGNALLED){
+            // Remove this thread from the queue
+            remove_thread_from_queue(cond_record->vo.cond_state.waiting_threads, thrd_record->vo.thrd_state.id);
+            cond_record->vo.cond_state.count--;
+          }
+          else {
+            update_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id,CV_WAITING);
+          }
           libpthread_mutex_unlock(&rec_list_lock);
           return rc;
         }
@@ -772,10 +776,14 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           if (is_in_restart_mode()) {
             // When thread is cancelled either before timeout or getting into the wait state mutex is acquired by the thread. 
             // So we can safely unlock the mutex here so that thread can proceed.
-            if(cond_record->vo.cond_state.status != CV_WAITING){
+            libpthread_mutex_lock(&rec_list_lock);
+            thrd_record = find_thread_record_mode(pthread_self());
+            if(get_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id) != CV_WAITING){
             libpthread_mutex_unlock(mutex);
+            libpthread_mutex_unlock(&rec_list_lock);
             break;
-          }}
+          }
+        }
         } else if (rc != 0 && rc != ETIMEDOUT) {
           // A "true" error: something went wrong with locking
           // and we pass this on to the end user
@@ -845,11 +853,13 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
       int rc = libpthread_cond_signal(cond);
       if (rc == 0) {
         libpthread_mutex_lock(&rec_list_lock);
-        cond_record->vo.cond_state.status = CV_SIGNALLED;
+        // cond_record->vo.cond_state.status = CV_SIGNALLED;
         if(!is_queue_empty(cond_record->vo.cond_state.waiting_threads)){
-          cond_record->vo.cond_state.count--;
-          dequeue_thread((cond_record->vo.cond_state.waiting_threads));
-          // print_thread_queue(cond_record->vo.cond_state.waiting_threads);
+           // Find first thread in CV_WAITING state
+           runner_id_t waiting_thread = get_waiting_thread_node(cond_record->vo.cond_state.waiting_threads);
+           if(waiting_thread != RID_INVALID){
+            update_thread_cv_state(cond_record->vo.cond_state.waiting_threads, waiting_thread, CV_SIGNALLED);
+           }
         }
         libpthread_mutex_unlock(&rec_list_lock);
       }
