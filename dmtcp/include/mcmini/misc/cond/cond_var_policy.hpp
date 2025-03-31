@@ -2,6 +2,7 @@
 
 #include "mcmini/defines.h"
 #include "cond_var_wakegroup.hpp"
+#include "mcmini/spy/checkpointing/objects.h"
 
 
 #include <exception>
@@ -124,6 +125,14 @@ public:
 
   virtual std::deque<runner_id_t> return_wait_queue() const = 0;
   virtual std::vector<WakeGroup> return_wake_groups() const = 0;
+
+  virtual void add_to_wake_groups (const std::vector<runner_id_t>& threads) = 0;
+
+  virtual void add_waiter_with_state(runner_id_t tid, condition_variable_status state) = 0;
+
+  virtual condition_variable_status get_thread_cv_state(runner_id_t tid) = 0;
+
+  virtual void update_thread_cv_state(runner_id_t tid, condition_variable_status state) = 0;
 
   struct invalid_thread_addition : public std::exception {
     const char *

@@ -173,13 +173,11 @@ static void *template_thread(void *unused) {
             .type = CV_WAITING_QUEUE,
             .location = current,
             .waiting_queue_state.cv_location = entry->vo.location,
-            .waiting_queue_state.waiting_id = current->thread
-
+            .waiting_queue_state.waiting_id = current->thread,
+            .waiting_queue_state.cv_state = current->thread_cv_state
           };
           int sz = write(fd, &waiting_queue_vo, sizeof(visible_object));
-          fprintf(stdout, "bytes written : %d\n", sz); fflush(stdout);
-          fflush(stdout);
-          // assert(sz == sizeof(visible_object));
+          assert(sz == sizeof(visible_object));
           current = current->next;
         }
         int sz = write(fd, &entry->vo, sizeof(visible_object));

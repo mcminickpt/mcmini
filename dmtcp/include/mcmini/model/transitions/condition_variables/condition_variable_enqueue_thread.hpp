@@ -29,7 +29,8 @@ public:
     }
 
     // Add to wait queue
-    cv->get_policy()->add_waiter(executor);
+    // cv->get_policy()->add_waiter(executor);
+    cv->get_policy()->add_waiter_with_state(executor, CV_TRANSITIONAL);
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
     
     s.add_state_for_obj(cond_id, new condition_variable(condition_variable::cv_waiting, executor, m->get_location(), new_waiting_count));

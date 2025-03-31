@@ -1,5 +1,7 @@
 #include "cond_var_default_policy.hpp"
+#include "mcmini/spy/checkpointing/objects.h"
 
+#include <unordered_map>
 #include <deque>
 
  struct ConditionVariableSingleGroupPolicy : 
@@ -11,4 +13,5 @@
 
  protected:
    std::deque<runner_id_t> wait_queue;
+   std::unordered_map<runner_id_t, condition_variable_status> threads_with_states;
  };

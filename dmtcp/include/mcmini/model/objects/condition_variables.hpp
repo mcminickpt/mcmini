@@ -44,10 +44,25 @@ struct condition_variable : public model::visible_object_state {
     : current_state(s), running_thread(tid), associated_mutex(mutex), waiting_count(count){}
 
     condition_variable(state s, runner_id_t tid, pthread_mutex_t* mutex, int count, 
-      const std::vector<runner_id_t>& waiting_thread_ids) 
+      const std::vector<std::pair<runner_id_t, condition_variable_status>>& thread_states) 
     : current_state(s), running_thread(tid), associated_mutex(mutex), waiting_count(count) {
-      for (runner_id_t thread_id : waiting_thread_ids){
-        this->policy->add_waiter(thread_id);
+      // Initialize the policy according to the states of the threads in waiting queue
+      for (const auto& thread_with_state : thread_states) {
+        if (thread_with_state.second == CV_TRANSITIONAL || 
+            thread_with_state.second == CV_WAITING) {
+          this->policy->add_waiter_with_state(thread_with_state.first,thread_with_state.second);
+        }
+      }
+      std::vector<runner_id_t> signaled_threads;
+      for (const auto& thread_with_state : thread_states) {
+        if (thread_with_state.second == CV_SIGNALLED) {
+          signaled_threads.push_back(thread_with_state.first);
+        }
+      }
+      if(!signaled_threads.empty()) {
+        // If there are any threads that have been signaled, we should
+        // add them to the wake groups in the policy.
+        this->policy->add_to_wake_groups(signaled_threads);
       }
     }
   

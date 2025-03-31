@@ -41,60 +41,34 @@ struct condition_variable_signal : public model::transition {
     if(cv->is_uninitialized()) {
       return status::undefined;
     }
-    // Ensure that the condition variable is in the waiting state
-    // if (!cv->is_waiting()) {
-    //   return status::disabled;
-    // }
-    //instead of disable add another status "undefined"
     if(cv->is_destroyed()){
       return status::undefined;
     }
-    // pthread_mutex_t* mutex_location = cv->get_mutex();
-
-    // if(!mutex_location) {
-    //   return status::undefined;
-    // }
-
-    // const state::objid_t mutex_id = get_objid_by_location(s, mutex_location);
-    // const mutex* m = s.get_state_of_object<mutex>(mutex_id);
-    // if(!m || m->is_destroyed()){
-    //   return status::undefined;
-    // }
     
     //Check if there are waiters (if not, signal is a no-op but still valid)
     if(!cv->has_waiters()) {
       return status::exists; //valid transition (lost wakeup)
     }
-    // Receive the signal message (move waiters to wake_groups)
-    cv->send_signal_message();
 
-    //Find the first eligible thread to wake up
-    // runner_id_t thread_to_wake;
-    // bool found_eligible_thread = false; 
-    // const auto& wake_groups = cv->get_policy()->return_wake_groups();
-    // for(const auto& group: wake_groups) {
-    //   for(const auto& thread: group){
-    //   // // Verify mutex can be acquired
-    //   // const mutex* m = s.get_state_of_object<mutex>(mutex_id);
-    //   // if(m && m->is_unlocked()){
-    //     thread_to_wake = thread;
-    //     found_eligible_thread = true;
-    //     break;
-    //   // }
-    // }
-    // }
-    //  if (!found_eligible_thread) {
-    //   return status::exists; // No eligible thread to wake up
-    // }
+    if(!cv->has_waiters()) {
+      return status::exists; // valid transition (lost wakeup)
+    }
+  
+    // Find only CV_WAITING threads (not CV_TRANSITIONAL)
+  std::vector<runner_id_t> waiting_threads;
+  const auto& wait_queue = cv->get_policy()->return_wait_queue();
+  for (auto tid : wait_queue) {
+    if (cv->get_policy()->get_thread_cv_state(tid) == CV_WAITING) {
+      waiting_threads.push_back(tid);
+    }
+  }
+  
+  // Add only CV_WAITING threads to wake groups
+  if (!waiting_threads.empty()) {
+    cv->get_policy()->add_to_wake_groups(waiting_threads);
+  }
 
-    // // Update mutex state
-    // s.add_state_for_obj(mutex_id, new mutex(mutex::locked, mutex_location, thread_to_wake));
-
-    // Wake the thread (remove from wait_queue and update policy)
-    // cv->get_policy()->wake_thread(thread_to_wake);
-    // cv->remove_waiter(thread_to_wake);
-
-    // Update the condition variable state
+  // Update the condition variable state
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
     condition_variable::state new_state = new_waiting_count > 0
                                           ? condition_variable::cv_waiting
