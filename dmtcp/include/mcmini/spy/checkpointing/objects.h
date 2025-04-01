@@ -16,7 +16,7 @@ typedef enum visible_object_type {
   SEMAPHORE,
   CONDITION_VARIABLE,
   THREAD,
-  CV_WAITING_QUEUE
+  CV_WAITERS_QUEUE
 } visible_object_type;
 
 typedef enum mutex_state {
@@ -35,11 +35,11 @@ typedef struct semaphore_state {
   int count;
 } semaphore_state;
 
-typedef struct cv_waiting_queue_state{
+typedef struct cv_waiters_queue_state{
   void *cv_location;
   runner_id_t waiting_id;
   condition_variable_status cv_state; 
-}cv_waiting_queue_state;
+}cv_waiters_queue_state;
 
 typedef struct thread_state {
   pthread_t pthread_desc;
@@ -65,7 +65,7 @@ typedef struct visible_object {
   semaphore_state sem_state;
   condition_variable_state cond_state;
   thread_state thrd_state;
-  cv_waiting_queue_state waiting_queue_state;
+  cv_waiters_queue_state waiting_queue_state;
   };
 } visible_object;
 

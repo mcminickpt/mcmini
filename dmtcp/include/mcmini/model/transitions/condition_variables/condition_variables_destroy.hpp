@@ -13,10 +13,10 @@ namespace model {
 namespace transitions {
 
 struct condition_variable_destroy : public model::transition {
-private:
+ private:
   const state::objid_t cond_id;
 
-public:
+ public:
   condition_variable_destroy(runner_id_t executor, state::objid_t cond_id)
     : transition(executor), cond_id(cond_id) {}
   ~condition_variable_destroy() = default;
@@ -27,15 +27,15 @@ public:
     // Retrieve the state of the condition variable
     const condition_variable* cv = s.get_state_of_object<condition_variable>(cond_id);
 
-    if(cv->is_uninitialized()) {
+    if (cv->is_uninitialized()) {
       return status::undefined;
     }
-    if(cv->is_destroyed()){
+    if (cv->is_destroyed()) {
       return status::undefined;
     }
     
     // Check if there are still threads waiting on this condition variable
-    if(cv->has_waiters()) {
+    if (cv->has_waiters()) {
       return status::undefined; // Error: destroying condition variable with waiters
     }
     

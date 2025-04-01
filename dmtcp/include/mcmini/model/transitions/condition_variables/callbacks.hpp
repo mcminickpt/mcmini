@@ -12,22 +12,18 @@
 model::transition* cond_init_callback(runner_id_t,
                                       const volatile runner_mailbox&,
                                       model_to_system_map&);
-
 model::transition* cond_waiting_thread_enqueue_callback(runner_id_t,
                                                         const volatile runner_mailbox&,
                                                         model_to_system_map&);
-
 model::transition* cond_wait_callback(runner_id_t,  
                                       const volatile runner_mailbox&,
                                       model_to_system_map&);
 model::transition* cond_signal_callback(runner_id_t,
                                         const volatile runner_mailbox&,
                                         model_to_system_map&);
-
 model::transition* cond_broadcast_callback(runner_id_t,
                                            const volatile runner_mailbox&,
                                            model_to_system_map&);
-
 model::transition* cond_destroy_callback(runner_id_t,
                                          const volatile runner_mailbox&,
                                          model_to_system_map&);

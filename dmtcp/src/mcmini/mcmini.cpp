@@ -281,7 +281,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
     while (fifo.read(&current_obj) && current_obj.type != UNKNOWN) {
       if (current_obj.type == THREAD) {
         recorded_threads.emplace_back(std::move(current_obj));
-      }else if (current_obj.type == CV_WAITING_QUEUE){
+      }else if (current_obj.type == CV_WAITERS_QUEUE){
       // Capture both thread ID and state
         cv_waiting_threads[current_obj.waiting_queue_state.cv_location].push_back(
           std::make_pair(

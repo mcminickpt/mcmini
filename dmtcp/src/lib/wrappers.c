@@ -682,7 +682,7 @@ int mc_pthread_cond_init(pthread_cond_t *cond,
   }
 }
 
-int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
+int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
   switch (get_current_mode()){
     case PRE_DMTCP_INIT:
     case PRE_CHECKPOINT_THREAD: {
@@ -708,7 +708,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
       // between releasing the mutex and actually getting into wait state.
       cond_record->vo.cond_state.interacting_thread = tmp;
       //check if thread is not already in the waiting room
-      if(!is_in_thread_queue(cond_record->vo.cond_state.waiting_threads, tmp)){
+      if (!is_in_thread_queue(cond_record->vo.cond_state.waiting_threads, tmp)) {
         //add the thread to the waiting room
       enqueue_thread(cond_record->vo.cond_state.waiting_threads,tmp,CV_TRANSITIONAL); 
       }
@@ -727,10 +727,10 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
           libpthread_mutex_lock(&rec_list_lock);
           thrd_record = find_thread_record_mode(pthread_self());
           
-          //Check if this thread was signalled (CV_SIGNALLED state)
+          //Check if this thread was signaled (CV_SIGNALED state)
           condition_variable_status cv_state = get_thread_cv_state(cond_record->vo.cond_state.waiting_threads, thrd_record->vo.thrd_state.id);
           
-          if (cv_state == CV_SIGNALLED){
+          if (cv_state == CV_SIGNALED) {
             // Remove this thread from the queue
             remove_thread_from_queue(cond_record->vo.cond_state.waiting_threads, thrd_record->vo.thrd_state.id);
             cond_record->vo.cond_state.count--;
@@ -777,7 +777,7 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex){
             // So we can safely unlock the mutex here so that thread can proceed.
             libpthread_mutex_lock(&rec_list_lock);
             thrd_record = find_thread_record_mode(pthread_self());
-            if(get_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id) != CV_WAITING){
+            if (get_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id) != CV_WAITING) {
             libpthread_mutex_unlock(mutex);
             libpthread_mutex_unlock(&rec_list_lock);
             break;
@@ -863,19 +863,18 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
       int rc = libpthread_cond_signal(cond);
       if (rc == 0) {
         libpthread_mutex_lock(&rec_list_lock);
-
         runner_id_t waiting_thread = get_waiting_thread_node(cond_record->vo.cond_state.waiting_threads);
-        if(!is_queue_empty(cond_record->vo.cond_state.waiting_threads)){
+        if (!is_queue_empty(cond_record->vo.cond_state.waiting_threads)) {
            // Find first thread in CV_WAITING state
-           if(waiting_thread != RID_INVALID){
-            update_thread_cv_state(cond_record->vo.cond_state.waiting_threads, waiting_thread, CV_SIGNALLED);
+           if (waiting_thread != RID_INVALID) {
+            update_thread_cv_state(cond_record->vo.cond_state.waiting_threads, waiting_thread, CV_SIGNALED);
            }
         }
         // After signaling, check if any thread was marked as signaled
         bool any_thread_signaled = false;
         current = cond_record->vo.cond_state.waiting_threads->front;
         while (current != NULL) {
-          if (current->thread_cv_state == CV_SIGNALLED) {
+          if (current->thread_cv_state == CV_SIGNALED) {
             any_thread_signaled = true;
             break;
           }
@@ -948,7 +947,7 @@ int mc_pthread_cond_broadcast(pthread_cond_t *cond) {
           // Only mark CV_WAITING threads as signaled (not transitional)
           if (current->thread_cv_state == CV_WAITING) {
             update_thread_cv_state(cond_record->vo.cond_state.waiting_threads, 
-                                   current->thread, CV_SIGNALLED);
+                                   current->thread, CV_SIGNALED);
           }
           current = current->next;
         }

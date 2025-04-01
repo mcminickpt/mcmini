@@ -2,6 +2,7 @@
 #include "mcmini/model/exception.hpp"
 #include "mcmini/model/transitions/condition_variables/callbacks.hpp"
 #include "../include/mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
+
 using namespace model;
 using namespace objects;
 
@@ -35,11 +36,11 @@ model::transition* cond_waiting_thread_enqueue_callback(runner_id_t p,
   memcpy_v(&remote_cond, (volatile void*)rmb.cnts, sizeof(pthread_cond_t*));
   memcpy_v(&remote_mut, (volatile void*)(rmb.cnts + sizeof(pthread_cond_t*)), sizeof(pthread_mutex_t*));
 
-  if(!m.contains(remote_cond))
+  if (!m.contains(remote_cond))
     throw undefined_behavior_exception(
         "Attempting to wait on an uninitialized condition variable");
 
-  if(!m.contains(remote_mut))
+  if (!m.contains(remote_mut))
     throw undefined_behavior_exception(
         "Attempting to wait on a condition variable with an uninitialized mutex");
   
