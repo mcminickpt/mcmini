@@ -38,6 +38,14 @@ struct condition_variable_signal : public model::transition {
     // Retrive the state of the condition variable
     const condition_variable* cv = s.get_state_of_object<condition_variable>(cond_id);
 
+    // Count waiting threads BEFORE signal
+    int prev_waiting_count = 0;
+    for (auto id: cv->get_policy()->return_wait_queue()) {
+      if (cv->get_policy()->get_thread_cv_state(id) == CV_WAITING) {
+        prev_waiting_count++;
+      }
+    }
+
     if(cv->is_uninitialized()) {
       return status::undefined;
     }
@@ -55,26 +63,29 @@ struct condition_variable_signal : public model::transition {
     }
   
     // Find only CV_WAITING threads (not CV_TRANSITIONAL)
-  std::vector<runner_id_t> waiting_threads;
-  const auto& wait_queue = cv->get_policy()->return_wait_queue();
-  for (auto tid : wait_queue) {
-    if (cv->get_policy()->get_thread_cv_state(tid) == CV_WAITING) {
-      waiting_threads.push_back(tid);
+    std::vector<runner_id_t> waiting_threads;
+    const auto& wait_queue = cv->get_policy()->return_wait_queue();
+    for (auto tid : wait_queue) {
+      if (cv->get_policy()->get_thread_cv_state(tid) == CV_WAITING) {
+        waiting_threads.push_back(tid);
+      }
     }
-  }
-  
-  // Add only CV_WAITING threads to wake groups
-  if (!waiting_threads.empty()) {
-    cv->get_policy()->add_to_wake_groups(waiting_threads);
-  }
+    
+    // Add only CV_WAITING threads to wake groups
+    if (!waiting_threads.empty()) {
+      cv->get_policy()->add_to_wake_groups(waiting_threads);
+    }
 
-  // Update the condition variable state
+    // Update the condition variable state
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
     condition_variable::state new_state = new_waiting_count > 0
                                           ? condition_variable::cv_waiting
                                           : condition_variable::cv_signalled;
-                            
+                              
     s.add_state_for_obj(cond_id, new condition_variable(new_state, new_waiting_count));
+    condition_variable* mutable_cv = new condition_variable(new_state, new_waiting_count);
+    mutable_cv->check_for_lost_wakeup(true, prev_waiting_count); // Check for lost wakeup if this was a signal
+
     return status::exists;   
   }
 
@@ -82,7 +93,7 @@ struct condition_variable_signal : public model::transition {
   std::string to_string() const override {
     return "pthread_cond_signal(cond:" + std::to_string(cond_id) + ")";
   }
-// MARK: Model checking functions
+  // MARK: Model checking functions
   bool depends(const condition_variable_wait* cw) const {
     return this->cond_id == cw->get_id();
   }
