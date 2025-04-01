@@ -30,6 +30,7 @@ typeof(&pthread_cond_wait) pthread_cond_wait_ptr;
 typeof(&pthread_cond_timedwait) pthread_cond_timedwait_ptr;
 typeof(&pthread_cond_signal) pthread_cond_signal_ptr;
 typeof(&pthread_cond_broadcast) pthread_cond_broadcast_ptr;
+typeof(&pthread_cond_destroy) pthread_cond_destroy_ptr;
 typeof(&sleep) sleep_ptr;
 __attribute__((__noreturn__)) typeof(&exit) exit_ptr;
 __attribute__((__noreturn__)) typeof(&abort) abort_ptr;
@@ -79,6 +80,7 @@ void mc_load_intercepted_pthread_functions(void) {
   pthread_cond_timedwait_ptr = dlsym(libpthread_handle, "pthread_cond_timedwait");
   pthread_cond_signal_ptr = dlsym(libpthread_handle, "pthread_cond_signal");
   pthread_cond_broadcast_ptr = dlsym(libpthread_handle, "pthread_cond_broadcast");
+  pthread_cond_destroy_ptr = dlsym(libpthread_handle, "pthread_cond_destroy");
   sleep_ptr = dlsym(libc_handle, "sleep");
   exit_ptr = dlsym(libc_handle, "exit");
   abort_ptr = dlsym(libc_handle, "abort");
@@ -177,6 +179,24 @@ int pthread_cond_signal(pthread_cond_t *cond) {
 int libpthread_cond_signal(pthread_cond_t *cond) {
   libmcmini_init();
   return (*pthread_cond_signal_ptr)(cond);
+}
+
+int pthread_cond_broadcast(pthread_cond_t *cond) {
+  return mc_pthread_cond_broadcast(cond);
+}
+
+int libpthread_cond_broadcast(pthread_cond_t *cond) {
+  libmcmini_init();
+  return (*pthread_cond_broadcast_ptr)(cond);
+}
+
+int pthread_cond_destroy(pthread_cond_t *cond) {
+  return mc_pthread_cond_destroy(cond);
+}
+
+int libpthread_cond_destroy(pthread_cond_t *cond) {
+  libmcmini_init();
+  return (*pthread_cond_destroy_ptr)(cond);
 }
 
 int pthread_create(pthread_t *thread, const pthread_attr_t *attr,

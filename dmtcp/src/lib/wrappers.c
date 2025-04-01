@@ -894,4 +894,119 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
   }
 }
 
+int mc_pthread_cond_broadcast(pthread_cond_t *cond) {
+  switch (get_current_mode()) {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
+      return libpthread_cond_broadcast(cond);
+    }
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *cond_record = find_object_record_mode(cond);
+      if (cond_record == NULL) {
+        fprintf(stderr,
+                "Undefined behavior: attempting to broadcast an uninitialized"
+                "condition variable %p",
+                cond);
+        libc_abort();
+      }
+      libpthread_mutex_unlock(&rec_list_lock);
+      int rc = libpthread_cond_broadcast(cond);
+      if (rc == 0) {
+        libpthread_mutex_lock(&rec_list_lock);
+        // Mark all waiting threads as signaled
+        thread_queue_node* current = cond_record->vo.cond_state.waiting_threads->front;
+        while (current != NULL) {
+          // Only mark CV_WAITING threads as signaled (not transitional)
+          if (current->thread_cv_state == CV_WAITING) {
+            update_thread_cv_state(cond_record->vo.cond_state.waiting_threads, 
+                                   current->thread, CV_SIGNALLED);
+          }
+          current = current->next;
+        }
+        libpthread_mutex_unlock(&rec_list_lock);
+      }
+      return rc;
+    }
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_BROADCAST_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      thread_handle_after_dmtcp_restart();
+      return libpthread_cond_broadcast(cond);
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_BROADCAST_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      thread_wake_scheduler_and_wait();
+      return libpthread_cond_broadcast(cond);
+    }
+    default: {
+      libc_abort();
+    }
+  }
+}
+
+int mc_pthread_cond_destroy(pthread_cond_t *cond) {
+  switch (get_current_mode()) {
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD: {
+      return libpthread_cond_destroy(cond);
+    }
+    case RECORD:
+    case PRE_CHECKPOINT: {
+      libpthread_mutex_lock(&rec_list_lock);
+      rec_list *cond_record = find_object_record_mode(cond);
+      if (cond_record == NULL) {
+        fprintf(stderr,
+                "Undefined behavior: attempting to destroy an uninitialized"
+                "condition variable %p",
+                cond);
+        libc_abort();
+      }
+      
+      // Check if any thread is waiting on this condition variable
+      if (!is_queue_empty(cond_record->vo.cond_state.waiting_threads)) {
+        fprintf(stderr,
+                "Undefined behavior: attempting to destroy a condition variable"
+                " that has threads waiting on it %p",
+                cond);
+        libc_abort();
+      }
+      
+      libpthread_mutex_unlock(&rec_list_lock);
+      int rc = libpthread_cond_destroy(cond);
+      if (rc == 0) {
+        libpthread_mutex_lock(&rec_list_lock);
+        cond_record->vo.cond_state.status = CV_DESTROYED;
+        libpthread_mutex_unlock(&rec_list_lock);
+      }
+      return rc;
+    }
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_DESTROY_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      thread_handle_after_dmtcp_restart();
+      return libpthread_cond_destroy(cond);
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = COND_DESTROY_TYPE;
+      memcpy_v(mb->cnts, &cond, sizeof(cond));
+      thread_wake_scheduler_and_wait();
+      return libpthread_cond_destroy(cond);
+    }
+    default: {
+      libc_abort();
+    }
+  }
+}
+
    

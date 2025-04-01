@@ -21,7 +21,9 @@ typedef enum transition_type {
   COND_ENQUEUE_TYPE,
   COND_INIT_TYPE,
   COND_WAIT_TYPE,
-  COND_SIGNAL_TYPE
+  COND_SIGNAL_TYPE,
+  COND_BROADCAST_TYPE,
+  COND_DESTROY_TYPE
   // sem_init,
   // sem_wait,
   // sem_post,
@@ -54,6 +56,14 @@ typedef struct cond_wait {
 typedef struct cond_signal {
   visible_object *cond;
 } cond_signal;
+
+typedef struct cond_broadcast {
+  visible_object *cond;
+} cond_broadcast;
+
+typedef struct cond_destroy {
+  visible_object *cond;
+} cond_destroy;
 
 typedef struct transition {
   pthread_t executor;
