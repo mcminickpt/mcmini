@@ -53,6 +53,8 @@ typedef struct condition_variable_state{
   pthread_mutex_t *associated_mutex;  // The mutex that is associated with this condition variable
   int count;                    // The number of threads waiting on this condition variable
   thread_queue* waiting_threads; // The queue of threads waiting on this condition variable
+  int prev_waiting_count;
+  int lost_wakeups;
 } condition_variable_state;
 
 typedef struct visible_object {

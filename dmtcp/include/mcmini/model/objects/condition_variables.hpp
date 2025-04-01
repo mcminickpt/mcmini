@@ -31,6 +31,8 @@ struct condition_variable : public model::visible_object_state {
   runner_id_t running_thread;
   pthread_mutex_t* associated_mutex;
   int waiting_count = 0;
+  int prev_waiting_count = 0;
+  int lost_wakeups = 0;
   ConditionVariablePolicy* policy = new ConditionVariableArbitraryPolicy();  
 
  public:
@@ -114,6 +116,23 @@ struct condition_variable : public model::visible_object_state {
 
   void send_broadcast_message() {
         this->policy->receive_broadcast_message();
+  }
+
+  void check_for_lost_wakeup(bool is_signal, int prev_waiting_count) {
+    if (!is_signal) return;
+    // Check if any thread was signaled
+    bool any_thread_signaled = false;
+    for (auto id : this->policy->return_wait_queue()) {
+      if (this->policy->get_thread_cv_state(id) == CV_SIGNALLED) {
+        any_thread_signaled = true;
+        break;
+      }
+    }
+    // Tf np thread was signaled and there were waiting threads, it's a lost wakeup
+    if (!any_thread_signaled && prev_waiting_count > 0) {
+      lost_wakeups++;
+      fprintf(stderr, "WARNING: Lost wakeup detected on condition variable\n");
+    }
   }
      
   std::unique_ptr<visible_object_state> clone() const override {

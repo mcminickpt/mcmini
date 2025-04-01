@@ -402,7 +402,6 @@ void *mc_thread_routine_wrapper(void *arg) {
       assert(thread_record != NULL);
       thread_record->vo.thrd_state.status = EXITED;
       fprintf(stdout, "\n\nexited\n\n"); fflush(stdout);
-      // print_rec_list(thread_record);
       libpthread_mutex_unlock(&rec_list_lock);
       return rv;
     }
@@ -849,18 +848,46 @@ int mc_pthread_cond_signal(pthread_cond_t *cond) {
                 cond);
         libc_abort();
       }
+      // Store pre-signal waiting count (only count CV_WAITING threads)
+      int cv_waiting_count = 0;
+      thread_queue_node* current = cond_record->vo.cond_state.waiting_threads->front;
+      while (current != NULL) {
+        if (current->thread_cv_state == CV_WAITING) {
+          cv_waiting_count++;
+        }
+        current = current->next;
+      }
+      cond_record->vo.cond_state.prev_waiting_count = cv_waiting_count;
       libpthread_mutex_unlock(&rec_list_lock);
+      
       int rc = libpthread_cond_signal(cond);
       if (rc == 0) {
         libpthread_mutex_lock(&rec_list_lock);
-        // cond_record->vo.cond_state.status = CV_SIGNALLED;
+
+        runner_id_t waiting_thread = get_waiting_thread_node(cond_record->vo.cond_state.waiting_threads);
         if(!is_queue_empty(cond_record->vo.cond_state.waiting_threads)){
            // Find first thread in CV_WAITING state
-           runner_id_t waiting_thread = get_waiting_thread_node(cond_record->vo.cond_state.waiting_threads);
            if(waiting_thread != RID_INVALID){
             update_thread_cv_state(cond_record->vo.cond_state.waiting_threads, waiting_thread, CV_SIGNALLED);
            }
         }
+        // After signaling, check if any thread was marked as signaled
+        bool any_thread_signaled = false;
+        current = cond_record->vo.cond_state.waiting_threads->front;
+        while (current != NULL) {
+          if (current->thread_cv_state == CV_SIGNALLED) {
+            any_thread_signaled = true;
+            break;
+          }
+          current = current->next;
+        }
+        
+        // If no thread was signaled and there were waiting threads, it's a lost wakeup
+        if (!any_thread_signaled && cond_record->vo.cond_state.prev_waiting_count > 0) {
+          cond_record->vo.cond_state.lost_wakeups++;
+          fprintf(stderr, "WARNING: Lost wakeup detected on condition variable %p\n", cond);
+        }
+        
         libpthread_mutex_unlock(&rec_list_lock);
       }
       return rc;
