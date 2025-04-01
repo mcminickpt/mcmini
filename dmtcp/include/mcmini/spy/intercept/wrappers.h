@@ -21,6 +21,8 @@ unsigned mc_sleep(unsigned);
 int mc_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
 int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 int mc_pthread_cond_signal(pthread_cond_t *cond);
+int mc_pthread_cond_broadcast(pthread_cond_t *cond);
+int mc_pthread_cond_destroy(pthread_cond_t *cond);
 
 
 /*

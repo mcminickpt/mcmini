@@ -86,3 +86,32 @@ model::transition* cond_signal_callback(runner_id_t p,
   return new transitions::condition_variable_signal(p, cond);
 }
 
+model::transition* cond_broadcast_callback(runner_id_t p, 
+                                           const volatile runner_mailbox& rmb,
+                                           model_to_system_map& m) {
+  pthread_cond_t* remote_cond;
+  memcpy_v(&remote_cond, (volatile void*)rmb.cnts, sizeof(pthread_cond_t*)); 
+
+  // Locate the corresponding model of this object
+  if (!m.contains(remote_cond))
+  throw undefined_behavior_exception(
+  "Attempting to broadcast on an uninitialized condition variable");
+
+  state::objid_t const cond = m.get_model_of_object(remote_cond);
+  return new transitions::condition_variable_broadcast(p, cond);
+}
+
+model::transition* cond_destroy_callback(runner_id_t p, 
+                                         const volatile runner_mailbox& rmb,
+                                         model_to_system_map& m) {
+  pthread_cond_t* remote_cond;
+  memcpy_v(&remote_cond, (volatile void*)rmb.cnts, sizeof(pthread_cond_t*)); 
+
+  // Locate the corresponding model of this object
+  if (!m.contains(remote_cond))
+  throw undefined_behavior_exception(
+  "Attempting to destroy an uninitialized condition variable");
+
+  state::objid_t const cond = m.get_model_of_object(remote_cond);
+  return new transitions::condition_variable_destroy(p, cond);
+}

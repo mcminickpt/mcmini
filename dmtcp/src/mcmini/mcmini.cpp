@@ -158,6 +158,8 @@ void do_model_checking(const config& config) {
   tr.register_transition(COND_ENQUEUE_TYPE, &cond_waiting_thread_enqueue_callback);
   tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
+  tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
+  tr.register_transition(COND_DESTROY_TYPE, &cond_destroy_callback);
 
   const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
       new objects::thread(objects::thread::state::running));
@@ -212,7 +214,18 @@ void do_model_checking(const config& config) {
   cr.register_dd_entry<const transitions::condition_variable_signal,
                        const transitions::mutex_unlock>(
       &transitions::condition_variable_signal::coenabled_with);
-  
+  cr.register_dd_entry<const transitions::condition_variable_broadcast,
+                       const transitions::condition_variable_wait>(
+        &transitions::condition_variable_broadcast::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_broadcast,
+                       const transitions::mutex_unlock>(
+        &transitions::condition_variable_broadcast::coenabled_with);                                          
+  cr.register_dd_entry<const transitions::condition_variable_destroy,
+                        const transitions::condition_variable_wait>(
+        &transitions::condition_variable_destroy::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_destroy,
+                        const transitions::condition_variable_signal>(
+        &transitions::condition_variable_destroy::coenabled_with);
 
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));
@@ -253,7 +266,8 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   tr.register_transition(COND_ENQUEUE_TYPE, &cond_waiting_thread_enqueue_callback);
   tr.register_transition(COND_WAIT_TYPE, &cond_wait_callback);
   tr.register_transition(COND_SIGNAL_TYPE, &cond_signal_callback);
-
+  tr.register_transition(COND_BROADCAST_TYPE, &cond_broadcast_callback);
+  tr.register_transition(COND_DESTROY_TYPE, &cond_destroy_callback);
 
   coordinator coordinator(model::program(), tr,
                           std::move(dmtcp_template_handle));
@@ -369,6 +383,19 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   cr.register_dd_entry<const transitions::condition_variable_signal,
                        const transitions::mutex_unlock>(
       &transitions::condition_variable_signal::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_broadcast,
+                       const transitions::condition_variable_wait>(
+        &transitions::condition_variable_broadcast::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_broadcast,
+                       const transitions::mutex_unlock>(
+        &transitions::condition_variable_broadcast::coenabled_with);                                          
+  cr.register_dd_entry<const transitions::condition_variable_destroy,
+                        const transitions::condition_variable_wait>(
+        &transitions::condition_variable_destroy::coenabled_with);
+  cr.register_dd_entry<const transitions::condition_variable_destroy,
+                        const transitions::condition_variable_signal>(
+        &transitions::condition_variable_destroy::coenabled_with);
+
 
   model_checking::classic_dpor classic_dpor_checker(std::move(dr),
                                                     std::move(cr));

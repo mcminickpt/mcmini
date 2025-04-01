@@ -41,6 +41,8 @@ int libpthread_cond_init(pthread_cond_t*, const pthread_condattr_t*);
 int libpthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);
 int libpthread_cond_timedwait(pthread_cond_t*, pthread_mutex_t*, const struct timespec*);
 int libpthread_cond_signal(pthread_cond_t*);
+int libpthread_cond_broadcast(pthread_cond_t*);
+int libpthread_cond_destroy(pthread_cond_t*);
 
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
