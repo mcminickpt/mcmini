@@ -10,10 +10,10 @@ namespace model {
 namespace transitions {
 
 struct condition_variable_enqueue_thread : public model::transition{
-  private:
-    const state::objid_t cond_id;
-    const state::objid_t mutex_id;
-public:
+ private:
+  const state::objid_t cond_id;
+  const state::objid_t mutex_id;
+ public:
   condition_variable_enqueue_thread(runner_id_t executor, state::objid_t cond_id, state::objid_t mutex_id)
       : transition(executor), cond_id(cond_id), mutex_id(mutex_id) {}
   ~condition_variable_enqueue_thread() = default;
@@ -24,7 +24,7 @@ public:
     const condition_variable* cv = s.get_state_of_object<condition_variable>(cond_id);
     const mutex* m = s.get_state_of_object<mutex>(mutex_id);
 
-    if(m->is_unlocked()){
+    if (m->is_unlocked()) {
       return status::disabled;
     }
 
@@ -42,13 +42,12 @@ public:
     return status::exists;
   }
   state::objid_t get_id() const { return this->cond_id; }
-  state::objid_t get_mutex_id() const { return this->mutex_id; }
-  
+  state::objid_t get_mutex_id() const { return this->mutex_id; }  
   std::string to_string() const override {
     return "pthread_cond_wait(cond:" + std::to_string(cond_id) + ", mutex:" + std::to_string(mutex_id) + "(awake -> asleep))";
   }
 
-  //MARK: Model checking functions
+  // MARK: Model checking functions
   bool depends (const condition_variable_init* ci) const {
     return this->cond_id == ci->get_id();
   }
@@ -75,7 +74,7 @@ public:
 
   bool coenabled_with (const mutex_lock* ml) const {
     return this->mutex_id != ml->get_id();
-    }
+  }
   
   bool coenabled_with (const mutex_unlock* mu) const {
     return this->mutex_id != mu->get_id();

@@ -15,21 +15,21 @@ struct condition_variable_signal : public model::transition {
   state::objid_t get_objid_by_location(const mutable_state& s, pthread_mutex_t* mutex_location) const {
     
     for (state::objid_t id = 0; id < invalid_objid; id++){
-      if(!s.contains_object_with_id(id)) continue;
+      if (!s.contains_object_with_id(id)) continue;
 
       // const visible_object_state* obj = s.state::get_state_of_object(id);
       const visible_object_state* obj = s.get_state_of_object<visible_object_state>(id);
       const objects::mutex* m = dynamic_cast<const objects::mutex*>(obj);
-      if(m && m->get_location() == mutex_location){
+      if (m && m->get_location() == mutex_location) {
         return id;
       }
     }
     return invalid_objid;
   }
 
-  public:
-   condition_variable_signal(runner_id_t executor, state::objid_t cond_id)
-       : transition(executor), cond_id(cond_id) {}
+ public:
+  condition_variable_signal(runner_id_t executor, state::objid_t cond_id)
+    : transition(executor), cond_id(cond_id) {}
   ~condition_variable_signal() = default;
 
   status modify(model::mutable_state& s) const override {
@@ -46,23 +46,24 @@ struct condition_variable_signal : public model::transition {
       }
     }
 
-    if(cv->is_uninitialized()) {
-      return status::undefined;
-    }
-    if(cv->is_destroyed()){
+    if (cv->is_uninitialized()) {
       return status::undefined;
     }
     
-    //Check if there are waiters (if not, signal is a no-op but still valid)
-    if(!cv->has_waiters()) {
+    if (cv->is_destroyed()) {
+      return status::undefined;
+    }
+    
+    // Check if there are waiters (if not, signal is a no-op but still valid)
+    if (!cv->has_waiters()) {
       return status::exists; //valid transition (lost wakeup)
     }
 
-    if(!cv->has_waiters()) {
+    if (!cv->has_waiters()) {
       return status::exists; // valid transition (lost wakeup)
     }
   
-    // Find only CV_WAITING threads (not CV_TRANSITIONAL)
+    // Find only CV_WAITING threads (not CV_PREWAITING)
     std::vector<runner_id_t> waiting_threads;
     const auto& wait_queue = cv->get_policy()->return_wait_queue();
     for (auto tid : wait_queue) {
@@ -80,7 +81,7 @@ struct condition_variable_signal : public model::transition {
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
     condition_variable::state new_state = new_waiting_count > 0
                                           ? condition_variable::cv_waiting
-                                          : condition_variable::cv_signalled;
+                                          : condition_variable::cv_signaled;
                               
     s.add_state_for_obj(cond_id, new condition_variable(new_state, new_waiting_count));
     condition_variable* mutable_cv = new condition_variable(new_state, new_waiting_count);

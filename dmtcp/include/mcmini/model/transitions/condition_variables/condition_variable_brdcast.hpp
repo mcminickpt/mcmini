@@ -10,16 +10,15 @@
 #include "mcmini/model/transitions/condition_variables/condition_variable_enqueue_thread.hpp"
 #include "mcmini/model/transitions/condition_variables/condition_variables_destroy.hpp"
 
-
 namespace model {
 namespace transitions {
 
 struct condition_variable_broadcast : public model::transition {
-private:
+ private:
   const state::objid_t cond_id;
   mutable bool had_waiters = false;
 
-public:
+ public:
   condition_variable_broadcast(runner_id_t executor, state::objid_t cond_id)
     : transition(executor), cond_id(cond_id) {}
   ~condition_variable_broadcast() = default;
@@ -29,20 +28,19 @@ public:
 
     // Retrieve the state of the condition variable
     const condition_variable* cv = s.get_state_of_object<condition_variable>(cond_id);
-
-    if(cv->is_uninitialized()) {
+    if (cv->is_uninitialized()) {
       return status::undefined;
     }
-    if(cv->is_destroyed()){
+    if (cv->is_destroyed()) {
       return status::undefined;
     }
     
     // Check if there are waiters (if not, broadcast is a no-op but still valid)
-    if(!cv->has_waiters()) {
-      return status::exists; // valid transition (lost wakeup)
+    if (!cv->has_waiters()) {
+      return status::exists; 
     }
 
-    // Find all CV_WAITING threads (not CV_TRANSITIONAL)
+    // Find all CV_WAITING threads (not CV_PREWAITING)
     std::vector<runner_id_t> waiting_threads;
     const auto& wait_queue = cv->get_policy()->return_wait_queue();
     for (auto tid : wait_queue) {
@@ -63,7 +61,7 @@ public:
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();
     condition_variable::state new_state = new_waiting_count > 0
                                         ? condition_variable::cv_waiting
-                                        : condition_variable::cv_signalled;
+                                        : condition_variable::cv_signaled;
                           
     s.add_state_for_obj(cond_id, new condition_variable(new_state, executor, 
                                                         cv->get_mutex(),
