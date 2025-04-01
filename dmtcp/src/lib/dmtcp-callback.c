@@ -148,8 +148,6 @@ static void *template_thread(void *unused) {
     }
     for (rec_list *entry = head_record_mode; entry != NULL;
          entry = entry->next) {
-      // fprintf(stdout, "--- Debugging: type: %d location: %p\n",
-              // entry->vo.type, entry->vo.location);
       if (entry->vo.type == MUTEX) {
         printf("Writing mutex entry %p (state %d)\n", entry->vo.location,
                entry->vo.mut_state);
@@ -157,20 +155,21 @@ static void *template_thread(void *unused) {
         printf("Writing thread entry %p (id %d, status: %d)\n",
                (void *)entry->vo.thrd_state.pthread_desc,
                entry->vo.thrd_state.id, entry->vo.thrd_state.status);
-      }else if (entry->vo.type == CONDITION_VARIABLE) {
+      } else if (entry->vo.type == CONDITION_VARIABLE) {
         printf("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
-               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size, entry->vo.cond_state.waiting_threads);
+               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size, 
+               entry->vo.cond_state.waiting_threads);
       }
       else {
         libc_abort();
       }
-      if(entry->vo.type == CONDITION_VARIABLE){
+      if (entry->vo.type == CONDITION_VARIABLE) {
         // Here we are trying to modify the variables that are a part of union,
         // so doing so is not ideal because it will change other varibale as memory is overlapped.
         thread_queue_node* current = entry->vo.cond_state.waiting_threads->front;
         while(current != NULL){
           visible_object waiting_queue_vo = {
-            .type = CV_WAITING_QUEUE,
+            .type = CV_WAITERS_QUEUE,
             .location = current,
             .waiting_queue_state.cv_location = entry->vo.location,
             .waiting_queue_state.waiting_id = current->thread,
@@ -183,9 +182,9 @@ static void *template_thread(void *unused) {
         int sz = write(fd, &entry->vo, sizeof(visible_object));
         assert(sz == sizeof(visible_object));
       }
-      else{
-      int sz = write(fd, &entry->vo, sizeof(visible_object));
-      assert(sz == sizeof(visible_object));
+      else {
+        int sz = write(fd, &entry->vo, sizeof(visible_object));
+        assert(sz == sizeof(visible_object));
       }
     }
     int sz = write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
