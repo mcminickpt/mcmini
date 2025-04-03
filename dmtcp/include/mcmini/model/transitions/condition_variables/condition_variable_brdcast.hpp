@@ -40,7 +40,7 @@ struct condition_variable_broadcast : public model::transition {
       return status::exists; 
     }
 
-    // Find all CV_WAITING threads (not CV_TRANSITIONAL)
+    // Find all CV_WAITING threads (not CV_PREWAITING)
     std::vector<runner_id_t> waiting_threads;
     const auto& wait_queue = cv->get_policy()->return_wait_queue();
     for (auto tid : wait_queue) {
@@ -50,7 +50,7 @@ struct condition_variable_broadcast : public model::transition {
     }
     
     // Trigger broadcast (moves all eligible threads to wake groups)
-    cv->get_policy()->receive_broadcast_message();
+    cv->send_broadcast_message();
     
     // Update condition variable state
     const int new_waiting_count = cv->get_policy()->return_wait_queue().size();

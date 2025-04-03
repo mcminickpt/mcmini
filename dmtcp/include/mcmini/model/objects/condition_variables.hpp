@@ -49,7 +49,7 @@ struct condition_variable : public model::visible_object_state {
       : current_state(s), running_thread(tid), associated_mutex(mutex), waiting_count(count) {
         // Initialize the policy according to the states of the threads in waiting queue
         for (const auto& thread_with_state : thread_states) {
-          if (thread_with_state.second == CV_TRANSITIONAL || thread_with_state.second == CV_WAITING) {
+          if (thread_with_state.second == CV_PREWAITING || thread_with_state.second == CV_WAITING) {
             this->policy->add_waiter_with_state(thread_with_state.first,thread_with_state.second);
           }
         }
@@ -114,7 +114,7 @@ struct condition_variable : public model::visible_object_state {
     this->policy->receive_signal_message();
   }
 
-  void send_broadcast_message() {
+  void send_broadcast_message() const {
     this->policy->receive_broadcast_message();
   }
 

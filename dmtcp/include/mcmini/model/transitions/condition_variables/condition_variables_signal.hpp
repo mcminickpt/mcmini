@@ -63,7 +63,7 @@ struct condition_variable_signal : public model::transition {
       return status::exists; // valid transition (lost wakeup)
     }
   
-    // Find only CV_WAITING threads (not CV_TRANSITIONAL)
+    // Find only CV_WAITING threads (not CV_PREWAITING)
     std::vector<runner_id_t> waiting_threads;
     const auto& wait_queue = cv->get_policy()->return_wait_queue();
     for (auto tid : wait_queue) {

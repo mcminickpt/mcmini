@@ -704,26 +704,24 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
         cond_record = add_rec_entry_record_mode(&vo);
       }
       // The thread will enter in the outer waiting room first. Here its state will be
-      // CV_TRANSITIONAL. It is done to avoid race condition that might occur due to checkpointing
+      // CV_PREWAITING. It is done to avoid race condition that might occur due to checkpointing
       // between releasing the mutex and actually getting into wait state.
       cond_record->vo.cond_state.interacting_thread = tmp;
       //check if thread is not already in the waiting room
       if (!is_in_thread_queue(cond_record->vo.cond_state.waiting_threads, tmp)) {
         //add the thread to the waiting room
-      enqueue_thread(cond_record->vo.cond_state.waiting_threads,tmp,CV_TRANSITIONAL); 
+      enqueue_thread(cond_record->vo.cond_state.waiting_threads,tmp,CV_PREWAITING); 
       }
       cond_record->vo.cond_state.associated_mutex = mutex;
       cond_record->vo.cond_state.count++;
       libpthread_mutex_unlock(&rec_list_lock);
       
-      struct timespec wait_time = {.tv_sec = 2};
+      struct timespec wait_time = {.tv_sec = 2, .tv_nsec = 0}; 
       int rc;
       while (1) {
         rc = libpthread_cond_timedwait(cond, mutex, &wait_time);
         if (rc == 0) {
           // The thread has successfully entered the waiting state.
-          // TOdO: check interacting pthread_self with thread record 
-          // get its id and then update the per thread status.
           libpthread_mutex_lock(&rec_list_lock);
           thrd_record = find_thread_record_mode(pthread_self());
           
@@ -760,29 +758,28 @@ int mc_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
           // wait state. Other threads should detect this change and eventually 
           // escape from this loop to avoid unnecessary blocking.
 
-          // The purpose of CV_TRANSITION state and Inner/Outer Waiting Room:
+          // The purpose of CV_PREWAITING state and Inner/Outer Waiting Room:
           //
-          // By setting the state to CV_TRANSITION, we create a two-part "waiting room" mechanism:
+          // By setting the state to CV_PREWAITING, we create a two-part "waiting room" mechanism:
           // - The "outer waiting room" corresponds to the transition period right after the thread 
           //   has released the mutex but has not fully entered the wait state.
           // - Once the thread enters the full wait state (pthread_cond_wait), it moves into the "inner 
           //   waiting room," and its state is set to CV_WAITING. This distinction is critical for 
           //   checkpoint safety:
-          // - If a checkpoint occurs while the thread is still in the CV_TRANSITION (outer waiting room), 
+          // - If a checkpoint occurs while the thread is still in the CV_PREWAITING (outer waiting room), 
           //   we know it has not fully transitioned to a waiting state and can handle it accordingly.
           // - If the thread is in CV_WAITING (inner waiting room), we know it has entered a stable wait 
           //   state, ensuring the mutex-conditional interaction is checkpoint-safe.
           if (is_in_restart_mode()) {
-            // When thread is cancelled either before timeout or getting into the wait state mutex is acquired by the thread. 
-            // So we can safely unlock the mutex here so that thread can proceed.
             libpthread_mutex_lock(&rec_list_lock);
             thrd_record = find_thread_record_mode(pthread_self());
-            if (get_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id) != CV_WAITING) {
-            libpthread_mutex_unlock(mutex);
-            libpthread_mutex_unlock(&rec_list_lock);
-            break;
+            if (get_thread_cv_state(cond_record->vo.cond_state.waiting_threads,thrd_record->vo.thrd_state.id) == CV_PREWAITING) {
+              libpthread_mutex_unlock(&rec_list_lock);
+              continue;
+            } else {
+              break;
+            }
           }
-        }
         } else if (rc != 0 && rc != ETIMEDOUT) {
           // A "true" error: something went wrong with locking
           // and we pass this on to the end user

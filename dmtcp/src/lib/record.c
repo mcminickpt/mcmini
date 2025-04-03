@@ -115,7 +115,7 @@ rec_list *add_rec_entry_record_mode(const visible_object *vo) {
 //           case CV_INITIALIZED: printf("INITIALIZED\n"); break;
 //           case CV_WAITING: printf("WAITING\n"); break;
 //           case CV_SIGNALED: printf("SIGNALED\n"); break;
-//           case CV_TRANSITIONAL: printf("TRANSITIONAL\n"); break;
+//           case CV_PREWAITING: printf("TRANSITIONAL\n"); break;
 //           default: printf("UNKNOWN STATUS\n"); break;
 //         }
 //         printf("  Waiting Thread: %p\n", (void *)vo->cond_state.interacting_thread);

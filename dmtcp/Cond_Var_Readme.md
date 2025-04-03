@@ -7,7 +7,7 @@ Each state in condition_variable_state corresponds to a phase in the lifescycle
   of a condition variable. The status of a condition variable can be one of the following:
   - CV_UNINITIALIZED: The condition variable has not been initialized yet via mc_pthread_cond_init.
   - CV_INITIALIZED: The condition variable has been initialized and ready for use (post mc_pthread_cond_init).
-  - CV_TRANSITIONAL: A thread is releasing the mutex but hasn't fully entered the wait state yet
+  - CV_PREWAITING: A thread is releasing the mutex but hasn't fully entered the wait state yet
   (mc_pthread_cond_wait in progress), hence entered outer waiting room. This prevents checkpointing during the 
   unsafe gap between mutex unlock and wait.
   - CV_WAITING: The thread has successfully entered the wait state i.e, consumed the signal or successfully returned
@@ -27,9 +27,9 @@ Each state in condition_variable_state corresponds to a phase in the lifescycle
         cond_state.status = CV_INITIALIZED
         waiting_threads queue (initially empty).
 
-3. Transition to CV_TRANSITIONAL:
+3. Transition to CV_PREWAITING:
     Add the current thread to the waiting_threads queue.
-    Set cond_state.status = CV_TRANSITIONAL to block checkpoints during the unsafe window between mutex unlock and wait.
+    Set cond_state.status = CV_PREWAITING to block checkpoints during the unsafe window between mutex unlock and wait.
 
 4. Timed Wait:
     Call libpthread_cond_timedwait with a short timeout (e.g., 2 seconds).
@@ -58,7 +58,7 @@ The condition variable was initialized but not in use (no waiting threads).
 - The scheduler re-initializes the condition variable using libpthread_cond_init.
 - After initialization, threads can safely use the condition variable for future waits/signals.
 
-### Case 2: CV_TRANSITIONAL
+### Case 2: CV_PREWAITING
 A thread had released the mutex but not yet entered the wait state.
 - The thread sends a COND_ENQUEUE_TYPE message to the scheduler.
 - The scheduler enqueues the thread into the condition’s waiting_threads queue and releases the mutex.
