@@ -8,3 +8,8 @@
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/signal.hpp"
+#include "mcmini/misc/cond/cond_var_arbitrary_policy.hpp"
+#include "mcmini/misc/cond/cond_var_default_policy.hpp"
+#include "mcmini/misc/cond/cond_var_policy.hpp"
+#include "mcmini/misc/cond/cond_var_single_grp_policy.hpp"
+#include "mcmini/misc/cond/cond_var_wakegroup.hpp"

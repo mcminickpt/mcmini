@@ -81,7 +81,7 @@ class transition {
    * 2. Or else the transition is _not_ defined as this state and the
    * transition is disabled.
    */
-  enum class status { exists, disabled };
+  enum class status { exists, disabled, undefined };
 
   /**
    * @brief Attempts to produce a state _s'_ from state _s_ through the
@@ -124,9 +124,12 @@ class transition {
   bool is_enabled_in(const state& s) const {
     return apply_to(s).second == status::exists;
   }
-  constexpr bool is_disabled_in(const state& s) const {
+  // removed constexpr because it is calling a non-constexpr function 
+  // and that was causing an error.
+  bool is_disabled_in(const state& s) const {
     return !is_enabled_in(s);
   }
+  
 
   /**
    * @brief Fire the transition as if it were run from state _state_.

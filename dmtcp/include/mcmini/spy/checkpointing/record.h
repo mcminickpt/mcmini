@@ -158,6 +158,7 @@ rec_list *find_object_record_mode(void *addr);
 /// @note you must acquire `rec_list_lock` before calling this function
 rec_list *add_rec_entry(const visible_object *, rec_list **, rec_list **);
 rec_list *add_rec_entry_record_mode(const visible_object *);
+void print_rec_list(const rec_list *);
 
 /**
  * @brief Notifies the template thread spawned during DMTCP_RESTART

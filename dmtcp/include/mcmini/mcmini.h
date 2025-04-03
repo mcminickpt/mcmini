@@ -18,3 +18,5 @@
 #include "mcmini/spy/checkpointing/transitions.h"
 #include "mcmini/spy/intercept/interception.h"
 #include "mcmini/spy/intercept/wrappers.h"
+#include "mcmini/Thread_queue.h"
+

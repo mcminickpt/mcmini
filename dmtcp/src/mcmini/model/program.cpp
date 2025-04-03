@@ -86,6 +86,12 @@ void program::model_execution_of(runner_id_t p, const transition *npo) {
         "Attempted to model the execution of a disabled transition(" +
         next_s_p->debug_string() + ")");
   }
+  if (status == transition::status::undefined) {
+    throw std::runtime_error(
+        "Attempted to model the execution of a undefined transition(" +
+        next_s_p->debug_string() + ")");
+  }
+  
   trace.push(next_steps.replace_unowned(npo));
 }
 

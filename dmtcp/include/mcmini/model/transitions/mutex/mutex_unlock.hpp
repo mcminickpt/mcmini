@@ -19,8 +19,13 @@ struct mutex_unlock : public model::transition {
     using namespace model::objects;
     // TODO: If the mutex already unlocked, this would be erroneous program
     // behavior. We should distinguish between this and other cases.
-    // const mutex* ms = s.get_state_of_object<mutex>(mutex_id);
-    s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked));
+    const mutex* ms = s.get_state_of_object<mutex>(mutex_id);
+    // Validate ownership
+    if (!ms->is_locked_by(this->executor)) {
+      return status::disabled;
+    }
+
+    s.add_state_for_obj(mutex_id, new mutex(mutex::unlocked, ms->get_location(), 0));
     return status::exists;
   }
   state::objid_t get_id() const { return this->mutex_id; }

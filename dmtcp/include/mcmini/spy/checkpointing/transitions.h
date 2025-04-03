@@ -17,7 +17,13 @@ typedef enum transition_type {
   THREAD_CREATE_TYPE,
   THREAD_JOIN_TYPE,
   THREAD_EXIT_TYPE,
-  PROCESS_EXIT_TYPE
+  PROCESS_EXIT_TYPE,
+  COND_ENQUEUE_TYPE,
+  COND_INIT_TYPE,
+  COND_WAIT_TYPE,
+  COND_SIGNAL_TYPE,
+  COND_BROADCAST_TYPE,
+  COND_DESTROY_TYPE
   // sem_init,
   // sem_wait,
   // sem_post,
@@ -38,6 +44,27 @@ typedef struct mutex_unlock {
   visible_object *mut;
 } mutex_unlock;
 
+typedef struct cond_init {
+  visible_object *cond;
+} cond_init;
+
+typedef struct cond_wait {
+  visible_object *cond;
+  visible_object *mut;
+} cond_wait;
+
+typedef struct cond_signal {
+  visible_object *cond;
+} cond_signal;
+
+typedef struct cond_broadcast {
+  visible_object *cond;
+} cond_broadcast;
+
+typedef struct cond_destroy {
+  visible_object *cond;
+} cond_destroy;
+
 typedef struct transition {
   pthread_t executor;
   transition_type type;
@@ -45,6 +72,9 @@ typedef struct transition {
     mutex_init init;
     mutex_lock lock;
     mutex_unlock unlock;
+    cond_init cv_init;
+    cond_wait cv_wait;
+    cond_signal cv_signal;
   };
 } transition;
 
