@@ -53,12 +53,19 @@ fi
 
 AC_MSG_CHECKING([if python3 is available])
 # If Python returns True, that is converted to '1', which is Failure for shell:
-PYTHON=`which python 2> /dev/null`
-PYTHON3=`which python3 2> /dev/null`
-if [[ "$PYTHON" != "" ]] && \
+if [ "$PYTHON3$PYTHON" == "" ]; then
+  PYTHON=`which python 2> /dev/null`
+  PYTHON3=`which python3 2> /dev/null`
+elif [ "$PYTHON3" != "" ]; then
+  PYTHON3=`which $PYTHON3 2> /dev/null`
+  PYTHON="$PYTHON3"
+elif [ "$PYTHON" != "" ]; then
+  PYTHON=`which $PYTHON 2> /dev/null`
+fi
+if [ "$PYTHON" != "" ] && \
     $PYTHON -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
   has_python=yes
-elif [[ "$PYTHON3" != "" ]] && \
+elif [ "$PYTHON3" != "" ] && \
     $PYTHON3 -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
   PYTHON=`which python3`
   has_python=yes
@@ -66,7 +73,7 @@ else
   has_python=no
 fi
 AC_MSG_RESULT([$has_python])
-if [[ $has_python == yes ]] && [[ $PYTHON != /usr/bin/python ]]; then
+if [ $has_python == yes ]; then
   # Replacing line 1 ( #!/usr/bin/env python ) with local python
   sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate
 fi
@@ -87,10 +94,16 @@ PYTHON_VERSION_MINOR=`$PYTHON -c 'import sys; print("%d" % (sys.version_info.min
 # FIXME: We should test if gdb.Frame.level is present, for GDB's need to patch.
 #        This came into GDB somewhere from GDB-10 to GDB-12.
 #        And capture_output flag came into Python3 in python 3.7.
-# CentOS 8 still uses outdated Python and GDB.
-if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12 and '$PYTHON_VERSION_MINOR' >= 7)'; then
-  echo '*** Python or GDB Python API is older: patching Python code'
+# Rocky Linux 8/CentOS 8 still uses outdated Python and GDB.
+if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12)'; then
+  echo '*** GDB is older: GDB version 12 or greater is preferred.'
   echo '*** There may be some smaller missing features for mcminig-gdb.'
+fi
+if $PYTHON -c 'import sys; sys.exit('$PYTHON_VERSION_MINOR' >= 7)'; then
+  echo '*** Python API is older: patching Python code.'
+  echo '*** Python version 3.7 or greater is preferred.'
+  echo '*** There may be some smaller missing features for mcminig-gdb.'
+  echo '*** To avoid it, set $PYTHON or $PYTHON3 env variable to newer Python.'
   # patch -p1 < mcmini-oldsys.patch
 fi
 
