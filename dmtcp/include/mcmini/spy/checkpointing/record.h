@@ -62,7 +62,7 @@ extern "C" {
  *
  * CHECKPOINT_THREAD:
  *   In this mode, DMTCP has created the checkpoint thread. The checkpoint
- * thread should not interact with McMini in any way, but the two interact
+ * thread should not interact with McMini in any way. But the two interact
  * because the functions `libmcmini.so` overrides are used by `dmtcp`
  * extensively (e.g. `sem_wait()`). This mode, special to the library when
  * executing from the perspective of the checkpoint thread, indicates that DMTCP
