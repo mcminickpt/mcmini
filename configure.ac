@@ -104,7 +104,7 @@ if $PYTHON -c 'import sys; sys.exit('$PYTHON_VERSION_MINOR' >= 7)'; then
   echo '*** Python version 3.7 or greater is preferred.'
   echo '*** There may be some smaller missing features for mcminig-gdb.'
   echo '*** To avoid it, set $PYTHON or $PYTHON3 env variable to newer Python.'
-  # patch -p1 < mcmini-oldsys.patch
+  patch -p1 < mcmini-oldsys.patch
 fi
 
 dnl CMA (Cross Memory Attach) brought in with  Linux 3.2.0 and glibc 2.15

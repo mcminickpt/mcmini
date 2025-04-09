@@ -5379,7 +5379,7 @@ if $PYTHON -c 'import sys; sys.exit('$PYTHON_VERSION_MINOR' >= 7)'; then
   echo '*** Python version 3.7 or greater is preferred.'
   echo '*** There may be some smaller missing features for mcminig-gdb.'
   echo '*** To avoid it, set $PYTHON or $PYTHON3 env variable to newer Python.'
-  # patch -p1 < mcmini-oldsys.patch
+  patch -p1 < mcmini-oldsys.patch
 fi
 
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if process_vm_readv/process_vm_writev (CMA) available" >&5

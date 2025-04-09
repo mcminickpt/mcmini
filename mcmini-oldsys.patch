@@ -1,0 +1,208 @@
+*** a/gdbinit_commands.py	2025-04-09 12:37:33.736635000 -0400
+--- b/gdbinit_commands.py	2025-04-09 12:33:20.733476000 -0400
+***************
+*** 96,103 ****
+    cmd = exec_file + " -v -q " + mcmini_args
+    print("** Generating trace sequence for:\n     " + cmd)
+    print("     (This may take a while ...)")
+!   mcmini_output = subprocess.run(cmd, shell=True, capture_output=True,
+!                                  timeout=300)
+    error_output = mcmini_output.stderr.decode('utf-8')
+    if "Missing target_executable" in error_output:
+      print([line for line in error_output.split('\n')
+--- 96,104 ----
+    cmd = exec_file + " -v -q " + mcmini_args
+    print("** Generating trace sequence for:\n     " + cmd)
+    print("     (This may take a while ...)")
+!   # In Python 3.7 and later, one can do capture_output=True instead of PIPE.
+!   mcmini_output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE,
+!                                  stderr=subprocess.PIPE, timeout=300)
+    error_output = mcmini_output.stderr.decode('utf-8')
+    if "Missing target_executable" in error_output:
+      print([line for line in error_output.split('\n')
+***************
+*** 197,204 ****
+    return is_traceSeq(args[0])[1]
+  
+  
+  def is_tui_active():
+!   return "The TUI is not active." not in gdb.execute("info win", to_string=True)
+  
+  # This version of gdb.execute() checks if the inferior is no longer running.
+  def mcmini_execute(command, to_string=False):
+--- 198,213 ----
+    return is_traceSeq(args[0])[1]
+  
+  
++ # gdb-8.5: "info win" returns info even after "tui disable".
++ #   If we wanted to fix this, we could do "stdout->TMP_FILE && frame 0"
++ #   and if TUI enabled, then it would not be written to TMP_FILE.
++ #   Or we could create a child process and pipe to receive it.
+  def is_tui_active():
+!   if not gdb.execute("info win", to_string=True): # gdb-8.5 API
+!     return False
+!   if "The TUI is not active." not in gdb.execute("info win", to_string=True):
+!     return False
+!   return True
+  
+  # This version of gdb.execute() checks if the inferior is no longer running.
+  def mcmini_execute(command, to_string=False):
+***************
+*** 217,227 ****
+      gdb.execute("set confirm off")
+      gdb.execute("quit")
+  
+  def total_num_frames():
+    frame = gdb.newest_frame()
+    while frame.older(): # Get oldest frame
+      frame = frame.older()
+!   return frame.level() + 1
+  
+  def select_user_frame():
+    gdb.invalidate_cached_frames()  # Is this useful?
+--- 226,248 ----
+      gdb.execute("set confirm off")
+      gdb.execute("quit")
+  
++ # gdb.selected_frame().level(); gdb-8.5 doesn't define level() method.
+  def total_num_frames():
+    frame = gdb.newest_frame()
++   level = 0
+    while frame.older(): # Get oldest frame
+      frame = frame.older()
+!     level += 1
+!   return level + 1
+! 
+! # Defines gdb.selected_frame().level(); gdb-8.5 doesn't define level() method.
+! def selected_frame_level():
+!   frame = gdb.newest_frame()
+!   level = 0
+!   while frame != gdb.selected_frame():
+!     frame = frame.older()
+!     level += 1
+!   return level
+  
+  def select_user_frame():
+    gdb.invalidate_cached_frames()  # Is this useful?
+***************
+*** 270,276 ****
+      #         For example, 'mcmini where/print' doesn't need to change it.
+      #         GDB commands: up; down;  fix the display, but print to output
+      #                       and leave current line at top.
+!     gdb.execute("frame " + str( gdb.selected_frame().level() ))
+      ## GDB BUG: 'list <LINE>' should help TUI to center display; but this fails.
+      # if gdb.execute("frame " + str( gdb.selected_frame().level() )):
+      #   gdb.execute("list " + str( gdb.selected_frame().find_sal().line ))
+--- 291,297 ----
+      #         For example, 'mcmini where/print' doesn't need to change it.
+      #         GDB commands: up; down;  fix the display, but print to output
+      #                       and leave current line at top.
+!     gdb.execute("frame " + str( selected_frame_level() ))
+      ## GDB BUG: 'list <LINE>' should help TUI to center display; but this fails.
+      # if gdb.execute("frame " + str( gdb.selected_frame().level() )):
+      #   gdb.execute("list " + str( gdb.selected_frame().find_sal().line ))
+***************
+*** 296,302 ****
+    select_user_frame()
+    # gdb.execute would print newline, but not carriage return:
+    output = gdb.execute("bt " + str(- (total_num_frames() -
+!                                       gdb.selected_frame().level())),
+                         to_string=True)
+    print(output)
+  def find_call_frame(name):
+--- 317,323 ----
+    select_user_frame()
+    # gdb.execute would print newline, but not carriage return:
+    output = gdb.execute("bt " + str(- (total_num_frames() -
+!                                       selected_frame_level())),
+                         to_string=True)
+    print(output)
+  def find_call_frame(name):
+***************
+*** 373,384 ****
+    ## FIXME:  If thr.switch() is now silent, do we still need stdout->/dev/null ?
+    ##         (And do we still need mcprintf_redirect, for TUI pagination?)
+    cur_pagination = gdb.parameter("pagination")
+!   gdb.set_parameter("pagination", "off")
+    # GDB 'inferior XXX' normally tries to print filename, and errors and
+    #   and sends to stderr Stop trying to print filename.  This prevents that.
+!   cur_frame_info = gdb.execute("show print frame-info", to_string=True)
+!   cur_frame_info = cur_frame_info.split('"')[1]
+!   gdb.execute("set print frame-info location")
+    dup_stdout = os.dup(1)
+    os.close(1)
+    cur_stdout = os.open('/dev/null', os.O_WRONLY)
+--- 394,409 ----
+    ## FIXME:  If thr.switch() is now silent, do we still need stdout->/dev/null ?
+    ##         (And do we still need mcprintf_redirect, for TUI pagination?)
+    cur_pagination = gdb.parameter("pagination")
+!   # gdb.set_parameter(); gdb-8.5 doesn't define set_parameter() method.
+!   # gdb.set_parameter("pagination", "off")
+!   gdb.execute("set pagination off")
+    # GDB 'inferior XXX' normally tries to print filename, and errors and
+    #   and sends to stderr Stop trying to print filename.  This prevents that.
+!   ## gdb-8.5 doesn't support "show/set print frame-info"
+!   # cur_frame_info = gdb.execute("show print frame-info", to_string=True)
+!   # cur_frame_info = cur_frame_info.split('"')[1]
+!   # gdb.execute("set print frame-info location")
+!   cur_frame_info = "frame-info UNSUPPORTED IN GDB-8"
+    dup_stdout = os.dup(1)
+    os.close(1)
+    cur_stdout = os.open('/dev/null', os.O_WRONLY)
+***************
+*** 410,416 ****
+      thr_user = gdb.selected_thread()
+    output = gdb.parse_and_eval("mcprintf_redirect_output").string()
+    # Under TUI, this seems to go to curses (or stderr?), not stdout:
+!   gdb.execute("set print frame-info " + cur_frame_info)
+    thr_user.switch()
+    select_user_frame()
+    if is_tui_active():
+--- 435,442 ----
+      thr_user = gdb.selected_thread()
+    output = gdb.parse_and_eval("mcprintf_redirect_output").string()
+    # Under TUI, this seems to go to curses (or stderr?), not stdout:
+!   ## gdb-8.5 doesn't support "show/set print frame-info"
+!   # gdb.execute("set print frame-info " + cur_frame_info)
+    thr_user.switch()
+    select_user_frame()
+    if is_tui_active():
+***************
+*** 422,428 ****
+    os.close(dup_stdout)
+    # It's now safe to print
+    gdb.flush()
+!   gdb.set_parameter("pagination", "on" if cur_pagination else "off")
+    # We need this hack because GDB TUI doesn't erase part of first line.
+    if is_tui_active() and print_hack:
+      print(" === ")
+--- 448,456 ----
+    os.close(dup_stdout)
+    # It's now safe to print
+    gdb.flush()
+!   # gdb.set_parameter(); gdb-8.5 doesn't define set_parameter() method.
+!   # gdb.set_parameter("pagination", "on" if cur_pagination else "off")
+!   gdb.execute("set pagination %s" % "on" if cur_pagination else "off")
+    # We need this hack because GDB TUI doesn't erase part of first line.
+    if is_tui_active() and print_hack:
+      print(" === ")
+***************
+*** 526,533 ****
+    file, line = source_line.split(':')
+    source_line2 = file + ":" + str(int(line)+1)
+    list_cmd = "list " + source_line + ", " + source_line2
+!   if "output styling is enabled." in gdb.execute("show style enabled",
+!                                                  to_string=True):
+      gdb.execute("set style enabled off")
+      extract = gdb.execute(list_cmd, to_string=True)
+      gdb.execute("set style enabled on")
+--- 554,562 ----
+    file, line = source_line.split(':')
+    source_line2 = file + ":" + str(int(line)+1)
+    list_cmd = "list " + source_line + ", " + source_line2
+!   ## FIXME:  gdb-8.5 doesn't support show style enabled; So always False.
+!   if False and "output styling is enabled." in gdb.execute("show style enabled",
+!                                                            to_string=True):
+      gdb.execute("set style enabled off")
+      extract = gdb.execute(list_cmd, to_string=True)
+      gdb.execute("set style enabled on")
