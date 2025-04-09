@@ -59,6 +59,7 @@ int mc_sem_init(sem_t *sem, int p, unsigned count) {
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
+      fprintf(stderr, "mcmini internal error: %s:%d\n", __FILE__, __LINE__);
       libc_abort();
     }
   }
@@ -113,6 +114,7 @@ int mc_sem_destroy(sem_t *sem) {
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
+      fprintf(stderr, "mcmini internal error: %s:%d\n", __FILE__, __LINE__);
       libc_abort();
     }
   }
@@ -166,6 +168,7 @@ mc_sem_post(sem_t *sem) {
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
+      fprintf(stderr, "mcmini internal error: %s:%d\n", __FILE__, __LINE__);
       libc_abort();
     }
   }
@@ -195,7 +198,7 @@ int mc_sem_wait(sem_t *sem) {
 
       struct timespec ts;
       while (1) {
-        // Wait one second...
+        // Do sem_timedwait for one second ...
         clock_gettime(CLOCK_REALTIME, &ts); ts.tv_sec++;
         int rc = libpthread_sem_timedwait(sem, &ts);
         if (rc == 0) {  // Wait succeeded
@@ -240,6 +243,7 @@ int mc_sem_wait(sem_t *sem) {
       // means that this is a template process. This
       // method must have been directly called
       // erroneously.
+      fprintf(stderr, "mcmini internal error: %s:%d\n", __FILE__, __LINE__);
       libc_abort();
     }
   }
