@@ -23,13 +23,11 @@ typedef enum transition_type {
   COND_WAIT_TYPE,
   COND_SIGNAL_TYPE,
   COND_BROADCAST_TYPE,
-  COND_DESTROY_TYPE
-  // sem_init,
-  // sem_wait,
-  // sem_post,
-  // thread_create,
-  // thread_join
-  //...
+  COND_DESTROY_TYPE,
+  SEM_INIT_TYPE,
+  SEM_WAIT_TYPE,
+  SEM_POST_TYPE,
+  SEM_DESTROY_TYPE
 } transition_type;
 
 typedef struct mutex_init {

@@ -1,17 +1,19 @@
 #include "mcmini/model/program.hpp"
 
-#include <sstream>
 #include <cstdint>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
 
+#include "mcmini/model/objects/thread.hpp"
 #include "mcmini/model/pending_transitions.hpp"
 #include "mcmini/model/state.hpp"
 #include "mcmini/model/state/detached_state.hpp"
 #include "mcmini/model/transition.hpp"
+#include "mcmini/model/transitions/thread/thread_start.hpp"
 #include "mcmini/model/visible_object_state.hpp"
 
 using namespace model;
@@ -21,6 +23,16 @@ program::program() : program(detached_state(), pending_transitions()) {}
 program::program(const state &initial_state,
                  pending_transitions &&initial_first_steps)
     : state_seq(initial_state), next_steps(std::move(initial_first_steps)) {}
+
+program program::starting_from_main() {
+  detached_state state_of_program_at_main;
+  pending_transitions initial_first_steps;
+  const state::runner_id_t main_thread_id = state_of_program_at_main.add_runner(
+      new objects::thread(objects::thread::state::running));
+  initial_first_steps.set_transition(
+      new transitions::thread_start(main_thread_id));
+  return program(state_of_program_at_main, std::move(initial_first_steps));
+}
 
 std::unordered_set<state::runner_id_t> program::get_enabled_runners() const {
   std::unordered_set<runner_id_t> enabled_runners;
@@ -116,21 +128,22 @@ state::runner_id_t program::discover_runner(const runner_state *initial_state,
 
 bool program::is_in_deadlock() const {
   // If any transition is enabled, we are not in deadlock
-  for (const auto &pair : this->get_pending_transitions()) {
-    if (pair.second->is_enabled_in(this->state_seq)) return false;
-  }
-  // If there are NO enabled transitions, we need to check if this is because
-  // all runners are no longer active, i.e. whether they even have more
+  //
+  // Furthermore, if there are NO enabled transitions, we need to check if this
+  // is because all runners have exited, i.e. whether they even have more
   // transitions to execute. If they do, then then it would be a deadlock in
   // the traditional sense since there are threads which haven't completed but
-  // are blocked.
-  for (runner_id_t p = 0; p < get_num_runners(); p++) {
-    if (this->state_seq.get_state_of_runner(p)->is_active()) return true;
+  // are blocked. If they've all exited, we shouldn't say this is a deadlock:
+  // the program trivially can't do anything else.
+  for (const auto &pair : this->get_pending_transitions()) {
+    if (pair.second->is_enabled_in(this->state_seq) ||
+        this->state_seq.get_state_of_runner(pair.first)->has_exited())
+      return false;
   }
-  return false;
+  return true;
 }
 
-std::ostream &program::dump_state(std::ostream& os) const {
+std::ostream &program::dump_state(std::ostream &os) const {
   os << this->get_state_sequence().back().debug_string();
   std::stringstream ss;
   ss << "\nTHREAD TRACE\n";

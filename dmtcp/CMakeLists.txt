@@ -40,10 +40,12 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/cond_var_single_grp_policy.cpp
   src/mcmini/model/cond_var_wakegroup.cpp
   src/mcmini/model/state_sequence.cpp
+  src/mcmini/model/transition_registry.cpp
   src/mcmini/model/transition_sequence.cpp
   src/mcmini/model/transitions/mutex.cpp
   src/mcmini/model/transitions/condition_variables.cpp
   src/mcmini/model/transitions/thread.cpp
+  src/mcmini/model/transitions/semaphore.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp
   src/mcmini/model_checking/algorithms/clock_vector.cpp
   src/mcmini/real_world/dmtcp_process_source.cpp
@@ -63,8 +65,10 @@ set(LIBMCMINI_C_SRC
   src/lib/dmtcp-callback.c
   src/lib/entry.c
   src/lib/interception.c
+  src/lib/log.c
   src/lib/main.c
   src/lib/record.c
+  src/lib/sem-wrappers.c
   src/lib/template/loop.c
   src/lib/template/sig.c
   src/lib/wrappers.c
@@ -76,7 +80,7 @@ set(MCMINI_EXTRA_COMPILER_DEFINITIONS "")
 set(MCMINI_EXTRA_LINK_FLAGS -lrt -pthread)
 
 set(LIBMCMINI_EXTRA_COMPILER_FLAGS -Wall -Werror -fPIC)
-set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1)
+set(LIBMCMINI_EXTRA_COMPILER_DEFINITIONS MC_SHARED_LIBRARY=1 DMTCP=1 LOGGING_ROOT="${CMAKE_SOURCE_PATH}")
 
 # -lrt -> shared memory
 # -pthread -> libpthread.so

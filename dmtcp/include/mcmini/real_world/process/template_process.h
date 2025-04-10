@@ -6,6 +6,7 @@ extern "C" {
 
 #include <semaphore.h>
 #include <signal.h>
+#include <stdbool.h>
 
 #define TEMPLATE_FORK_FAILED (-2)  // fork(2) failed in the template
 
@@ -34,8 +35,6 @@ struct template_process_t {
 
   // MARK: DMTCP ONLY
 };
-
-extern pid_t multithreaded_fork(void);
 
 #ifdef __cplusplus
 }

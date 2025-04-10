@@ -1,10 +1,12 @@
 #define _GNU_SOURCE
 #include <assert.h>
+#include <errno.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -16,9 +18,15 @@
 int dmtcp_mcmini_is_loaded() { return 1; }
 int counter = 0;
 
+pthread_t ckpt_pthread_descriptor;
+volatile atomic_bool libmcmini_has_recorded_checkpoint_thread;
 static sem_t template_thread_sem;
 static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
+
+bool is_checkpoint_thread(void) {
+  return pthread_equal(pthread_self(), ckpt_pthread_descriptor);
+}
 
 void thread_handle_after_dmtcp_restart(void) {
   // IMPORTANT: There's a potential race between
@@ -39,14 +47,17 @@ void thread_handle_after_dmtcp_restart(void) {
       // This is accomplished by using the current "mode" of libmcmini:
       // as long as we're not in the `TARGET_BRANCH_AFTER_RESTART` case, we
       // simply ignore any wakeups
-      pthread_mutex_lock(&template_thread_mut);
-      while (get_current_mode() != TARGET_BRANCH_AFTER_RESTART)
-        pthread_cond_wait(&template_thread_cond, &template_thread_mut);
-      pthread_mutex_unlock(&template_thread_mut);
+      libpthread_mutex_lock(&template_thread_mut);
+      while (get_current_mode() != TARGET_BRANCH_AFTER_RESTART) {
+        libpthread_cond_wait(&template_thread_cond, &template_thread_mut);
+      }
+      libpthread_mutex_unlock(&template_thread_mut);
+      break;
     }
     case DMTCP_RESTART_INTO_BRANCH: {
       // In the case of calling `dmtcp_restart` fpr each branch, we
       // are expected to immediately talk to the model checker.
+      log_debug("Restarting into branch (DMTCP_RESTART_INTO_BRANCH)\n");
       break;
     }
     default: {
@@ -63,6 +74,47 @@ void thread_handle_after_dmtcp_restart(void) {
 
   // Finally, we can communicate directly with the model checker `mcmini`.
   thread_await_scheduler();
+}
+
+void mc_template_thread_loop_forever() {
+  bool has_transferred_state = false;
+
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
+  while (1) {
+    log_debug("Waiting for child process");
+
+    // This `wait()` call is important here, as it ensures that there
+    // exists only a single branch alive at any given time. If multiple
+    // branches were alive at once, they would contend for the shared
+    // memory and cause data races. By transitivity, the McMini process
+    // also waits until the previous branch has completed its execution
+    // by waiting on the template
+    wait(NULL);
+    log_debug("Waiting for `mcmini` to signal a fork");
+    libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
+    log_debug("`mcmini` signaled a fork!");
+    const pid_t ppid_before_fork = getpid();
+    const pid_t cpid = multithreaded_fork();
+    if (cpid == -1) {
+      // `fork()` failed
+      tpt->err = errno;
+      tpt->cpid = TEMPLATE_FORK_FAILED;
+    } else if (cpid == 0) {
+      // Child case: Simply return and escape into the child process.
+      mc_prepare_new_child_process(ppid_before_fork);
+      return;
+    }
+    // `libmcmini.so` acting as a template process.
+    printf("The template process created child with pid %d\n", cpid);
+    tpt->cpid = cpid;
+    libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
+
+    if (!has_transferred_state) {
+      has_transferred_state = true;
+      unsetenv("MCMINI_NEEDS_STATE");
+    }
+  }
 }
 
 static void *template_thread(void *unused) {
@@ -122,7 +174,26 @@ static void *template_thread(void *unused) {
   volatile struct template_process_t *tpt = &shm_file->tpt;
   pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
   tpt->cpid = target_branch_pid;
-  sem_post((sem_t *)&tpt->mcmini_process_sem);
+  libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
+
+  if (get_current_mode() == DMTCP_RESTART_INTO_TEMPLATE) {
+    log_debug("Restarting into template (DMTCP_RESTART_INTO_TEMPLATE)\n");
+    mc_template_thread_loop_forever();
+
+    // Reaching this point means that we're in the branch: the
+    // parent process (aka the template) will never exit
+    // the above call to `mc_template_process_loop_forever()`.
+    set_current_mode(TARGET_BRANCH_AFTER_RESTART);
+
+    // Recall that the userspace threads in the template process
+    // were idling/doing nothing. Indeed, those threads exist ONLY
+    // to ensure that `multithreaded_fork()` clones them.
+    //
+    // Now that we're finally in the branch, we can
+    libpthread_mutex_lock(&template_thread_mut);
+    libpthread_cond_broadcast(&template_thread_cond);
+    libpthread_mutex_unlock(&template_thread_mut);
+  }
 
   // Phase 3. Once in a stable state, check if `mcmini` needs to construct
   // a model of what we've recorded.
@@ -157,10 +228,13 @@ static void *template_thread(void *unused) {
                entry->vo.thrd_state.id, entry->vo.thrd_state.status);
       } else if (entry->vo.type == CONDITION_VARIABLE) {
         printf("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
-               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size, 
+               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size,
                entry->vo.cond_state.waiting_threads);
-      }
-      else {
+      } else if (entry->vo.type == SEMAPHORE) {
+        printf("Writing semaphore entry %p (count %d, status: %d)\n",
+               (void *)entry->vo.location,
+               entry->vo.sem_state.count, entry->vo.sem_state.status);
+      } else {
         libc_abort();
       }
       if (entry->vo.type == CONDITION_VARIABLE) {
@@ -189,29 +263,9 @@ static void *template_thread(void *unused) {
     }
     int sz = write(fd, &empty_visible_obj, sizeof(empty_visible_obj));
     assert(sz == sizeof(visible_object));
-    printf("The template thread has completed: exiting...\n");
     fsync(fd);
     fsync(0);
     close(fd);
-  }
-
-  if (get_current_mode() == DMTCP_RESTART_INTO_TEMPLATE) {
-    printf("DMTCP_RESTART_INTO_TEMPLATE\n");
-    mc_template_process_loop_forever(&multithreaded_fork);
-
-    // Reaching this point means that we're in the branch: the
-    // parent process (aka the template) will never exit
-    // the above call to `mc_template_process_loop_forever()`.
-    set_current_mode(TARGET_BRANCH_AFTER_RESTART);
-
-    // Recall that the userspace threads in the template process
-    // were idling/doing nothing. Indeed, those threads exist ONLY
-    // to ensure that `multithreaded_fork()` clones them.
-    //
-    // Now that we're finally in the branch, we can
-    pthread_mutex_lock(&template_thread_mut);
-    pthread_cond_broadcast(&template_thread_cond);
-    pthread_mutex_unlock(&template_thread_mut);
   }
 
   // Exiting from the template thread is fine:
@@ -220,6 +274,7 @@ static void *template_thread(void *unused) {
   //
   // NOTE: This is true for both repeated `dmtcp_restart` AND for multithreaded
   // forking.
+  printf("The template thread has completed: exiting...\n");
   return NULL;
 }
 static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
@@ -239,8 +294,8 @@ static int AddSegvHandler() {
   return 0;
 }
 __attribute__((constructor)) void libmcmini_event_late_init() {
-  
-  AddSegvHandler();  
+
+  AddSegvHandler();
   if (!dmtcp_is_enabled()) {
     return;
   }
@@ -315,28 +370,30 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       //
       // Why? If we set
       set_current_mode(PRE_CHECKPOINT_THREAD);
-      printf("DMTCP_EVENT_INIT\n");
+      log_verbose("DMTCP_EVENT_INIT");
       break;
     }
     case DMTCP_EVENT_PRESUSPEND:
-      printf("DMTCP_EVENT_PRESUSPEND\n");
+      log_verbose("DMTCP_EVENT_PRESUSPEND");
       break;
     case DMTCP_EVENT_PRECHECKPOINT: {
       set_current_mode(PRE_CHECKPOINT);
-      printf("DMTCP_EVENT_PRECHECKPOINT\n");
+      log_verbose("DMTCP_EVENT_PRECHECKPOINT");
       break;
     }
     case DMTCP_EVENT_RESUME:
-      printf("DMTCP_EVENT_RESUME\n");
+      log_verbose("DMTCP_EVENT_RESUME");
       break;
     case DMTCP_EVENT_RESTART: {
+      log_verbose("DMTCP_EVENT_RESTART callback");
       if (getenv("MCMINI_TEMPLATE_LOOP")) {
         set_current_mode(DMTCP_RESTART_INTO_TEMPLATE);
-        printf("MCMINI_TEMPLATE_LOOP set \n");
+        log_debug("`MCMINI_TEMPLATE_LOOP` was set at restart-time\n");
       } else {
         set_current_mode(DMTCP_RESTART_INTO_BRANCH);
-        printf("MCMINI_TEMPLATE_LOOP not set\n");
+        log_debug("`MCMINI_TEMPLATE_LOOP` was not set at restart-time\n");
       }
+
       // During record mode, the shared memory
       // used by the `mcmini` process to control
       // the userspace threads in this process

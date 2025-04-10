@@ -33,7 +33,8 @@ typedef uint64_t trid_t;
 #define RUNNER_ID_MAX UINT16_MAX
 #define RID_MAIN_THREAD ((runner_id_t)0)
 #define RID_INVALID ((runner_id_t)-1)
-#define RID_PTHREAD_CREATE_FAILED ((runner_id_t)-2)
+#define RID_CHECKPOINT_THREAD ((runner_id_t)-2)
+#define RID_PTHREAD_CREATE_FAILED ((runner_id_t)-3)
 
 #define FORK_IS_CHILD_PID(pid) ((pid) == 0)
 #define FORK_IS_PARENT_PID(pid) (!(FORK_IS_CHILD_PID(pid)))

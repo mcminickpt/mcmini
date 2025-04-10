@@ -16,7 +16,8 @@
 
 using namespace real_world;
 
-local_linux_process::local_linux_process(pid_t pid) : pid(pid) {}
+local_linux_process::local_linux_process(pid_t pid, bool should_wait)
+    : pid(pid), should_wait(should_wait) {}
 
 local_linux_process::local_linux_process(local_linux_process &&other)
     : local_linux_process(other.pid) {
@@ -39,9 +40,11 @@ local_linux_process::~local_linux_process() {
               << "`: " << strerror(errno);
   }
   int status;
-  if (waitpid(pid, &status, 0) == -1)
-    std::cerr << "Error waiting for process (waitpid) `" << pid
-              << "`: " << strerror(errno);
+  if (should_wait) {
+    if (waitpid(pid, &status, 0) == -1)
+      std::cerr << "Error waiting for process (waitpid) `" << pid
+                << "`: " << strerror(errno);
+  }
 }
 
 volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
