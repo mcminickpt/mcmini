@@ -49,7 +49,7 @@ void thread_handle_after_dmtcp_restart(void) {
       // simply ignore any wakeups
       libpthread_mutex_lock(&template_thread_mut);
       while (get_current_mode() != TARGET_BRANCH_AFTER_RESTART) {
-        pthread_cond_wait(&template_thread_cond, &template_thread_mut);
+        libpthread_cond_wait(&template_thread_cond, &template_thread_mut);
       }
       libpthread_mutex_unlock(&template_thread_mut);
       break;
@@ -191,7 +191,7 @@ static void *template_thread(void *unused) {
     //
     // Now that we're finally in the branch, we can
     libpthread_mutex_lock(&template_thread_mut);
-    pthread_cond_broadcast(&template_thread_cond);
+    libpthread_cond_broadcast(&template_thread_cond);
     libpthread_mutex_unlock(&template_thread_mut);
   }
 
@@ -228,7 +228,7 @@ static void *template_thread(void *unused) {
                entry->vo.thrd_state.id, entry->vo.thrd_state.status);
       } else if (entry->vo.type == CONDITION_VARIABLE) {
         printf("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
-               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size, 
+               entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size,
                entry->vo.cond_state.waiting_threads);
       } else if (entry->vo.type == SEMAPHORE) {
         printf("Writing semaphore entry %p (count %d, status: %d)\n",
@@ -294,8 +294,8 @@ static int AddSegvHandler() {
   return 0;
 }
 __attribute__((constructor)) void libmcmini_event_late_init() {
-  
-  AddSegvHandler();  
+
+  AddSegvHandler();
   if (!dmtcp_is_enabled()) {
     return;
   }
