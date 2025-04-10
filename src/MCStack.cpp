@@ -672,7 +672,7 @@ MCStack::dynamicallyUpdateBacktrackSets()
         mostRecentThreadId);
     /*
      * Stop when we find the first such i; this
-     * will be the maxmimum `i` since we're searching
+     * will be the maximum `i` since we're searching
      * backwards
      */
     if (shouldStop) break;

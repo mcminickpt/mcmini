@@ -61,7 +61,7 @@ extern typeof(&sleep) sleep_ptr;
  * McMini re-defines and exports symbols defined in other dynamic
  * libraries to change the behavior of a program which is dynamically
  * linked to the libraries containing those symbols. When McMini as a
- * dynamic libarary is pre-loaded into memory, a process making calls
+ * dynamic library is pre-loaded into memory, a process making calls
  * to the dynamic library will result in McMini's symbols being
  * dynamically chosen instead.
  *

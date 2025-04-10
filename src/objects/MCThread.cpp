@@ -1,7 +1,7 @@
 #include "objects/MCThread.h"
 
 static_assert(MC_IS_TRIVIALLY_COPYABLE(MCThreadShadow),
-              "The shared transition is not trivially copiable. "
+              "The shared transition is not trivially copyable. "
               "Performing a memcpy of this type "
               "is undefined behavior according to the C++ standard.");
 
