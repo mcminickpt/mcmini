@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([McMini],[1.0.0],[pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu],[mcmini],[https://github.com/mcminickpt/mcmini.git])
+AC_INIT([McMini],[1.0.0],[pirtle.m@northeastern.edu,gene@ccs.neu.edu],[mcmini],[https://github.com/mcminickpt/mcmini.git])
 AC_CONFIG_SRCDIR([src/launch.c])
 AC_CONFIG_HEADERS([include/config.h])
 
@@ -97,14 +97,23 @@ PYTHON_VERSION_MINOR=`$PYTHON -c 'import sys; print("%d" % (sys.version_info.min
 # Rocky Linux 8/CentOS 8 still uses outdated Python and GDB.
 if $PYTHON -c 'import sys; sys.exit('$GDB_VERSION' >= 12)'; then
   echo '*** GDB is older: GDB version 12 or greater is preferred.'
-  echo '*** There may be some smaller missing features for mcminig-gdb.'
+  echo '*** There may be some smaller missing features for mcmini-gdb.'
 fi
 if $PYTHON -c 'import sys; sys.exit('$PYTHON_VERSION_MINOR' >= 7)'; then
-  echo '*** Python API is older: patching Python code.'
-  echo '*** Python version 3.7 or greater is preferred.'
-  echo '*** There may be some smaller missing features for mcminig-gdb.'
-  echo '*** To avoid it, set $PYTHON or $PYTHON3 env variable to newer Python.'
-  patch -p1 < mcmini-oldsys.patch
+  test -f gdbinit_commands.py.orig-mcmini && \
+    diff gdbinit_commands.py.orig-mcmini gdbinit_commands.py > /dev/null && \
+    rm gdbinit_commands.py.orig-mcmini
+  if test ! -f gdbinit_commands.py.orig-mcmini; then
+    echo '*** Python API is older: patching Python code.'
+    echo '*** Python version 3.7 or greater is preferred.'
+    echo '*** There may be some smaller missing features for mcmini-gdb.'
+    echo '*** To avoid it, set $PYTHON or $PYTHON3 env variable to newer Python.'
+    cp -pf gdbinit_commands.py gdbinit_commands.py.orig-mcmini
+    if ! patch -p1 -i mcmini-oldsys.patch; then
+      echo "mcmini-oldsys.patch failed: exiting from configure" 
+      exit 1
+    fi
+  fi
 fi
 
 dnl CMA (Cross Memory Attach) brought in with  Linux 3.2.0 and glibc 2.15
