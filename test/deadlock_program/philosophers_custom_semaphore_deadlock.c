@@ -39,7 +39,6 @@ int main(int argc, char* argv[]) {
 
     int NUM_THREADS = atoi(argv[1]);
     DEBUG = atoi(argv[2]);
-
     pthread_t thread[NUM_THREADS];
     pthread_mutex_t mutex_resource[NUM_THREADS];
     forks = malloc(NUM_THREADS * sizeof(struct forks));
