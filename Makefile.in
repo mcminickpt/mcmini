@@ -71,9 +71,17 @@ clean:
 	rm -f ${LIBOBJS} mcmini libmcmini.so mcmini-demo libmcrwlock_lib.a
 	rm -f NO-GDB-G3
 distclean: clean
+	if test -f gdbinit_commands.py.orig-mcmini; then \
+	  rm -f gdbinit_commands.py; \
+	  mv gdbinit_commands.py.orig-mcmini gdbinit_commands.py; \
+	fi
 	rm -f Makefile mcmini-gdb config.log config.status
 
 dist: distclean
+	if test -f gdbinit_commands.py.orig-mcmini; then \
+	  rm -f gdbinit_commands.py; \
+	  mv gdbinit_commands.py.orig-mcmini gdbinit_commands.py; \
+	fi
 	dir=`basename $$PWD` && cd .. && \
 	  tar zcvf $$dir.tar.gz --exclude='.git*' --exclude='*.png'  ./$$dir
 	dir=`basename $$PWD` && ls -l ../$$dir.tar.gz
