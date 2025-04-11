@@ -414,16 +414,23 @@ MCStack::isInDeadlock() const
     const MCTransition &nextTransitionForTid =
       this->getNextTransitionForThread(tid);
 
-    if (nextTransitionForTid.ensuresDeadlockIsImpossible())
+    if (this->getThreadDataForThread(tid).getExecutionDepth() >=
+        this->configuration.maxThreadExecutionDepth) {
       return false;
+    }
+
+    if (nextTransitionForTid.ensuresDeadlockIsImpossible()) {
+      return false;
+    }
 
     // We don't use the wrapper here (this->transitionIsEnabled)
     // because we only care about if the schedule *could* keep going:
     // we wouldn't be in deadlock if we artificially restricted the
     // threads
     if (MCTransition::transitionEnabledInState(this,
-                                               nextTransitionForTid))
+                                               nextTransitionForTid)) {
       return false;
+    }
   }
   return true;
 }
@@ -584,7 +591,7 @@ MCStack::dynamicallyUpdateBacktrackSets()
         mostRecentThreadId);
     /*
      * Stop when we find the first such i; this
-     * will be the maxmimum `i` since we're searching
+     * will be the maximum `i` since we're searching
      * backwards
      */
     if (shouldStop) break;
