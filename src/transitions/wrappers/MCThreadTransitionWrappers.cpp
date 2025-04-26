@@ -51,10 +51,7 @@ int
 mc_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                   void *(*routine)(void *), void *arg)
 {
-  // TODO: For now, we don't support attributes. This should be added
-  // in the future
-  if (attr != nullptr) { mc_trace_panic(); }
-
+  
   auto dpor_thread_arg =
     (mc_thread_routine_arg *)malloc(sizeof(mc_thread_routine_arg));
   dpor_thread_arg->arg     = arg;
