@@ -288,7 +288,7 @@ mc_explore_branch(int curBranchPoint)
   traceId++;
   if (false && traceId >= 1 && getenv(ENV_PRINT_AT_TRACE_SEQ) != NULL) {
     mcprintf("*** Trace sequence ('-t', --trace') requested.\n"
-             "*** for more than one traceDd: -t<X> -t'<traceSeq>' for X>0\n"
+             "*** for more than one traceId: -t<X> -t'<traceSeq>' for X>0\n"
              "*** McMini cannot yet handle this situation.  Exiting now.\n");
     mc_exit(EXIT_FAILURE);
   }
