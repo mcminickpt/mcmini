@@ -28,6 +28,10 @@ struct condition_variable_enqueue_thread : public model::transition{
       return status::disabled;
     }
 
+    if(!m->is_locked_by(executor)) {
+      return status::disabled;
+    }
+
     condition_variable_status current_state = cv->get_policy()->get_thread_cv_state(executor);
     if (current_state == CV_PREWAITING) {
     // Thread not fully in wait state - update to WAITING before proceeding
