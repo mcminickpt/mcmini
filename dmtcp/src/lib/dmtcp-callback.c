@@ -189,7 +189,8 @@ static void *template_thread(void *unused) {
     // were idling/doing nothing. Indeed, those threads exist ONLY
     // to ensure that `multithreaded_fork()` clones them.
     //
-    // Now that we're finally in the branch, we can
+    // Now that we're finally in the branch, we can signal each
+    // of these userspace threads that checkpointing has begun.
     libpthread_mutex_lock(&template_thread_mut);
     libpthread_cond_broadcast(&template_thread_cond);
     libpthread_mutex_unlock(&template_thread_mut);
