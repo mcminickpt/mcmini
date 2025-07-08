@@ -131,6 +131,13 @@ void found_undefined_behavior(const coordinator& c,
   finished_trace_classic_dpor(c);
 }
 
+void found_abnormal_termination(
+    const coordinator& c, const real_world::process::termination_error& ub) {
+  std::cerr << "Abnormally Termination (signo:" << ub.signo << "):\n"
+            << ub.what() << std::endl;
+  finished_trace_classic_dpor(c);
+}
+
 void found_deadlock(const coordinator& c) {
   std::cerr << "DEADLOCK" << std::endl;
   std::stringstream ss;
@@ -162,6 +169,7 @@ void do_model_checking(const config& config) {
   c.trace_completed = &finished_trace_classic_dpor;
   c.deadlock = &found_deadlock;
   c.undefined_behavior = &found_undefined_behavior;
+  c.abnormal_termination = &found_abnormal_termination;
   classic_dpor_checker.verify_using(coordinator, c);
   std::cout << "Model checking completed!" << std::endl;
 }

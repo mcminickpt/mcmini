@@ -15,7 +15,7 @@
 
 // We probably won't need the '#undef', but just in case a .h file defined it:
 #undef dmtcp_mcmini_is_loaded
-int dmtcp_mcmini_is_loaded() { return 1; }
+int dmtcp_mcmini_is_loaded(void) { return 1; }
 int counter = 0;
 
 pthread_t ckpt_pthread_descriptor;
@@ -23,6 +23,22 @@ volatile atomic_bool libmcmini_has_recorded_checkpoint_thread;
 static sem_t template_thread_sem;
 static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
+
+bool is_bad_signal(int signo) {
+  switch(signo) {
+    case SIGILL:
+    case SIGABRT:
+    case SIGBUS:
+    case SIGFPE:
+    case SIGKILL:
+    case SIGSEGV:
+    case SIGPIPE:
+    case SIGSYS:
+      return true;
+    default:
+      return false;
+  }
+}
 
 bool is_checkpoint_thread(void) {
   return pthread_equal(pthread_self(), ckpt_pthread_descriptor);
@@ -76,25 +92,70 @@ void thread_handle_after_dmtcp_restart(void) {
   thread_await_scheduler();
 }
 
-void mc_template_thread_loop_forever() {
+void mc_template_thread_loop_forever(void) {
   bool has_transferred_state = false;
 
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
-  while (1) {
-    log_debug("Waiting for child process");
+  const pid_t model_checker_pid = dmtcp_virtual_to_real_pid(getppid());
+  const pid_t ppid_before_fork = dmtcp_virtual_to_real_pid(getpid());
 
-    // This `wait()` call is important here, as it ensures that there
-    // exists only a single branch alive at any given time. If multiple
-    // branches were alive at once, they would contend for the shared
-    // memory and cause data races. By transitivity, the McMini process
-    // also waits until the previous branch has completed its execution
-    // by waiting on the template
-    wait(NULL);
+  while (1) {
+    // // This `wait()` call is important here, as it ensures that there
+    // // exists only a single branch alive at any given time. If multiple
+    // // branches were alive at once, they would contend for the shared
+    // // memory and cause data races. By transitivity, the McMini process
+    // // also waits until the previous branch has completed its execution
+    // // by waiting on the template
+    // int status;
+    // if (wait(&status) == -1) {
+    //   switch (errno) {
+    //     case EINTR: {
+    //       // The child process sent a SIGCHLD in the middle
+    //       // of the `wait()`. Retry the wait
+    //       log_debug("SIGCHLD interrupted the `wait(2)` call: retrying");
+    //       continue; // Continues `while`-loop which triggers another `wait` call
+    //     }
+    //     case ECHILD: {
+    //       log_debug("No child process currently exists. Ignoring `wait(2)`");
+    //       break;
+    //     }
+    //     default: {
+    //       // Unreachable
+    //       libc_abort();
+    //     }
+    //   }
+    // }
+    // else {
+    //   if (WIFEXITED(status)) {
+    //     const int exit_code = WEXITSTATUS(status);
+    //     if (exit_code != 0) {
+    //       // Error: Let the McMini process know that the
+    //       // branch process exited unexpectedly.
+    //     }
+    //   }
+    //   else if (WIFSIGNALED(status)) {
+    //     const int signo = WTERMSIG(status);
+    //     if (is_bad_signal(signo)) {
+    //       // Error: Let the McMini process know that the
+    //       // branch process exited unexpectedly.
+    //       kill(, SIGUSR1);
+    //       dmtcp_virtual_to_real_pid(getppid());
+    //     }
+    //   }
+    //   else {
+    //     // No stopping should be signalled to McMini: we should
+    //     // only receive signal/exit events
+    //   }
+    // }
     log_debug("Waiting for `mcmini` to signal a fork");
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
-    const pid_t ppid_before_fork = getpid();
+
+    // The template process is assumed always to be a
+    // direct child of the McMini process. This isn't the case
+    // e.g. if the checkpoint is restarted _directly_ using
+    // `dmtcp_restart`
     const pid_t cpid = multithreaded_fork();
     if (cpid == -1) {
       // `fork()` failed
@@ -102,7 +163,7 @@ void mc_template_thread_loop_forever() {
       tpt->cpid = TEMPLATE_FORK_FAILED;
     } else if (cpid == 0) {
       // Child case: Simply return and escape into the child process.
-      mc_prepare_new_child_process(ppid_before_fork);
+      mc_prepare_new_child_process(ppid_before_fork, model_checker_pid);
       return;
     }
     // `libmcmini.so` acting as a template process.

@@ -242,7 +242,7 @@ void saveThreadStateBeforeFork(struct threadinfo* threadInfo) {
     fprintf(stderr, "PID %d: multithreaded_fork(): patchThreadDescriptor:"
          "bad offset:\n        Run: DMTCP:util/check-pthread-tid-offset.c\n",
          getpid());
-    abort();
+    libc_abort();
   }
   threadInfo->pthread_descriptor = pthread_self();
   getTLSPointer(threadInfo);
@@ -256,7 +256,7 @@ void saveThreadStateBeforeFork(struct threadinfo* threadInfo) {
   if (! sigisemptyset(&sigtest)) {
     fprintf(stderr, "PID %d: multithreaded_fork() not yet implemented"
                     " for non-empty thread signaks\n", getpid());
-    abort();
+    libc_abort();
   }
 }
 

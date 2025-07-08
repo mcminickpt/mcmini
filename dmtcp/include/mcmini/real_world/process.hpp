@@ -47,8 +47,15 @@ struct process : public process_handle {
   };
 
   struct termination_error : public std::runtime_error {
-    explicit termination_error(const char *c) : std::runtime_error(c) {}
-    explicit termination_error(const std::string &s) : std::runtime_error(s) {}
+    int signo;
+    explicit termination_error(int signo, const std::string &s)
+        : std::runtime_error(s), signo(signo) {}
+  };
+
+  struct nonzero_exit_code_error : public std::runtime_error {
+    int exit_code;
+    explicit nonzero_exit_code_error(int exit_code, const std::string &s)
+        : std::runtime_error(s), exit_code(exit_code) {}
   };
 
   /**

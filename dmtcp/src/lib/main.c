@@ -79,6 +79,9 @@ __attribute__((constructor)) void libmcmini_main() {
     // We must be in recording mode.  Don't do model checking yet.
     return;
   }
+  // ************************************************
+  // STANDARD MODEL CHECKING (NO DEEP DEBUGGING)
+  // ************************************************
   mc_prevent_addr_randomization();
   mc_install_sig_handlers();
   mc_register_this_thread();
@@ -90,6 +93,10 @@ __attribute__((constructor)) void libmcmini_main() {
 
   if (getenv("MCMINI_TEMPLATE_LOOP")) {
     set_current_mode(TARGET_TEMPLATE);
+
+    // In classic model checking, verification begins at program start.
+    // We can use traditional `fork(3)` instead of `multithreaded_fork()`
+    // because at program launch there's only a single thread.
     mc_template_process_loop_forever(&fork);
 
     // Reaching this point means that we're in the branch: the

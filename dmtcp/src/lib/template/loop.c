@@ -17,12 +17,21 @@
 #include "mcmini/spy/checkpointing/record.h"
 #include "mcmini/spy/intercept/interception.h"
 
-void mc_prepare_new_child_process(pid_t ppid_before_fork) {
+void mc_prepare_new_child_process(pid_t ppid_before_fork, pid_t model_checker_pid) {
   // IMPORTANT: If the THREAD in the template process ever exits, this will
   // prove problematic as it is when the THREAD which called `fork()` exits that
   // the signal will be delivered to this process (and not when the process as a
   // whole exits)
   if (prctl(PR_SET_PDEATHSIG, SIGTERM) == -1) {
+    perror("prctl");
+    libc_abort();
+  }
+
+  // To enable the model checker process to handle assertion failures,
+  // SEGFAULTs, and other unexpected errors during execution, we
+  // make the branch process a direct child of the McMini process (i.e.
+  // the process containing the model checker).
+  if (prctl(PR_SET_CHILD_SUBREAPER, model_checker_pid) == -1) {
     perror("prctl");
     libc_abort();
   }
@@ -52,14 +61,15 @@ void mc_prepare_new_child_process(pid_t ppid_before_fork) {
   // sigaction(SIGSEGV, &action, NULL);
 }
 
-
 void mc_template_process_loop_forever(pid_t (*make_new_process)(void))
 {
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
+  const pid_t model_checker_pid = getppid();
+  const pid_t ppid_before_fork = getpid();
+
   while (1) {
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
-    const pid_t ppid_before_fork = getpid();
     const pid_t cpid = make_new_process();
     if (cpid == -1) {
       // `fork()` failed
@@ -67,7 +77,7 @@ void mc_template_process_loop_forever(pid_t (*make_new_process)(void))
       tpt->cpid = TEMPLATE_FORK_FAILED;
     } else if (cpid == 0) {
       // Child case: Simply return and escape into the child process
-      mc_prepare_new_child_process(ppid_before_fork);
+      mc_prepare_new_child_process(ppid_before_fork, model_checker_pid);
       return;
     }
     // `libmcmini.so` acting as a template process.

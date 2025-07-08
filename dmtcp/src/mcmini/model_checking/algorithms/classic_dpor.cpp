@@ -25,6 +25,7 @@
 #include "mcmini/model_checking/algorithms/classic_dpor/clock_vector.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor/runner_item.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor/stack_item.hpp"
+#include "mcmini/real_world/process.hpp"
 
 using namespace model;
 using namespace model_checking;
@@ -139,7 +140,16 @@ void classic_dpor::verify_using(coordinator &coordinator,
         // std::cerr << "******************************"
         //           << "\n";
       } catch (const model::undefined_behavior_exception &ube) {
-        callbacks.undefined_behavior(coordinator, ube);
+        if (callbacks.undefined_behavior)
+          callbacks.undefined_behavior(coordinator, ube);
+        return;
+      } catch (const real_world::process::termination_error &te) {
+        if (callbacks.abnormal_termination)
+          callbacks.abnormal_termination(coordinator, te);
+        return;
+      } catch (const real_world::process::nonzero_exit_code_error &nzec) {
+        if (callbacks.nonzero_exit_code)
+          callbacks.nonzero_exit_code(coordinator, nzec);
         return;
       }
     }

@@ -16,8 +16,30 @@
 
 using namespace real_world;
 
+std::once_flag local_linux_process::init_sigchld_handler;
+static volatile sig_atomic_t sigchld_set;
+static volatile runner_mailbox *current_mailbox = nullptr;
+
+void sigchld_signal_handler(int signo, siginfo_t *, void *) {
+  sigchld_set = 1;
+  if (current_mailbox) {
+    // Uses `sem_post(3)` which is async-signal-safe
+    // and no lost wakeups from a thread in the branch process
+    // which causes the branch to terminate
+    mc_wake_scheduler(current_mailbox);
+  }
+}
+
+void install_sigchld_signal_handler() {
+  struct sigaction action = {0};
+  action.sa_sigaction = sigchld_signal_handler;
+  sigaction(SIGCHLD, &action, nullptr);
+}
+
 local_linux_process::local_linux_process(pid_t pid, bool should_wait)
-    : pid(pid), should_wait(should_wait) {}
+    : pid(pid), should_wait(should_wait) {
+  std::call_once(init_sigchld_handler, &install_sigchld_signal_handler);
+}
 
 local_linux_process::local_linux_process(local_linux_process &&other)
     : local_linux_process(other.pid) {
@@ -53,12 +75,7 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   volatile runner_mailbox *rmb =
       &(shm_slice->as_array_of<mcmini_shm_file>()->mailboxes[id]);
 
-  // TODO: As a sanity check, a `waitpid()` to check if the process is still
-  // alive is probably warranted. This would prevent a deadlock in _most_ cases.
-  // Of course, if the process terminates in between the check and the
-  // sem_wait() call, we'd still have deadlock. A happy medium is to call
-  // `sem_timedwait()` with a sufficiently long wait value (perhaps 1 second)
-  // and poll for existence if we haven't heard from the child in a long time.
+  current_mailbox = rmb;
 
   // NOTE: At the moment, each process has the entire view of the
   // shared memory region at its disposal. If desired, an extra layer could be
@@ -69,10 +86,47 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   // restrict the number of proxy processes to one.
   mc_wake_thread(rmb);
 
+  // There is a potential race if the child dies and issues a SIGCHLD
+  // just before we call `mc_wait_for_thread()`. This doesn't happen
+  // because the signal handler for SIGCHLD will call `mc_wake_scheduler()`
+  // which issues a `sem_post(3)` to cancel the `sem_wait(3)` in
+  // `mc_wait_for_thread()`. The signal handler also sets `sigchld_set`,
+  // allowing us to determine that a SIGCHLD was received.
+  //
+  // TODO: The template process will also send a SIGCHLD if it dies
+  // unexpectedly. Because we don't expect the template process to die, this is
+  // OK for now, but should be handled in the future.
   errno = 0;
   int rc = mc_wait_for_thread(rmb);
   while (rc != 0 && errno == EINTR) {
     rc = mc_wait_for_thread(rmb);
+  }
+  if (sigchld_set) {
+    sigchld_set = 0;
+    current_mailbox = nullptr;
+
+    // `PR_SET_CHILD_SUBREAPER` enables us to wait on
+    // this grandchild.
+    int status;
+    int rc = waitpid(this->pid, &status, 0);
+    if (rc == -1) {
+      throw process::execution_error(
+          "Error attempting to determine the failure causing the child process "
+          "to abnormally exit.");
+    } else {
+      if (WIFEXITED(status)) {
+        int exit_code = WEXITSTATUS(status);
+        throw process::nonzero_exit_code_error(
+            exit_code, "Process terminated with a non-zero exit code.");
+      } else if (WIFSIGNALED(status)) {
+        int signo = WTERMSIG(status);
+        throw process::termination_error(signo,
+                                         "Process terminated abnormally.");
+      } else {
+        throw process::execution_error(
+            "SIGSTOP/SIGCONT in branch processes is not yet supported.");
+      }
+    }
   }
   return rmb;
 }
