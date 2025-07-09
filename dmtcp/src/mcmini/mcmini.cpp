@@ -521,6 +521,12 @@ int main_cpp(int argc, const char** argv) {
       exit(1);
     }
     mcmini_config.target_executable = std::string(cur_arg[0]);
+    // Collect all remaining arguments as target executable arguments
+    cur_arg++;
+    while (cur_arg[0] != NULL) {
+      mcmini_config.target_executable_args.push_back(std::string(cur_arg[0]));
+      cur_arg++;
+    }
   }
 
   install_process_wide_signal_handlers();
