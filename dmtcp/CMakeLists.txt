@@ -11,7 +11,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD_REQUIRED TRUE)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-
 # Project configuration
 option(BUILD_TESTS OFF)
 option(VERBOSE_TESTING OFF)
@@ -42,8 +41,9 @@ set(MCMINI_CPP_SRC
   src/mcmini/model/state_sequence.cpp
   src/mcmini/model/transition_registry.cpp
   src/mcmini/model/transition_sequence.cpp
-  src/mcmini/model/transitions/mutex.cpp
   src/mcmini/model/transitions/condition_variables.cpp
+  src/mcmini/model/transitions/mutex.cpp
+  src/mcmini/model/transitions/process.cpp
   src/mcmini/model/transitions/thread.cpp
   src/mcmini/model/transitions/semaphore.cpp
   src/mcmini/model_checking/algorithms/classic_dpor.cpp

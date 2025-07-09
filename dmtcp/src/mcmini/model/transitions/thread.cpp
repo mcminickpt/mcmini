@@ -5,9 +5,9 @@
 using namespace model;
 using namespace objects;
 
-model::transition* thread_create_callback(runner_id_t p,
-                                          const volatile runner_mailbox& rmb,
-                                          model_to_system_map& m) {
+transition* thread_create_callback(runner_id_t p,
+                                   const volatile runner_mailbox& rmb,
+                                   model_to_system_map& m) {
   pthread_t new_thread;
   memcpy_v(&new_thread, static_cast<const volatile void*>(&rmb.cnts),
            sizeof(pthread_t));
@@ -19,15 +19,15 @@ model::transition* thread_create_callback(runner_id_t p,
   return new transitions::thread_create(p, new_thread_id);
 }
 
-model::transition* thread_exit_callback(runner_id_t p,
-                                        const volatile runner_mailbox& rmb,
-                                        model_to_system_map& m) {
+transition* thread_exit_callback(runner_id_t p,
+                                 const volatile runner_mailbox& rmb,
+                                 model_to_system_map& m) {
   return new transitions::thread_exit(p);
 }
 
-model::transition* thread_join_callback(runner_id_t p,
-                                        const volatile runner_mailbox& rmb,
-                                        model_to_system_map& m) {
+transition* thread_join_callback(runner_id_t p,
+                                 const volatile runner_mailbox& rmb,
+                                 model_to_system_map& m) {
   pthread_t target;
   memcpy_v(&target, static_cast<const volatile void*>(&rmb.cnts),
            sizeof(pthread_t));

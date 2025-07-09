@@ -2,6 +2,7 @@
 
 #include "mcmini/model/transitions/condition_variables/callbacks.hpp"
 #include "mcmini/model/transitions/mutex/callbacks.hpp"
+#include "mcmini/model/transitions/process/callbacks.hpp"
 #include "mcmini/model/transitions/semaphore/callbacks.hpp"
 #include "mcmini/model/transitions/thread/callbacks.hpp"
 #include "mcmini/spy/checkpointing/transitions.h"
@@ -16,6 +17,8 @@ transition_registry transition_registry::default_registry() {
   tr.register_transition(THREAD_CREATE_TYPE, &thread_create_callback);
   tr.register_transition(THREAD_EXIT_TYPE, &thread_exit_callback);
   tr.register_transition(THREAD_JOIN_TYPE, &thread_join_callback);
+  tr.register_transition(PROCESS_EXIT_TYPE, &process_exit_callback);
+  tr.register_transition(PROCESS_ABORT_TYPE, &process_abort_callback);
   tr.register_transition(COND_INIT_TYPE, &cond_init_callback);
   tr.register_transition(COND_ENQUEUE_TYPE,
                          &cond_waiting_thread_enqueue_callback);
