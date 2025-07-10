@@ -12,7 +12,7 @@ struct semaphore : public model::visible_object_state {
   enum state { uninitialized, initialized, destroyed };
 
  private:
-  unsigned _count = 0;
+  int _count = 0;
   state current_state = state::uninitialized;
 
  public:
@@ -21,8 +21,7 @@ struct semaphore : public model::visible_object_state {
   semaphore(const semaphore &) = default;
   explicit semaphore(state s) : semaphore(s, 0) {}
   explicit semaphore(unsigned count) : semaphore(initialized, count) {}
-  explicit semaphore(state s, unsigned count)
-      : _count(count), current_state(s) {}
+  explicit semaphore(state s, int count) : _count(count), current_state(s) {}
   void wait() { this->_count--; }
   void post() { this->_count++; }
   void destroy() { this->current_state = state::destroyed; }
