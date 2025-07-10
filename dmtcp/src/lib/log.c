@@ -31,32 +31,28 @@ void mcmini_log_toggle(bool enable) {
     mcmini_log_set_level(MCMINI_LOG_DISABLE);
 }
 
-void display_log_record(struct log_record *rc) {
-  char buf[20];
-  buf[strftime(buf, sizeof(buf), "%H:%M:%S", rc->time)] = '\0';
-  fprintf(
-    rc->target,
-    "%s %-5s %s:%d: ",
-    buf, log_level_strs[rc->level], rc->file, rc->line
-  );
-  vfprintf(rc->target, rc->format, rc->var_args);
-  fprintf(rc->target, "\n");
-  fflush(rc->target);
-}
-
 void mcmini_log(int level, const char *file, int line, const char *fmt, ...) {
-    if (level < global_log_level) {
-        return;
-    }
-    log_record rc;
-    time_t t = time(NULL);
-    rc.format = fmt;
-    rc.file = file;
-    rc.line = line;
-    rc.level = level;
-    rc.target = stdout;
-    rc.time = localtime(&t);
-    // va_start(rc.var_args, fmt);
-    display_log_record(&rc);
-    // va_end(rc.var_args);
+  if (level < global_log_level) {
+      return;
+  }
+  log_record rc;
+  time_t t = time(NULL);
+  rc.format = fmt;
+  rc.file = file;
+  rc.line = line;
+  rc.level = level;
+  rc.target = stdout;
+  rc.time = localtime(&t);
+  va_start(rc.var_args, fmt);
+  char buf[20];
+  buf[strftime(buf, sizeof(buf), "%H:%M:%S", rc.time)] = '\0';
+  fprintf(
+    rc.target,
+    "[%u] %s %-5s %s:%d: ", getpid(),
+    buf, log_level_strs[rc.level], rc.file, rc.line
+  );
+  vfprintf(rc.target, rc.format, rc.var_args);
+  fprintf(rc.target, "\n");
+  fflush(rc.target);
+  va_end(rc.var_args);
 }
