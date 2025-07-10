@@ -4,6 +4,7 @@
 
 #include <array>
 #include <cassert>
+#include <csignal>
 #include <cstddef>
 #include <iostream>
 #include <set>
@@ -131,14 +132,27 @@ void classic_dpor::verify_using(coordinator &coordinator,
       // runner. A runner precedes another runner in being enabled iff it has a
       // smaller id.
       try {
-        this->continue_dpor_by_expanding_trace_with(
-            dpor_stack.back().get_first_enabled_runner(), context);
-        // std::cerr << "******************************"
-        //           << "\n";
-        // std::cerr << "State " << coordinator.get_depth_into_program() <<
-        // "\n"; coordinator.get_current_program_model().dump_state(std::cerr);
-        // std::cerr << "******************************"
-        //           << "\n";
+        const runner_id_t rid = dpor_stack.back().get_first_enabled_runner();
+        this->continue_dpor_by_expanding_trace_with(rid, context);
+
+        // Now ask the question: will the next operation of this thread
+        // cause the program to exit or abort abnormally?
+        //
+        // If so, stop expanding the trace and backtrack. The rationale is that
+        // any extension of this trace will eventually show the same bug anyway
+        // (the transition claims to cause the program to abort), and smaller
+        // traces are more understandable.
+        const transition *rtransition =
+            coordinator.get_current_program_model().get_pending_transition_for(
+                rid);
+        if (rtransition->aborts_program_execution()) {
+          throw real_world::process::termination_error(SIGABRT,
+                                                       "The program aborted");
+        } else if (rtransition->program_exit_code() > 0) {
+          throw real_world::process::nonzero_exit_code_error(
+              rtransition->program_exit_code(),
+              "The program exited abnormally");
+        }
       } catch (const model::undefined_behavior_exception &ube) {
         if (callbacks.undefined_behavior)
           callbacks.undefined_behavior(coordinator, ube);

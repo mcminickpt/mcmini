@@ -148,6 +148,7 @@ void mc_template_thread_loop_forever(void) {
     //     // only receive signal/exit events
     //   }
     // }
+    wait(NULL);
     log_debug("Waiting for `mcmini` to signal a fork");
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
@@ -167,7 +168,7 @@ void mc_template_thread_loop_forever(void) {
       return;
     }
     // `libmcmini.so` acting as a template process.
-    printf("The template process created child with pid %d\n", cpid);
+    log_debug("The template process created child with pid %d\n", cpid);
     tpt->cpid = cpid;
     libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
@@ -260,7 +261,7 @@ static void *template_thread(void *unused) {
   // Phase 3. Once in a stable state, check if `mcmini` needs to construct
   // a model of what we've recorded.
   if (getenv("MCMINI_NEEDS_STATE")) {
-    printf("The template thread is finished... restarting...\n");
+    log_debug("The template thread is transferring state");
 
     // FIXME: There appears to be an issue with opening the FIFO
     // here. If it already exists most likely it should be replaced,
@@ -336,7 +337,7 @@ static void *template_thread(void *unused) {
   //
   // NOTE: This is true for both repeated `dmtcp_restart` AND for multithreaded
   // forking.
-  printf("The template thread has completed: exiting...\n");
+  log_debug("The template thread has completed: exiting...");
   return NULL;
 }
 static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {

@@ -124,12 +124,19 @@ class transition {
   bool is_enabled_in(const state& s) const {
     return apply_to(s).second == status::exists;
   }
-  // removed constexpr because it is calling a non-constexpr function 
-  // and that was causing an error.
-  bool is_disabled_in(const state& s) const {
-    return !is_enabled_in(s);
-  }
-  
+  bool is_disabled_in(const state& s) const { return !is_enabled_in(s); }
+
+  /// @return The exit code of the program should this transition be executed,
+  /// or `-1` if the program would not exit with the execution of this
+  /// transition.
+  virtual int program_exit_code() const { return -1; }
+
+  /// @brief Whether the transition, if executed, would cause the program to
+  /// exit abnormally if executed
+  ///
+  /// A transition that causes a program to abnormally abort execution is one
+  /// with the equivalent semantics to calling `abort(2)`. For example
+  virtual bool aborts_program_execution() const { return false; }
 
   /**
    * @brief Fire the transition as if it were run from state _state_.

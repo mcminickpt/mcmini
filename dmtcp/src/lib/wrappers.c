@@ -326,18 +326,98 @@ void mc_exit_main_thread_in_child(void) {
 }
 
 MCMINI_NO_RETURN void mc_transparent_exit(int status) {
-  volatile runner_mailbox *mb = thread_get_mailbox();
-  mb->type = PROCESS_EXIT_TYPE;
-  memcpy_v(mb->cnts, &status, sizeof(status));
-  thread_wake_scheduler_and_wait();
-  libc_exit(status);
+  // No checkpoints within the true scope. Since we want to perform
+  // the true `exit(2)` call even in the case of recording,
+  // we need to ensure that a restarted process can't initiate
+  // a checkpoint in the call to `libc_exit()`; otherwise the
+  // checkpoint image would be "permanently" bad and always exit
+  // before we have a chance to restore it and explore the (short)
+  // branch leading to the exit. The same logic applies for `abort(2)`
+  dmtcp_disable_ckpt();
+
+  switch (get_current_mode()) {
+    case RECORD:
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD:
+    case PRE_CHECKPOINT: {
+      libc_exit(status);
+    }
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
+      dmtcp_enable_ckpt();
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = PROCESS_EXIT_TYPE;
+      memcpy_v(mb->cnts, &status, sizeof(status));
+      thread_handle_after_dmtcp_restart();
+
+      // Fallthrough
+
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
+      dmtcp_enable_ckpt();
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = PROCESS_EXIT_TYPE;
+      memcpy_v(mb->cnts, &status, sizeof(status));
+      thread_await_scheduler();
+
+      // After "exiting", don't actually exit yet:
+      // the model checker will prevent the process
+      // from continuing execution and will note this
+      // branch as "useless" since at this point
+      mb->type = PROCESS_EXIT_TYPE;
+      memcpy_v(mb->cnts, &status, sizeof(status));
+      thread_await_scheduler();
+    }
+    default: {
+      libc_exit(status);
+    }
+  }
 }
 
 MCMINI_NO_RETURN void mc_transparent_abort(void) {
-  volatile runner_mailbox *mb = thread_get_mailbox();
-  mb->type = PROCESS_ABORT_TYPE;
-  thread_wake_scheduler_and_wait();
-  libc_abort();
+  // No checkpoints within the true scope. Since we want to perform
+  // the true `abort(2)` call even in the case of recording,
+  // we need to ensure that a restarted process can't initiate
+  // a checkpoint in the call to `libc_exit()`; otherwise the
+  // checkpoint image would be "permanently" bad and always exit
+  // before we have a chance to restore it and explore the (short)
+  // branch leading to the exit. The same logic applies for `abort(2)`
+  // dmtcp_disable_ckpt();
+
+  switch (get_current_mode()) {
+    case RECORD:
+    case PRE_DMTCP_INIT:
+    case PRE_CHECKPOINT_THREAD:
+    case PRE_CHECKPOINT: {
+      libc_abort();
+    }
+    case DMTCP_RESTART_INTO_BRANCH:
+    case DMTCP_RESTART_INTO_TEMPLATE: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = PROCESS_ABORT_TYPE;
+      thread_handle_after_dmtcp_restart();
+
+      // Explicit fallthrough
+    }
+    case TARGET_BRANCH:
+    case TARGET_BRANCH_AFTER_RESTART: {
+      volatile runner_mailbox *mb = thread_get_mailbox();
+      mb->type = PROCESS_ABORT_TYPE;
+      thread_wake_scheduler_and_wait();
+
+      // After "aborting", don't actually abort yet:
+      // the model checker will prevent the process
+      // from continuing execution and will note this
+      // branch as "useless" since at this point
+      mb->type = PROCESS_ABORT_TYPE;
+      thread_await_scheduler();
+      libc_abort();
+    }
+    default: {
+      libc_abort();
+    }
+  }
 }
 
 struct mc_thread_routine_arg {

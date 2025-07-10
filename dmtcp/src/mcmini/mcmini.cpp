@@ -277,6 +277,7 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   c.trace_completed = &finished_trace_classic_dpor;
   c.undefined_behavior = &found_undefined_behavior;
   c.deadlock = &found_deadlock;
+  c.abnormal_termination = &found_abnormal_termination;
   classic_dpor_checker.verify_using(coordinator, c);
   std::cerr << "Deep debugging completed!" << std::endl;
 }

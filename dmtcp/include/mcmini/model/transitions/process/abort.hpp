@@ -13,8 +13,10 @@ struct process_abort : public model::transition {
   status modify(model::mutable_state& s) const override {
     // We ensure that aborting is never enabled. This ensures that it will never
     // be explored by any model checking algorithm
-    return status::disabled;
+    return status::exists;
   }
+
+  bool aborts_program_execution() const override { return true; }
 
   std::string to_string() const override { return "abort(2) (syscall)"; }
 };

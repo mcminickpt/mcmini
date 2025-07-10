@@ -18,6 +18,7 @@
 #include "mcmini/spy/intercept/interception.h"
 
 void mc_prepare_new_child_process(pid_t ppid_before_fork, pid_t model_checker_pid) {
+  log_debug("The branch process is preparing");
   // IMPORTANT: If the THREAD in the template process ever exits, this will
   // prove problematic as it is when the THREAD which called `fork()` exits that
   // the signal will be delivered to this process (and not when the process as a
@@ -31,17 +32,17 @@ void mc_prepare_new_child_process(pid_t ppid_before_fork, pid_t model_checker_pi
   // SEGFAULTs, and other unexpected errors during execution, we
   // make the branch process a direct child of the McMini process (i.e.
   // the process containing the model checker).
-  if (prctl(PR_SET_CHILD_SUBREAPER, model_checker_pid) == -1) {
-    perror("prctl");
-    libc_abort();
-  }
+  // if (prctl(PR_SET_CHILD_SUBREAPER, model_checker_pid) == -1) {
+  //   perror("prctl");
+  //   libc_abort();
+  // }
 
   // HANDLE RACE CONDITION! It's possible that the parent exited BEFORE the call
   // to `prctl()` above. To test if this is the case, we check whether the
   // current parent process id differs from the process id of the parent which
   // fork()-ed this process. If they don't match, we know that the parent exited
   // before prctl()
-  if (dmtcp_real_to_virtual_pid(getppid()) != ppid_before_fork) mc_exit(EXIT_FAILURE);
+  if (dmtcp_virtual_to_real_pid(getppid()) != ppid_before_fork) mc_exit(EXIT_FAILURE);
 
   // This is important to handle the case when the
   // main thread exits `in main()`; in that case, we
