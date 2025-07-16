@@ -33,6 +33,9 @@ int main(int argc, char *argv[]) {
   int NUM_THREADS = 3;
   DEBUG = 1;
 
+  sleep(10);
+  abort();
+
   pthread_t thread[NUM_THREADS];
   pthread_mutex_t mutex_resource[NUM_THREADS];
 

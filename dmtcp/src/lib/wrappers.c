@@ -333,7 +333,6 @@ MCMINI_NO_RETURN void mc_transparent_exit(int status) {
   // checkpoint image would be "permanently" bad and always exit
   // before we have a chance to restore it and explore the (short)
   // branch leading to the exit. The same logic applies for `abort(2)`
-  dmtcp_disable_ckpt();
 
   switch (get_current_mode()) {
     case RECORD:
@@ -344,18 +343,15 @@ MCMINI_NO_RETURN void mc_transparent_exit(int status) {
     }
     case DMTCP_RESTART_INTO_BRANCH:
     case DMTCP_RESTART_INTO_TEMPLATE: {
-      dmtcp_enable_ckpt();
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = PROCESS_EXIT_TYPE;
       memcpy_v(mb->cnts, &status, sizeof(status));
       thread_handle_after_dmtcp_restart();
 
       // Fallthrough
-
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
-      dmtcp_enable_ckpt();
       volatile runner_mailbox *mb = thread_get_mailbox();
       mb->type = PROCESS_EXIT_TYPE;
       memcpy_v(mb->cnts, &status, sizeof(status));

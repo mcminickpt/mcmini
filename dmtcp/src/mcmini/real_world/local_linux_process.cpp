@@ -38,7 +38,7 @@ void install_sigchld_signal_handler() {
 
 local_linux_process::local_linux_process(pid_t pid, bool should_wait)
     : pid(pid), should_wait(should_wait) {
-  std::call_once(init_sigchld_handler, &install_sigchld_signal_handler);
+  // std::call_once(init_sigchld_handler, &install_sigchld_signal_handler);
 }
 
 local_linux_process::local_linux_process(local_linux_process &&other)

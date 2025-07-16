@@ -92,6 +92,10 @@ void thread_handle_after_dmtcp_restart(void) {
   thread_await_scheduler();
 }
 
+// INVARIANT: The template process is assumed always to be a
+// direct child of the McMini process. This isn't the case
+// e.g. if the checkpoint is restarted _directly_ using
+// `dmtcp_restart`
 void mc_template_thread_loop_forever(void) {
   bool has_transferred_state = false;
 
@@ -101,65 +105,13 @@ void mc_template_thread_loop_forever(void) {
   const pid_t ppid_before_fork = dmtcp_virtual_to_real_pid(getpid());
 
   while (1) {
-    // // This `wait()` call is important here, as it ensures that there
-    // // exists only a single branch alive at any given time. If multiple
-    // // branches were alive at once, they would contend for the shared
-    // // memory and cause data races. By transitivity, the McMini process
-    // // also waits until the previous branch has completed its execution
-    // // by waiting on the template
-    // int status;
-    // if (wait(&status) == -1) {
-    //   switch (errno) {
-    //     case EINTR: {
-    //       // The child process sent a SIGCHLD in the middle
-    //       // of the `wait()`. Retry the wait
-    //       log_debug("SIGCHLD interrupted the `wait(2)` call: retrying");
-    //       continue; // Continues `while`-loop which triggers another `wait` call
-    //     }
-    //     case ECHILD: {
-    //       log_debug("No child process currently exists. Ignoring `wait(2)`");
-    //       break;
-    //     }
-    //     default: {
-    //       // Unreachable
-    //       libc_abort();
-    //     }
-    //   }
-    // }
-    // else {
-    //   if (WIFEXITED(status)) {
-    //     const int exit_code = WEXITSTATUS(status);
-    //     if (exit_code != 0) {
-    //       // Error: Let the McMini process know that the
-    //       // branch process exited unexpectedly.
-    //     }
-    //   }
-    //   else if (WIFSIGNALED(status)) {
-    //     const int signo = WTERMSIG(status);
-    //     if (is_bad_signal(signo)) {
-    //       // Error: Let the McMini process know that the
-    //       // branch process exited unexpectedly.
-    //       kill(, SIGUSR1);
-    //       dmtcp_virtual_to_real_pid(getppid());
-    //     }
-    //   }
-    //   else {
-    //     // No stopping should be signalled to McMini: we should
-    //     // only receive signal/exit events
-    //   }
-    // }
-    wait(NULL);
     log_debug("Waiting for `mcmini` to signal a fork");
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
-
-    // The template process is assumed always to be a
-    // direct child of the McMini process. This isn't the case
-    // e.g. if the checkpoint is restarted _directly_ using
-    // `dmtcp_restart`
     const pid_t cpid = multithreaded_fork();
     if (cpid == -1) {
-      // `fork()` failed
+      // `multithreaded_fork()` failed
+      log_debug("The template process failed to create a new child%d\n");
       tpt->err = errno;
       tpt->cpid = TEMPLATE_FORK_FAILED;
     } else if (cpid == 0) {
@@ -167,8 +119,10 @@ void mc_template_thread_loop_forever(void) {
       mc_prepare_new_child_process(ppid_before_fork, model_checker_pid);
       return;
     }
-    // `libmcmini.so` acting as a template process.
-    log_debug("The template process created child with pid %d\n", cpid);
+    else {
+      // Successful parent case
+      log_debug("The template process created child with pid %d\n", cpid);
+    }
     tpt->cpid = cpid;
     libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
