@@ -4,6 +4,7 @@
 
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/model/visible_object_state.hpp"
+#include "mcmini/spy/checkpointing/objects.h"
 
 namespace model {
 namespace objects {
@@ -20,7 +21,19 @@ struct thread : public model::runner_state {
   thread() = default;
   ~thread() = default;
   thread(const thread &) = default;
-  thread(state state) : current_state(state) {}
+  thread(state s) : current_state(s) {}
+  thread(thread_status s) {
+    switch (s) {
+      case ALIVE: {
+        this->current_state = state::running;
+        break;
+      }
+      case EXITED: {
+        this->current_state = state::exited;
+        break;
+      }
+    }
+  }
   // ---- State Observation --- //
   bool operator==(const thread &other) const {
     return this->current_state == other.current_state;

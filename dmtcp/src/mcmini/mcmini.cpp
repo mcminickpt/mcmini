@@ -7,6 +7,7 @@
 #include "mcmini/model/objects/mutex.hpp"
 #include "mcmini/model/objects/semaphore.hpp"
 #include "mcmini/model/objects/thread.hpp"
+#include "mcmini/model/transitions/thread/thread_exit.hpp"
 #include "mcmini/model_checking/algorithm.hpp"
 #include "mcmini/model_checking/algorithms/classic_dpor.hpp"
 #include "mcmini/real_world/fifo.hpp"
@@ -98,8 +99,7 @@ runner_state* translate_recorded_runner_to_model(
     const ::visible_object& recorded_object) {
   switch (recorded_object.type) {
     case THREAD: {
-      return new objects::thread(static_cast<objects::thread::state>(
-          recorded_object.thrd_state.status));
+      return new objects::thread(recorded_object.thrd_state.status);
     }
     default: {
       std::abort();
@@ -133,7 +133,8 @@ void found_undefined_behavior(const coordinator& c,
 
 void found_abnormal_termination(
     const coordinator& c, const real_world::process::termination_error& ub) {
-  std::cerr << "Abnormally Termination (signo:" << ub.signo << "):\n"
+  std::cerr << "Abnormally Termination (signo: " << ub.signo
+            << ", signal: " << sig_to_str.at(ub.signo) << "):\n"
             << ub.what() << std::endl;
   finished_trace_classic_dpor(c);
 }
@@ -240,16 +241,28 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
       // of "during the RECORD phase of `libmcmini.so`") the next transition
       // it would have run had McMini not just now intervened.
       runner_id_t recorded_id = recorded_thread.thrd_state.id;
-      volatile runner_mailbox* mb = &rw_region->mailboxes[recorded_id];
-      transition_registry::transition_discovery_callback callback =
-          tr.get_callback_for(mb->type);
-      if (!callback) {
-        throw std::runtime_error("Expected a callback for " +
-                                 std::to_string(mb->type));
+      const transition* next_transition = nullptr;
+
+      switch (recorded_thread.thrd_state.status) {
+        case ALIVE: {
+          volatile runner_mailbox* mb = &rw_region->mailboxes[recorded_id];
+          transition_registry::transition_discovery_callback callback =
+              tr.get_callback_for(mb->type);
+          if (!callback) {
+            throw std::runtime_error("Expected a callback for " +
+                                     std::to_string(mb->type));
+          }
+          next_transition = callback(recorded_id, *mb, recorder);
+          break;
+        }
+        case EXITED: {
+          next_transition = new transitions::thread_exit(recorded_id);
+        }
       }
+
       const size_t num_objects_before =
           coordinator.get_current_program_model().get_state_sequence().count();
-      recorder.observe_runner_transition(callback(recorded_id, *mb, recorder));
+      recorder.observe_runner_transition(next_transition);
       const size_t num_objects_after =
           coordinator.get_current_program_model().get_state_sequence().count();
 
@@ -264,7 +277,11 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
       // hence was not sent to the McMini proces by `libmcmini.so`.
       //
       // In short, this ensures that recording worked as expected.
-      assert(num_objects_before == num_objects_after);
+      if (num_objects_before != num_objects_after) {
+        throw std::runtime_error(
+            "A callback inserted an object into the model, but all objects "
+            "should have been available to it during record.");
+      }
     }
   }
 

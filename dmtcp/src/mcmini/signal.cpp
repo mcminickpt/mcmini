@@ -15,11 +15,21 @@
 #include <unordered_map>
 
 const std::unordered_map<signo_t, const char *> sig_to_str = {
-    {SIGINT, "SIGINT"},
-    {SIGCHLD, "SIGCHLD"},
-    {SIGKILL, "SIGKILL"},
-    {SIGUSR1, "SIGUSR1"},
-    {SIGUSR2, "SIGUSR2"}};
+    {SIGHUP, "SIGHUP"},       {SIGINT, "SIGINT"},       {SIGQUIT, "SIGQUIT"},
+    {SIGILL, "SIGILL"},       {SIGTRAP, "SIGTRAP"},     {SIGABRT, "SIGABRT"},
+    {SIGBUS, "SIGBUS"},       {SIGFPE, "SIGFPE"},       {SIGKILL, "SIGKILL"},
+    {SIGUSR1, "SIGUSR1"},     {SIGSEGV, "SIGSEGV"},     {SIGUSR2, "SIGUSR2"},
+    {SIGPIPE, "SIGPIPE"},     {SIGALRM, "SIGALRM"},     {SIGTERM, "SIGTERM"},
+    {SIGSTKFLT, "SIGSTKFLT"}, {SIGCHLD, "SIGCHLD"},     {SIGCONT, "SIGCONT"},
+    {SIGSTOP, "SIGSTOP"},     {SIGTSTP, "SIGTSTP"},     {SIGTTIN, "SIGTTIN"},
+    {SIGTTOU, "SIGTTOU"},     {SIGURG, "SIGURG"},       {SIGXCPU, "SIGXCPU"},
+    {SIGXFSZ, "SIGXFSZ"},     {SIGVTALRM, "SIGVTALRM"}, {SIGPROF, "SIGPROF"},
+    {SIGWINCH, "SIGWINCH"},   {SIGIO, "SIGIO"},
+#ifdef SIGPOLL
+    {SIGPOLL, "SIGPOLL"},
+#endif
+    {SIGPWR, "SIGPWR"},       {SIGSYS, "SIGSYS"},
+};
 
 void signal_tracker_sig_handler(int sig, siginfo_t *, void *) {
   signal_tracker::instance().set_signal(sig);
