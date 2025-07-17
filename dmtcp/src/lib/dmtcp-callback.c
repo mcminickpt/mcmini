@@ -105,6 +105,12 @@ void mc_template_thread_loop_forever(void) {
   const pid_t ppid_before_fork = dmtcp_virtual_to_real_pid(getpid());
 
   while (1) {
+    // RATIONALE for `wait(2)` call: wait for the child process
+    // to be fully terminated by the McMini process before creating
+    // a new one. If two branches are alive at once, their threads will
+    // contend for the same shared memory mailboxes and cause all sorts
+    // of issues.
+    wait(NULL);
     log_debug("Waiting for `mcmini` to signal a fork");
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
