@@ -36,7 +36,7 @@ volatile runner_mailbox *thread_get_mailbox() {
 }
 
 void thread_wake_scheduler_and_wait(void) {
-  fprintf(stdout, "thread_wake_scheduler_and_wait\n");
+  log_verbose("thread_wake_scheduler_and_wait\n");
   fflush(stdout);
   assert(tid_self != RID_INVALID);
   volatile runner_mailbox *thread_mailbox = thread_get_mailbox();
@@ -407,7 +407,7 @@ MCMINI_NO_RETURN void mc_transparent_abort(void) {
       // from continuing execution and will note this
       // branch as "useless" since at this point
       mb->type = PROCESS_ABORT_TYPE;
-      thread_await_scheduler();
+      thread_wake_scheduler_and_wait();
       libc_abort();
     }
     default: {
