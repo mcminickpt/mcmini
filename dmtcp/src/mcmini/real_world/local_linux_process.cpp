@@ -16,30 +16,8 @@
 
 using namespace real_world;
 
-std::once_flag local_linux_process::init_sigchld_handler;
-static volatile sig_atomic_t sigchld_set;
-static volatile runner_mailbox *current_mailbox = nullptr;
-
-void sigchld_signal_handler(int signo, siginfo_t *, void *) {
-  sigchld_set = 1;
-  if (current_mailbox) {
-    // Uses `sem_post(3)` which is async-signal-safe
-    // and no lost wakeups from a thread in the branch process
-    // which causes the branch to terminate
-    mc_wake_scheduler(current_mailbox);
-  }
-}
-
-void install_sigchld_signal_handler() {
-  struct sigaction action = {0};
-  action.sa_sigaction = sigchld_signal_handler;
-  sigaction(SIGCHLD, &action, nullptr);
-}
-
 local_linux_process::local_linux_process(pid_t pid, bool should_wait)
-    : pid(pid), should_wait(should_wait) {
-  // std::call_once(init_sigchld_handler, &install_sigchld_signal_handler);
-}
+    : pid(pid), should_wait(should_wait) {}
 
 local_linux_process::local_linux_process(local_linux_process &&other)
     : local_linux_process(other.pid) {
@@ -63,9 +41,14 @@ local_linux_process::~local_linux_process() {
   }
   int status;
   if (should_wait) {
-    if (waitpid(pid, &status, 0) == -1)
-      std::cerr << "Error waiting for process (waitpid) `" << pid
-                << "`: " << strerror(errno);
+    if (waitpid(pid, &status, 0) == -1) {
+      if (errno != ECHILD) {
+        std::cerr << "Error waiting for process (waitpid) `" << pid
+                  << "`: " << strerror(errno) << std::endl;
+      } else {
+        std::cerr << "Error: " << strerror(errno) << std::endl;
+      }
+    }
   }
 }
 
@@ -75,7 +58,7 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   volatile runner_mailbox *rmb =
       &(shm_slice->as_array_of<mcmini_shm_file>()->mailboxes[id]);
 
-  current_mailbox = rmb;
+  signal_tracker::set_sem((sem_t *)&rmb->model_side_sem);
 
   // NOTE: At the moment, each process has the entire view of the
   // shared memory region at its disposal. If desired, an extra layer could be
@@ -97,36 +80,36 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   // unexpectedly. Because we don't expect the template process to die, this is
   // OK for now, but should be handled in the future.
   errno = 0;
-  int rc = mc_wait_for_thread(rmb);
-  while (rc != 0 && errno == EINTR) {
-    rc = mc_wait_for_thread(rmb);
-  }
-  if (sigchld_set) {
-    sigchld_set = 0;
-    current_mailbox = nullptr;
+  signal_tracker::sig_semwait((sem_t *)&rmb->model_side_sem);
+  if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
+    throw process::termination_error(SIGTERM, "Process terminated abnormally.");
+    // // TODO: Double check that this
+    // // is the correct process that sent
+    // // the SIGCHILD using WNOHANG.
 
-    // `PR_SET_CHILD_SUBREAPER` enables us to wait on
-    // this grandchild.
-    int status;
-    int rc = waitpid(this->pid, &status, 0);
-    if (rc == -1) {
-      throw process::execution_error(
-          "Error attempting to determine the failure causing the child process "
-          "to abnormally exit.");
-    } else {
-      if (WIFEXITED(status)) {
-        int exit_code = WEXITSTATUS(status);
-        throw process::nonzero_exit_code_error(
-            exit_code, "Process terminated with a non-zero exit code.");
-      } else if (WIFSIGNALED(status)) {
-        int signo = WTERMSIG(status);
-        throw process::termination_error(signo,
-                                         "Process terminated abnormally.");
-      } else {
-        throw process::execution_error(
-            "SIGSTOP/SIGCONT in branch processes is not yet supported.");
-      }
-    }
+    // // `PR_SET_CHILD_SUBREAPER` enables us to wait on
+    // // this grandchild.
+    // int status;
+    // int rc = waitpid(this->pid, &status, 0);
+    // if (rc == -1) {
+    //   throw process::execution_error(
+    //       "Error attempting to determine the failure causing the child
+    //       process " "to abnormally exit (or possibly an internal error of
+    //       McMini)." + std::string(strerror(errno)));
+    // } else {
+    //   if (WIFEXITED(status)) {
+    //     int exit_code = WEXITSTATUS(status);
+    //     throw process::nonzero_exit_code_error(
+    //         exit_code, "Process terminated with a non-zero exit code.");
+    //   } else if (WIFSIGNALED(status)) {
+    //     int signo = WTERMSIG(status);
+    //     throw process::termination_error(signo,
+    //                                      "Process terminated abnormally.");
+    //   } else {
+    //     throw process::execution_error(
+    //         "SIGSTOP/SIGCONT in branch processes is not yet supported.");
+    //   }
+    // }
   }
   return rmb;
 }

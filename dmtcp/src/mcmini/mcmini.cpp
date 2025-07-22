@@ -334,10 +334,9 @@ std::string find_first_ckpt_file_in_cwd() {
       // Check if the entry is a regular file and has the .foo extension
       if (entry->d_type == DT_REG) {  // DT_REG indicates a regular file
         std::string filename(entry->d_name);
-        std::cout << filename << std::endl;
         if (filename.size() >= 6 &&
             filename.substr(filename.size() - 6) == ".dmtcp") {
-          std::cout << "Found file: " << filename << std::endl;
+          std::cout << "Found checkpoint file: " << filename << std::endl;
           closedir(dir);
           return filename;
         }
@@ -459,7 +458,8 @@ int main_cpp(int argc, const char** argv) {
     }
   }
 
-  install_process_wide_signal_handlers();
+  target::prepare_mcmini_targets();
+  signal_tracker::install_process_wide_signal_handlers();
   if (mcmini_config.record_target_executable_only) {
     do_recording(mcmini_config);
   } else if (mcmini_config.checkpoint_file != "") {
@@ -472,14 +472,13 @@ int main_cpp(int argc, const char** argv) {
 }
 
 int main(int argc, const char** argv) {
-  return main_cpp(argc, argv);
-  // try {
-  //   return main_cpp(argc, argv);
-  // } catch (const std::exception& e) {
-  //   std::cerr << "ERROR: " << e.what() << std::endl;
-  //   return EXIT_FAILURE;
-  // } catch (...) {
-  //   std::cerr << "ERROR: Unknown error occurred" << std::endl;
-  //   return EXIT_FAILURE;
-  // }
+  try {
+    return main_cpp(argc, argv);
+  } catch (const std::exception& e) {
+    std::cerr << "ERROR: " << e.what() << std::endl;
+    return EXIT_FAILURE;
+  } catch (...) {
+    std::cerr << "ERROR: Unknown error occurred" << std::endl;
+    return EXIT_FAILURE;
+  }
 }

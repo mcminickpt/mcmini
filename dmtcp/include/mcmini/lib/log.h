@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#define MCMINI_LOG_MINIMUM_LEVEL (MCMINI_LOG_VERBOSE)
+#define MCMINI_LOG_MINIMUM_LEVEL (MCMINI_LOG_DEBUG)
 
 enum log_level {
   MCMINI_LOG_VERBOSE,
@@ -16,7 +16,7 @@ enum log_level {
   MCMINI_LOG_DISABLE
 };
 
-#define RELATIVE_PATH(file) (file + sizeof(LOGGING_ROOT) - 1)
+#define RELATIVE_PATH(file) ((char*)(file) + (sizeof(LOGGING_ROOT) - 1))
 #define __RELATIVE_FILE__ RELATIVE_PATH(__FILE__)
 
 #define log_verbose(...) \

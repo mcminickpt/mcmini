@@ -4,8 +4,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-#include <mutex>
-
 #include "mcmini/real_world/process.hpp"
 #include "mcmini/real_world/shm.hpp"
 
@@ -24,7 +22,6 @@ class local_linux_process : public process {
  private:
   pid_t pid;
   bool should_wait; /* Whether `wait(3)` should be called on destruction */
-  static std::once_flag init_sigchld_handler;
 
  public:
   pid_t get_pid() const override { return pid; }

@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <sys/time.h>
+#include "dmtcp.h"
 
 static int global_log_level = MCMINI_LOG_MINIMUM_LEVEL;
 static const char *log_level_strs[] = {
@@ -48,7 +49,7 @@ void mcmini_log(int level, const char *file, int line, const char *fmt, ...) {
   buf[strftime(buf, sizeof(buf), "%H:%M:%S", rc.time)] = '\0';
   fprintf(
     rc.target,
-    "[%u] %s %-5s %s:%d: ", getpid(),
+    "[%u] %s %-5s %s:%d: ", dmtcp_virtual_to_real_pid(getpid()),
     buf, log_level_strs[rc.level], rc.file, rc.line
   );
   vfprintf(rc.target, rc.format, rc.var_args);

@@ -51,6 +51,7 @@ int sem_destroy(sem_t *);
 int libpthread_sem_init(sem_t*, int, int);
 int libpthread_sem_post(sem_t*);
 int libpthread_sem_wait(sem_t*);
+int libpthread_sem_wait_loop(sem_t*);
 int libpthread_sem_destroy(sem_t *);
 int libpthread_sem_timedwait(sem_t*, struct timespec *);
 

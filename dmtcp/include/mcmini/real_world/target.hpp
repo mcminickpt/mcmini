@@ -12,6 +12,8 @@ namespace real_world {
 
 struct target {
  protected:
+  bool quiet = false;
+
   // The name of the program which we should exec() into with libmcmini.so
   // preloaded.
   // NOTE: Favor std::filesystem::path if C++17 is eventually supported
@@ -30,6 +32,7 @@ struct target {
 
  public:
   target() = default;
+  static void prepare_mcmini_targets();
   explicit target(const std::string &target_program)
       : target(target_program, std::vector<std::string>()) {}
 
@@ -39,6 +42,11 @@ struct target {
         target_program_args(target_program_args) {}
 
   const std::string &name() const { return this->target_program; }
+  std::string invocation() const {
+    std::string invocation = this->target_program;
+    for (const auto &arg : this->target_program_args) invocation += " " + arg;
+    return invocation;
+  }
 
   // The semantics
   void dont_unset_env(std::string name) {
@@ -70,6 +78,9 @@ struct target {
              dirname(target_program_mutable_name.data()));
     this->set_env("LD_PRELOAD", buf);
   }
+
+  /// @brief Whether `stdout` and `stderr` should be closed on fork()
+  void set_quiet(bool be_quiet) { this->quiet = be_quiet; }
 
   /// @brief A convenience method for setting the `MCMINI_TEMPLATE_LOOP`
   /// environment variable for the child process

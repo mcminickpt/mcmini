@@ -81,7 +81,8 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
     this->template_process_handle = nullptr;
     throw process_source::process_creation_exception(
-        "Failed to create a new process (template process died)");
+        "Failed to create a new process (template process died). Consider "
+        "using a previous checkpoint image");
   }
 
   // 3. If the current template process is alive, tell it to spawn a new
@@ -90,6 +91,7 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
   const volatile template_process_t* tstruct =
       &(rw_region->as<mcmini_shm_file>()->tpt);
 
+  signal_tracker::set_sem((sem_t*)&tstruct->mcmini_process_sem);
   if (sem_post((sem_t*)&tstruct->libmcmini_sem) != 0) {
     throw process_source::process_creation_exception(
         "The template process (" +
@@ -97,13 +99,27 @@ std::unique_ptr<process> fork_process_source::make_new_process() {
         ") was not synchronized with correctly: " +
         std::string(strerror(errno)));
   }
-
-  if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
+  int rc = signal_tracker::sig_semwait((sem_t*)&tstruct->mcmini_process_sem);
+  if (rc != 0) {
     throw process_source::process_creation_exception(
         "The template process (" +
         std::to_string(this->template_process_handle->get_pid()) +
         ") was not synchronized with correctly: " +
         std::string(strerror(errno)));
+  }
+
+  if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
+    // TODO: At this point, McMini may have multiple child processes.
+    // Calling `prctl(PR_SETSUBREAPER)` in the branch processes means
+    // that McMini receives a `SIGCHLD` when both the branch process and the
+    // template process exit unexpectedly. If a `SIGCHLD` is delivered by
+    // _either_ process, we would reach this error branch. To distinguish which
+    // process exited unexpectedly under our feet, we would need to use
+    // `waitpid(-1, &status, WNOHANG)` and check the status for _each_ child.
+    this->template_process_handle = nullptr;
+    throw process_source::process_creation_exception(
+        "Failed to create a new process (template or [possibly the branch] "
+        "process died)");
   }
 
   if (tstruct->cpid == TEMPLATE_FORK_FAILED) {
@@ -126,8 +142,6 @@ void fork_process_source::make_new_template_process() {
 }
 
 void multithreaded_fork_process_source::make_new_template_process() {
-  fork_process_source::make_new_template_process();
-
   // Here we need, in addition, to wait for the template thread
   // to have heard back from all userspace threads before declaing the template
   // process is ready.
@@ -135,7 +149,11 @@ void multithreaded_fork_process_source::make_new_template_process() {
       xpc_resources::get_instance().get_rw_region();
   const volatile template_process_t* tstruct =
       &(rw_region->as<mcmini_shm_file>()->tpt);
-  if (sem_wait((sem_t*)&tstruct->mcmini_process_sem) != 0) {
+
+  signal_tracker::set_sem((sem_t*)&tstruct->mcmini_process_sem);
+  fork_process_source::make_new_template_process();
+  int rc = signal_tracker::sig_semwait((sem_t*)&tstruct->mcmini_process_sem);
+  if (rc != 0) {
     throw process_source::process_creation_exception(
         "The template process (" +
         std::to_string(this->template_process_handle->get_pid()) +

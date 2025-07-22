@@ -6,6 +6,7 @@
 #include <dmtcp.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "mcmini/spy/intercept/wrappers.h"
 
@@ -292,4 +293,11 @@ int libpthread_sem_wait(sem_t *sem) {
 int libpthread_sem_timedwait(sem_t *sem, struct timespec *ts) {
   libmcmini_init();
   return (*sem_timedwait_ptr)(sem, ts);
+}
+int libpthread_sem_wait_loop(sem_t *sem) {
+   // retry on interruption
+  int rc = libpthread_sem_wait(sem);
+  while (rc == -1 && errno == EINTR)
+    rc = libpthread_sem_wait(sem);
+  return rc;
 }

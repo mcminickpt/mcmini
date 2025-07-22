@@ -15,8 +15,21 @@
 #include "mcmini/real_world/dmtcp_target.hpp"
 #include "mcmini/real_world/process/dmtcp_coordinator.hpp"
 #include "mcmini/real_world/process_source.hpp"
+#include "mcmini/signal.hpp"
 
 using namespace real_world;
+
+void target::prepare_mcmini_targets() {
+  // To enable the model checker process to handle assertion failures,
+  // SEGFAULTs, and other unexpected errors during execution, we
+  // make the branch process a direct child of the McMini process (i.e.
+  // the process containing the model checker).
+  //
+  // `PR_SET_CHILD_SUBREAPER` must be set
+  if (prctl(PR_SET_CHILD_SUBREAPER, 1) == -1) {
+    throw std::runtime_error("Failed to set prctl");
+  }
+}
 
 void target::execvp() const {
   // `const_cast<>` is needed to call the C-functions here. A new/delete
@@ -83,12 +96,22 @@ pid_t target::launch_dont_wait() {
     for (const auto &unsetenv_var : this->unsetenv_vars)
       unsetenv(unsetenv_var.c_str());
 
+    if (quiet) {
+      int devnull = open("/dev/null", O_WRONLY);
+      if (devnull >= 0) {
+        dup2(devnull, STDOUT_FILENO);
+        dup2(devnull, STDERR_FILENO);
+        close(devnull);
+      }
+    }
+
     execvp();
 
     // If `execvp()` fails, we signal the error to the parent process by writing
     // into the pipe.
     int err = errno;
     write(pipefd[1], &err, sizeof(err));
+    fsync(pipefd[1]);
     close(pipefd[1]);
 
     // @note: We invoke `quick_exit()` here to ensure that C++ static
@@ -123,7 +146,7 @@ pid_t target::launch_dont_wait() {
       if (waitpid(child_pid, nullptr, 0) == -1) {
         throw process_source::process_creation_exception(
             "Failed to create a cleanup zombied child process (waitpid(2) "
-            "returned -1): " +
+            "returned -1 after fork/exec): " +
             std::string(strerror(errno)));
       }
       throw process_source::process_creation_exception(
@@ -145,12 +168,13 @@ void target::launch_and_wait() {
   pid_t child = launch_dont_wait();
   if (waitpid(child, &status, 0) == -1) {
     throw process::execution_error(
-        "Failed to create a cleanup zombied child process (waitpid(2) "
-        "returned -1): " +
-        std::string(strerror(errno)));
+        "Failed to create a cleanup zombied child process `" +
+        std::to_string(child) +
+        "` (waitpid(2) returned -1): " + std::string(strerror(errno)));
   }
   if (WIFEXITED(status)) {
-    std::cerr << "Exited with status" << WEXITSTATUS(status);
+    std::cerr << "`" << invocation() << "` [" << child
+              << "] exited with status " << WEXITSTATUS(status) << std::endl;
   } else if (WIFSIGNALED(status)) {
     throw process::execution_error(
         "The child process was signaled (received :" +
@@ -158,6 +182,13 @@ void target::launch_and_wait() {
   } else {
     throw process::execution_error("The child process exited abnormally");
   }
+
+  // sigwait...
+
+  // A SIGCHLD was delivered to McMini at this point. To prevent it from being
+  // considered in subsequent launches, consume one of them.
+  signal_tracker::instance().try_consume_signal(SIGCHLD);
+  std::cout << "Consumed the SIGCHLD of " << child << std::endl;
 }
 
 pid_t dmtcp_target::launch_dont_wait() {
@@ -213,20 +244,28 @@ pid_t dmtcp_target::launch_dont_wait() {
 }
 
 dmtcp_coordinator::dmtcp_coordinator()
-    : dmtcp_target("dmtcp_coordinator",
-                   {"--daemon", "--port", "0", "--port-file",
-                    "mcmini_dmtcp_coordinator_port"}) {
+    : dmtcp_target("dmtcp_coordinator", {"--port", "0", "--port-file",
+                                         "mcmini_dmtcp_coordinator_port"}) {
   this->propagate_env_through_dmtcp = false;
+  set_quiet(true);
 }
 
 void dmtcp_coordinator::launch_and_wait() {
-  dmtcp_target::launch_and_wait();
-  // Returning from the call to `fork()` does _NOT_ guarantee
-  // that the forked child process has completed its `execvp()`.
-  // We need to wait for the coordinator to be ready
+  // For the DMTCP coordinator, we DON't need to wait until the process fully
+  // exits. The coordinator is not a daemon: it dies when McMini dies.
   //
-  // TODO: Remove the busy wait here
+  // However, returning from the call to `fork()` does _NOT_ guarantee
+  // that the forked child process has completed its `execvp()`.
+  // We need to wait for the coordinator to be ready before creating a
+  // `dmtcp_restart` child process.
+  //
+  // NOTE: We assume that the `dmtcp_coordinator` is ready once the port file
+  // has been written.
+  dmtcp_target::launch_dont_wait();
+
   std::ifstream dmtcp_coord_port_stream("mcmini_dmtcp_coordinator_port");
+
+  // TODO: Remove the busy wait here
   while (!dmtcp_coord_port_stream.is_open()) {
     usleep(100000);
     dmtcp_coord_port_stream.open("mcmini_dmtcp_coordinator_port");

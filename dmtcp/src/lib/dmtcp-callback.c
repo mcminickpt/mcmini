@@ -24,22 +24,6 @@ static sem_t template_thread_sem;
 static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
 
-bool is_bad_signal(int signo) {
-  switch(signo) {
-    case SIGILL:
-    case SIGABRT:
-    case SIGBUS:
-    case SIGFPE:
-    case SIGKILL:
-    case SIGSEGV:
-    case SIGPIPE:
-    case SIGSYS:
-      return true;
-    default:
-      return false;
-  }
-}
-
 bool is_checkpoint_thread(void) {
   return pthread_equal(pthread_self(), ckpt_pthread_descriptor);
 }
@@ -92,53 +76,7 @@ void thread_handle_after_dmtcp_restart(void) {
   thread_await_scheduler();
 }
 
-// INVARIANT: The template process is assumed always to be a
-// direct child of the McMini process. This isn't the case
-// e.g. if the checkpoint is restarted _directly_ using
-// `dmtcp_restart`
-void mc_template_thread_loop_forever(void) {
-  bool has_transferred_state = false;
-
-  volatile struct mcmini_shm_file *shm_file = global_shm_start;
-  volatile struct template_process_t *tpt = &shm_file->tpt;
-  const pid_t model_checker_pid = dmtcp_virtual_to_real_pid(getppid());
-  const pid_t ppid_before_fork = dmtcp_virtual_to_real_pid(getpid());
-
-  while (1) {
-    // RATIONALE for `wait(2)` call: wait for the child process
-    // to be fully terminated by the McMini process before creating
-    // a new one. If two branches are alive at once, their threads will
-    // contend for the same shared memory mailboxes and cause all sorts
-    // of issues.
-    wait(NULL);
-    log_debug("Waiting for `mcmini` to signal a fork");
-    libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
-    log_debug("`mcmini` signaled a fork!");
-    const pid_t cpid = multithreaded_fork();
-    if (cpid == -1) {
-      // `multithreaded_fork()` failed
-      log_debug("The template process failed to create a new child%d\n");
-      tpt->err = errno;
-      tpt->cpid = TEMPLATE_FORK_FAILED;
-    } else if (cpid == 0) {
-      // Child case: Simply return and escape into the child process.
-      mc_prepare_new_child_process(ppid_before_fork, model_checker_pid);
-      return;
-    }
-    else {
-      // Successful parent case
-      log_debug("The template process created child with pid %d\n", cpid);
-    }
-    tpt->cpid = cpid;
-    libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
-
-    if (!has_transferred_state) {
-      has_transferred_state = true;
-      unsetenv("MCMINI_NEEDS_STATE");
-    }
-  }
-}
-
+void mc_template_thread_loop_forever(void);
 static void *template_thread(void *unused) {
   // Phase 1. The template thread is created at record-time
   // _prior_ to checkpoint. It must not intervene until exclusively
@@ -146,7 +84,7 @@ static void *template_thread(void *unused) {
   //
   // This is accomplished by waiting on a semaphore that is only incremented
   // once the `DMTCP_EVENT_RESTART` is sent to `libmcmini.so`.
-  libpthread_sem_wait(&template_thread_sem);
+  libpthread_sem_wait_loop(&template_thread_sem);
 
   // Phase 2. Wait for all userspace threads to move into a stable state
   //
@@ -155,7 +93,7 @@ static void *template_thread(void *unused) {
   //
   // TODO: Even in the event in which we don't need to transfer the records
   // during the RECORD phase, we still wait for the userspace threads to go into
-  // the "stable" state. This is probably not needed. INdeed, for the
+  // the "stable" state. This is probably not needed. Indeed, for the
   // `DMTCP_RESTART_INTO_BRANCH` case, waiting after each `dmtcp_restart` call
   // to ensure a stable recorded state is pointless: we're not going to read it
   // anyway! This is an only a potential optimization for later though.
@@ -175,17 +113,16 @@ static void *template_thread(void *unused) {
   // We don't want to count the template thread nor
   // the checkpoint thread, but these will appear in
   // `/proc/self/tasks`
-
   thread_count -= 2;
   closedir(dp);
-  printf(
+  log_debug(
       "There are %d threads... waiting for them to get into a consistent "
       "state...\n",
       thread_count);
       for (int i = 0; i < thread_count; i++) {
         libpthread_sem_wait(&dmtcp_restart_sem);
       }
-  printf("The threads are now in a consistent state\n");
+  log_debug("The threads are now in a consistent state\n");
 
   if (get_current_mode() == DMTCP_RESTART_INTO_BRANCH) {
     atexit(&mc_exit_main_thread_in_child);
@@ -243,18 +180,18 @@ static void *template_thread(void *unused) {
     for (rec_list *entry = head_record_mode; entry != NULL;
          entry = entry->next) {
       if (entry->vo.type == MUTEX) {
-        printf("Writing mutex entry %p (state %d)\n", entry->vo.location,
+        log_verbose("Writing mutex entry %p (state %d)\n", entry->vo.location,
                entry->vo.mut_state);
       } else if (entry->vo.type == THREAD) {
-        printf("Writing thread entry %p (id %d, status: %d)\n",
+        log_verbose("Writing thread entry %p (id %d, status: %d)\n",
                (void *)entry->vo.thrd_state.pthread_desc,
                entry->vo.thrd_state.id, entry->vo.thrd_state.status);
       } else if (entry->vo.type == CONDITION_VARIABLE) {
-        printf("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
+        log_verbose("Writing condition variable entry %p (status %d) (count %d) (waiting_queue %p)\n",
                entry->vo.location, entry->vo.cond_state.status, entry->vo.cond_state.waiting_threads->size,
                entry->vo.cond_state.waiting_threads);
       } else if (entry->vo.type == SEMAPHORE) {
-        printf("Writing semaphore entry %p (count %d, status: %d)\n",
+        log_verbose("Writing semaphore entry %p (count %d, status: %d)\n",
                (void *)entry->vo.location,
                entry->vo.sem_state.count, entry->vo.sem_state.status);
       } else {
@@ -300,25 +237,24 @@ static void *template_thread(void *unused) {
   log_debug("The template thread has completed: exiting...");
   return NULL;
 }
-static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
-  while(1);
-}
-static int AddSegvHandler() {
-  struct sigaction act;
-  static struct sigaction old_act;
+// static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
+//   while(1);
+// }
+// static int AddSegvHandler() {
+//   struct sigaction act;
+//   static struct sigaction old_act;
 
-  act.sa_sigaction = &SegvfaultHandler;
-  act.sa_flags = SA_RESTART | SA_SIGINFO;
-  sigemptyset(&act.sa_mask);
-  if (sigaction(SIGSEGV, &act, &old_act)) {
-    perror("Failed to install segv handler");
-    return -1;
-  }
-  return 0;
-}
+//   act.sa_sigaction = &SegvfaultHandler;
+//   act.sa_flags = SA_RESTART | SA_SIGINFO;
+//   sigemptyset(&act.sa_mask);
+//   if (sigaction(SIGSEGV, &act, &old_act)) {
+//     perror("Failed to install segv handler");
+//     return -1;
+//   }
+//   return 0;
+// }
+
 __attribute__((constructor)) void libmcmini_event_late_init() {
-
-  AddSegvHandler();
   if (!dmtcp_is_enabled()) {
     return;
   }
@@ -435,6 +371,31 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       snprintf(shm_name, sizeof(shm_name), "/mcmini-%s-%lu", getenv("USER"), (long)dmtcp_virtual_to_real_pid(getppid()));
       shm_name[sizeof(shm_name) - 1] = '\0';
       mc_allocate_shared_memory_region(shm_name);
+
+      // A target program may install a signal handler for signals such
+      // as SIGSEGV. A common paradigm with such a signal handler is
+      // to block forever to allow a user to attach a debugger to
+      // the process for debugging. However, McMini relies on receiving
+      // the SIGCHLD signal from processes which contain a segfault.
+      // Therefore, on restart, we disable any handlers for SIGSEGV
+      struct sigaction action;
+      action.sa_handler = SIG_DFL;
+      sigemptyset(&action.sa_mask);
+      sigaction(SIGSEGV, &action, NULL);
+
+      // Moreover, to ensure that the template thread is solely
+      // responsible for handling SIGCHLD, by default we block
+      // SIGCHLD. Blocking only in the checkpoint thread and unblocking
+      // in the template thread works because the man page for
+      //`pthread_sigmask(3)` reads:
+      //
+      // """
+      // A new thread inherits a copy of its creator's signal mask.
+      // """
+      sigset_t sigchld;
+      sigemptyset(&sigchld);
+      sigaddset(&sigchld, SIGCHLD);
+      pthread_sigmask(SIG_BLOCK, &sigchld, NULL);
 
       // NOTE: The template thread has been sleeping
       // on `template_thread_sem` during the entire
