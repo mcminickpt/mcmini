@@ -109,6 +109,7 @@ void classic_dpor::verify_using(coordinator &coordinator,
   ///
   /// The initial entry into the stack represents the information DPOR tracks
   /// for state `s_0`.
+  stats model_checking_stats;
   dpor_context context(coordinator);
   auto &dpor_stack = context.stack;
   dpor_stack.emplace_back(
@@ -134,6 +135,7 @@ void classic_dpor::verify_using(coordinator &coordinator,
       try {
         const runner_id_t rid = dpor_stack.back().get_first_enabled_runner();
         this->continue_dpor_by_expanding_trace_with(rid, context);
+        model_checking_stats.total_transitions++;
 
         // Now ask the question: will the next operation of this thread
         // cause the program to exit or abort abnormally?
@@ -146,37 +148,40 @@ void classic_dpor::verify_using(coordinator &coordinator,
             coordinator.get_current_program_model().get_pending_transition_for(
                 rid);
         if (rtransition->aborts_program_execution()) {
-          throw real_world::process::termination_error(SIGABRT,
+          throw real_world::process::termination_error(SIGABRT, rid,
                                                        "The program aborted");
         } else if (rtransition->program_exit_code() > 0) {
           throw real_world::process::nonzero_exit_code_error(
-              rtransition->program_exit_code(),
+              rtransition->program_exit_code(), rid,
               "The program exited abnormally");
         }
       } catch (const model::undefined_behavior_exception &ube) {
         if (callbacks.undefined_behavior)
-          callbacks.undefined_behavior(coordinator, ube);
+          callbacks.undefined_behavior(coordinator, model_checking_stats, ube);
         return;
       } catch (const real_world::process::termination_error &te) {
         if (callbacks.abnormal_termination)
-          callbacks.abnormal_termination(coordinator, te);
+          callbacks.abnormal_termination(coordinator, model_checking_stats, te);
         return;
       } catch (const real_world::process::nonzero_exit_code_error &nzec) {
         if (callbacks.nonzero_exit_code)
-          callbacks.nonzero_exit_code(coordinator, nzec);
+          callbacks.nonzero_exit_code(coordinator, model_checking_stats, nzec);
         return;
       }
     }
-    if (callbacks.trace_completed) callbacks.trace_completed(coordinator);
+
+    if (callbacks.trace_completed)
+      callbacks.trace_completed(coordinator, model_checking_stats);
 
     if (callbacks.deadlock &&
         coordinator.get_current_program_model().is_in_deadlock())
-      callbacks.deadlock(coordinator);
+      callbacks.deadlock(coordinator, model_checking_stats);
 
     // 3. Backtrack phase
     while (!dpor_stack.empty() && dpor_stack.back().backtrack_set_empty())
       dpor_stack.pop_back();
 
+    model_checking_stats.trace_id++;
     if (!dpor_stack.empty()) {
       // At this point, the model checker's data structures are valid for
       // `dpor_stack.size()` states; however, the model and the associated
@@ -192,7 +197,7 @@ void classic_dpor::verify_using(coordinator &coordinator,
             dpor_stack.back().backtrack_set_pop_first(), context);
       } catch (const model::undefined_behavior_exception &ube) {
         if (callbacks.undefined_behavior)
-          callbacks.undefined_behavior(coordinator, ube);
+          callbacks.undefined_behavior(coordinator, model_checking_stats, ube);
         return;
       }
     }

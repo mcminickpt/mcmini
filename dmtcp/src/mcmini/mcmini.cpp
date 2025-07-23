@@ -107,12 +107,10 @@ runner_state* translate_recorded_runner_to_model(
   }
 }
 
-void finished_trace_classic_dpor(const coordinator& c) {
-  static uint32_t trace_id = 1;
-
+void finished_trace_classic_dpor(const coordinator& c, const stats& stats) {
   std::stringstream ss;
   const auto& program_model = c.get_current_program_model();
-  ss << "TRACE " << trace_id << "\n";
+  ss << "TRACE " << stats.trace_id << "\n";
   for (const auto& t : program_model.get_trace()) {
     ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
   }
@@ -122,24 +120,49 @@ void finished_trace_classic_dpor(const coordinator& c) {
   }
   std::cout << ss.str();
   std::cout.flush();
-  trace_id++;
 }
 
-void found_undefined_behavior(const coordinator& c,
+void found_undefined_behavior(const coordinator& c, const stats& stats,
                               const undefined_behavior_exception& ub) {
   std::cerr << "UNDEFINED BEHAVIOR:\n" << ub.what() << std::endl;
-  finished_trace_classic_dpor(c);
+  finished_trace_classic_dpor(c, stats);
 }
 
 void found_abnormal_termination(
-    const coordinator& c, const real_world::process::termination_error& ub) {
+    const coordinator& c, const stats& stats,
+    const real_world::process::termination_error& ub) {
   std::cerr << "Abnormally Termination (signo: " << ub.signo
             << ", signal: " << sig_to_str.at(ub.signo) << "):\n"
             << ub.what() << std::endl;
-  finished_trace_classic_dpor(c);
+
+  std::stringstream ss;
+  const auto& program_model = c.get_current_program_model();
+  ss << "TRACE " << stats.trace_id << "\n";
+  for (const auto& t : program_model.get_trace()) {
+    ss << "thread " << t->get_executor() << ": " << t->to_string() << "\n";
+  }
+  const transition* terminator =
+      program_model.get_pending_transition_for(ub.culprit);
+  ss << "thread " << terminator->get_executor() << ": "
+     << terminator->to_string() << "\n";
+
+  ss << "\nNEXT THREAD OPERATIONS\n";
+  for (const auto& tpair : program_model.get_pending_transitions()) {
+    if (tpair.first == terminator->get_executor()) {
+      ss << "thread " << tpair.first << ": executing"
+         << "\n";
+    } else {
+      ss << "thread " << tpair.first << ": " << tpair.second->to_string()
+         << "\n";
+    }
+  }
+  ss << stats.total_transitions + 1 << " total transitions executed"
+     << "\n";
+  std::cout << ss.str();
+  std::cout.flush();
 }
 
-void found_deadlock(const coordinator& c) {
+void found_deadlock(const coordinator& c, const stats& stats) {
   std::cerr << "DEADLOCK" << std::endl;
   std::stringstream ss;
   const auto& program_model = c.get_current_program_model();
@@ -315,7 +338,6 @@ void do_recording(const config& config) {
   for (const std::string& target_arg : config.target_executable_args)
     dmtcp_launch_args.push_back(target_arg);
   real_world::target target_program("dmtcp_launch", dmtcp_launch_args);
-
   std::cout << "Recording: " << target_program << std::endl;
   target_program.execvp();
 }
@@ -457,7 +479,6 @@ int main_cpp(int argc, const char** argv) {
       cur_arg++;
     }
   }
-
   target::prepare_mcmini_targets();
   signal_tracker::install_process_wide_signal_handlers();
   if (mcmini_config.record_target_executable_only) {

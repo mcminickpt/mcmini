@@ -48,14 +48,18 @@ struct process : public process_handle {
 
   struct termination_error : public std::runtime_error {
     int signo;
-    explicit termination_error(int signo, const std::string &s)
-        : std::runtime_error(s), signo(signo) {}
+    runner_id_t culprit;
+    explicit termination_error(int signo, runner_id_t culprit,
+                               const std::string &s)
+        : std::runtime_error(s), signo(signo), culprit(culprit) {}
   };
 
   struct nonzero_exit_code_error : public std::runtime_error {
     int exit_code;
-    explicit nonzero_exit_code_error(int exit_code, const std::string &s)
-        : std::runtime_error(s), exit_code(exit_code) {}
+    runner_id_t culprit;
+    explicit nonzero_exit_code_error(int exit_code, runner_id_t culprit,
+                                     const std::string &s)
+        : std::runtime_error(s), exit_code(exit_code), culprit(culprit) {}
   };
 
   /**

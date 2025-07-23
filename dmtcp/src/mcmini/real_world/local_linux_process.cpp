@@ -82,7 +82,10 @@ volatile runner_mailbox *local_linux_process::execute_runner(runner_id_t id) {
   errno = 0;
   signal_tracker::sig_semwait((sem_t *)&rmb->model_side_sem);
   if (signal_tracker::instance().try_consume_signal(SIGCHLD)) {
-    throw process::termination_error(SIGTERM, "Process terminated abnormally.");
+    // TODO: Get the true failure status from the template process via
+    // e.g. shared memory.
+    throw process::termination_error(SIGTERM, id,
+                                     "Process terminated abnormally.");
     // // TODO: Double check that this
     // // is the correct process that sent
     // // the SIGCHILD using WNOHANG.

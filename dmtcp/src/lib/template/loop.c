@@ -49,13 +49,19 @@ void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
   // library is unloaded.
   atexit(&mc_exit_main_thread_in_child);
 
-  // TODO: It's not clear if we need to do this or not...
+  // FIXME: Make sure to restore the old signal handler
+  // for SIGCHLD replaced in the template process in favor
+  // of any SIGCHLD handler previously installed.
   //
-  // Remove all signal handlers or the child
-  // struct sigaction action;
-  // action.sa_handler = SegvfaultHandler;
-  // sigemptyset(&action.sa_mask);
-  // sigaction(SIGSEGV, &action, NULL);
+  // This is related to a future optimization in which the
+  // branch process directly signals the McMini process.
+  // The branch process would have to install a custom handler
+  // to handle the case where the branch process aborts
+  // unexpectedly.
+  struct sigaction action;
+  action.sa_handler = SIG_DFL;
+  sigemptyset(&action.sa_mask);
+  sigaction(SIGCHLD, &action, NULL);
 }
 
 void mc_template_process_loop_forever(pid_t (*make_new_process)(void))
@@ -141,6 +147,9 @@ void mc_template_thread_loop_forever(void) {
   // the McMini process delivered a SIGUSR1 while the template were inside its
   // SIGCHLD handler, the McMini process would still receive the (forwarded)
   // SIGCHLD. It's unclear if this would be useful at the time of writing.
+  //
+  // TODO: A future optimization would be to ignore the SIGCHLD altogether in
+  // the template process.
   struct sigaction action = {0};
   sigemptyset(&action.sa_mask);
   action.sa_flags = 0;
