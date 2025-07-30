@@ -28,9 +28,12 @@ set(MCMINI_C_SRC
 )
 set(MCMINI_CPP_SRC
   src/mcmini/mcmini.cpp
+  src/mcmini/constants.cpp
   src/mcmini/signal.cpp
   src/mcmini/visible_object.cpp
   src/mcmini/coordinator/coordinator.cpp
+  src/mcmini/log/filter.cpp
+  src/mcmini/log/logger.cpp
   src/mcmini/model/detached_state.cpp
   src/mcmini/model/diff_state.cpp
   src/mcmini/model/program.cpp
@@ -116,3 +119,4 @@ target_link_libraries(mcmini
     "${MCMINI_EXTRA_LINK_FLAGS}")
 
 add_subdirectory(src/examples)
+add_subdirectory(test)

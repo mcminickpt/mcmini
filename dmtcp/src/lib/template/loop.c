@@ -22,6 +22,8 @@
 #include "mcmini/spy/intercept/interception.h"
 
 void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
+  // int dummy = 1;
+  // while(dummy);
   log_debug("The branch process is preparing");
   fsync(STDOUT_FILENO);
   // IMPORTANT: If the THREAD in the template process ever exits, this will
@@ -90,16 +92,19 @@ void mc_template_process_loop_forever(pid_t (*make_new_process)(void))
 }
 
 #define NO_DEFINED_MCMINI_PID (-1)
+static sem_t sigchld_sem;
 static volatile sig_atomic_t global_model_checker_pid = NO_DEFINED_MCMINI_PID;
 
 void mc_template_receive_sigchld(int sig, siginfo_t *info, void *) {
     assert(global_model_checker_pid != NO_DEFINED_MCMINI_PID);
-
+    printf("signalling!!\n");
+    fsync(STDOUT_FILENO);
     int status;
     bool signal_mcmini = false;
     int rc = waitpid(-1, &status, 0);
     if (rc == -1) {
       // Error with waitpid. Signal McMini?
+      perror("waitpid");
       return;
     }
     if (WIFEXITED(status)) {
@@ -111,10 +116,12 @@ void mc_template_receive_sigchld(int sig, siginfo_t *info, void *) {
       signal_mcmini = is_bad_signal(signo);
     }
     if (signal_mcmini) {
+      printf("signalling McMini!!\n");
       // TODO: Write into shared memory (if safe to do) the status
       // of the child process to get a better read of what happened.
       kill(global_model_checker_pid, SIGCHLD);
     }
+    libpthread_sem_post(&sigchld_sem);
 }
 
 void mc_template_thread_loop_forever(void) {
@@ -124,7 +131,6 @@ void mc_template_thread_loop_forever(void) {
   volatile struct template_process_t *tpt = &shm_file->tpt;
   const pid_t model_checker_pid = dmtcp_virtual_to_real_pid(getppid());
   const pid_t template_pid = dmtcp_virtual_to_real_pid(getpid());
-
   global_model_checker_pid = model_checker_pid;
 
   // Prior to creating new child processes, the template thread
@@ -162,11 +168,25 @@ void mc_template_thread_loop_forever(void) {
   sigaddset(&sigchld, SIGCHLD);
   pthread_sigmask(SIG_UNBLOCK, &sigchld, NULL);
 
+  pid_t last_child = -1;
+
   while (1) {
     log_debug("Waiting for `mcmini` to signal a fork");
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
+
+    if (last_child != -1) {
+      int rc = kill(last_child, 0);
+      if (rc == 0) {
+        fprintf(stderr, "The child `%d` is still alive\n", dmtcp_virtual_to_real_pid(last_child));
+        fflush(stderr);
+        libc_abort();
+      }
+    }
     const pid_t cpid = multithreaded_fork();
+    last_child = cpid;
+
+
     if (cpid == -1) {
       // `multithreaded_fork()` failed
       log_debug("The template process failed to create a new child%d\n");
@@ -180,13 +200,17 @@ void mc_template_thread_loop_forever(void) {
     else {
       // Successful parent case
       log_debug("The template process created child with pid %d\n", cpid);
+      tpt->cpid = cpid;
     }
-    tpt->cpid = cpid;
     libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
     if (!has_transferred_state) {
       has_transferred_state = true;
       unsetenv("MCMINI_NEEDS_STATE");
     }
+
+    log_debug("Waiting for the child `%d` to exit... \n", cpid);
+    libpthread_sem_wait_loop(&sigchld_sem);
+    log_debug("The child exited! Circling back... %d\n", cpid);
   }
 }

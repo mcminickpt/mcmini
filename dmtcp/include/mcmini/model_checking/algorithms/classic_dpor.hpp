@@ -28,6 +28,11 @@ class classic_dpor final : public algorithm {
   }
   static dependency_relation_type default_dependencies();
   static coenabled_relation_type default_coenabledness();
+
+  struct configuration {
+    uint32_t maximum_total_execution_depth = 1500;
+  };
+
   classic_dpor(
       dependency_relation_type dependency_relation = default_dependencies(),
       coenabled_relation_type coenabled_relation = default_coenabledness())

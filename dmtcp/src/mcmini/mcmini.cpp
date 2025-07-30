@@ -322,6 +322,8 @@ void do_model_checking_from_dmtcp_ckpt_file(const config& config) {
   std::cerr << "Deep debugging completed!" << std::endl;
 }
 
+#include "mcmini/log/logger.hpp"
+
 void do_recording(const config& config) {
   char dir[PATH_MAX];
   // FIXME:  This depends on mcmini starting in root dir of git repo.

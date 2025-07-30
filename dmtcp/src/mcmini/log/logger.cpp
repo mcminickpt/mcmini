@@ -1,0 +1,150 @@
+#include "mcmini/log/logger.hpp"
+
+#include <vector>
+
+#include "mcmini/log/log_control.hpp"
+#include "mcmini/log/severity_level.hpp"
+
+using namespace mcmini;
+using namespace log;
+
+static const char *log_level_strs[] = {
+    "NOTHING",    "VERY_VERBOSE", "VERBOSE",  "DEBUG", "INFO",
+    "UNEXPECTED", "ERROR",        "CRITICAL", "ABORT", "EVERYTHING"};
+
+void log_control::allow_everything() {
+  this->set_filter(new permissive_filter());
+}
+
+void log_control::allow_everything_over(severity_level level) {
+  this->set_filter(new severity_filter(level));
+}
+
+void log_control::blacklist(blacklist_filter bl) {
+  this->set_filter(new blacklist_filter(std::move(bl)));
+}
+
+void log_control::set_filter(filter *filt) {
+  RWLock::WriteGuard guard(this->filter_lock);
+  this->active_filter.reset(filt);
+}
+
+void log_control::log_raw(const std::string &message,
+                          const std::string &subsystem,
+                          const severity_level severity, const char *file,
+                          int line) {
+  {
+    RWLock::ReadGuard guard(this->filter_lock);
+    if (active_filter && !active_filter->apply(subsystem, severity)) {
+      return;
+    }
+  }
+
+  tm tm;
+  time_t t = std::time(nullptr);
+  localtime_r(&t, &tm);
+  char buf[100];
+  buf[std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm)] = '\0';
+
+  std::stringstream ss;
+  ss << "[" << constants::getpid() << "] " << subsystem << " " << buf << " "
+     << std::left << std::setw(5)
+     << log_level_strs[static_cast<uint32_t>(severity)] << " " << file << ":"
+     << line << ": ";
+  const std::string prefix = ss.str();
+
+  std::vector<std::string> lines;
+  std::istringstream ss_msg(message);
+  for (std::string line; std::getline(ss_msg, line);) {
+    lines.push_back(line);
+  }
+
+  if (lines.size() > 1) {
+    uint32_t lineno = 0;
+    for (const auto &line : lines)
+      std::clog << prefix << "(lineno: " << lineno++ << ") " << line << "\n";
+  } else if (!lines.empty()) {
+    std::clog << prefix << lines[0] << "\n";
+  }
+}
+
+#include <algorithm>
+#include <cctype>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
+std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+parse_ini_file(const std::string &filename) {
+  std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+      data;
+  std::unordered_map<std::string, std::unordered_map<std::string, int>>
+      keyLineTracker;
+  std::ifstream inFile(filename);
+  if (!inFile) return data;
+  std::string line, currentSection;
+  int lineNumber = 0;
+  while (std::getline(inFile, line)) {
+    ++lineNumber;
+    auto start = line.find_first_not_of(" \t\r\n");
+    if (start == std::string::npos) continue;
+    if (line[start] == ';' || line[start] == '#') continue;
+    if (line[start] == '[') {
+      auto end = line.find(']', start);
+      if (end == std::string::npos) continue;
+      currentSection = line.substr(start + 1, end - start - 1);
+      currentSection.erase(
+          currentSection.begin(),
+          std::find_if(currentSection.begin(), currentSection.end(),
+                       [](int ch) { return !std::isspace(ch); }));
+      currentSection.erase(
+          std::find_if(currentSection.rbegin(), currentSection.rend(),
+                       [](int ch) { return !std::isspace(ch); })
+              .base(),
+          currentSection.end());
+      if (data.find(currentSection) == data.end())
+        data[currentSection] = std::unordered_map<std::string, std::string>();
+      continue;
+    }
+    auto eqPos = line.find('=');
+    if (eqPos == std::string::npos) {
+      std::cerr << "The line `" << lineNumber
+                << "` doesn't contain an `=`. Skipping..." << std::endl;
+      continue;
+    }
+    std::string key = line.substr(0, eqPos);
+    std::string value = line.substr(eqPos + 1);
+    key.erase(key.begin(), std::find_if(key.begin(), key.end(), [](int ch) {
+                return !std::isspace(ch);
+              }));
+    key.erase(std::find_if(key.rbegin(), key.rend(),
+                           [](int ch) { return !std::isspace(ch); })
+                  .base(),
+              key.end());
+    value.erase(value.begin(),
+                std::find_if(value.begin(), value.end(),
+                             [](int ch) { return !std::isspace(ch); }));
+    value.erase(std::find_if(value.rbegin(), value.rend(),
+                             [](int ch) { return !std::isspace(ch); })
+                    .base(),
+                value.end());
+    std::string section = currentSection;
+    if (section.empty()) section = "global";
+    if (data.find(section) == data.end()) {
+      data[section] = std::unordered_map<std::string, std::string>();
+      keyLineTracker[section] = std::unordered_map<std::string, int>();
+    }
+    if (data[section].count(key)) {
+      int firstAssignedLine = keyLineTracker[section][key];
+      std::cerr << "The key `" << key << "` in section `" << section
+                << "` has already been assigned at line " << firstAssignedLine
+                << " to `" << data[section][key] << "`. Overriding to `"
+                << value << "` at line " << lineNumber << "..." << std::endl;
+    } else {
+      keyLineTracker[section][key] = lineNumber;
+    }
+    data[section][key] = value;
+  }
+  return data;
+}
