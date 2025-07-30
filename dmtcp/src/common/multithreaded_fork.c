@@ -53,31 +53,23 @@
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fcntl.h> // man 2 open
+#include <fcntl.h>  // man 2 open
+#include <pthread.h>
+#include <sched.h>  // For clone()
 #include <semaphore.h>
 #include <signal.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include <sys/syscall.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <ucontext.h>
-#include <sched.h> // For clone()
-#ifdef DMTCP
-# include "dmtcp.h"
+#include <unistd.h>
 
-// FIXME:  These two macros should be in dmtcp.h, not here.
-# define dmtcp_real_to_virtual_pid(PID) \
-    (dmtcp_real_to_virtual_pid != NULL ? dmtcp_real_to_virtual_pid(PID) : 0)
-# define dmtcp_virtual_to_real_pid(PID) \
-    (dmtcp_virtual_to_real_pid != NULL ? dmtcp_virtual_to_real_pid(PID) : 0)
-#endif
-
-#include <stdatomic.h>
+#include "dmtcp.h"
 
 #ifdef MC_SHARED_LIBRARY
 #include "mcmini/real_world/process/template_process.h"
@@ -108,7 +100,6 @@ static int AddSegvHandler() {
 
 // In DMTCP, 'struct threadinfo' is declared as DMTCP:src/threadinfo.h:ThreadTLSInfo
 struct threadinfo {
-  int num_sem_posts;
   pid_t origTid; // Used for debugging, and 'origTid == 0'  if not a valid entry.
   ucontext_t context;
   // fs and gs only used in __x86_64__
@@ -302,12 +293,10 @@ sem_t sem_fork_parent;
 sem_t sem_fork_child;
 
 pid_t multithreaded_fork() {
-  // WARNING: Doesn't yet support concurrency (currently calling multithreaded_fork())
-  // Semaphore for parent thread.
-  // 1200 X 1250 (longer) (sometimes stuck)), 1350 1500
-  atomic_store(&threadIdx, 0); // Needed for multiple calls to multithreaded_fork()
-  memset(&childThread, 0xbb, sizeof(childThread));
-
+  // WARNING: Doesn't yet support concurrency (currently calling
+  // multithreaded_fork()) Semaphore for parent thread.
+  atomic_store(&threadIdx,
+               0);  // Needed for multiple calls to multithreaded_fork()
   static int initialized = 0;
   if (!initialized) {
     libpthread_sem_init(&sem_fork_child, 0, 0);
@@ -334,7 +323,8 @@ pid_t multithreaded_fork() {
 #else
     if (tids[i] != mytid) {
 #endif
-      syscall(SYS_tgkill, getpid(), tids[i], SIG_MULTITHREADED_FORK);
+      int rc = syscall(SYS_tgkill, getpid(), tids[i], SIG_MULTITHREADED_FORK);
+      assert(rc == 0);
     }
   }
 
@@ -415,8 +405,11 @@ int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg,
     for (int i = 0; i < num_secondary_threads; i++) {
       libpthread_sem_post(&sem_fork_child);
     }
+    // Wait until child thread posts to us before leaving handler.
+    for (int i = 0; i < num_secondary_threads; i++) {
+      libpthread_sem_wait(&sem_fork_parent);
+    }
   } else { // else if child process
-
     restart_child_threads(num_threads);
     for (int i = 0; i < num_secondary_threads; i++) {
       libpthread_sem_post(&sem_fork_child);
@@ -437,19 +430,23 @@ void multithreaded_fork_child_handler(int sig) {
     pid_t orig_pid = getpid();
     int origThreadIdx = atomic_fetch_add(&threadIdx, 1);
     struct threadinfo* threadInfo = &childThread[origThreadIdx];
+    memset(threadInfo, 0x0, sizeof(struct threadinfo));
+
     // We could set next origThreadIdx to 0, but another thread might it
     // childThread[origThreadIdx+1].origTid = 0;
-
     saveThreadStateBeforeFork(threadInfo);
-
-    assert(getcontext(&threadInfo->context) == 0);
+    int rc = getcontext(&threadInfo->context);
+    assert(rc == 0);
     // setcontext() returns to here after fork() and clone() of
     //   child thread (setcontext) and setTLSPointer()
-    int my_posts = 0;
-    threadInfo->num_sem_posts = 0;
+
+    // NOTE: After the call to `sem_post(3)`, the parent thread
+    // may then call `_Fork()`. But this is OK: only the (forked) parent
+    // thread in the child process will initially exist, and this thread
+    // only uses the result of `getcontext()`.
     libpthread_sem_post(&sem_fork_parent);      // Before fork, to parent thread: did getctxt()
-    threadInfo->num_sem_posts++;
-    my_posts++;
+
+    // TODO: We may not need this extra post any more.
     if (getpid() != orig_pid) { // if we forked (if we are child process)
       // Child thread did setcontext and returned above into getcontext.
       // Let's post that we, the child thread, now exist.
@@ -457,7 +454,20 @@ void multithreaded_fork_child_handler(int sig) {
       // the parent thread of the child process posts to us.
       libpthread_sem_post(&sem_fork_parent);
     }
-    libpthread_sem_wait(&sem_fork_child);
+    // NOTE: `sem_wait(3)` is not async-signal-safe. We suspect
+    // a bug when a signal interrupts it inside a signal handler.
+    //
+    // NOTE: It was previously possible for a SIG_MULTITHREADED_FORK
+    // to be delivered to this thread while calling `sem_wait(3)` (the
+    // parent thread could have called `sem_post(3)`, continued execution,
+    // and then again called `multithreaded_fork()` before the child threads
+    // exited their signal handlers from the _previous_ `multithreaded_fork()`).
+    //
+    // The parent thread now waits on all userspace threads to finish executing
+    // `libpthread_sem_wait_loop` before exiting `multithreaded_fork()`.
+    int rc2 = libpthread_sem_wait_loop(&sem_fork_child);
+    assert(rc2 == 0);
+    libpthread_sem_post(&sem_fork_parent);
   }
 }
 
