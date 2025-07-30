@@ -34,9 +34,6 @@ int main(int argc, char *argv[]) {
   int NUM_THREADS = 3;
   DEBUG = 1;
 
-  sleep(10);
-  raise(SIGSEGV);
-
   pthread_t thread[NUM_THREADS];
   pthread_mutex_t mutex_resource[NUM_THREADS];
 
@@ -48,8 +45,6 @@ int main(int argc, char *argv[]) {
     forks[i] = (struct forks){i, &mutex_resource[i],
                               &mutex_resource[(i + 1) % NUM_THREADS]};
   }
-
-  raise(SIGSEGV);
 
   for (i = 0; i < NUM_THREADS; i++) {
     pthread_create(&thread[i], NULL, &philosopher_doit, &forks[i]);

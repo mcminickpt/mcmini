@@ -77,6 +77,8 @@
     (dmtcp_virtual_to_real_pid != NULL ? dmtcp_virtual_to_real_pid(PID) : 0)
 #endif
 
+#include <stdatomic.h>
+
 #ifdef MC_SHARED_LIBRARY
 #include "mcmini/real_world/process/template_process.h"
 #include "mcmini/spy/checkpointing/record.h"
@@ -106,6 +108,7 @@ static int AddSegvHandler() {
 
 // In DMTCP, 'struct threadinfo' is declared as DMTCP:src/threadinfo.h:ThreadTLSInfo
 struct threadinfo {
+  int num_sem_posts;
   pid_t origTid; // Used for debugging, and 'origTid == 0'  if not a valid entry.
   ucontext_t context;
   // fs and gs only used in __x86_64__
@@ -119,7 +122,8 @@ struct threadinfo {
   // glibc:pthread_create and pthread_self use this, but not the clone call:
   pthread_t pthread_descriptor;
 } childThread[1000];
-int threadIdx = 0; // threadInfo[threadIdx] is 'struct threadinfo' for next thread.
+
+volatile atomic_int threadIdx = 0; // threadInfo[threadIdx] is 'struct threadinfo' for next thread.
 
 #ifdef __x86_64__
 # include <asm/prctl.h>
@@ -195,12 +199,6 @@ static pid_t patchThreadDescriptor(pthread_t pthreadSelf) {
   *(pid_t *)((char *)pthreadSelf + offset) = syscall(SYS_gettid);
   return oldtid;
 }
-
-// Semaphore for parent thread.
-// Used in the original process before fork, and child process after fork.
-sem_t sem_fork_parent;
-// Semaphore for child thread; Only used in child process.
-sem_t sem_fork_child;
 
 void restart_child_threads();
 void multithreaded_fork_child_handler(int sig);
@@ -297,13 +295,23 @@ void signal_multithreaded_fork_handler() {
   }
 }
 
+// Semaphore for parent thread.
+// Used in the original process before fork, and child process after fork.
+sem_t sem_fork_parent;
+// Semaphore for child thread; Only used in child process.
+sem_t sem_fork_child;
+
 pid_t multithreaded_fork() {
+  // WARNING: Doesn't yet support concurrency (currently calling multithreaded_fork())
+  // Semaphore for parent thread.
+  // 1200 X 1250 (longer) (sometimes stuck)), 1350 1500
+  atomic_store(&threadIdx, 0); // Needed for multiple calls to multithreaded_fork()
+  memset(&childThread, 0xbb, sizeof(childThread));
+
   static int initialized = 0;
-  if (! initialized) {
+  if (!initialized) {
     libpthread_sem_init(&sem_fork_child, 0, 0);
     libpthread_sem_init(&sem_fork_parent, 0, 0);
-    threadIdx = 0; // Needed for multiple calls to multithreaded_fork()
-    initialized = 1;
   }
 
   static int handler_is_declared = 0;
@@ -312,8 +320,8 @@ pid_t multithreaded_fork() {
     handler_is_declared = 1;
   }
 
-  int child_threads[1000];
-  int num_threads = get_child_threads(child_threads);
+  int tids[1000];
+  int num_threads = get_child_threads(tids);
   const pid_t mytid = syscall(SYS_gettid);
 
 #ifdef MC_SHARED_LIBRARY
@@ -321,26 +329,12 @@ pid_t multithreaded_fork() {
 #endif
 
   for (int i = 0; i < num_threads; i++) {
-
-    // FIXME: We don't have to check `mytid` below since we check it
-    // here already.
-    if (child_threads[i] == mytid) {
-      childThread[i].origTid = 0;
-      continue;
-    }
-
-#ifdef MC_SHARED_LIBRARY
-    if (child_threads[i] == ckpt_tid) {
-      childThread[i].origTid = 0;
-      continue;
-    }
-#endif
 #ifdef DMTCP
-    if (child_threads[i] != mytid && child_threads[i] != ckpt_tid) {
+    if (tids[i] != mytid && tids[i] != ckpt_tid) {
 #else
-    if (child_threads[i] != mytid) {
+    if (tids[i] != mytid) {
 #endif
-      syscall(SYS_tgkill, getpid(), child_threads[i], SIG_MULTITHREADED_FORK);
+      syscall(SYS_tgkill, getpid(), tids[i], SIG_MULTITHREADED_FORK);
     }
   }
 
@@ -356,6 +350,11 @@ pid_t multithreaded_fork() {
     libpthread_sem_wait(
         &sem_fork_parent);  // Wait until children have initialized context.
   }
+
+  int ckptThreadIdx = atomic_fetch_add(&threadIdx, 1);
+  int templateThreadThreadIdx = atomic_fetch_add(&threadIdx, 1);
+  childThread[ckptThreadIdx].origTid = 0;
+  childThread[templateThreadThreadIdx].origTid = 0;
 
   /*********************************************************************
    *NOTE:  We want to skip the normal fork cleanup
@@ -436,7 +435,7 @@ void multithreaded_fork_child_handler(int sig) {
   if (sig == SIG_MULTITHREADED_FORK) {
     // The handler is called before fork().  So, this will always be parent pid
     pid_t orig_pid = getpid();
-    int origThreadIdx = __sync_fetch_and_add(&threadIdx, 1);
+    int origThreadIdx = atomic_fetch_add(&threadIdx, 1);
     struct threadinfo* threadInfo = &childThread[origThreadIdx];
     // We could set next origThreadIdx to 0, but another thread might it
     // childThread[origThreadIdx+1].origTid = 0;
@@ -446,9 +445,11 @@ void multithreaded_fork_child_handler(int sig) {
     assert(getcontext(&threadInfo->context) == 0);
     // setcontext() returns to here after fork() and clone() of
     //   child thread (setcontext) and setTLSPointer()
-
-    libpthread_sem_post(
-        &sem_fork_parent);      // Before fork, to parent thread: did getctxt()
+    int my_posts = 0;
+    threadInfo->num_sem_posts = 0;
+    libpthread_sem_post(&sem_fork_parent);      // Before fork, to parent thread: did getctxt()
+    threadInfo->num_sem_posts++;
+    my_posts++;
     if (getpid() != orig_pid) { // if we forked (if we are child process)
       // Child thread did setcontext and returned above into getcontext.
       // Let's post that we, the child thread, now exist.

@@ -119,9 +119,9 @@ static void *template_thread(void *unused) {
       "There are %d threads... waiting for them to get into a consistent "
       "state...\n",
       thread_count);
-      for (int i = 0; i < thread_count; i++) {
-        libpthread_sem_wait(&dmtcp_restart_sem);
-      }
+  for (int i = 0; i < thread_count; i++) {
+    libpthread_sem_wait_loop(&dmtcp_restart_sem);
+  }
   log_debug("The threads are now in a consistent state\n");
 
   if (get_current_mode() == DMTCP_RESTART_INTO_BRANCH) {

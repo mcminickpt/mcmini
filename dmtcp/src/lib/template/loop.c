@@ -154,8 +154,16 @@ void mc_template_thread_loop_forever(void) {
   // SIGCHLD handler, the McMini process would still receive the (forwarded)
   // SIGCHLD. It's unclear if this would be useful at the time of writing.
   //
-  // TODO: A future optimization would be to ignore the SIGCHLD altogether in
+  // NOTE: We need to wait until the `SIGCHLD` is delivered before we continue
+  // execution. Although we could also use `sigwait()`, the disadvantage with using
+  // `sigwait()` is that the SA_NOCLDSTP flag has no equivalent with `sigwait()`.
+  // Instead, we rely on the fact that `sem_post(3)` is async-signal-safe
+  //
+  // TODO: A future optimization could be to ignore the SIGCHLD altogether in
   // the template process.
+  //
+  libpthread_sem_init(&sigchld_sem, 0, 0);
+
   struct sigaction action = {0};
   sigemptyset(&action.sa_mask);
   action.sa_flags = 0;
