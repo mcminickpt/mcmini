@@ -62,31 +62,6 @@ void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
   sigaction(SIGCHLD, &action, NULL);
 }
 
-void mc_template_process_loop_forever(pid_t (*make_new_process)(void))
-{
-  volatile struct mcmini_shm_file *shm_file = global_shm_start;
-  volatile struct template_process_t *tpt = &shm_file->tpt;
-  const pid_t model_checker_pid = getppid();
-  const pid_t ppid_before_fork = getpid();
-
-  while (1) {
-    libpthread_sem_wait_loop((sem_t *)&tpt->libmcmini_sem);
-    const pid_t cpid = make_new_process();
-    if (cpid == -1) {
-      // `fork()` failed
-      tpt->err = errno;
-      tpt->cpid = TEMPLATE_FORK_FAILED;
-    } else if (cpid == 0) {
-      // Child case: Simply return and escape into the child process
-      mc_prepare_new_child_process(ppid_before_fork, model_checker_pid);
-      return;
-    }
-    // `libmcmini.so` acting as a template process.
-    tpt->cpid = cpid;
-    libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
-  }
-}
-
 #define NO_DEFINED_MCMINI_PID (-1)
 static sem_t sigchld_sem;
 static volatile sig_atomic_t global_model_checker_pid = NO_DEFINED_MCMINI_PID;
@@ -113,11 +88,56 @@ void mc_template_receive_sigchld(int sig, siginfo_t *info, void *) {
     }
     if (signal_mcmini) {
       printf("signalling McMini!!\n");
-      // TODO: Write into shared memory (if safe to do) the status
-      // of the child process to get a better read of what happened.
+      // TODO: We can use `sigqueue(3)` to pass the exit status of
+      // the child to the McMini process
+      //
+      //  e.g. `sigqueue(global_model_checker_pid, SIG... ...)`
+      //
+      // Alternatively, the syscall `rt_sigqueueinfo(2)` can be used
+      // to deliver the `siginfo_t` directly.
+      //
+      // See https://man7.org/linux/man-pages/man2/rt_sigqueueinfo.2.html
       kill(global_model_checker_pid, SIGCHLD);
     }
     libpthread_sem_post(&sigchld_sem);
+}
+
+void mc_template_process_loop_forever(pid_t (*make_new_process)(void)) {
+  volatile struct mcmini_shm_file *shm_file = global_shm_start;
+  volatile struct template_process_t *tpt = &shm_file->tpt;
+  const pid_t model_checker_pid = getppid();
+  const pid_t ppid_before_fork = getpid();
+  global_model_checker_pid = model_checker_pid;
+
+  libpthread_sem_init(&sigchld_sem, 0, 0);
+
+  struct sigaction action = {0};
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
+  action.sa_sigaction = &mc_template_receive_sigchld;
+  action.sa_flags |= SA_NOCLDSTOP;
+  sigaction(SIGCHLD, &action, NULL);
+
+  while (1) {
+    libpthread_sem_wait_loop((sem_t *)&tpt->libmcmini_sem);
+    const pid_t cpid = make_new_process();
+    if (cpid == -1) {
+      // `fork()` failed
+      tpt->err = errno;
+      tpt->cpid = TEMPLATE_FORK_FAILED;
+    } else if (cpid == 0) {
+      // Child case: Simply return and escape into the child process
+      mc_prepare_new_child_process(ppid_before_fork, model_checker_pid);
+      return;
+    }
+    // `libmcmini.so` acting as a template process.
+    tpt->cpid = cpid;
+    libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
+
+    log_debug("Waiting for the child `%d` to exit... \n", cpid);
+    libpthread_sem_wait_loop(&sigchld_sem);
+    log_debug("The child exited! Circling back... %d\n", cpid);
+  }
 }
 
 void mc_template_thread_loop_forever(void) {
@@ -125,8 +145,8 @@ void mc_template_thread_loop_forever(void) {
 
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
-  const pid_t model_checker_pid = dmtcp_virtual_to_real_pid(getppid());
-  const pid_t template_pid = dmtcp_virtual_to_real_pid(getpid());
+  const pid_t model_checker_pid = mcmini_real_pid(getppid());
+  const pid_t template_pid = mcmini_real_pid(getpid());
   global_model_checker_pid = model_checker_pid;
 
   // Prior to creating new child processes, the template thread
