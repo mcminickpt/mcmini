@@ -30,21 +30,19 @@ class classic_dpor final : public algorithm {
   static coenabled_relation_type default_coenabledness();
 
   struct configuration {
+    dependency_relation_type dependency_relation =
+        classic_dpor::default_dependencies();
+    coenabled_relation_type coenabled_relation =
+        classic_dpor::default_coenabledness();
     uint32_t maximum_total_execution_depth = 1500;
+    bool assumes_linear_program_flow = false;
   };
 
-  classic_dpor(
-      dependency_relation_type dependency_relation = default_dependencies(),
-      coenabled_relation_type coenabled_relation = default_coenabledness())
-      : dependency_relation(std::move(dependency_relation)),
-        coenabled_relation(std::move(coenabled_relation)) {}
+  classic_dpor() = default;
+  classic_dpor(configuration config) : config(std::move(config)) {}
 
  private:
-  double_dispatch_member_function_table<const model::transition, bool(void)>
-      dependency_relation;
-
-  double_dispatch_member_function_table<const model::transition, bool(void)>
-      coenabled_relation;
+  configuration config;
 
   bool are_dependent(const model::transition &t1,
                      const model::transition &t2) const;

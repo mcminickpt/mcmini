@@ -61,13 +61,13 @@ clock_vector classic_dpor::accumulate_max_clock_vector_against(
 bool classic_dpor::are_coenabled(const model::transition &t1,
                                  const model::transition &t2) const {
   return t1.get_executor() != t2.get_executor() &&
-         this->coenabled_relation.call_or(true, &t1, &t2);
+         this->config.coenabled_relation.call_or(true, &t1, &t2);
 }
 
 bool classic_dpor::are_dependent(const model::transition &t1,
                                  const model::transition &t2) const {
   return t1.get_executor() == t2.get_executor() ||
-         this->dependency_relation.call_or(true, &t1, &t2);
+         this->config.dependency_relation.call_or(true, &t1, &t2);
 }
 
 bool classic_dpor::happens_before(const dpor_context &context, size_t i,
@@ -119,14 +119,15 @@ void classic_dpor::verify_using(coordinator &coordinator,
   while (!dpor_stack.empty()) {
     // 2. Exploration phase
     while (dpor_stack.back().has_enabled_runners()) {
-      if (dpor_stack.size() >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+      if (dpor_stack.size() >= this->config.maximum_total_execution_depth) {
         throw std::runtime_error(
             "*** Execution Limit Reached! ***\n\n"
             "McMini ran a trace with" +
             std::to_string(dpor_stack.size()) +
             " transitions which is\n"
-            "the most McMini can currently handle in any one trace. Try\n"
-            "running mcmini with the \"--max-depth-per-thread\" flag\n"
+            "the more than McMini was configured to handle in any one trace (" +
+            std::to_string(this->config.maximum_total_execution_depth) +
+            "). Try running mcmini with the \"--max-depth-per-thread\" flag\n"
             "to limit how far into a trace McMini can go\n");
       }
       // NOTE: For deterministic results, always choose the "first" enabled
