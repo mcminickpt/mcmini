@@ -21,6 +21,8 @@
 #include "mcmini/spy/checkpointing/record.h"
 #include "mcmini/spy/intercept/interception.h"
 
+pid_t fast_multithreaded_fork(void);
+
 void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
   // IMPORTANT: If the THREAD in the template process ever exits, this will
   // prove problematic as it is when the THREAD which called `fork()` exits that
@@ -197,7 +199,7 @@ void mc_template_thread_loop_forever(void) {
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
 
-    const pid_t cpid = multithreaded_fork();
+    const pid_t cpid = fast_multithreaded_fork();
     if (cpid == -1) {
       // `multithreaded_fork()` failed
       log_debug("The template process failed to create a new child%d\n");

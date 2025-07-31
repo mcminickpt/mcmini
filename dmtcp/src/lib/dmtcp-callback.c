@@ -1,28 +1,233 @@
 #define _GNU_SOURCE
 #include <assert.h>
-#include <errno.h>
 #include <dirent.h>
-#include <fcntl.h>
+#include <errno.h>
+#include <fcntl.h>  // man 2 open
+#include <pthread.h>
+#include <sched.h>  // For clone()
+#include <semaphore.h>
+#include <signal.h>
+#include <stdatomic.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <ucontext.h>
 #include <unistd.h>
 
 #include "dmtcp.h"
 #include "mcmini/mcmini.h"
 
+#define SIG_MULTITHREADED_FORK (SIGRTMIN+6)
+
 // We probably won't need the '#undef', but just in case a .h file defined it:
 #undef dmtcp_mcmini_is_loaded
 int dmtcp_mcmini_is_loaded(void) { return 1; }
-int counter = 0;
 
 pthread_t ckpt_pthread_descriptor;
 volatile atomic_bool libmcmini_has_recorded_checkpoint_thread;
 static sem_t template_thread_sem;
 static pthread_cond_t template_thread_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t template_thread_mut = PTHREAD_MUTEX_INITIALIZER;
+
+struct threadinfo {
+  pid_t origTid; // Used for debugging, and 'origTid == 0'  if not a valid entry.
+  ucontext_t context;
+  // fs and gs only used in __x86_64__
+  unsigned long fs;
+  unsigned long gs;
+  // tlsAddr only used in __aarch64__ and __riscv
+  // In fact, __riscv has the address in a normal register, restored w/ context.
+  unsigned long int tlsAddr;
+  // The kernel has a process-wide sigmask, and also a per-thread sigmask.
+  sigset_t thread_sigmask;
+  // glibc:pthread_create and pthread_self use this, but not the clone call:
+  pthread_t pthread_descriptor;
+} threadInfos[1000];
+
+static volatile atomic_int threadIdx = 0; // threadInfo[threadIdx] is 'struct threadinfo' for next thread.
+
+#ifdef __x86_64__
+# include <asm/prctl.h>
+# include <sys/prctl.h>
+
+void getTLSPointer(struct threadinfo *localThreadInfo) {
+  assert(syscall(SYS_arch_prctl, ARCH_GET_FS, &localThreadInfo->fs) == 0);
+  assert(syscall(SYS_arch_prctl, ARCH_GET_GS, &localThreadInfo->gs) == 0);
+}
+
+void setTLSPointer(struct threadinfo *localThreadInfo) {
+  assert(syscall(SYS_arch_prctl, 2, ARCH_SET_FS, localThreadInfo->fs) != 0);
+  assert(syscall(SYS_arch_prctl, 2, ARCH_SET_GS, localThreadInfo->gs) != 0);
+}
+#elif defined(__aarch64__)
+// 1776 valid for glibc-2.17 and beyond
+static void getTLSPointer(struct threadinfo *localThreadInfo) {
+  unsigned long int addr;
+  asm volatile ("mrs   %0, tpidr_el0" : "=r" (addr));
+  localThreadInfo->tlsAddr = addr - 1776;  // sizeof(struct pthread) = 1776
+}
+static void setTLSPointer(struct threadinfo *localThreadInfo) {
+  unsigned long int addr = localThreadInfo->tlsAddr + 1776;
+  asm volatile ("msr     tpidr_el0, %[gs]" : :[gs] "r" (addr));
+}
+#elif defined(__riscv)
+void getTLSPointer(struct threadinfo *localThreadInfo)
+{
+  unsigned long int addr;
+  asm volatile ("addi %0, tp, 0" : "=r" (addr));
+  localThreadInfo->tlsAddr = addr - 1856;  // sizeof(struct pthread)=1856
+}
+void setTLSPointer(struct threadinfo *localThreadInfo)
+{
+  unsigned long int addr = localThreadInfo->tlsAddr + 1856;
+  asm volatile("addi tp, %[gs], 0" : : [gs] "r" (addr));
+}
+#else
+#error "getTLSPointer()/setTLSPointer() unimplemented on this architecture"
+#endif
+
+static inline int pthreadDescriptorTidOffset() {
+#ifdef __x86_64__
+  // Since glibc-2.11:
+  int offset = 720;  // sizeof(tcbhead_t) + sizeof(list_t)
+#elif defined(__aarch64__)
+  int offset = 208;
+#elif defined(__riscv)
+  int offset = 208;
+#endif
+  return offset;
+}
+
+static inline pid_t patchThreadDescriptor(pthread_t pthreadSelf) {
+  int offset = pthreadDescriptorTidOffset();
+  pid_t oldtid = *(pid_t *)((char *)pthreadSelf + offset);
+  // Since glibc.2.25, tid, but not pid, is stored in pthread_t.
+  // gettid() supported only in glibc-2.30; So, we use syscall().
+  *(pid_t *)((char *)pthreadSelf + offset) = syscall(SYS_gettid);
+  return oldtid;
+}
+
+static void saveThreadStateBeforeFork(struct threadinfo* threadInfo) {
+  threadInfo->origTid = syscall(SYS_gettid);
+
+  // For verification only; not needed for functionality
+  pid_t oldTid = patchThreadDescriptor(pthread_self());
+  if (oldTid != syscall(SYS_gettid)) {
+    fprintf(stderr, "PID %d: multithreaded_fork(): patchThreadDescriptor:"
+         "bad offset:\n        Run: DMTCP:util/check-pthread-tid-offset.c\n",
+         getpid());
+    libc_abort();
+  }
+  threadInfo->pthread_descriptor = pthread_self();
+  getTLSPointer(threadInfo);
+
+  // FIXME:  Add func fo get/set signals in child thread of child process.
+  //         and restore thread sigmask sfter setcontext.
+  pthread_sigmask(SIG_BLOCK, NULL, &threadInfo->thread_sigmask);
+  sigset_t sigtest;
+  pthread_sigmask(SIG_BLOCK, NULL, &sigtest);
+  sigdelset(&sigtest, SIG_MULTITHREADED_FORK);
+  if (! sigisemptyset(&sigtest)) {
+    fprintf(stderr, "PID %d: multithreaded_fork() not yet implemented"
+                    " for non-empty thread signaks\n", getpid());
+    libc_abort();
+  }
+}
+
+int child_setcontext_fast(void *arg) {
+  struct threadinfo* threadInfo = arg;
+  setTLSPointer(threadInfo);
+  patchThreadDescriptor(threadInfo->pthread_descriptor);
+  setcontext(&(threadInfo->context));
+  return 0; // not reached
+}
+
+void restart_child_threads_fast(void) {
+  for (int i = 0; i < threadIdx; i++) {
+    // int clone(int (*fn)(void *), void *stack, int flags, void *arg, ...
+    //           /* pid_t *parent_tid, void *tls, pid_t *child_tid */ );
+    int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SYSVSEM
+                       | CLONE_SIGHAND | CLONE_THREAD
+                       | CLONE_SETTLS | CLONE_PARENT_SETTID
+                       | CLONE_CHILD_CLEARTID
+                       | 0);
+    // This is a temporary stack, to be replaced after setcontext.
+    // FIXME: This stack is a memory leak.  We should free it later.
+    void *stack = malloc(0x10000) + 0x10000 - 128; // 64 KB
+    int offset = pthreadDescriptorTidOffset();
+    pid_t *ctid = (pid_t*)((char*)threadInfos[i].pthread_descriptor + offset);
+    pid_t *ptid = ctid;
+    // For more insight, read 'man set_tid_address'.
+    clone(child_setcontext_fast,
+                      stack,
+                      clone_flags,
+                      (void *)&threadInfos[i], ptid, threadInfos[i].fs, ctid);
+  }
+}
+
+pid_t fast_multithreaded_fork(void) {
+  /*********************************************************************
+   *NOTE:  We want to skip the normal fork cleanup
+   *       of child threads (e.g., reclaim_stack()).
+   *       So, we call an internal version of fork().
+   *
+   *__libc__fork() calls:
+   *
+   *../sysdeps/unix/sysv/linux/arch-fork.h:26
+   *__libc_fork() calls:
+   *_Fork() {
+   *  pid_t pid = arch_fork (&THREAD_SELF->tid);
+   *  ... robust mutex support ...
+   *}
+   *
+   *../sysdeps/unix/sysv/linux/arch-fork.h:34
+   *statinc inline pid_t arch_fork(void *ctid) {
+   *  echo 'flags = CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID | SIGCHLD'
+   *  ret = INLINE_SYSCALL_CALL (clone, flags, 0, NULL, ctid, 0);
+   *}
+   *********************************************************************/
+#if 1
+  pid_t _Fork();
+  int childpid = _Fork();
+#else
+  // NOT YET FULLY DEVELOPED:
+  int flags = CLONE_CHILD_SETTID | CLONE_CHILD_CLEARTID | SIGCHLD;
+  int childpid;
+// syscall(SYS_clone, ...);
+// stack must be NULL
+// https://stackoverflow.com/questions/2898579/clone-equivalent-of-fork
+//   But that says to use only SIGCHLD for flags, and glibc uses the above.
+//   But it's okay, since we're setting ctid and tls to NULL.
+// FIXME:  If we're going to set the last 3 args to NULL, who cares in what order they're found!
+# ifdef __x86_64__
+           long clone(unsigned long flags, void *stack,
+                      int *parent_tid, int *child_tid,
+                      unsigned long tls);
+# elif defined(__aarch64__)
+           long clone(unsigned long flags, void *stack,
+                     int *parent_tid, unsigned long tls,
+                     int *child_tid);
+# elif defined(__riscv)
+#  error Unimplemented CPU architecture
+https://github.com/bminor/glibc/blob/master/sysdeps/unix/sysv/linux/riscv/clone.S
+int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg,
+	     void *parent_tidptr, void *tls, void *child_tidptr) */
+	/* The syscall expects the args to be in different slots.  */
+	mv		a0,a2
+	mv		a2,a4
+	mv		a3,a5
+	mv		a4,a6
+# endif
+#endif
+  if (childpid == 0) { // child process
+    restart_child_threads_fast();
+  }
+  return childpid;
+}
 
 bool is_checkpoint_thread(void) {
   return pthread_equal(pthread_self(), ckpt_pthread_descriptor);
@@ -36,7 +241,23 @@ void thread_handle_after_dmtcp_restart(void) {
   // thread, once signaled by all userspace threads, will
   // change its mode to `TARGET_TEMPLATE_AFTER_RESTART`.
   enum libmcmini_mode mode_on_entry = get_current_mode();
-  notify_template_thread();
+  const pid_t origPid = mcmini_real_pid(getpid());
+  const int origThreadIdx = atomic_fetch_add(&threadIdx, 1);
+  struct threadinfo* threadInfo = &threadInfos[origThreadIdx];
+  memset(threadInfo, 0x0, sizeof(struct threadinfo));
+
+  saveThreadStateBeforeFork(threadInfo);
+  int rc = getcontext(&threadInfo->context);
+  assert(rc == 0);
+
+  if (mcmini_real_pid(getpid()) == origPid) {
+    // Inside the template process
+    notify_template_thread();
+  }
+  else {
+    // Returned from `getcontext()` in the forked child
+  }
+
   switch (mode_on_entry) {
     case DMTCP_RESTART_INTO_TEMPLATE: {
       log_debug("Restarting into template (DMTCP_RESTART_INTO_TEMPLATE)\n");
