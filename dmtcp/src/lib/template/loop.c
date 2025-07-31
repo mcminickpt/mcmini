@@ -22,10 +22,6 @@
 #include "mcmini/spy/intercept/interception.h"
 
 void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
-  // int dummy = 1;
-  // while(dummy);
-  log_debug("The branch process is preparing");
-  fsync(STDOUT_FILENO);
   // IMPORTANT: If the THREAD in the template process ever exits, this will
   // prove problematic as it is when the THREAD which called `fork()` exits that
   // the signal will be delivered to this process (and not when the process as a
@@ -40,7 +36,7 @@ void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
   // current parent process id differs from the process id of the parent which
   // fork()-ed this process. If they don't match, we know that the parent exited
   // before prctl()
-  if (dmtcp_virtual_to_real_pid(getppid()) != template_pid) mc_exit(EXIT_FAILURE);
+  if (mcmini_real_pid(getppid()) != template_pid) mc_exit(EXIT_FAILURE);
 
   // This is important to handle the case when the
   // main thread exits `in main()`; in that case, we
@@ -176,25 +172,12 @@ void mc_template_thread_loop_forever(void) {
   sigaddset(&sigchld, SIGCHLD);
   pthread_sigmask(SIG_UNBLOCK, &sigchld, NULL);
 
-  pid_t last_child = -1;
-
   while (1) {
     log_debug("Waiting for `mcmini` to signal a fork");
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
 
-    if (last_child != -1) {
-      int rc = kill(last_child, 0);
-      if (rc == 0) {
-        fprintf(stderr, "The child `%d` is still alive\n", dmtcp_virtual_to_real_pid(last_child));
-        fflush(stderr);
-        libc_abort();
-      }
-    }
     const pid_t cpid = multithreaded_fork();
-    last_child = cpid;
-
-
     if (cpid == -1) {
       // `multithreaded_fork()` failed
       log_debug("The template process failed to create a new child%d\n");

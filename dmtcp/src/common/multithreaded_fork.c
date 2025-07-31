@@ -337,7 +337,7 @@ pid_t multithreaded_fork() {
 #endif
 
   for (int i = 0; i < num_secondary_threads; i++) {
-    libpthread_sem_wait(
+    libpthread_sem_wait_loop(
         &sem_fork_parent);  // Wait until children have initialized context.
   }
 
@@ -400,24 +400,8 @@ int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg,
 # endif
 #endif
   initialized = 0;  // Reset for next call to multithreaded_fork()
-
-  if (childpid > 0) { // if parent process
-    for (int i = 0; i < num_secondary_threads; i++) {
-      libpthread_sem_post(&sem_fork_child);
-    }
-    // Wait until child thread posts to us before leaving handler.
-    for (int i = 0; i < num_secondary_threads; i++) {
-      libpthread_sem_wait(&sem_fork_parent);
-    }
-  } else { // else if child process
+  if (childpid == 0) { // child process
     restart_child_threads(num_threads);
-    for (int i = 0; i < num_secondary_threads; i++) {
-      libpthread_sem_post(&sem_fork_child);
-    }
-    // Wait until child thread posts to us before leaving handler.
-    for (int i = 0; i < num_secondary_threads; i++) {
-      libpthread_sem_wait(&sem_fork_parent);
-    }
   }
   return childpid;
 }
@@ -427,13 +411,11 @@ int clone(int (*fn)(void *arg), void *child_stack, int flags, void *arg,
 void multithreaded_fork_child_handler(int sig) {
   if (sig == SIG_MULTITHREADED_FORK) {
     // The handler is called before fork().  So, this will always be parent pid
-    pid_t orig_pid = getpid();
+    // pid_t orig_pid = getpid();
     int origThreadIdx = atomic_fetch_add(&threadIdx, 1);
     struct threadinfo* threadInfo = &childThread[origThreadIdx];
     memset(threadInfo, 0x0, sizeof(struct threadinfo));
 
-    // We could set next origThreadIdx to 0, but another thread might it
-    // childThread[origThreadIdx+1].origTid = 0;
     saveThreadStateBeforeFork(threadInfo);
     int rc = getcontext(&threadInfo->context);
     assert(rc == 0);
@@ -444,29 +426,6 @@ void multithreaded_fork_child_handler(int sig) {
     // may then call `_Fork()`. But this is OK: only the (forked) parent
     // thread in the child process will initially exist, and this thread
     // only uses the result of `getcontext()`.
-    libpthread_sem_post(&sem_fork_parent);      // Before fork, to parent thread: did getctxt()
-
-    // TODO: We may not need this extra post any more.
-    if (getpid() != orig_pid) { // if we forked (if we are child process)
-      // Child thread did setcontext and returned above into getcontext.
-      // Let's post that we, the child thread, now exist.
-      // Then we, the child thread, will wait on sem_fork_child until
-      // the parent thread of the child process posts to us.
-      libpthread_sem_post(&sem_fork_parent);
-    }
-    // NOTE: `sem_wait(3)` is not async-signal-safe. We suspect
-    // a bug when a signal interrupts it inside a signal handler.
-    //
-    // NOTE: It was previously possible for a SIG_MULTITHREADED_FORK
-    // to be delivered to this thread while calling `sem_wait(3)` (the
-    // parent thread could have called `sem_post(3)`, continued execution,
-    // and then again called `multithreaded_fork()` before the child threads
-    // exited their signal handlers from the _previous_ `multithreaded_fork()`).
-    //
-    // The parent thread now waits on all userspace threads to finish executing
-    // `libpthread_sem_wait_loop` before exiting `multithreaded_fork()`.
-    int rc2 = libpthread_sem_wait_loop(&sem_fork_child);
-    assert(rc2 == 0);
     libpthread_sem_post(&sem_fork_parent);
   }
 }

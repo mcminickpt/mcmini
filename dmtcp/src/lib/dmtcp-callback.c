@@ -39,6 +39,7 @@ void thread_handle_after_dmtcp_restart(void) {
   notify_template_thread();
   switch (mode_on_entry) {
     case DMTCP_RESTART_INTO_TEMPLATE: {
+      log_debug("Restarting into template (DMTCP_RESTART_INTO_TEMPLATE)\n");
       // For userspace threads in the template process, the threads
       // must wait _forever_. Since these userspace threads will eventually
       // become active and start listening to the model checker in the
@@ -131,7 +132,7 @@ static void *template_thread(void *unused) {
 
   volatile struct mcmini_shm_file *shm_file = global_shm_start;
   volatile struct template_process_t *tpt = &shm_file->tpt;
-  pid_t target_branch_pid = dmtcp_virtual_to_real_pid(getpid());
+  pid_t target_branch_pid = mcmini_real_pid(getpid());
   tpt->cpid = target_branch_pid;
   libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
@@ -368,7 +369,8 @@ static void presuspend_eventHook(DmtcpEvent_t event, DmtcpEventData_t *data) {
       // is properly _initialized_, just as with classic
       // model checking.
       char shm_name[100];
-      snprintf(shm_name, sizeof(shm_name), "/mcmini-%s-%lu", getenv("USER"), (long)dmtcp_virtual_to_real_pid(getppid()));
+      snprintf(shm_name, sizeof(shm_name), "/mcmini-%s-%lu", getenv("USER"),
+               (long)mcmini_real_pid(getppid()));
       shm_name[sizeof(shm_name) - 1] = '\0';
       mc_allocate_shared_memory_region(shm_name);
 

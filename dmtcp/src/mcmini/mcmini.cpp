@@ -490,7 +490,6 @@ int main_cpp(int argc, const char** argv) {
   } else {
     do_model_checking(mcmini_config);
   }
-
   return EXIT_SUCCESS;
 }
 

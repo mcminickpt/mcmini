@@ -47,11 +47,7 @@ void mcmini_log(int level, const char *file, int line, const char *fmt, ...) {
   va_start(rc.var_args, fmt);
   char buf[20];
   buf[strftime(buf, sizeof(buf), "%H:%M:%S", rc.time)] = '\0';
-#ifdef DMTCP
-  const pid_t pid = dmtcp_virtual_to_real_pid(getpid());
-#else
-  const pid_t pid = getpid();
-#endif
+  const pid_t pid = mcmini_real_pid(getpid());
   fprintf(
     rc.target,
     "[%u] %s %-5s %s:%d: ", pid,

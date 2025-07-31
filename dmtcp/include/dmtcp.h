@@ -431,6 +431,11 @@ int dmtcp_protected_environ_fd(void);
 pid_t dmtcp_real_to_virtual_pid(pid_t realPid) __attribute((weak));
 pid_t dmtcp_virtual_to_real_pid(pid_t virtualPid) __attribute((weak));
 
+#define mcmini_virtual_pid(PID) \
+  (dmtcp_is_enabled() ? dmtcp_real_to_virtual_pid((PID)) : (PID))
+#define mcmini_real_pid(PID) \
+  (dmtcp_is_enabled() ? dmtcp_virtual_to_real_pid((PID)) : (PID))
+
 // bq_file -> "batch queue file"; used only by batch-queue plugin
 int dmtcp_is_bq_file(const char *path) __attribute((weak));
 int dmtcp_bq_should_ckpt_file(const char *path, int *type) __attribute((weak));
