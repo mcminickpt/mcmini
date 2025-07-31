@@ -71,7 +71,9 @@ std::unique_ptr<process> dmtcp_process_source::make_new_process() {
 }
 
 dmtcp_process_source::~dmtcp_process_source() {
-  target("dmtcp_command",
-         {"-q", "--port", std::to_string(this->coordinator_target.get_port())})
-      .launch_and_wait();
+  target dmtcp_cleanup(
+      "dmtcp_command",
+      {"-q", "--port", std::to_string(this->coordinator_target.get_port())});
+  dmtcp_cleanup.set_quiet(true);
+  dmtcp_cleanup.launch_and_wait();
 }

@@ -5,14 +5,13 @@
 
 #include "mcmini/log/severity_level.hpp"
 
-namespace mcmini {
-namespace log {
-severity_level parse_severity(const std::string& levelStr) {
+namespace logging {
+inline severity_level parse_severity(const std::string& levelStr) {
   std::string s(levelStr);
   std::transform(s.begin(), s.end(), s.begin(), ::tolower);
   if (s == "nothing") return nothing;
-  if (s == "very_verbose") return very_verbose;
-  if (s == "verbose") return verbose;
+  if (s == "very-verbose" || s == "vv") return very_verbose;
+  if (s == "verbose" || s == "v") return verbose;
   if (s == "debug") return debug;
   if (s == "info") return info;
   if (s == "unexpected") return unexpected;
@@ -22,5 +21,4 @@ severity_level parse_severity(const std::string& levelStr) {
   if (s == "everything") return everything;
   return nothing;
 }
-}  // namespace log
-}  // namespace mcmini
+}  // namespace logging

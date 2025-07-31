@@ -1,6 +1,5 @@
 #include <pthread.h>
 
-namespace mcmini {
 class RWLock {
  public:
   // According to the man page of `pthread_rwlockattr_setkind_np(3)`:
@@ -53,4 +52,3 @@ class RWLock {
  private:
   pthread_rwlock_t lock_;
 };
-}  // namespace mcmini

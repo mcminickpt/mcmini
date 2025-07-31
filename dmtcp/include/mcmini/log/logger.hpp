@@ -11,23 +11,19 @@
 #define log_severity(logger, severity) \
   logger.make_stream(__FILE__, __LINE__) << severity
 #define log_very_verbose(logger) \
-  log_severity(logger, mcmini::log::severity_level::very_verbose)
+  log_severity(logger, logging::severity_level::very_verbose)
 #define log_verbose(logger) \
-  log_severity(logger, mcmini::log::severity_level::verbose)
-#define log_debug(logger) \
-  log_severity(logger, mcmini::log::severity_level::debug)
-#define log_info(logger) log_severity(logger, mcmini::log::severity_level::info)
+  log_severity(logger, logging::severity_level::verbose)
+#define log_debug(logger) log_severity(logger, logging::severity_level::debug)
+#define log_info(logger) log_severity(logger, logging::severity_level::info)
 #define log_unexpected(logger) \
-  log_severity(logger, mcmini::log::severity_level::unexpected)
-#define log_error(logger) \
-  log_severity(logger, mcmini::log::severity_level::error)
+  log_severity(logger, logging::severity_level::unexpected)
+#define log_error(logger) log_severity(logger, logging::severity_level::error)
 #define log_critical(logger) \
-  log_severity(logger, mcmini::log::severity_level::critical)
-#define log_abort(logger) \
-  log_severity(logger, mcmini::log::severity_level::abort)
+  log_severity(logger, logging::severity_level::critical)
+#define log_abort(logger) log_severity(logger, logging::severity_level::abort)
 
-namespace mcmini {
-namespace log {
+namespace logging {
 class logger {
  public:
   logger() = default;
@@ -92,13 +88,14 @@ class logger {
   }
 
   stream make_stream(const char *file, int line) {
-    return mcmini::log::logger::stream(this, file, line);
+    return logging::logger::stream(this, file, line);
   }
 
  public:
   inline void log_raw(const std::string &message, severity_level severity,
                       const char *file = __FILE__, int line = __LINE__) {
-    log_control::instance().log_raw(message, subsystem, severity, file, line);
+    log_control::instance().log_raw(instance, subsystem, message, severity,
+                                    file, line);
   }
 
  private:
@@ -108,5 +105,4 @@ class logger {
  private:
   friend struct stream;
 };
-}  // namespace log
-}  // namespace mcmini
+}  // namespace logging

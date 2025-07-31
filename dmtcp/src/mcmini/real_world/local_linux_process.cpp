@@ -8,13 +8,17 @@
 #include <iostream>
 
 #include "mcmini/common/shm_config.h"
+#include "mcmini/log/logger.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process/fork_process_source.hpp"
 #include "mcmini/real_world/process/resources.hpp"
 #include "mcmini/real_world/shm.hpp"
 #include "mcmini/signal.hpp"
 
+using namespace logging;
 using namespace real_world;
+
+logger process_logger("processes");
 
 local_linux_process::local_linux_process(pid_t pid, bool should_wait)
     : pid(pid), should_wait(should_wait) {}
@@ -36,17 +40,17 @@ local_linux_process::~local_linux_process() {
     return;
   }
   if (kill(pid, SIGUSR1) == -1) {
-    std::cerr << "Error sending SIGUSR1 to `" << (pid)
-              << "`: " << strerror(errno);
+    log_error(process_logger)
+        << "Error sending SIGUSR1 to `" << (pid) << "`: " << strerror(errno);
   }
   int status;
   if (should_wait) {
     if (waitpid(pid, &status, 0) == -1) {
       if (errno != ECHILD) {
-        std::cerr << "Error waiting for process (waitpid) `" << pid
-                  << "`: " << strerror(errno) << std::endl;
+        log_error(process_logger) << "Error waiting for process (waitpid) `"
+                                  << pid << "`: " << strerror(errno);
       } else {
-        std::cerr << "Error: " << strerror(errno) << std::endl;
+        log_error(process_logger) << "Error: " << strerror(errno);
       }
     }
   }

@@ -6,8 +6,7 @@
 
 #include "mcmini/log/severity_level.hpp"
 
-namespace mcmini {
-namespace log {
+namespace logging {
 class filter {
  public:
   filter() = default;
@@ -83,5 +82,4 @@ class permissive_filter : public filter {
   }
 };
 
-}  // namespace log
-}  // namespace mcmini
+}  // namespace logging

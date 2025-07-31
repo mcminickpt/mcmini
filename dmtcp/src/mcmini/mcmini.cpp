@@ -2,6 +2,7 @@
 #include "mcmini/common/shm_config.h"
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/coordinator/restore-objects.hpp"
+#include "mcmini/log/severity_level_parser.hpp"
 #include "mcmini/model/config.hpp"
 #include "mcmini/model/objects/condition_variables.hpp"
 #include "mcmini/model/objects/mutex.hpp"
@@ -409,6 +410,10 @@ int main_cpp(int argc, const char** argv) {
                strcmp(cur_arg[0], "-ckpt") == 0) {
       mcmini_config.checkpoint_file = cur_arg[1];
       cur_arg += 2;
+    } else if (strcmp(cur_arg[0], "--log-level") == 0 ||
+               strcmp(cur_arg[0], "-log") == 0) {
+      mcmini_config.global_severity_level = logging::parse_severity(cur_arg[1]);
+      cur_arg += 2;
     } else if (strcmp(cur_arg[0], "--from-first-checkpoint") == 0) {
       mcmini_config.checkpoint_file = find_first_ckpt_file_in_cwd();
       cur_arg += 1;
@@ -446,6 +451,7 @@ int main_cpp(int argc, const char** argv) {
           "              [--from-checkpoint <ckpt>] [--multithreaded-fork] \n"
           "              [--max-depth-per-thread|-m <num>]\n"
           "              [--first-deadlock|--first|-f]\n"
+          "              [--log-level|-log <level>]\n"
           "              [--help|-h]\n"
           "              target_executable\n");
       exit(1);
@@ -483,6 +489,8 @@ int main_cpp(int argc, const char** argv) {
   }
   target::prepare_mcmini_targets();
   signal_tracker::install_process_wide_signal_handlers();
+  logging::log_control::instance().allow_everything_over(
+      mcmini_config.global_severity_level);
   if (mcmini_config.record_target_executable_only) {
     do_recording(mcmini_config);
   } else if (mcmini_config.checkpoint_file != "") {

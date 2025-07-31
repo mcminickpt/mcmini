@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "mcmini/defines.h"
+#include "mcmini/log/severity_level.hpp"
 
 namespace model {
 
@@ -52,7 +53,14 @@ struct config {
    */
   std::string checkpoint_file = "";
 
+  // Name of the target executable that will be model checked
   std::string target_executable = "";
+
+  // A list of arguments to be passed to the executable on launch
   std::vector<std::string> target_executable_args;
+
+  // Default severity level for logging. Overridden if a blacklist/whitelist
+  // file path is provided (TODO).
+  logging::severity_level global_severity_level = logging::severity_level::info;
 };
 }  // namespace model

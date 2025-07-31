@@ -3,8 +3,6 @@
 #include <csignal>
 #include <mutex>
 
-using namespace mcmini;
-
 pid_t constants::getpid() {
   static std::once_flag once_flag;
   static pid_t pid = -1;

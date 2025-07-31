@@ -2,6 +2,7 @@
 
 #include "mcmini/coordinator/model_to_system_map.hpp"
 #include "mcmini/forwards.hpp"
+#include "mcmini/log/logger.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/transition_registry.hpp"
 #include "mcmini/model/visible_object.hpp"
@@ -163,6 +164,7 @@ class coordinator {
   void execute_runner(real_world::process::runner_id_t id);
 
  private:
+  logging::logger logger;
   model::program current_program_model;
   model::transition_registry runtime_transition_mapping;
   std::unique_ptr<real_world::process> current_process_handle;

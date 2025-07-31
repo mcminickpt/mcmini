@@ -8,8 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mcmini {
-
 using SectionMap =
     std::unordered_map<std::string,
                        std::unordered_map<std::string, std::string>>;
@@ -138,5 +136,3 @@ class IniParser : public SectionMap {
     }
   }
 };
-
-}  // namespace mcmini

@@ -64,16 +64,14 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
   }
   this->current_program_model.model_execution_of(runner_id, pending_operation);
 
-  // std::cerr
-  //     << "\n\n**************** AFTER MODEL EXEC *********************\n\n\n"
-  //     << current_program_model.get_trace().back()->debug_string()
-  //     << " just executed\n\n"
-  //     << pending_operation->debug_string() << " will execute next "
-  //     << "\n\n"
-  //     <<
-  //     this->current_program_model.get_state_sequence().back().debug_string()
-  //     << "\n\n**************** AFTER MODEL EXEC *********************\n\n"
-  //     << std::endl;
+  log_very_verbose(logger)
+      << "\n\n**************** AFTER MODEL EXEC *********************\n\n\n"
+      << current_program_model.get_trace().back()->debug_string()
+      << " just executed\n\n"
+      << pending_operation->debug_string() << " will execute next "
+      << "\n\n"
+      << this->current_program_model.get_state_sequence().back().debug_string()
+      << "\n\n**************** AFTER MODEL EXEC *********************\n\n";
 }
 
 void coordinator::return_to_depth(uint32_t n) {

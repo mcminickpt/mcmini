@@ -3,7 +3,7 @@
 #include "mcmini/log/severity_level_parser.hpp"
 #include "mcmini/misc/ini-parser.hpp"
 
-using namespace mcmini::log;
+using namespace logging;
 
 bool whitelist_filter::apply(const std::string &subsystem,
                              severity_level log_record_severity) const {

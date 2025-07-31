@@ -2,8 +2,7 @@
 
 #include <cstdint>
 
-namespace mcmini {
-namespace log {
+namespace logging {
 enum severity_level : uint32_t {
   nothing,
   very_verbose,
@@ -16,5 +15,4 @@ enum severity_level : uint32_t {
   abort,
   everything
 };
-}  // namespace log
-}  // namespace mcmini
+}  // namespace logging

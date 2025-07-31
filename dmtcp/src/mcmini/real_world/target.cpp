@@ -12,12 +12,16 @@
 #include <fstream>
 #include <iostream>
 
+#include "mcmini/log/logger.hpp"
 #include "mcmini/real_world/dmtcp_target.hpp"
 #include "mcmini/real_world/process/dmtcp_coordinator.hpp"
 #include "mcmini/real_world/process_source.hpp"
 #include "mcmini/signal.hpp"
 
 using namespace real_world;
+using namespace logging;
+
+logger targer_logger("targets");
 
 void target::prepare_mcmini_targets() {
   // To enable the model checker process to handle assertion failures,
@@ -173,8 +177,8 @@ void target::launch_and_wait() {
         "` (waitpid(2) returned -1): " + std::string(strerror(errno)));
   }
   if (WIFEXITED(status)) {
-    std::cerr << "`" << invocation() << "` [" << child
-              << "] exited with status " << WEXITSTATUS(status) << std::endl;
+    log_error(targer_logger) << "`" << invocation() << "` [" << child
+                             << "] exited with status " << WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
     throw process::execution_error(
         "The child process was signaled (received :" +
@@ -188,7 +192,7 @@ void target::launch_and_wait() {
   // A SIGCHLD was delivered to McMini at this point. To prevent it from being
   // considered in subsequent launches, consume one of them.
   signal_tracker::instance().try_consume_signal(SIGCHLD);
-  std::cout << "Consumed the SIGCHLD of " << child << std::endl;
+  log_verbose(targer_logger) << "Consumed the SIGCHLD of " << child;
 }
 
 pid_t dmtcp_target::launch_dont_wait() {

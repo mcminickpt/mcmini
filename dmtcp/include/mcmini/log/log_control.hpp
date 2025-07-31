@@ -12,8 +12,7 @@
 #include "mcmini/log/severity_level.hpp"
 #include "mcmini/misc/rwlock.hpp"
 
-namespace mcmini {
-namespace log {
+namespace logging {
 class log_control {
  public:
   using subsystem_list = std::unordered_map<std::string, severity_level>;
@@ -106,14 +105,12 @@ class log_control {
     static log_control lc;
     return lc;
   }
-  void log_raw(const std::string &message, const std::string &subsystem,
-               const severity_level severity, const char *file = __FILE__,
-               int line = __LINE__);
+  void log_raw(const std::string &instance, const std::string &subsystem,
+               const std::string &message, const severity_level severity,
+               const char *file = __FILE__, int line = __LINE__);
 
  private:
   RWLock filter_lock;
   std::unique_ptr<filter> active_filter;
 };
-}  // namespace log
-
-}  // namespace mcmini
+}  // namespace logging
