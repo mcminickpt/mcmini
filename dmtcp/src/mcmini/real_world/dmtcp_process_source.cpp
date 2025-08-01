@@ -23,9 +23,6 @@ using namespace extensions;
 
 dmtcp_process_source::dmtcp_process_source(const std::string& ckpt_file)
     : ckpt_file(ckpt_file) {
-  // TODO: Use `dmtcp_restart` with the `--new-coordinator` flag instead of
-  // creating a
-  // this->coordinator_target.launch_and_wait();
   this->dmtcp_restart_target = dmtcp_target(
       "dmtcp_restart", {"--new-coordinator", "--port", "0"}, this->ckpt_file);
   this->dmtcp_restart_target.set_env("MCMINI_NEEDS_STATE", "1");

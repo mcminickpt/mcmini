@@ -38,12 +38,20 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         "Failed to execute runner with id \"" + std::to_string(runner_id) +
         "\": the process is not alive");
   }
+  log_debug(logger) << "Scheduling `" << runner_id << "` for execution."
+                    << logging::severity_level::verbose
+                    << "The next transition is `"
+                    << this->current_program_model
+                           .get_pending_transition_for(runner_id)
+                           ->debug_string()
+                    << "`";
   volatile runner_mailbox *mb =
       this->current_process_handle->execute_runner(runner_id);
   model::transition_registry::runtime_type_id const rttid = mb->type;
 
   model::transition_registry::transition_discovery_callback callback_function =
       runtime_transition_mapping.get_callback_for(rttid);
+  log_debug(logger) << "Grabbing callback function for rttid `" << rttid << "`";
   if (!callback_function) {
     throw real_world::process::execution_error(
         "Execution resulted in a runner scheduled to execute the transition "
@@ -62,12 +70,14 @@ void coordinator::execute_runner(process::runner_id_t runner_id) {
         "Failed to translate the data written into the mailbox of runner " +
         std::to_string(runner_id));
   }
+  log_debug(logger) << "The next pending operation is `"
+                    << pending_operation->debug_string() << "`";
   this->current_program_model.model_execution_of(runner_id, pending_operation);
 
-  log_very_verbose(logger)
+  log_verbose(logger)
       << "\n\n**************** AFTER MODEL EXEC *********************\n\n\n"
       << current_program_model.get_trace().back()->debug_string()
-      << " just executed\n\n"
+      << " just executed\n"
       << pending_operation->debug_string() << " will execute next "
       << "\n\n"
       << this->current_program_model.get_state_sequence().back().debug_string()
@@ -86,10 +96,10 @@ void coordinator::return_to_depth(uint32_t n) {
   for (const model::transition *t : this->current_program_model.get_trace()) {
     this->current_process_handle->execute_runner(t->get_executor());
   }
-  std::cerr << "\n\n**************** AFTER RESTORATION *********************\n\n";
-  get_current_program_model().dump_state(std::cerr);
-  std::cerr << "\n\n**************** AFTER RESTORATION *********************\n\n";
-  std::cerr.flush();
+  log_verbose(logger)
+      << "**************** AFTER RESTORATION *********************\n\n"
+      << get_current_program_model()
+      << "\n\n**************** AFTER RESTORATION *********************";
 }
 
 model::state::runner_id_t model_to_system_map::get_model_of_runner(

@@ -81,10 +81,10 @@ int signal_tracker::sig_semwait(sem_t *sem) {
 }
 
 static bool is_likely_debugging() {
-  // The Linux man page says that `proc/[pid]/status` contains a `TracerPid: `
-  // field which indicates the process ID tracing this one or `0` if no tracer
-  // is present. We use this as a heuristic to detect is a debugger is present
-  // to allow SIGINT to enter the debugger.
+  // The Linux man page says that `proc/[pid]/status` contains a `TracerPid:
+  // field which indicates the process ID tracing this one or `0` if no
+  // tracer  is present. We use this as a heuristic to detect is a debugger is
+  // present to allow SIGINT to enter the debugger.
   std::ifstream status_file("/proc/self/status");
   if (!status_file.is_open()) {
     return false;  // Cannot open, assume no debugger
@@ -127,9 +127,9 @@ static void handle_incoming_signals(sem_t *rendez_vous) {
   while (true) {
     // According to the `sigwait()` man page:
     // """
-    // The  sigwait()  function  suspends execution of the calling thread until
-    // one of the signals specified in the signal set set becomes pending.  The
-    // function accepts the signal (removes it from the pending list of
+    // The  sigwait()  function  suspends execution of the calling thread
+    // until one of the signals specified in the signal set set becomes pending.
+    // The function accepts the signal (removes it from the pending list of
     // signals),  and  returns the signal number in sig
     // """
     int sig;
@@ -139,8 +139,7 @@ static void handle_incoming_signals(sem_t *rendez_vous) {
       std::terminate();
     } else if (sig == SIGINT) {
       if (is_likely_debugging()) {
-        // Alert the debugger instead of exiting.
-        std::raise(SIGTRAP);
+        std::raise(SIGSTOP);
       } else {
         std::exit(EXIT_FAILURE);
       }

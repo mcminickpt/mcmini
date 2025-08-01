@@ -15,6 +15,39 @@
 #include "mcmini/Thread_queue.h"
 #include "mcmini/mcmini.h"
 
+typedef struct pthread_map {
+    pthread_t thread;
+    runner_id_t value;
+    struct pthread_map *next;
+} pthread_map_t;
+
+static pthread_rwlock_t pthread_map_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_map_t *head = NULL;
+
+void insert_pthread_map(pthread_t t, runner_id_t v) {
+    pthread_rwlock_wrlock(&pthread_map_lock);
+    pthread_map_t *n = malloc(sizeof *n);
+    n->thread = t;
+    n->value = v;
+    n->next = head;
+    head = n;
+    pthread_rwlock_unlock(&pthread_map_lock);
+}
+
+runner_id_t search_pthread_map(pthread_t t) {
+  pthread_rwlock_rdlock(&pthread_map_lock);
+    pthread_map_t *cur = head;
+    while (cur) {
+        if (pthread_equal(cur->thread, t)) {
+            return cur->value;
+        }
+        cur = cur->next;
+    }
+    pthread_rwlock_unlock(&pthread_map_lock);
+    return RID_INVALID;
+}
+
+
 MCMINI_THREAD_LOCAL runner_id_t tid_self = RID_INVALID;
 
 runner_id_t mc_register_this_thread(void) {
@@ -23,6 +56,7 @@ runner_id_t mc_register_this_thread(void) {
 
   libpthread_mutex_lock(&mut);
   tid_self = tid_next++;
+  insert_pthread_map(pthread_self(), tid_self);
   libpthread_mutex_unlock(&mut);
   return tid_self;
 }
@@ -494,7 +528,9 @@ void *mc_thread_routine_wrapper(void *arg) {
     case DMTCP_RESTART_INTO_TEMPLATE: {
       thread_get_mailbox()->type = THREAD_EXIT_TYPE;
       thread_handle_after_dmtcp_restart();
-      thread_awake_scheduler_for_thread_finish_transition();
+
+      thread_get_mailbox()->type = THREAD_EXIT_TYPE;
+      thread_await_scheduler();
       break;
     }
     case TARGET_BRANCH:
@@ -721,14 +757,16 @@ int mc_pthread_join(pthread_t t, void **rv) {
     // Explicit fallthrough here
     case DMTCP_RESTART_INTO_BRANCH:
     case DMTCP_RESTART_INTO_TEMPLATE: {
-      memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
+      runner_id_t rid = search_pthread_map(t);
+      memcpy_v(thread_get_mailbox()->cnts, &rid, sizeof(runner_id_t));
       thread_get_mailbox()->type = THREAD_JOIN_TYPE;
       thread_handle_after_dmtcp_restart();
       return 0;
     }
     case TARGET_BRANCH:
     case TARGET_BRANCH_AFTER_RESTART: {
-      memcpy_v(thread_get_mailbox()->cnts, &t, sizeof(pthread_t));
+      runner_id_t rid = search_pthread_map(t);
+      memcpy_v(thread_get_mailbox()->cnts, &rid, sizeof(runner_id_t));
       thread_get_mailbox()->type = THREAD_JOIN_TYPE;
       thread_wake_scheduler_and_wait();
       return 0;
@@ -737,6 +775,7 @@ int mc_pthread_join(pthread_t t, void **rv) {
       libc_abort();
     }
   }
+
 }
 
 unsigned mc_sleep(unsigned duration) {

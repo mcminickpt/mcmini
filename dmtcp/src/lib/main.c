@@ -62,7 +62,25 @@ int dmtcp_mcmini_plugin_is_loaded(void) __attribute((weak));
 #define dmtcp_mcmini_plugin_is_loaded() \
   (dmtcp_mcmini_plugin_is_loaded ? dmtcp_mcmini_plugin_is_loaded() : 0)
 
+//   static void SegvfaultHandler(int signum, siginfo_t *siginfo, void *context) {
+//   while(1);
+// }
+// static int AddSegvHandler() {
+//   struct sigaction act;
+//   static struct sigaction old_act;
+
+//   act.sa_sigaction = &SegvfaultHandler;
+//   act.sa_flags = SA_RESTART | SA_SIGINFO;
+//   sigemptyset(&act.sa_mask);
+//   if (sigaction(SIGSEGV, &act, &old_act)) {
+//     perror("Failed to install segv handler");
+//     return -1;
+//   }
+//   return 0;
+// }
+
 __attribute__((constructor)) void libmcmini_main() {
+  // AddSegvHandler();
   // In recording mode, the constructor should be ignored and
   // the DMTCP callback should instead be used to determine when
   // `libmcmini.so` wrappers should begin recording.

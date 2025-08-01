@@ -23,6 +23,7 @@
 
 #include "mcmini/common/shm_config.h"
 #include "mcmini/defines.h"
+#include "mcmini/log/logger.hpp"
 #include "mcmini/misc/extensions/unique_ptr.hpp"
 #include "mcmini/real_world/mailbox/runner_mailbox.h"
 #include "mcmini/real_world/process.hpp"
@@ -34,8 +35,12 @@
 #include "mcmini/real_world/shm.hpp"
 #include "mcmini/signal.hpp"
 
+using namespace logging;
 using namespace real_world;
 using namespace extensions;
+
+logger fps("fork");
+logger mfps("mtf");
 
 fork_process_source::fork_process_source(real_world::target&& tp)
     : fork_process_source(tp) {}
@@ -48,13 +53,9 @@ fork_process_source::fork_process_source(
 
 multithreaded_fork_process_source::multithreaded_fork_process_source(
     const std::string& ckpt_file) {
-  this->coordinator_target.launch_and_wait();
   this->template_program = extensions::make_unique<dmtcp_target>(
       std::string("dmtcp_restart"),
-      std::vector<std::string>{
-          "--join-coordinator", "--port",
-          std::to_string(this->coordinator_target.get_port())},
-      ckpt_file);
+      std::vector<std::string>{"--new-coordinator", "--port", "0"}, ckpt_file);
   this->template_program->set_env("MCMINI_NEEDS_STATE", "1");
 
   // Possibly a dmtcp program...
@@ -138,7 +139,7 @@ void fork_process_source::make_new_template_process() {
   this->template_program->set_is_template();
   this->template_process_handle = nullptr;
   this->template_process_handle = extensions::make_unique<local_linux_process>(
-      this->template_program->launch_dont_wait());
+      this->template_program->launch_dont_wait(), false);
 }
 
 void multithreaded_fork_process_source::make_new_template_process() {

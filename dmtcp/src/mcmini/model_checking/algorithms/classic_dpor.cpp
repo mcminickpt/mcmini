@@ -15,6 +15,7 @@
 
 #include "mcmini/coordinator/coordinator.hpp"
 #include "mcmini/defines.h"
+#include "mcmini/log/logger.hpp"
 #include "mcmini/model/exception.hpp"
 #include "mcmini/model/program.hpp"
 #include "mcmini/model/transition.hpp"
@@ -29,7 +30,10 @@
 #include "mcmini/real_world/process.hpp"
 
 using namespace model;
+using namespace logging;
 using namespace model_checking;
+
+logger dpor_logger("dpor");
 
 struct classic_dpor::dpor_context {
   ::coordinator &coordinator;
@@ -109,12 +113,16 @@ void classic_dpor::verify_using(coordinator &coordinator,
   ///
   /// The initial entry into the stack represents the information DPOR tracks
   /// for state `s_0`.
+  log_debug(dpor_logger) << "Initializing the DPOR stack";
   stats model_checking_stats;
   dpor_context context(coordinator);
   auto &dpor_stack = context.stack;
   dpor_stack.emplace_back(
       clock_vector(),
       coordinator.get_current_program_model().get_enabled_runners());
+  log_very_verbose(dpor_logger)
+      << "Initial enabled runners: "
+      << coordinator.get_current_program_model().get_enabled_runners();
 
   while (!dpor_stack.empty()) {
     // 2. Exploration phase
@@ -182,13 +190,17 @@ void classic_dpor::verify_using(coordinator &coordinator,
     while (!dpor_stack.empty() && dpor_stack.back().backtrack_set_empty())
       dpor_stack.pop_back();
 
-    model_checking_stats.trace_id++;
     if (!dpor_stack.empty()) {
       // At this point, the model checker's data structures are valid for
       // `dpor_stack.size()` states; however, the model and the associated
       // process(es) that the model represent do not yet correspond after
       // backtracking.
+      log_debug(dpor_logger)
+          << "Backtracking to depth `" << (dpor_stack.size() - 1) << "`";
       coordinator.return_to_depth(dpor_stack.size() - 1);
+      log_debug(dpor_logger) << "Finished backtracking to depth `"
+                             << (dpor_stack.size() - 1) << "`";
+      model_checking_stats.trace_id++;
 
       // The first step of the NEXT exploration phase begins with following
       // one of the backtrack threads. Select one thread to backtrack upon and
@@ -207,7 +219,9 @@ void classic_dpor::verify_using(coordinator &coordinator,
 
 void classic_dpor::continue_dpor_by_expanding_trace_with(
     runner_id_t p, dpor_context &context) {
+  log_debug(dpor_logger) << "DPOR selected `" << p << "` to explore";
   context.coordinator.execute_runner(p);
+  log_debug(dpor_logger) << "DPOR expanded following `" << p << "`";
   this->grow_stack_after_running(context);
   this->dynamically_update_backtrack_sets(context);
 }

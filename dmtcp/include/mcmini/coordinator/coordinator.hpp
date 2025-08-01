@@ -164,7 +164,7 @@ class coordinator {
   void execute_runner(real_world::process::runner_id_t id);
 
  private:
-  logging::logger logger;
+  logging::logger logger = logging::logger("coord");
   model::program current_program_model;
   model::transition_registry runtime_transition_mapping;
   std::unique_ptr<real_world::process> current_process_handle;
@@ -194,8 +194,12 @@ class coordinator {
     // destroyed, the process to which is corresponds no longer exists. That is,
     // the process must be destroyed _synchronously_ upon destruction or else
     // already be destroyed prior to destruction.
+    log_verbose(logger) << "Removing the current branch process";
     this->current_process_handle = nullptr;
+    log_verbose(logger)
+        << "Removed the current branch process. Creating a new branch process";
     this->current_process_handle = this->process_source->force_new_process();
+    log_verbose(logger) << "New branch process created by the coordinator";
   }
 
   // Allow modifications through the `model_to_system_map` (impl detail)

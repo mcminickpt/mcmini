@@ -381,6 +381,9 @@ std::string find_first_ckpt_file_in_cwd() {
 int main_cpp(int argc, const char** argv) {
   model::config mcmini_config;
 
+  if (const char* env_p = std::getenv("MCMINI_LOG_LEVEL"))
+    mcmini_config.global_severity_level = logging::parse_severity(env_p);
+
   const char** cur_arg = &argv[1];
   if (argc == 1) {
     cur_arg[0] = "--help";

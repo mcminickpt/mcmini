@@ -138,7 +138,7 @@ static void saveThreadStateBeforeFork(struct threadinfo* threadInfo) {
   }
 }
 
-int child_setcontext_fast(void *arg) {
+static int child_setcontext_fast(void *arg) {
   struct threadinfo* threadInfo = arg;
   setTLSPointer(threadInfo);
   patchThreadDescriptor(threadInfo->pthread_descriptor);
@@ -147,7 +147,9 @@ int child_setcontext_fast(void *arg) {
 }
 
 void restart_child_threads_fast(void) {
-  for (int i = 0; i < threadIdx; i++) {
+  int maxThreadIdx = atomic_load(&threadIdx);
+  for (int i = 0; i < maxThreadIdx; i++) {
+                      if (i == 0) break;
     // int clone(int (*fn)(void *), void *stack, int flags, void *arg, ...
     //           /* pid_t *parent_tid, void *tls, pid_t *child_tid */ );
     int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SYSVSEM
@@ -473,10 +475,15 @@ static void *template_thread(void *unused) {
 //     perror("Failed to install segv handler");
 //     return -1;
 //   }
+//   if (sigaction(SIGABRT, &act, &old_act)) {
+//     perror("Failed to install segv handler");
+//     return -1;
+//   }
 //   return 0;
 // }
 
 __attribute__((constructor)) void libmcmini_event_late_init() {
+  // AddSegvHandler();
   if (!dmtcp_is_enabled()) {
     return;
   }

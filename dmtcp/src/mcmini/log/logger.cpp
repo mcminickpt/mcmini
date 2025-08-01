@@ -1,5 +1,6 @@
 #include "mcmini/log/logger.hpp"
 
+#include <cmath>
 #include <vector>
 
 #include "mcmini/log/log_control.hpp"
@@ -28,6 +29,18 @@ void log_control::set_filter(filter *filt) {
   this->active_filter.reset(filt);
 }
 
+static std::string filename_from_path(const char *path) {
+  std::string p(path);
+  auto pos = p.find_last_of("/\\");
+  std::string basename = (pos == std::string::npos) ? p : p.substr(pos + 1);
+  return basename;
+}
+
+static uint32_t digits(uint32_t x) {
+  if (x == 0) return 1;
+  return static_cast<uint32_t>(std::ceil(std::log10(x + 1)));
+}
+
 void log_control::log_raw(const std::string &instance,
                           const std::string &subsystem,
                           const std::string &message,
@@ -45,13 +58,16 @@ void log_control::log_raw(const std::string &instance,
   localtime_r(&t, &tm);
   char buf[100];
   buf[std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm)] = '\0';
-  std::string instance_str = instance != "" ? (" (" + instance + ")") : "";
+  const std::string instance_str =
+      instance != "" ? (" (" + instance + ") ") : "";
+  const std::string subsystem_str =
+      subsystem != "" ? (" " + subsystem + " ") : "";
 
   std::stringstream ss;
-  ss << "[" << constants::getpid() << "] " << subsystem << instance_str << " "
+  ss << "[" << constants::getpid() << "]" << subsystem_str << instance_str
      << buf << " " << std::left << std::setw(5)
-     << log_level_strs[static_cast<uint32_t>(severity)] << " " << file << ":"
-     << line << ": ";
+     << log_level_strs[static_cast<uint32_t>(severity)] << " "
+     << filename_from_path(file) << ":" << line << ": ";
   const std::string prefix = ss.str();
 
   std::vector<std::string> lines;
@@ -62,8 +78,15 @@ void log_control::log_raw(const std::string &instance,
 
   if (lines.size() > 1) {
     uint32_t lineno = 0;
-    for (const auto &line : lines)
-      std::clog << prefix << "(lineno: " << lineno++ << ") " << line << "\n";
+    const uint32_t num_lines = lines.size();
+    const uint32_t padding = digits(num_lines);
+    for (const auto &line : lines) {
+      std::clog << prefix << "(lineno: " << std::left
+                << std::setw(padding - digits(lineno) + 1) << lineno
+                << std::left << std::setw(1) << ") " << line << "\n";
+      lineno++;
+    }
+
   } else if (!lines.empty()) {
     std::clog << prefix << lines[0] << "\n";
   }

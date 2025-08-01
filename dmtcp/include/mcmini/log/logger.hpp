@@ -1,12 +1,15 @@
 #pragma once
 
 #include <iostream>
+#include <iterator>
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 #include "mcmini/log/log_control.hpp"
 #include "mcmini/log/severity_level.hpp"
+#include "mcmini/model/program.hpp"
 
 #define log_severity(logger, severity) \
   logger.make_stream(__FILE__, __LINE__) << severity
@@ -44,6 +47,19 @@ class logger {
     template <typename T>
     stream &operator<<(const T &value) {
       ostream << value;
+      return *this;
+    }
+
+    template <typename T>
+    stream &operator<<(const std::unordered_set<T> &set) {
+      ostream << "[";
+      for (const T &t : set) ostream << t << ", ";
+      ostream << "]";
+      return *this;
+    }
+
+    stream &operator<<(const model::program &prog) {
+      prog.dump_state(this->ostream);
       return *this;
     }
 

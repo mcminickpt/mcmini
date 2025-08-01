@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <pthread.h>
 #include <signal.h>
+#include <sys/syscall.h>
 
 #include "mcmini/lib/sig.h"
 #include "mcmini/common/exit.h"
@@ -68,6 +69,10 @@ void mc_prepare_new_child_process(pid_t template_pid, pid_t model_checker_pid) {
 static sem_t sigchld_sem;
 static volatile sig_atomic_t global_model_checker_pid = NO_DEFINED_MCMINI_PID;
 
+int rt_sigqueueinfo(pid_t tgid, int sig, siginfo_t *info) {
+  return syscall(SYS_rt_sigqueueinfo, tgid, sig, info);
+}
+
 void mc_template_receive_sigchld(int sig, siginfo_t *info, void *) {
     assert(global_model_checker_pid != NO_DEFINED_MCMINI_PID);
     printf("signalling!!\n");
@@ -81,15 +86,19 @@ void mc_template_receive_sigchld(int sig, siginfo_t *info, void *) {
       return;
     }
     if (WIFEXITED(status)) {
-      int exit_code = WEXITSTATUS(status);
-      signal_mcmini = exit_code != 0;
+      // int exit_code = WEXITSTATUS(status);
+      // printf("exited %d", status);
+      signal_mcmini = true;
     }
     else if (WIFSIGNALED(status)) {
       int signo = WTERMSIG(status);
+      printf("signaled %d", status);
+      fsync(STDOUT_FILENO);
       signal_mcmini = is_bad_signal(signo);
     }
     if (signal_mcmini) {
       printf("signalling McMini!!\n");
+      fsync(STDOUT_FILENO);
       // TODO: We can use `sigqueue(3)` to pass the exit status of
       // the child to the McMini process
       //
@@ -99,6 +108,7 @@ void mc_template_receive_sigchld(int sig, siginfo_t *info, void *) {
       // to deliver the `siginfo_t` directly.
       //
       // See https://man7.org/linux/man-pages/man2/rt_sigqueueinfo.2.html
+      // rt_sigqueueinfo(global_model_checker_pid, SIGCHLD, info);
       kill(global_model_checker_pid, SIGCHLD);
     }
     libpthread_sem_post(&sigchld_sem);
@@ -199,7 +209,8 @@ void mc_template_thread_loop_forever(void) {
     libpthread_sem_wait((sem_t *)&tpt->libmcmini_sem);
     log_debug("`mcmini` signaled a fork!");
 
-    const pid_t cpid = fast_multithreaded_fork();
+    const pid_t cpid = multithreaded_fork();
+
     if (cpid == -1) {
       // `multithreaded_fork()` failed
       log_debug("The template process failed to create a new child%d\n");
@@ -215,6 +226,7 @@ void mc_template_thread_loop_forever(void) {
       log_debug("The template process created child with pid %d\n", cpid);
       tpt->cpid = cpid;
     }
+    log_debug("Signaling `mcmini` about child status\n");
     libpthread_sem_post((sem_t *)&tpt->mcmini_process_sem);
 
     if (!has_transferred_state) {
