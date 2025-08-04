@@ -592,7 +592,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   // TODO: Assert whether a trace process exists at this point
 
   do {
-    if (depth >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+    if (transitionId >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
       printResults();
       mcprintf(
         "*** Execution Limit Reached! ***\n\n"
@@ -758,7 +758,8 @@ get_config_for_execution_environment()
   // environment. This suggests that mcmini would be better as a
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
-  uint64_t maxThreadDepth = MC_STATE_CONFIG_THREAD_NO_LIMIT;
+  uint64_t maxThreadDepth = MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT;
+  uint64_t maxTotalDepth = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT;
   trid_t printBacktraceAtTraceNumber = MC_STATE_CONFIG_PRINT_AT_TRACE;
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
@@ -766,6 +767,10 @@ get_config_for_execution_environment()
   // TODO: Sanitize arguments (check errors of strtoul)
   if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
     maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
+  }
+  
+  if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
+    maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
   }
 
   if (getenv(ENV_PRINT_AT_TRACE_ID) != NULL) {
@@ -780,7 +785,7 @@ get_config_for_execution_environment()
     firstDeadlock = true;
   }
 
-  return {maxThreadDepth, printBacktraceAtTraceNumber, firstDeadlock,
+  return {maxThreadDepth, maxTotalDepth, printBacktraceAtTraceNumber, firstDeadlock,
           expectForwardProgressOfThreads};
 }
 

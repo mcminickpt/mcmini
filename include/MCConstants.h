@@ -10,6 +10,8 @@
   (MAX_TOTAL_THREADS_IN_PROGRAM +          \
    MAX_TOTAL_VISIBLE_OBJECTS_IN_PROGRAM)
 
+// MAX_TOTAL_TRANSITIONS_IN_PROGRAM is different from 
+// ENV_MAX_TRANSITIONS_DEPTH_LIMIT
 #define MAX_TOTAL_TRANSITIONS_IN_PROGRAM (1500)
 #define MAX_TOTAL_STATES_IN_STATE_STACK \
   (MAX_TOTAL_TRANSITIONS_IN_PROGRAM + 1)
@@ -24,6 +26,22 @@ typedef uint64_t trid_t;
 
 #define FORK_IS_CHILD_PID(pid)    ((pid) == 0)
 #define FORK_IS_PARENT_PID(pid)   (!(FORK_IS_CHILD_PID(pid)))
+
+/**
+ * A configuration constant which specifies that threads
+ * may execute as many transitions as they would like (i.e. are
+ * not limited to an execution depth)
+ */
+#define MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT (UINT64_MAX)
+#define MC_STATE_CONFIG_PRINT_AT_TRACE  (UINT64_MAX)
+
+/**
+ * A configuration constant which specifies that a branch may
+ * execute as many transitions as it wants, given that the
+ * total number of transitions in the search tree does not exceed
+ * the default bound set by MAX_TOTAL_TRANSITIONS_IN_PROGRAM
+ */
+#define MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT (1500)
 
 #ifdef MC_SHARED_LIBRARY
 #define MC_CONSTRUCTOR __attribute__((constructor))
