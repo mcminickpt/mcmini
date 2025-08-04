@@ -78,7 +78,6 @@ int main(int argc, char* argv[]) {
 
     pthread_t read_thread[NUM_READERS];
     pthread_t write_thread[NUM_WRITERS];
-
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cond, NULL);
 

@@ -1,0 +1,95 @@
+#include "mcmini/log/logger.hpp"
+
+#include <cmath>
+#include <vector>
+
+#include "mcmini/log/log_control.hpp"
+#include "mcmini/log/severity_level.hpp"
+
+using namespace logging;
+
+static const char *log_level_strs[] = {
+    "NOTHING",    "VERY_VERBOSE", "VERBOSE",  "DEBUG", "INFO",
+    "UNEXPECTED", "ERROR",        "CRITICAL", "ABORT", "EVERYTHING"};
+
+void log_control::allow_everything() {
+  this->set_filter(new permissive_filter());
+}
+
+void log_control::allow_everything_over(severity_level level) {
+  this->set_filter(new severity_filter(level));
+}
+
+void log_control::blacklist(blacklist_filter bl) {
+  this->set_filter(new blacklist_filter(std::move(bl)));
+}
+
+void log_control::set_filter(filter *filt) {
+  RWLock::WriteGuard guard(this->filter_lock);
+  this->active_filter.reset(filt);
+}
+
+static std::string filename_from_path(const char *path) {
+  std::string p(path);
+  auto pos = p.find_last_of("/\\");
+  std::string basename = (pos == std::string::npos) ? p : p.substr(pos + 1);
+  return basename;
+}
+
+static uint32_t digits(uint32_t x) {
+  if (x == 0) return 1;
+  return static_cast<uint32_t>(std::ceil(std::log10(x + 1)));
+}
+
+void log_control::log_raw(const std::string &instance,
+                          const std::string &subsystem,
+                          const std::string &message,
+                          const severity_level severity, const char *file,
+                          int line) {
+  std::string subsystem_str = subsystem != "" ? subsystem : "global";
+  if (active_filter) {
+    RWLock::ReadGuard guard(this->filter_lock);
+    if (!active_filter->apply(subsystem_str, severity)) {
+      return;
+    }
+  }
+
+  tm tm;
+  time_t t = std::time(nullptr);
+  localtime_r(&t, &tm);
+  char buf[100];
+  buf[std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm)] = '\0';
+  const std::string instance_str =
+      instance != "" ? (" (" + instance + ") ") : "";
+  std::string file_str = filename_from_path(file) + ":" + std::to_string(line);
+  subsystem_str.resize(constants::subsystem_log_size(), ' ');
+  file_str.resize(constants::file_log_size(), ' ');
+
+  std::stringstream ss;
+  ss << "[" << constants::getpid() << "] " << subsystem_str << " "
+     << instance_str << buf << " " << std::left << std::setw(5)
+     << log_level_strs[static_cast<uint32_t>(severity)] << " " << file_str
+     << ": ";
+  const std::string prefix = ss.str();
+
+  std::vector<std::string> lines;
+  std::istringstream ss_msg(message);
+  for (std::string line; std::getline(ss_msg, line);) {
+    lines.push_back(line);
+  }
+
+  if (lines.size() > 1) {
+    uint32_t lineno = 0;
+    const uint32_t num_lines = lines.size();
+    const uint32_t padding = digits(num_lines);
+    for (const auto &line : lines) {
+      std::clog << prefix << "(lineno: " << std::left
+                << std::setw(padding - digits(lineno) + 1) << lineno
+                << std::left << std::setw(1) << ") " << line << "\n";
+      lineno++;
+    }
+
+  } else if (!lines.empty()) {
+    std::clog << prefix << lines[0] << "\n";
+  }
+}
