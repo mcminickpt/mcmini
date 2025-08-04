@@ -46,9 +46,10 @@ void log_control::log_raw(const std::string &instance,
                           const std::string &message,
                           const severity_level severity, const char *file,
                           int line) {
+  std::string subsystem_str = subsystem != "" ? subsystem : "global";
   if (active_filter) {
     RWLock::ReadGuard guard(this->filter_lock);
-    if (!active_filter->apply(subsystem, severity)) {
+    if (!active_filter->apply(subsystem_str, severity)) {
       return;
     }
   }
@@ -60,14 +61,15 @@ void log_control::log_raw(const std::string &instance,
   buf[std::strftime(buf, sizeof(buf), "%H:%M:%S", &tm)] = '\0';
   const std::string instance_str =
       instance != "" ? (" (" + instance + ") ") : "";
-  const std::string subsystem_str =
-      subsystem != "" ? (" " + subsystem + " ") : "";
+  std::string file_str = filename_from_path(file) + ":" + std::to_string(line);
+  subsystem_str.resize(constants::subsystem_log_size(), ' ');
+  file_str.resize(constants::file_log_size(), ' ');
 
   std::stringstream ss;
-  ss << "[" << constants::getpid() << "]" << subsystem_str << instance_str
-     << buf << " " << std::left << std::setw(5)
-     << log_level_strs[static_cast<uint32_t>(severity)] << " "
-     << filename_from_path(file) << ":" << line << ": ";
+  ss << "[" << constants::getpid() << "] " << subsystem_str << " "
+     << instance_str << buf << " " << std::left << std::setw(5)
+     << log_level_strs[static_cast<uint32_t>(severity)] << " " << file_str
+     << ": ";
   const std::string prefix = ss.str();
 
   std::vector<std::string> lines;

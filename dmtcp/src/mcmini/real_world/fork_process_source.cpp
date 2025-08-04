@@ -53,6 +53,8 @@ fork_process_source::fork_process_source(
 
 multithreaded_fork_process_source::multithreaded_fork_process_source(
     const std::string& ckpt_file) {
+  log_debug(mfps) << "Initialized mtf source with checkpoint file `"
+                  << ckpt_file << "`";
   this->template_program = extensions::make_unique<dmtcp_target>(
       std::string("dmtcp_restart"),
       std::vector<std::string>{"--new-coordinator", "--port", "0"}, ckpt_file);
@@ -137,9 +139,12 @@ void fork_process_source::make_new_template_process() {
   // to erroneously think that there is a template process when indeed there
   // isn't one.
   this->template_program->set_is_template();
+  log_verbose(fps) << "Resetting template handle";
   this->template_process_handle = nullptr;
+  log_verbose(fps) << "Template handle reset. Launching template program";
   this->template_process_handle = extensions::make_unique<local_linux_process>(
       this->template_program->launch_dont_wait(), false);
+  log_verbose(fps) << "Template process `fork()`-ed";
 }
 
 void multithreaded_fork_process_source::make_new_template_process() {
@@ -152,7 +157,9 @@ void multithreaded_fork_process_source::make_new_template_process() {
       &(rw_region->as<mcmini_shm_file>()->tpt);
 
   signal_tracker::set_sem((sem_t*)&tstruct->mcmini_process_sem);
+
   fork_process_source::make_new_template_process();
+  log_verbose(mfps) << "Waiting for the template thread to stabilize";
   int rc = signal_tracker::sig_semwait((sem_t*)&tstruct->mcmini_process_sem);
   if (rc != 0) {
     throw process_source::process_creation_exception(

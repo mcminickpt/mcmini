@@ -120,13 +120,13 @@ volatile atomic_int threadIdx = 0; // threadInfo[threadIdx] is 'struct threadinf
 # include <asm/prctl.h>
 # include <sys/prctl.h>
 
-void getTLSPointer(struct threadinfo *localThreadInfo) {
+static void getTLSPointer(struct threadinfo *localThreadInfo) {
 
   assert(syscall(SYS_arch_prctl, ARCH_GET_FS, &localThreadInfo->fs) == 0);
   assert(syscall(SYS_arch_prctl, ARCH_GET_GS, &localThreadInfo->gs) == 0);
 }
 
-void setTLSPointer(struct threadinfo *localThreadInfo) {
+static void setTLSPointer(struct threadinfo *localThreadInfo) {
   assert(syscall(SYS_arch_prctl, 2, ARCH_SET_FS, localThreadInfo->fs) != 0);
   assert(syscall(SYS_arch_prctl, 2, ARCH_SET_GS, localThreadInfo->gs) != 0);
 }

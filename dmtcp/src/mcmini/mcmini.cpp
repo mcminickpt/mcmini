@@ -490,7 +490,6 @@ int main_cpp(int argc, const char** argv) {
       cur_arg++;
     }
   }
-  target::prepare_mcmini_targets();
   signal_tracker::install_process_wide_signal_handlers();
   logging::log_control::instance().allow_everything_over(
       mcmini_config.global_severity_level);

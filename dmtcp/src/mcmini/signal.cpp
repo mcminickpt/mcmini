@@ -118,6 +118,7 @@ static void handle_incoming_signals(sem_t *rendez_vous) {
   // "Bad" signals (e.g. SIGSEGV) shouldn't be captured by `sigwait()` and
   // should instead lead to default program exiting behaviors
   sigdelset(&all_signals, SIGCHLD);
+  sigdelset(&all_signals, SIGTSTP);
   for (const auto sig_pair : sig_to_str) {
     if (signal_tracker::is_bad_signal(sig_pair.first)) {
       sigdelset(&all_signals, sig_pair.first);
