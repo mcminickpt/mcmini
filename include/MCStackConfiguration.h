@@ -3,13 +3,6 @@
 
 #include "MCShared.h"
 
-/**
- * A configuration constant which specifies that threads
- * may execute as many transitions as they would like (i.e. are
- * not limited to an execution depth)
- */
-#define MC_STATE_CONFIG_THREAD_NO_LIMIT (UINT64_MAX)
-#define MC_STATE_CONFIG_PRINT_AT_TRACE  (UINT64_MAX)
 
 /**
  * A struct which describes the configurable parameters
@@ -22,6 +15,12 @@ struct MCStackConfiguration final {
    * by any single thread while running the model checker
    */
   const uint64_t maxThreadExecutionDepth;
+
+  /**
+   * The maximum number of transitions that can be run by
+   * all the threads in total while running the model checker
+   */
+  const uint64_t maxTotalTransitionsDepthLimit;
 
   /**
    * The trace id to stop the model checker at
@@ -43,10 +42,12 @@ struct MCStackConfiguration final {
   const bool expectForwardProgressOfThreads;
 
   MCStackConfiguration(uint64_t maxThreadExecutionDepth,
+                       uint64_t maxTotalTransitionsDepthLimit,
                        trid_t printBacktraceAtTraceNumber,
                        bool firstDeadlock,
                        bool expectForwardProgressOfThreads)
     : maxThreadExecutionDepth(maxThreadExecutionDepth),
+      maxTotalTransitionsDepthLimit(maxTotalTransitionsDepthLimit),
       printBacktraceAtTraceNumber(printBacktraceAtTraceNumber),
       expectForwardProgressOfThreads(expectForwardProgressOfThreads)
   {}

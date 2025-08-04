@@ -341,6 +341,12 @@ const MCTransition *MCStack::getFirstEnabledTransition() {
     return &(this->getNextTransitionForThread(nextTraceEntry));
   }
 
+  if (this->transitionStackTop >= this->configuration.maxTotalTransitionsDepthLimit) {
+    // Return nullptr if the total number of transitions executed has reached 
+    // the maximum limit set by user (ENV_MAX_TRANSITIONS_DEPTH_LIMIT)
+    return nullptr;
+  }
+
   const uint32_t numThreads = this->getNumProgramThreads();
   for (uint32_t i = 0; i < numThreads; i++) {
     const MCTransition &nextTransition = this->getNextTransitionForThread(i);
