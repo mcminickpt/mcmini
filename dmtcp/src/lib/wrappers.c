@@ -65,7 +65,7 @@ volatile runner_mailbox *thread_get_mailbox() {
   assert(!is_checkpoint_thread());
   assert(tid_self != RID_INVALID);
   assert(tid_self != RID_CHECKPOINT_THREAD);
-  return &((volatile struct mcmini_shm_file *)(global_shm_start))
+  return &((volatile struct mcmini_shm_file *)(get_global_shm_start()))
               ->mailboxes[tid_self];
 }
 

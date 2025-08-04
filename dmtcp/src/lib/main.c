@@ -17,8 +17,6 @@
 #include "dmtcp.h"
 #include "mcmini/mcmini.h"
 
-volatile void *global_shm_start = NULL;
-
 void mc_allocate_shared_memory_region(const char *shm_name) {
   int fd = shm_open(shm_name, O_RDWR, S_IRUSR | S_IWUSR);
   if (fd == -1) {
@@ -43,7 +41,7 @@ void mc_allocate_shared_memory_region(const char *shm_name) {
   }
   fsync(fd);
   close(fd);
-  global_shm_start = gshms;
+  set_global_shm_start(gshms);
 }
 
 void mc_deallocate_shared_memory_region(void) {
