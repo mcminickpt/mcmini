@@ -3,6 +3,12 @@ build/*
 build*
 cmake-build-debug/*
 
+# Don't commit output files from configure for .in files
+Makefile
+script/templates/remake.zsh
+mcmini-gdb
+include/config.h
+
 # Prerequisites
 *.d
 
