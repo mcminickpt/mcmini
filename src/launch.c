@@ -84,6 +84,11 @@ main(int argc, char *argv[])
       setenv(ENV_FIRST_DEADLOCK, "1", 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--check-for-livelock") == 0 ||
+             strcmp(cur_arg[0], "-l") == 0) {
+      setenv(ENV_CHECK_FOR_LIVELOCK, "1", 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 ||
              strcmp(cur_arg[0], "-c") == 0) {
       setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
@@ -126,8 +131,9 @@ main(int argc, char *argv[])
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
-											"							 [--max-transitions-depth-limit (default: %d)|-M <num>]\n"
+                      "              [--max-transitions-depth-limit (default: %d)|-M <num>]\n"
                       "              [--first-deadlock|--first|-f]\n"
+                      "              [--check-for-livelock|-l]\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"

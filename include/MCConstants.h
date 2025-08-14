@@ -35,6 +35,11 @@ typedef uint64_t trid_t;
 #define MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT (UINT64_MAX)
 #define MC_STATE_CONFIG_PRINT_AT_TRACE  (UINT64_MAX)
 
+#define LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH (150)
+#define LLOCK_MAX_PATTERN_SIZE (20)
+#define LLOCK_MAX_SCAN_DEPTH (150)
+#define LLOCK_MIN_PATTERN_REPEATS (3)
+#define LLOCK_MIN_SCAN_DEPTH (30)
 /**
  * A configuration constant which specifies that a branch may
  * execute as many transitions as it wants, given that the
