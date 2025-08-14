@@ -308,6 +308,45 @@ mc_explore_branch(int curBranchPoint)
   return programState->getDeepestDPORBranchPoint();
 }
 
+bool
+isInLivelock()
+{
+  const MCTransition *nextTransition = programState->getFirstEnabledTransition();
+  bool hasLivelock = false;
+  traceElement traceArr[MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT];
+  int traceLen = 0;
+
+  while (nextTransition != nullptr && transitionId < MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+    const tid_t tid = nextTransition->getThreadId();
+    mc_run_thread_to_next_visible_operation(tid);
+
+    programState->simulateRunningTransition(
+      *nextTransition, shmTransitionTypeInfo, shmTransitionData);
+
+    nextTransition = programState->getFirstEnabledTransition();
+    transitionId++;
+  }
+
+  if (nextTransition == nullptr && !programState->isInDeadlock()) {
+    programState->copyCurrentTraceToArray(traceArr, traceLen);
+    hasLivelock = programState->hasRepetition(traceArr, traceLen);
+  }
+  else if (transitionId >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+    printResults();
+    mcprintf(
+      "*** Execution Limit Reached! ***\n\n"
+      "McMini ran a trace with %lu transitions.  To increase this limit,\n"
+      "modify MAX_TOTAL_TRANSITIONS_IN_PROGRAM in MCConstants.h and"
+      " re-compile.\n"
+      "But first, try running mcmini with the \"--max-depth-per-thread\""
+      " flag (\"-m\")\n"
+      "to limit how far into a trace a McMini thread can go.\n",
+      transitionId);
+    mc_stop_model_checking(EXIT_FAILURE);
+  }
+  return hasLivelock;
+}
+
 void
 mc_do_model_checking()
 {
@@ -636,12 +675,24 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
     if (nextTransition == nullptr ||
         (traceSeqLength() > 0 && programState->isInDeadlock())) {
-      const bool hasDeadlock = programState->isInDeadlock();
+      bool hasDeadlock = programState->isInDeadlock();
+      bool hasLivelock = 0;
       if (hasDeadlock && nextTransition != nullptr) { // Stop using traceSeq
         addResult("  [Truncating traceSeq from '-t', due to deadlock!]\n");
         nextTransition = nullptr;
       }
-      const bool programHasNoErrors = !hasDeadlock;
+      if (getenv(ENV_CHECK_FOR_LIVELOCK) && nextTransition == nullptr) {
+        programState->increaseMaxTransitionsDepthLimit(
+          LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH);
+        hasLivelock = isInLivelock();
+        /*
+         * isInLivelock() exits before reaching
+         * LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
+         * if a deadlock was discovered.
+         */
+        hasDeadlock = programState->isInDeadlock();
+      }
+      const bool programHasNoErrors = !hasDeadlock && !hasLivelock;
       char *v = getenv(ENV_VERBOSE);
       int verbose = v ? v[0] - '0' : 0;
 
@@ -659,6 +710,15 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
           printResults();
           mc_exit(EXIT_SUCCESS); // Exit McMini
         }
+      }
+
+      if (hasLivelock) {
+        mcprintf("TraceId %lu, *** POTENTIAL LIVELOCK DETECTED ***\n", traceId);
+        programState->printNextTransitions();
+        addResult("*** POTENTIAL LIVELOCK DETECTED ***\n");
+        traceId++;
+        printResults();
+        mc_exit(EXIT_SUCCESS);
       }
 
       if (programHasNoErrors) {

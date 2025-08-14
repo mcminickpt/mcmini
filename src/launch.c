@@ -93,6 +93,11 @@ main(int argc, char *argv[])
       setenv(ENV_FIRST_DEADLOCK, "1", 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--check-for-livelock") == 0 ||
+             strcmp(cur_arg[0], "-l") == 0) {
+      setenv(ENV_CHECK_FOR_LIVELOCK, "1", 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 ||
              strcmp(cur_arg[0], "-c") == 0) {
       setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
@@ -139,6 +144,7 @@ main(int argc, char *argv[])
                       "                               (default num = %d)\n"
                       "              [--first-deadlock|--first|-f] (default)\n"
                       "              [--all-deadlocks|--all|-a]\n"
+                      "              [--check-for-livelock|-l] (experimental)\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"
