@@ -20,7 +20,7 @@ struct MCStackConfiguration final {
    * The maximum number of transitions that can be run by
    * all the threads in total while running the model checker
    */
-  const uint64_t maxTotalTransitionsDepthLimit;
+  uint64_t maxTotalTransitionsDepthLimit;
 
   /**
    * The trace id to stop the model checker at

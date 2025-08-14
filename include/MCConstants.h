@@ -41,6 +41,23 @@ typedef uint64_t trid_t;
 #define MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT (UINT64_MAX)
 #define MC_STATE_CONFIG_PRINT_AT_TRACE  (UINT64_MAX)
 
+#define LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH (100)
+/* The livelock algorithm for pattern detection uses the following constants:
+ *   1. LLOCK_MAX_PATTERN_SIZE: Maximum size that a candidate pattern can grow
+ *                              before returning no livelock
+ *   2. LLOCK_MAX_SCAN_DEPTH: Number of transitions for which McMini scans
+ *                            for confirming a livelock
+ *   3. LLOCK_MIN_PATTERN_REPEATS: Minimum number of times a pattern must
+ *                                 repeat to be declared livelock
+ *   4. LLOCK_MIN_SCAN_DEPTH: The pattern size times the number of repetitions
+ *                            must be at least this value, in order to be
+ *                            declared livelock
+ */
+#define LLOCK_MAX_PATTERN_SIZE (20)
+#define LLOCK_MAX_SCAN_DEPTH (LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH)
+#define LLOCK_MIN_PATTERN_REPEATS (3)
+#define LLOCK_MIN_SCAN_DEPTH (30)
+
 #ifdef MC_SHARED_LIBRARY
 #define MC_CONSTRUCTOR __attribute__((constructor))
 #else
