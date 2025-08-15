@@ -47,6 +47,8 @@ check-gdb: debug test/program/producer_consumer
 	  sleep 15; \
 	fi
 	./mcmini-gdb test/program/producer_consumer --quiet 3 3 1
+check-annotate: debug test/program/producer_consumer
+	./mcmini-annotate test/program/producer_consumer --quiet 3 3 1
 
 mcmini: src/launch.c libmcmini.so
 	${CC} -g3 -O0 -Iinclude -o $@ $<
