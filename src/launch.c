@@ -35,6 +35,9 @@ main(int argc, char *argv[])
     cur_arg[1] = NULL;
   }
 
+  // Default:  stop on first deadlock
+  setenv(ENV_FIRST_DEADLOCK, "1", 1);
+
   // TODO: Use argp.h instead (more options, better descriptions, etc)
   while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
     if (strcmp(cur_arg[0], "--max-transitions-depth-limit") == 0 ||
@@ -76,6 +79,12 @@ main(int argc, char *argv[])
       } else {
         setenv(ENV_VERBOSE, "1", 1);
       }
+      cur_arg++;
+    }
+    else if (strcmp(cur_arg[0], "--all-deadlocks") == 0 ||
+             strcmp(cur_arg[0], "--all") == 0 ||
+             strcmp(cur_arg[0], "-a") == 0) {
+      unsetenv(ENV_FIRST_DEADLOCK);
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--first-deadlock") == 0 ||
@@ -128,7 +137,8 @@ main(int argc, char *argv[])
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
                       "              [--max-transitions-depth-limit|-M <num>]\n"
                       "                               (default num = %d)\n"
-                      "              [--first-deadlock|--first|-f]\n"
+                      "              [--first-deadlock|--first|-f] (default)\n"
+                      "              [--all-deadlocks|--all|-a]\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"
