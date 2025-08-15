@@ -5385,7 +5385,7 @@ if $PYTHON -c 'import sys; sys.exit('$PYTHON_VERSION_MINOR' >= 7)'; then
     echo '*** To avoid it, set $PYTHON or $PYTHON3 env variable to newer Python.'
     cp -pf gdbinit_commands.py gdbinit_commands.py.orig-mcmini
     if ! patch -p1 -i mcmini-oldsys.patch; then
-      echo "mcmini-oldsys.patch failed: exiting from configure" 
+      echo "mcmini-oldsys.patch failed: exiting from configure"
       exit 1
     fi
   fi

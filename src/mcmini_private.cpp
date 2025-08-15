@@ -690,7 +690,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
     // Lat's give one more chance for 'mcmini back' to set mc_reset and go back.
     if (mc_reset) {
-      // Avoid infinte loop in: mc_restore_*()->mc_terminate_trace()->mc_reset
+      // Avoid infinite loop in: mc_restore_*()->mc_terminate_trace()->mc_reset
       mc_reset = false;
       mc_restore_initial_trace();
       depth = 0;
@@ -768,7 +768,7 @@ get_config_for_execution_environment()
   if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
     maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
   }
-  
+
   if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
     maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
   }

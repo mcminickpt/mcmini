@@ -126,7 +126,8 @@ main(int argc, char *argv[])
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
-											"							 [--max-transitions-depth-limit (default: %d)|-M <num>]\n"
+                      "              [--max-transitions-depth-limit|-M <num>]\n"
+                      "                               (default num = %d)\n"
                       "              [--first-deadlock|--first|-f]\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
