@@ -46,7 +46,7 @@ check-gdb: debug test/program/producer_consumer
 	  echo After 15 seconds, GDB will start, but it may not work properly.;\
 	  sleep 15; \
 	fi
-	gdb -x gdbinit --args ./mcmini test/program/producer_consumer --quiet
+	./mcmini-gdb test/program/producer_consumer --quiet 3 3 1
 
 mcmini: src/launch.c libmcmini.so
 	${CC} -g3 -O0 -Iinclude -o $@ $<
