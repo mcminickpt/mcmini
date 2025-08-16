@@ -51,7 +51,7 @@ def run_program(directory, program, program_args, output_dir, quiet):
 def main(args):
     directory = DEADLOCK_DIR if args.deadlock else NON_DEADLOCK_DIR
     output_dir = "test/output_deadlock" if args.deadlock else "test/output_non_deadlock"
-    
+ 
     if args.directory != "":
         output_dir = args.directory
 

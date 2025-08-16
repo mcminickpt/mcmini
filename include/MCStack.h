@@ -97,7 +97,7 @@ private:
    */
   int transitionStackTop = -1;
   std::shared_ptr<MCTransition>
-    transitionStack[MAX_TOTAL_TRANSITIONS_IN_PROGRAM];
+    transitionStack[MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT];
 
   /**
    * A pointer to the top-most element in the state stack

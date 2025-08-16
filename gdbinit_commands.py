@@ -390,7 +390,7 @@ def redirect_prolog(inferior=1):
   if inferior == 1: # inferior 1 is scheduler process
     thr_scheduler.switch()
   else:
-    gdb.execute("inferior " + str(inferior)) 
+    gdb.execute("inferior " + str(inferior))
   os.dup2(dup_stdout, 1)
   return (dup_stdout, thr_user, inferior, cur_pagination, cur_frame_info)
 
