@@ -771,6 +771,23 @@ get_config_for_execution_environment()
 
   if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
     maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
+    int limit = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT;
+    if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
+      limit = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT -
+                 LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+    }
+    if (maxTotalDepth >= limit) {
+      maxTotalDepth = limit - 1;
+      mcprintf("\nWarning: Value of -M set to a default maximum of %d.\n"
+               "(further reduced by %d when using the -l flag)\n"
+               "To increase this limit, modify\n"
+               "MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT in\n"
+               "MCConstants.h and re-compile.\n\n"
+               "Continuing with -M = %d\n\n",
+               MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT,
+               LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH,
+               limit);
+    }
   }
 
   if (getenv(ENV_PRINT_AT_TRACE_ID) != NULL) {
