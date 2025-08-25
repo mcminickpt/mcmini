@@ -1,6 +1,7 @@
 #ifndef MC_MCTRANSITION_H
 #define MC_MCTRANSITION_H
 
+#include <climits>
 #include "MCShared.h"
 #include "MCStack.h"
 #include "objects/MCThread.h"
@@ -8,6 +9,66 @@
 #include <utility>
 
 struct MCStack;
+
+enum MCTransitionType {
+  MC_NO_TRANSITION,
+  MC_COND_INIT,
+  MC_COND_WAIT,
+  MC_COND_BROADCAST,
+  MC_COND_SIGNAL,
+  MC_COND_ENQUEUE,
+  MC_THREAD_CREATE,
+  MC_THREAD_START,
+  MC_THREAD_JOIN,
+  MC_THREAD_FINISH,
+  MC_SEM_POST,
+  MC_SEM_WAIT,
+  MC_SEM_ENQUEUE,
+  MC_SEM_INIT,
+  MC_RW_LOCK_INIT,
+  MC_RW_LOCK_WRITER_LOCK,
+  MC_RW_LOCK_UNLOCK,
+  MC_RW_LOCK_WRITER_ENQUEUE,
+  MC_RW_LOCK_READER_LOCK,
+  MC_RW_LOCK_READER_ENQUEUE,
+  MC_MUTEX_UNLOCK,
+  MC_MUTEX_INIT,
+  MC_MUTEX_LOCK,
+  MC_BARRIER_WAIT,
+  MC_BARRIER_ENQUEUE,
+  MC_BARRIER_INIT,
+  MC_RWW_LOCK_WRITER_2_LOCK,
+  MC_RWW_LOCK_READER_LOCK,
+  MC_RWW_LOCK_UNLOCK,
+  MC_RWW_LOCK_WRITER_1_LOCK,
+  MC_RWW_LOCK_INIT,
+  MC_RWW_LOCK_WRITER_2_ENQUEUE,
+  MC_RWW_LOCK_READER_ENQUEUE,
+  MC_RWW_LOCK_WRITER_1_ENQUEUE,
+  MC_GLOBAL_VARIABLE_WRITE,
+  MC_GLOBAL_VARIABLE_READ,
+  MC_ABORT_TRANSITION,
+  MC_EXIT_TRANSITION
+};
+
+/* A structure used to store the unique representation
+ * of each transition
+ */
+struct MCTransitionUniqueRep {
+  enum MCTransitionType typeId;
+  int threadId;
+  union {
+    uint64_t val[2];
+    const void *addr[2];
+  } param;
+
+  static bool uniqueRepEqual (MCTransitionUniqueRep *a,
+                              MCTransitionUniqueRep *b) {
+    return (b->typeId == a->typeId &&
+            b->threadId == a->threadId &&
+            memcmp(&a->param, &b->param, sizeof(a->param)) == 0);
+  }
+};
 
 /**
  * A base class representing a fundamental unit in DPOR: the
@@ -524,6 +585,13 @@ public:
   {
     return this->thread->enabled();
   }
+
+  /**
+   * @brief returns a unique
+   * representation of transition
+   */
+  virtual MCTransitionUniqueRep
+  toUniqueRep() const = 0;
 
   // FIXME: De-couple printing from the interface
   virtual void

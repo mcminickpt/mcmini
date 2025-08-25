@@ -42,6 +42,17 @@ MCExitTransition::enabledInState(const MCStack *) const
   return false; // Never enabled
 }
 
+MCTransitionUniqueRep
+MCExitTransition::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_EXIT_TRANSITION;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = UINT_MAX;
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCExitTransition::print() const
 {

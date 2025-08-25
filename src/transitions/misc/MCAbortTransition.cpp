@@ -44,6 +44,17 @@ MCAbortTransition::enabledInState(const MCStack *) const
   return true;
 }
 
+MCTransitionUniqueRep
+MCAbortTransition::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_ABORT_TRANSITION;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = UINT_MAX;
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCAbortTransition::print() const
 {

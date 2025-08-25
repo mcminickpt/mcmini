@@ -75,6 +75,17 @@ MCGlobalVariableRead::isRacingWith(
   return false;
 }
 
+MCTransitionUniqueRep
+MCGlobalVariableRead::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_GLOBAL_VARIABLE_READ;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.addr[0] = this->global->addr;
+  uniqueRep.param.addr[1] = NULL;
+  return uniqueRep;
+}
+
 void
 MCGlobalVariableRead::print() const
 {

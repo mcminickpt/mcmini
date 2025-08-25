@@ -65,6 +65,17 @@ MCThreadStart::dependentWith(const MCTransition *transition) const
   return this->thread->tid == transition->getThreadId();
 }
 
+MCTransitionUniqueRep
+MCThreadStart::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_THREAD_START;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = UINT_MAX;
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCThreadStart::print() const
 {

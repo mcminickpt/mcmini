@@ -73,6 +73,17 @@ MCThreadFinish::dependentWith(const MCTransition *transition) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCThreadFinish::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_THREAD_FINISH;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = UINT_MAX;
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCThreadFinish::print() const
 {

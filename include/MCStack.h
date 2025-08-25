@@ -1,6 +1,7 @@
 #ifndef INCLUDE_MCMINI_MCSTATE_HPP
 #define INCLUDE_MCMINI_MCSTATE_HPP
 
+struct MCTransitionUniqueRep;
 struct MCTransition;
 struct MCSharedTransition;
 struct MCStack;
@@ -25,26 +26,6 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-struct traceElement {
-  int tid;
-  std::string operation;
-
-  bool operator == (const traceElement &b) const {
-    return ((tid == b.tid) && (operation==b.operation));
-  }
-
-  bool operator != (const traceElement &b) const {
-     return ((tid != b.tid) || (operation != b.operation));
-   }
-
-  traceElement &operator = (const traceElement &b) {
-    tid = b.tid;
-    operation = b.operation;
-    return *this;
-  }
-};
-
 
 /**
  * @brief Set 'lastEnedOfTraceId = traceId'.
@@ -568,7 +549,7 @@ public:
 
   bool isInDeadlock() const;
   void increaseMaxTransitionsDepthLimit(int n);
-  bool hasRepetition(const traceElement* trace, int trace_len) const;
+  bool hasRepetition(const MCTransitionUniqueRep* trace, int trace_len) const;
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
   inline bool
@@ -620,7 +601,7 @@ public:
 
   // TODO: De-couple priting from the state stack + transitions
   void printThreadSchedule() const;
-  void copyCurrentTraceToArray(traceElement* trace_arr, int& trace_len) const;
+  void copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_len) const;
   void printTransitionStack() const;
   void printNextTransitions() const;
   void printRepeatingTransitions(int pattern_len) const;

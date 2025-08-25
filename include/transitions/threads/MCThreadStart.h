@@ -23,6 +23,7 @@ public:
   bool coenabledWith(const MCTransition *) const override;
   bool dependentWith(const MCTransition *) const override;
   bool countsAgainstThreadExecutionDepth() const override;
+  MCTransitionUniqueRep toUniqueRep() const override;
   void print() const override;
 };
 

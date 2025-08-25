@@ -113,6 +113,17 @@ MCThreadJoin::joinsOnThread(
   return this->target->tid == thread->tid;
 }
 
+MCTransitionUniqueRep
+MCThreadJoin::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_THREAD_JOIN;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = this->target->tid;
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCThreadJoin::print() const
 {

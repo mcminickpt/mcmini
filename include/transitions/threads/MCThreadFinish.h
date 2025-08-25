@@ -26,6 +26,7 @@ public:
   bool dependentWith(const MCTransition *) const override;
   bool ensuresDeadlockIsImpossible() const override;
   bool countsAgainstThreadExecutionDepth() const override;
+  MCTransitionUniqueRep toUniqueRep() const override;
   void print() const override;
 };
 

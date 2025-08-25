@@ -25,6 +25,7 @@ public:
   bool dependentWith(const MCTransition *) const override;
 
   bool doesCreateThread(tid_t) const;
+  MCTransitionUniqueRep toUniqueRep() const override;
   void print() const override;
 };
 
