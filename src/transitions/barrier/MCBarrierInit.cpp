@@ -73,6 +73,18 @@ MCBarrierInit::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCBarrierInit::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_BARRIER_INIT;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->barrier->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = this->barrier->getCount();
+  return uniqueRep;
+}
+
 void
 MCBarrierInit::print() const
 {

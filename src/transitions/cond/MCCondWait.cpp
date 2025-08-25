@@ -139,6 +139,19 @@ MCCondWait::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCCondWait::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_COND_WAIT;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->conditionVariable->
+                                                       getObjectId());
+  uniqueRep.param.val[1] = countVisibleObjectsOfType(this->conditionVariable->
+                                                       mutex->getObjectId());
+  return uniqueRep;
+}
+
 void
 MCCondWait::print() const
 {

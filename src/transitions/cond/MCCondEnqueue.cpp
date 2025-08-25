@@ -227,6 +227,18 @@ MCCondEnqueue::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCCondEnqueue::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_COND_ENQUEUE;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->conditionVariable->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = countVisibleObjectsOfType(this->mutex->getObjectId());
+  return uniqueRep;
+}
+
 void
 MCCondEnqueue::print() const
 {

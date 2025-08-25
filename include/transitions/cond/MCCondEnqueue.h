@@ -27,6 +27,7 @@ public:
   {
     return false;
   }
+  MCTransitionUniqueRep toUniqueRep() const override;
   void print() const override;
 };
 

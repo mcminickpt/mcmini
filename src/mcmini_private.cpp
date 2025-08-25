@@ -313,7 +313,8 @@ isInLivelock()
 {
   const MCTransition *nextTransition = programState->getFirstEnabledTransition();
   bool hasLivelock = false;
-  traceElement traceArr[MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT];
+  MCTransitionUniqueRep
+  traceArr[MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT] = {};
   int traceLen = 0;
 
   while (nextTransition != nullptr && transitionId < MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {

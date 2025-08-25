@@ -67,6 +67,17 @@ MCSemInit::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCSemInit::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_SEM_INIT;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->sem->getObjectId());
+  uniqueRep.param.val[1] = this->sem->getCount();
+  return uniqueRep;
+}
+
 void
 MCSemInit::print() const
 {

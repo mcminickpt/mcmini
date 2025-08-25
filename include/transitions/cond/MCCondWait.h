@@ -24,6 +24,7 @@ public:
   bool coenabledWith(const MCTransition *) const override;
   bool dependentWith(const MCTransition *) const override;
   bool enabledInState(const MCStack *) const override;
+  MCTransitionUniqueRep toUniqueRep() const override;
   void print() const override;
 };
 

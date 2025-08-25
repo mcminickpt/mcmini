@@ -76,6 +76,18 @@ MCRWWLockWriter2Enqueue::dependentWith(
   return false;
 }
 
+MCTransitionUniqueRep
+MCRWWLockWriter2Enqueue::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_RWW_LOCK_WRITER_2_ENQUEUE;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->rwwlock->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCRWWLockWriter2Enqueue::print() const
 {

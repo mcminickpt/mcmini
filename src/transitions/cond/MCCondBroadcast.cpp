@@ -149,6 +149,18 @@ MCCondBroadcast::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCCondBroadcast::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_COND_BROADCAST;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->conditionVariable->
+                                                       getObjectId());
+  uniqueRep.param.val[1] = !hadWaiters;
+  return uniqueRep;
+}
+
 void
 MCCondBroadcast::print() const
 {
