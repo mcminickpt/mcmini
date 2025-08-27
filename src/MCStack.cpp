@@ -456,17 +456,17 @@ MCStack::increaseMaxTransitionsDepthLimit(int n)
   * 7. Say no livelock.
   */
 bool
-MCStack::hasRepetition(const traceElement* trace, int trace_len) const
+MCStack::hasRepetition(const MCTransitionUniqueRep* trace, int trace_len) const
 {
-  traceElement pattern[LLOCK_MAX_PATTERN_SIZE];
+  MCTransitionUniqueRep pattern[LLOCK_MAX_PATTERN_SIZE];
   int pattern_len = 1;          //Length of pattern to be searched for
   int nxt_pattern_elt_idx = 0;  //Next transition idx to be matched with
   int cycle = 0;                //Counts number of pattern repetitions
   pattern[0] = trace[trace_len - 1];
 
   for (int i = trace_len - 2; i >= trace_len - LLOCK_MAX_SCAN_DEPTH; i--) {
-    traceElement ele = trace[i];
-    if (ele == pattern[nxt_pattern_elt_idx]) {
+    MCTransitionUniqueRep ele = trace[i];
+    if (MCTransitionUniqueRep::uniqueRepEqual(&ele, &pattern[nxt_pattern_elt_idx])) {
         //if match found, continue exploring for complete match within
         // current cycle.
         nxt_pattern_elt_idx++;
@@ -502,7 +502,7 @@ MCStack::hasRepetition(const traceElement* trace, int trace_len) const
         nxt_pattern_elt_idx = 0;
 
         //add the latest transition to pattern
-        if (pattern_len < LLOCK_MAX_PATTERN_SIZE && ele != pattern[0]) {
+        if (pattern_len < LLOCK_MAX_PATTERN_SIZE && !MCTransitionUniqueRep::uniqueRepEqual(&ele, &pattern[0])) {
             pattern[pattern_len] = ele;
             pattern_len++;
         }
@@ -1128,16 +1128,12 @@ MCStack::printRepeatingTransitions(int pattern_len) const
 }
 
 void
-MCStack::copyCurrentTraceToArray(traceElement* trace_arr, int& trace_len) const
+MCStack::copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_len) const
 {
   int i;
   for (i = 0; i <= this->transitionStackTop; i++) {
     const MCTransition& transition = this->getTransitionAtIndex(i);
-    int tid = transition.getThreadId();
-
-    // Get type name of the transition's dynamic class:
-    std::string op_code = typeid(transition).name();
-    trace_arr[i] = traceElement{tid, op_code};
+    trace_arr[i] = transition.toUniqueRep();
   }
   trace_len = i;
 }

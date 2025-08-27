@@ -88,6 +88,17 @@ MCSemEnqueue::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCSemEnqueue::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_SEM_ENQUEUE;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->sem->getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCSemEnqueue::print() const
 {

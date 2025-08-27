@@ -148,6 +148,18 @@ MCRWLockWriterLock::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCRWLockWriterLock::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_RW_LOCK_WRITER_LOCK;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->rwlock->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCRWLockWriterLock::print() const
 {

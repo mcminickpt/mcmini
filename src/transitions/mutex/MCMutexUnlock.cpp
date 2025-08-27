@@ -87,6 +87,17 @@ MCMutexUnlock::dependentWith(const MCTransition *transition) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCMutexUnlock::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_MUTEX_UNLOCK;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->mutex->getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCMutexUnlock::print() const
 {

@@ -82,6 +82,17 @@ MCGlobalVariableWrite::isRacingWith(
   return false;
 }
 
+MCTransitionUniqueRep
+MCGlobalVariableWrite::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_GLOBAL_VARIABLE_WRITE;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.addr[0] = this->global->addr;
+  uniqueRep.param.addr[1] = this->newValue;
+  return uniqueRep;
+}
+
 void
 MCGlobalVariableWrite::print() const
 {

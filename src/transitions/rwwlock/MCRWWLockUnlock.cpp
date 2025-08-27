@@ -72,6 +72,18 @@ MCRWWLockUnlock::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCRWWLockUnlock::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_RWW_LOCK_UNLOCK;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->rwwlock->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCRWWLockUnlock::print() const
 {

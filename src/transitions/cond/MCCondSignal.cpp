@@ -153,6 +153,18 @@ MCCondSignal::dependentWith(const MCTransition *other) const
   return false;
 }
 
+MCTransitionUniqueRep
+MCCondSignal::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_COND_SIGNAL;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->conditionVariable->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = !hadWaiters;
+  return uniqueRep;
+}
+
 void
 MCCondSignal::print() const
 {

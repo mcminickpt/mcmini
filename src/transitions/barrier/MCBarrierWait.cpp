@@ -80,6 +80,18 @@ MCBarrierWait::enabledInState(const MCStack *state) const
   return !this->barrier->wouldBlockIfWaitedOn(this->getThreadId());
 }
 
+MCTransitionUniqueRep
+MCBarrierWait::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_BARRIER_WAIT;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->barrier->
+                                                        getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCBarrierWait::print() const
 {

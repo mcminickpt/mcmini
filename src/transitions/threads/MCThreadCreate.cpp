@@ -93,6 +93,17 @@ MCThreadCreate::doesCreateThread(tid_t tid) const
   return this->target->tid == tid;
 }
 
+MCTransitionUniqueRep
+MCThreadCreate::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_THREAD_CREATE;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = this->target->tid;
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCThreadCreate::print() const
 {

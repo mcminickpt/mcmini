@@ -86,6 +86,17 @@ MCSemWait::enabledInState(const MCStack *) const
   return this->sem->threadCanExit(this->getThreadId());
 }
 
+MCTransitionUniqueRep
+MCSemWait::toUniqueRep() const
+{
+  MCTransitionUniqueRep uniqueRep;
+  uniqueRep.typeId = MC_SEM_WAIT;
+  uniqueRep.threadId = this->thread->tid;
+  uniqueRep.param.val[0] = countVisibleObjectsOfType(this->sem->getObjectId());
+  uniqueRep.param.val[1] = UINT_MAX;
+  return uniqueRep;
+}
+
 void
 MCSemWait::print() const
 {

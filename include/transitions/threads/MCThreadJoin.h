@@ -28,6 +28,7 @@ public:
   bool joinsOnThread(tid_t) const;
   bool joinsOnThread(const std::shared_ptr<MCThread> &) const;
 
+  MCTransitionUniqueRep toUniqueRep() const override;
   void print() const override;
 };
 
