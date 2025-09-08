@@ -820,7 +820,12 @@ get_config_for_execution_environment()
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT;
-  uint64_t maxTotalDepth = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT;
+  uint64_t maxTotalDepth = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT - 1;
+  
+  if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
+    maxTotalDepth -= LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+  }  
+
   trid_t printBacktraceAtTraceNumber = MC_STATE_CONFIG_PRINT_AT_TRACE;
   bool firstDeadlock                  = false;
   bool expectForwardProgressOfThreads = false;
@@ -831,14 +836,10 @@ get_config_for_execution_environment()
   }
 
   if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
+    int limit = maxTotalDepth;
     maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
-    int limit = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT;
-    if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
-      limit = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT -
-                 LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
-    }
     if (maxTotalDepth >= limit) {
-      maxTotalDepth = limit - 1;
+      maxTotalDepth = limit;
       mcprintf("\nWarning: Value of -M set to a default maximum of %d.\n"
                "(further reduced by %d when using the -l flag)\n"
                "To increase this limit, modify\n"
