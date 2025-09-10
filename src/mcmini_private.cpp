@@ -668,7 +668,13 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         mcprintf("*** DATA RACE DETECTED ***\n");
         programState->printTransitionStack();
         programState->printNextTransitions();
-        addResult("*** DATA RACE DETECTED ***\n");
+        addResult("*** DATA RACE DETECTED"
+                  " (see pending READ/WRITE operations) ***\n");
+        if (getenv(ENV_FIRST_DEADLOCK)) {
+          traceId++;
+          printResults();
+          mc_exit(EXIT_SUCCESS);
+        }
       }
     }
 

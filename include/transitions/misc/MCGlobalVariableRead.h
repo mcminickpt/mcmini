@@ -3,6 +3,16 @@
 
 #include "transitions/misc/MCGlobalVariableTransition.h"
 
+struct MCGlobalVariableReadData {
+  void *addr;
+  char *varName;
+
+  MCGlobalVariableReadData(void *addr, char *varName)
+    : addr(addr), varName(varName)
+  {
+  }
+};
+
 MCTransition *MCReadGlobalRead(const MCSharedTransition *, void *,
                                MCStack *);
 

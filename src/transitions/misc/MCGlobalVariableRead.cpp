@@ -6,16 +6,16 @@ MCTransition *
 MCReadGlobalRead(const MCSharedTransition *shmTransition,
                  void *shmStart, MCStack *state)
 {
-  auto addr = *(void **)shmStart;
+  auto data = *(MCGlobalVariableReadData *)shmStart;
   auto threadThatRan =
     state->getThreadWithId(shmTransition->executor);
   auto globalVariable =
-    state->getVisibleObjectWithSystemIdentity<MCGlobalVariable>(addr);
+    state->getVisibleObjectWithSystemIdentity<MCGlobalVariable>(data.addr);
 
   /* New global variable */
   if (globalVariable == nullptr) {
-    globalVariable = std::make_shared<MCGlobalVariable>(addr);
-    state->registerVisibleObjectWithSystemIdentity(addr,
+    globalVariable = std::make_shared<MCGlobalVariable>(data.addr, data.varName);
+    state->registerVisibleObjectWithSystemIdentity(data.addr,
                                                    globalVariable);
   }
 
@@ -81,14 +81,13 @@ MCGlobalVariableRead::toUniqueRep() const
   MCTransitionUniqueRep uniqueRep;
   uniqueRep.typeId = MC_GLOBAL_VARIABLE_READ;
   uniqueRep.threadId = this->thread->tid;
-  uniqueRep.param.addr[0] = this->global->addr;
-  uniqueRep.param.addr[1] = NULL;
+  uniqueRep.param.addr = this->global->addr;
   return uniqueRep;
 }
 
 void
 MCGlobalVariableRead::print() const
 {
-  mcprintf("thread %lu: READ(%p)\n", this->thread->tid,
-           this->global->addr);
+  mcprintf("thread %lu: READ (%s)\n", this->thread->tid,
+           this->global->varName);
 }

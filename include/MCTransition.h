@@ -59,7 +59,7 @@ struct MCTransitionUniqueRep {
   int threadId;
   union {
     uint64_t val[2];
-    const void *addr[2];
+    const void *addr;
   } param;
 
   static bool uniqueRepEqual (MCTransitionUniqueRep *a,

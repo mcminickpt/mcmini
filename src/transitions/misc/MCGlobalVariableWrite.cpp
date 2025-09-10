@@ -14,13 +14,12 @@ MCReadGlobalWrite(const MCSharedTransition *shmTransition,
 
   /* New global variable */
   if (globalVariable == nullptr) {
-    globalVariable = std::make_shared<MCGlobalVariable>(data.addr);
+    globalVariable = std::make_shared<MCGlobalVariable>(data.addr, data.varName);
     state->registerVisibleObjectWithSystemIdentity(data.addr,
                                                    globalVariable);
   }
 
-  return new MCGlobalVariableWrite(threadThatRan, globalVariable,
-                                   data.newValue);
+  return new MCGlobalVariableWrite(threadThatRan, globalVariable);
 }
 
 std::shared_ptr<MCTransition>
@@ -33,8 +32,7 @@ MCGlobalVariableWrite::staticCopy() const
     std::static_pointer_cast<MCGlobalVariable, MCVisibleObject>(
       this->global->copy());
   auto newValueCpy = (void *)this->newValue;
-  return std::make_shared<MCGlobalVariableWrite>(threadCpy, globalCpy,
-                                                 newValueCpy);
+  return std::make_shared<MCGlobalVariableWrite>(threadCpy, globalCpy);
 }
 
 std::shared_ptr<MCTransition>
@@ -49,7 +47,7 @@ MCGlobalVariableWrite::dynamicCopyInState(const MCStack *state) const
   // with the associated object is correct
   auto newValueCpy = (void *)this->newValue;
   return std::make_shared<MCGlobalVariableWrite>(
-    threadInState, globalInState, newValueCpy);
+    threadInState, globalInState);
 }
 
 bool
@@ -88,14 +86,13 @@ MCGlobalVariableWrite::toUniqueRep() const
   MCTransitionUniqueRep uniqueRep;
   uniqueRep.typeId = MC_GLOBAL_VARIABLE_WRITE;
   uniqueRep.threadId = this->thread->tid;
-  uniqueRep.param.addr[0] = this->global->addr;
-  uniqueRep.param.addr[1] = this->newValue;
+  uniqueRep.param.addr = this->global->addr;
   return uniqueRep;
 }
 
 void
 MCGlobalVariableWrite::print() const
 {
-  mcprintf("thread %lu: WRITE(%p, %p)\n", this->thread->tid,
-           this->global->addr, this->newValue);
+  mcprintf("thread %lu: WRITE (%s)\n", this->thread->tid,
+           this->global->varName);
 }
