@@ -8,18 +8,19 @@ extern "C" {
 }
 
 void *
-mcmini_read(void *addr)
+mcmini_read(void *addr, char *varName)
 {
-  thread_post_visible_operation_hit<void *>(
-    typeid(MCGlobalVariableRead), &addr);
+  auto readData = MCGlobalVariableReadData(addr, varName);
+  thread_post_visible_operation_hit<MCGlobalVariableReadData>(
+    typeid(MCGlobalVariableRead), &readData);
   thread_await_scheduler();
   return addr;
 }
 
 void
-mcmini_write(void *addr, void *newValue)
+mcmini_write(void *addr, char *varName)
 {
-  auto writeData = MCGlobalVariableWriteData(addr, newValue);
+  auto writeData = MCGlobalVariableWriteData(addr, varName);
   thread_post_visible_operation_hit<MCGlobalVariableWriteData>(
     typeid(MCGlobalVariableWrite), &writeData);
   thread_await_scheduler();

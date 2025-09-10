@@ -1,0 +1,51 @@
+CLANG := clang
+CLANGXX := clang++
+OPT := opt
+LLVM_CONFIG := llvm-config
+
+PASS_SRC := test/data-races/llvmDataRacePass.cpp
+PASS_SO := test/data-races/llvmDataRacePass.so
+LIBOBJS := libmcmini.so
+
+TEST ?= test/data-races/simple-data-race
+
+.PHONY: all clean
+
+all: $(PASS_SO)
+
+# Build the LLVM instrumentation pass shared library
+$(PASS_SO): $(PASS_SRC)
+	$(CXX) -g3 -O0 -Iinclude -fPIC \
+	`$(LLVM_CONFIG) --cxxflags` \
+	-shared -o $@ $< \
+	`$(LLVM_CONFIG) --ldflags` \
+        `$(LLVM_CONFIG) --libs core irreader passes analysis transformutils support` \
+	`$(LLVM_CONFIG) --system-libs` \
+	-I`$(LLVM_CONFIG) --includedir`
+
+# Compile .c to LLVM IR (Intermediate Representation)
+# *.ll is human readable, compiled with -S flag
+# *.bc is "bit code", without the -S flag
+%.ll: %.c
+	$(CLANG) -O0 -g -emit-llvm -c -S $< -o $@
+
+# Instrument bitcode using the LLVM pass
+%_mcmini.ll: %.ll $(PASS_SO)
+	$(OPT) -load-pass-plugin=`pwd`/$(PASS_SO) \
+	       -passes=instrument-mcmini-globals -S $< -o $@
+
+# Link instrumented bitcode to executable
+%_mcmini: %_mcmini.ll
+	$(CLANGXX) $< $(LIBOBJS) -Iinclude -o $@ -lpthread -lrt -lm -ldl
+
+# Build uninstrumented executable directly from source
+%_uninstr: %.c
+	$(CLANG) -O0 -g $< -o $@ -lpthread -lrt -lm -ldl
+
+check: all test/data-races/simple-data-race.c
+	$(MAKE) -f Makefile_llvm $(addsuffix _mcmini, $(TEST)) 
+	./mcmini -m5 ./test/data-races/simple-data-race_mcmini
+
+clean:
+	rm -f $(PASS_SO)
+	cd test/data-races && rm -f *.ll *_mcmini.ll *_mcmini *_uninstr

@@ -5,16 +5,19 @@
 
 struct MCGlobalVariable : public MCVisibleObject {
 private:
-  inline explicit MCGlobalVariable(void *addr, objid_t id)
-    : MCVisibleObject(id), addr(addr)
+  inline explicit MCGlobalVariable(void *addr, char *varName, objid_t id)
+    : MCVisibleObject(id), addr(addr), varName(varName)
   {
   }
 
 public:
   void *const addr;
-  explicit MCGlobalVariable(void *addr) : addr(addr) {}
+  char *varName;
+  explicit MCGlobalVariable(void *addr, char *varName) : 
+    addr(addr), varName(varName) {}
+
   MCGlobalVariable(const MCGlobalVariable &global)
-    : MCGlobalVariable(global.addr, global.getObjectId())
+    : MCGlobalVariable(global.addr, global.varName, global.getObjectId())
   {
   }
 

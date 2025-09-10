@@ -8,10 +8,10 @@ MCTransition *MCReadGlobalWrite(const MCSharedTransition *, void *,
 
 struct MCGlobalVariableWriteData {
   void *addr;
-  void *newValue;
+  char *varName;
 
-  MCGlobalVariableWriteData(void *addr, void *newValue)
-    : addr(addr), newValue(newValue)
+  MCGlobalVariableWriteData(void *addr, char *varName)
+    : addr(addr), varName(varName)
   {
   }
 };
@@ -20,9 +20,8 @@ struct MCGlobalVariableWrite : public MCGlobalVariableTransition {
 public:
   const void *newValue;
   MCGlobalVariableWrite(std::shared_ptr<MCThread> running,
-                        std::shared_ptr<MCGlobalVariable> global,
-                        void *newValue)
-    : MCGlobalVariableTransition(running, global), newValue(newValue)
+                        std::shared_ptr<MCGlobalVariable> global)
+    : MCGlobalVariableTransition(running, global)
   {
   }
 
