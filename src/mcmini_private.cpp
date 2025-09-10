@@ -669,6 +669,12 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         programState->printTransitionStack();
         programState->printNextTransitions();
         addResult("*** DATA RACE DETECTED ***\n");
+
+        if (getenv(ENV_FIRST_DEADLOCK)) {
+          traceId++;
+          printResults();
+          mc_exit(EXIT_SUCCESS);
+        }
       }
     }
 
