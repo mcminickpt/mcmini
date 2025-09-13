@@ -152,6 +152,8 @@ main(int argc, char *argv[])
                       "              target_executable\n"
                       "       mcmini-gdb ...<same as mcmini args>...\n"
                       "       python3 mcmini-annotate.py -t <traceSeq> ...<same as mcmini args>...\n",
+                      "       (To check data races in target, compile target as in\n", 
+                      "        Makefile_llvm in the top level of the McMini source code.)\n",
               MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT
              );
       exit(1);
