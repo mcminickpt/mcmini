@@ -1,3 +1,12 @@
+# For McMini to check data races concerning shared variables, the target
+# program must be specially compiled to use LLVM.
+# On most Linux distros, LLVM can be installed by adding the following packages:
+#   llvm llvm-dev clang
+# On Red Hat-based distros, use llvm-devel
+#
+# To compile the target_file with LLVM, run:
+#   make -f Makefile_llvm TEST="path/to/target_file"
+
 CLANG := clang
 CLANGXX := clang++
 OPT := opt
