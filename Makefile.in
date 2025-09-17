@@ -72,6 +72,8 @@ mcmini-demo: ${LIBOBJS} libmcrwlock_lib.a
 clean:
 	rm -f ${LIBOBJS} mcmini libmcmini.so mcmini-demo libmcrwlock_lib.a
 	rm -f NO-GDB-G3
+	$(MAKE) -f Makefile_llvm clean
+
 distclean: clean
 	if test -f gdbinit_commands.py.orig-mcmini; then \
 	  rm -f gdbinit_commands.py; \
