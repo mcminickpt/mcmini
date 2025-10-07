@@ -53,19 +53,19 @@ fi
 
 AC_MSG_CHECKING([if python3 is available])
 # If Python returns True, that is converted to '1', which is Failure for shell:
-if [ "$PYTHON3$PYTHON" == "" ]; then
+if [[ "$PYTHON3$PYTHON" = "" ]]; then
   PYTHON=`which python 2> /dev/null`
   PYTHON3=`which python3 2> /dev/null`
-elif [ "$PYTHON3" != "" ]; then
+elif [[ "$PYTHON3" != "" ]]; then
   PYTHON3=`which $PYTHON3 2> /dev/null`
   PYTHON="$PYTHON3"
-elif [ "$PYTHON" != "" ]; then
+elif [[ "$PYTHON" != "" ]]; then
   PYTHON=`which $PYTHON 2> /dev/null`
 fi
-if [ "$PYTHON" != "" ] && \
+if [[ "$PYTHON" != "" ]] && \
     $PYTHON -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
   has_python=yes
-elif [ "$PYTHON3" != "" ] && \
+elif [[ "$PYTHON3" != "" ]] && \
     $PYTHON3 -c 'import sys; sys.exit(sys.version_info.major < 3)'; then
   PYTHON=`which python3`
   has_python=yes
@@ -73,16 +73,16 @@ else
   has_python=no
 fi
 AC_MSG_RESULT([$has_python])
-if [ $has_python == yes ]; then
+if [[ $has_python = yes ]]; then
   # Replacing line 1 ( #!/usr/bin/env python ) with local python
   sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate
 fi
-if [[ $has_python == no ]]; then
+if [[ $has_python = no ]]; then
   AC_MSG_FAILURE("python3 not found")
 fi
 
 AC_CHECK_PROG([HAS_GDB],[gdb],[yes],[no])
-if [[ $HAS_GDB == no ]]; then
+if [[ $HAS_GDB = no ]]; then
   AC_MSG_FAILURE("gdb not found")
 fi
 
@@ -160,7 +160,7 @@ AC_RUN_IFELSE([AC_LANG_SOURCE([[
                return 0;
        }
        ]])],[has_cma='yes'],[has_cma='no'],[])
-if test "$has_cma" == "yes"; then
+if test "$has_cma" = "yes"; then
   AC_DEFINE([HAS_PROCESS_VM],[1],[Define to 1 if you have process_vm_readv and process_vm_writev.])
   AC_SUBST([HAS_PROCESS_VM], [yes])
 else
