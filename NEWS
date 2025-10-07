@@ -1,3 +1,20 @@
+Version 1.1.0 release notes (Oct. 7, 2025)
+==========================================
+
+* Data race support (READ/WRITE) added by creating an LLVM plugin to instrument, in the target program, reads and writes to global variable.
+* Experimental livelock support added. NOTE: Currently, this identifies livelock examples in which some other enabled threads do not participate.
+* max-transitions-depth-limit (Maximum number of transitions any single trace can execute) is supported in addition to max-transitions-depth-limit
+* New flags for the mcmini command (and some flags renamed). See the following (extracted from 'mcmini --help').
+
+-M , --max-transitions-depth-limit (default num = 1500)
+  Maximum number of transitions any single trace can execute.
+
+-a, --all, --all-deadlocks
+
+-l, --check-for-livelock (experimental)
+  Along with deadlocks, also check for livelock. (PROBLEM: Currently, this identifies livelock examples in which some other enabled threads do not participate.)
+
+
 Version 1.0.0 release notes (Oct. 20, 2024)
 ===========================================
 
