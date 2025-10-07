@@ -267,11 +267,10 @@ then :
     printf "%s\n" "$0: be upgraded to zsh 4.3.4 or later."
   else
     printf "%s\n" "$0: Please tell bug-autoconf@gnu.org and
-$0: pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu
-$0: about your system, including any error possibly output
-$0: before this message. Then install a modern shell, or
-$0: manually run the script under such a shell if you do
-$0: have one."
+$0: pirtle.m@northeastern.edu,gene@ccs.neu.edu about your
+$0: system, including any error possibly output before this
+$0: message. Then install a modern shell, or manually run
+$0: the script under such a shell if you do have one."
   fi
   exit 1
 fi
@@ -613,7 +612,7 @@ PACKAGE_NAME='McMini'
 PACKAGE_TARNAME='mcmini'
 PACKAGE_VERSION='1.0.0'
 PACKAGE_STRING='McMini 1.0.0'
-PACKAGE_BUGREPORT='pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu'
+PACKAGE_BUGREPORT='pirtle.m@northeastern.edu,gene@ccs.neu.edu'
 PACKAGE_URL='https://github.com/mcminickpt/mcmini.git'
 
 ac_unique_file="src/launch.c"
@@ -1371,7 +1370,7 @@ Some influential environment variables:
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
 
-Report bugs to <pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu>.
+Report bugs to <pirtle.m@northeastern.edu,gene@ccs.neu.edu>.
 McMini home page: <https://github.com/mcminickpt/mcmini.git>.
 _ACEOF
 ac_status=$?
@@ -5279,7 +5278,7 @@ fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if python3 is available" >&5
 printf %s "checking if python3 is available... " >&6; }
 # If Python returns True, that is converted to '1', which is Failure for shell:
-if [ "$PYTHON3$PYTHON" == "" ]; then
+if [ "$PYTHON3$PYTHON" = "" ]; then
   PYTHON=`which python 2> /dev/null`
   PYTHON3=`which python3 2> /dev/null`
 elif [ "$PYTHON3" != "" ]; then
@@ -5300,11 +5299,11 @@ else
 fi
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: $has_python" >&5
 printf "%s\n" "$has_python" >&6; }
-if [ $has_python == yes ]; then
+if [ $has_python = yes ]; then
   # Replacing line 1 ( #!/usr/bin/env python ) with local python
   sed --in-place -e '1 s^/usr/.*$^'$PYTHON^ ./mcmini-annotate
 fi
-if [ $has_python == no ]; then
+if [ $has_python = no ]; then
   { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "\"python3 not found\"
@@ -5354,7 +5353,7 @@ printf "%s\n" "no" >&6; }
 fi
 
 
-if [ $HAS_GDB == no ]; then
+if [ $HAS_GDB = no ]; then
   { { printf "%s\n" "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 printf "%s\n" "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "\"gdb not found\"
@@ -5452,7 +5451,7 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
-if test "$has_cma" == "yes"; then
+if test "$has_cma" = "yes"; then
 
 printf "%s\n" "#define HAS_PROCESS_VM 1" >>confdefs.h
 
@@ -6024,7 +6023,7 @@ $config_files
 Configuration headers:
 $config_headers
 
-Report bugs to <pirtle.m@northeastern.edu,jovanovic.l@northeastern.edu,gene@ccs.neu.edu>.
+Report bugs to <pirtle.m@northeastern.edu,gene@ccs.neu.edu>.
 McMini home page: <https://github.com/mcminickpt/mcmini.git>."
 
 _ACEOF
