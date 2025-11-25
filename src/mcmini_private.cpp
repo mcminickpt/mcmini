@@ -309,33 +309,50 @@ mc_explore_branch(int curBranchPoint)
 }
 
 bool
-isInLivelock()
+isInLivelock(uint64_t *increasedDepth)
 {
   const MCTransition *nextTransition = programState->getFirstEnabledTransition();
   bool hasLivelock = false;
   MCTransitionUniqueRep
   traceArr[MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT] = {};
   int traceLen = 0;
+  bool checkForWeakLivelock =
+    getenv(ENV_CHECK_FOR_WEAK_LIVELOCK);
 
-  while (nextTransition != nullptr && transitionId < MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
-    const tid_t tid = nextTransition->getThreadId();
+  while (nextTransition != nullptr && transitionId <
+         MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT) {
+    tid_t tid = nextTransition->getThreadId();
     mc_run_thread_to_next_visible_operation(tid);
+
+
+    #ifdef DEBUG
+      mcprintf("Program State: ");
+      programState->printDebugProgramState();
+      nextTransition->print();
+    #endif
 
     programState->simulateRunningTransition(
       *nextTransition, shmTransitionTypeInfo, shmTransitionData);
 
-    nextTransition = programState->getFirstEnabledTransition();
+    if (checkForWeakLivelock) {
+      nextTransition = programState->getFirstEnabledTransition();
+    }
+    else {
+      nextTransition = programState->getNextFairTransition(tid);
+    }
     transitionId++;
   }
 
   if (nextTransition == nullptr && !programState->isInDeadlock()) {
     programState->copyCurrentTraceToArray(traceArr, traceLen);
-    hasLivelock = programState->hasRepetition(traceArr, traceLen);
+    // FUTURE EXTENSION: User declares progress; no livelock 
+    // hasLivelock = !programState->isProgress(traceArr, traceLen);
+    hasLivelock = programState->hasRepetition(traceArr, traceLen, increasedDepth);
   }
   else if (transitionId >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
     printResults();
     mcprintf(
-      "*** Execution Limit Reached! ***\n\n"
+      "*** IsInLivelock:  Execution Limit Reached! ***\n\n"
       "McMini ran a trace with %lu transitions.  To increase this limit,\n"
       "modify MAX_TOTAL_TRANSITIONS_IN_PROGRAM in MCConstants.h and"
       " re-compile.\n"
@@ -345,6 +362,7 @@ isInLivelock()
       transitionId);
     mc_stop_model_checking(EXIT_FAILURE);
   }
+  programState->resetMaxTransitionsDepthLimit();
   return hasLivelock;
 }
 
@@ -632,7 +650,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   // TODO: Assert whether a trace process exists at this point
 
   do {
-    if (transitionId >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
+    if (depth >= MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT) {
       printResults();
       mcprintf(
         "*** Execution Limit Reached! ***\n\n"
@@ -643,6 +661,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         " flag (\"-m\")\n"
         "to limit how far into a trace a McMini thread can go.\n",
         depth);
+      programState->printThreadSchedule();
       mc_stop_model_checking(EXIT_FAILURE);
     }
 
@@ -688,10 +707,15 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         addResult("  [Truncating traceSeq from '-t', due to deadlock!]\n");
         nextTransition = nullptr;
       }
-      if (getenv(ENV_CHECK_FOR_LIVELOCK) && nextTransition == nullptr) {
-        programState->increaseMaxTransitionsDepthLimit(
-          LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH);
-        hasLivelock = isInLivelock();
+      if (getenv(ENV_CHECK_FOR_LIVELOCK) ||
+          getenv(ENV_CHECK_FOR_WEAK_LIVELOCK) && nextTransition == nullptr) {
+        uint64_t increasedDepth = LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+        if (getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT)) {
+	  increasedDepth =
+            strtoul(getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT), nullptr, 10);
+	}
+        programState->increaseMaxTransitionsDepthLimit(increasedDepth);
+        hasLivelock = isInLivelock(&increasedDepth);
         /*
          * isInLivelock() exits before reaching
          * LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
@@ -723,9 +747,16 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         mcprintf("TraceId %lu, *** POTENTIAL LIVELOCK DETECTED ***\n", traceId);
         programState->printNextTransitions();
         addResult("*** POTENTIAL LIVELOCK DETECTED ***\n");
-        traceId++;
-        printResults();
-        mc_exit(EXIT_SUCCESS);
+        if (verbose) {
+          mcprintf("TraceId %ld:  ", traceId);
+          programState->printThreadSchedule();
+          programState->printTransitionStack();
+        }
+        if (getenv(ENV_FIRST_DEADLOCK) != NULL) {
+          traceId++; // Verify "Number of traces" in printResults() is correct.
+          printResults();
+          mc_exit(EXIT_SUCCESS); // Exit McMini
+        }
       }
 
       if (programHasNoErrors) {
@@ -755,7 +786,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       mc_terminate_trace(); // Does nothing if mc_reset is true
     } // End of 'nextTransition == nullptr'; If 'mc_reset', then nextTransition
 
-    // Lat's give one more chance for 'mcmini back' to set mc_reset and go back.
+    // Let's give one more chance for 'mcmini back' to set mc_reset and go back.
     if (mc_reset) {
       // Avoid infinite loop in: mc_restore_*()->mc_terminate_trace()->mc_reset
       mc_reset = false;
