@@ -98,6 +98,27 @@ main(int argc, char *argv[])
       setenv(ENV_CHECK_FOR_LIVELOCK, "1", 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--weak-livelock") == 0 ||
+             strcmp(cur_arg[0], "--wl") == 0 ||
+             strcmp(cur_arg[0], "-w") == 0) {
+      setenv(ENV_CHECK_FOR_WEAK_LIVELOCK, "1", 1);
+      cur_arg++;
+    }
+    else if (strcmp(cur_arg[0], "--max-livelock-cycle-limit") == 0 ||
+        strcmp(cur_arg[0], "--ML") == 0) {
+      setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[1], 1);
+      char *endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--max-livelock-cycle-limit");
+        exit(1);
+      }
+      cur_arg += 2;
+    }
+    else if (cur_arg[0][2] == 'M' && cur_arg[0][3] == 'L' &&
+      isdigit(cur_arg[0][4])) {
+      setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[0] + 4, 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 ||
              strcmp(cur_arg[0], "-c") == 0) {
       setenv(ENV_CHECK_FORWARD_PROGRESS, "1", 1);
@@ -144,7 +165,13 @@ main(int argc, char *argv[])
                       "                               (default num = %d)\n"
                       "              [--first-deadlock|--first|-f] (default)\n"
                       "              [--all-deadlocks|--all|-a]\n"
-                      "              [--check-for-livelock|-l] (experimental)\n"
+                      "              [--check-for-livelock|-l] (livelock"
+		                       " using round-robin sched.)\n"
+                      "                               (experimental)\n"
+                      "              [--weak-livelock|--wl|-w]"
+                                         " (busy waiting with 1 thread)\n"
+                      "              [--max-livelock-cycle-limit|--ML <num>]\n"
+                      "                               (default num = %d)\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"
@@ -154,7 +181,8 @@ main(int argc, char *argv[])
                       "       python3 mcmini-annotate.py -t <traceSeq> ...<same as mcmini args>...\n"
                       "       (To check data races in target, compile target as in\n" 
                       "        Makefile_llvm in the top level of the McMini source code.)\n",
-              MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT
+              MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT,
+	      LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
              );
       exit(1);
     }

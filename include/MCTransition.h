@@ -62,8 +62,8 @@ struct MCTransitionUniqueRep {
     const void *addr;
   } param;
 
-  static bool uniqueRepEqual (MCTransitionUniqueRep *a,
-                              MCTransitionUniqueRep *b) {
+  static bool uniqueRepEqual (const MCTransitionUniqueRep *a,
+                              const MCTransitionUniqueRep *b) {
     return (b->typeId == a->typeId &&
             b->threadId == a->threadId &&
             memcmp(&a->param, &b->param, sizeof(a->param)) == 0);

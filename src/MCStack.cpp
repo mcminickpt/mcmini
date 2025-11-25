@@ -341,7 +341,8 @@ const MCTransition *MCStack::getFirstEnabledTransition() {
     return &(this->getNextTransitionForThread(nextTraceEntry));
   }
 
-  if (this->transitionStackTop >= this->configuration.maxTotalTransitionsDepthLimit) {
+  if (this->transitionStackTop >=
+      this->configuration.maxTotalTransitionsDepthLimit) {
     // Return nullptr if the total number of transitions executed has reached
     // the maximum limit set by user (ENV_MAX_TRANSITIONS_DEPTH_LIMIT)
     return nullptr;
@@ -368,6 +369,30 @@ const MCTransition *MCStack::getFirstEnabledTransition() {
   }
   return nullptr;
 }
+
+// Fairness: Next transition of a livelock cycle using 
+// round-robin for the next enabled transition;
+// This is not general fairness. It only checks for round-robin scheduling.
+const MCTransition *MCStack::getNextFairTransition(tid_t &tid) {
+  if (this->transitionStackTop >=
+      this->configuration.maxTotalTransitionsDepthLimit) {
+    // Return nullptr if the total number of transitions executed has reached
+    // the maximum limit set by user (ENV_MAX_TRANSITIONS_DEPTH_LIMIT)
+    return nullptr;
+  }
+  uint64_t numThreads = this->getNumProgramThreads();
+  for (int i = 0; i < numThreads; i++) {
+    tid = (tid + 1) % numThreads;
+    MCTransition &nextTransition =
+      programState->getNextTransitionForThread(tid);
+
+    if (programState->transitionIsEnabled(nextTransition)) {
+      return &nextTransition;
+    }
+  }
+  return nullptr;
+}
+
 
 // =====================================================================
 /*****************************************************************
@@ -434,10 +459,95 @@ MCStack::isInDeadlock() const
   return true;
 }
 
+
+// increaseMaxTransitionsDepthLimit() and resetMaxTransitionsDepthLimit() used
+// within the livelock logic.
 void
 MCStack::increaseMaxTransitionsDepthLimit(int n)
 {
   this->configuration.maxTotalTransitionsDepthLimit += n;
+}
+
+void
+MCStack::resetMaxTransitionsDepthLimit()
+{
+  uint64_t maxTotalDepth =
+    MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT - 1;
+  if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
+    maxTotalDepth -= LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+  }
+  if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
+    int limit = maxTotalDepth;
+    maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
+    if (maxTotalDepth >= limit) {
+      maxTotalDepth = limit;
+    }
+  }
+  this->configuration.maxTotalTransitionsDepthLimit = maxTotalDepth;
+}
+
+// KMP: Knuth-Morris-Pratt
+// LPS: Longest Prefix Suffix
+void
+MCStack::KMPBuildLPS(const MCTransitionUniqueRep* pattern,
+                     int pattern_len, int *lps) const
+{
+  int length = 0;
+  lps[0] = 0;
+
+  int i = 1;
+  while (i < pattern_len) {
+    if (MCTransitionUniqueRep::uniqueRepEqual(&pattern[i], &pattern[length])) {
+      length++;
+      lps[i] = length;
+      i++;
+    }
+    else {
+      if (length) {
+        length = lps[length-1];
+      }
+      else {
+        lps[i] = 0;
+        i++;
+      }
+    }
+  }
+}
+
+int
+MCStack::KMPFindFirstLivelockCycle(const MCTransitionUniqueRep* trace,
+                                   int trace_len,
+                                   const MCTransitionUniqueRep* origpattern,
+                                   int pattern_len) const
+{
+  int lps[pattern_len];
+  MCTransitionUniqueRep pattern[pattern_len];
+
+  for (int i = 0; i < pattern_len; i++) {
+    pattern[i] = origpattern[pattern_len - i -1];
+  }
+
+  this->KMPBuildLPS(pattern, pattern_len, lps);
+  int i = 0, j = 0;
+
+  while (i < trace_len) {
+    if (MCTransitionUniqueRep::uniqueRepEqual(&trace[i], &pattern[j])) {
+      i++;
+      j++;
+      if (j == pattern_len) {
+        return i - j;
+      }
+    }
+    else {
+      if (j != 0) {
+        j = lps[j - 1];
+      }
+      else {
+        i++;
+      }
+    }
+  }
+  return -1;
 }
 
  /*   INTUITION:
@@ -449,35 +559,41 @@ MCStack::increaseMaxTransitionsDepthLimit(int n)
   * 4.   When a mismatch occurs, build a bigger pattern by including
   *      what might have been matched and, the new element, if it is
   *      not equal to pattern[0].
-  * 5.   If you find the pattern repeated enough times, and a minimum
+  * 5.   If the pattern is repeated enough times, and a minimum
   *      depth has been reached, say a livelock exists.
   * 6.   If pattern grows too big without enough repeats, say no
   *      livelock.
   * 7. Say no livelock.
   */
 bool
-MCStack::hasRepetition(const MCTransitionUniqueRep* trace, int trace_len) const
+MCStack::hasRepetition(const MCTransitionUniqueRep* trace, int trace_len,
+                       uint64_t *increasedDepth) const
 {
   MCTransitionUniqueRep pattern[LLOCK_MAX_PATTERN_SIZE];
-  int pattern_len = 1;          //Length of pattern to be searched for
-  int nxt_pattern_elt_idx = 0;  //Next transition idx to be matched with
-  int cycle = 0;                //Counts number of pattern repetitions
+  int pattern_len = 1;          // Length of pattern to be searched for
+  int nxt_pattern_elt_idx = 0;  // Next transition idx to be matched with
+  int cycle = 0;                // Counts number of pattern repetitions
   pattern[0] = trace[trace_len - 1];
+  int firstCycleIndex;
 
-  for (int i = trace_len - 2; i >= trace_len - LLOCK_MAX_SCAN_DEPTH; i--) {
+  for (int i = trace_len - 2; i >= trace_len - (*increasedDepth); i--) {
     MCTransitionUniqueRep ele = trace[i];
-    if (MCTransitionUniqueRep::uniqueRepEqual(&ele, &pattern[nxt_pattern_elt_idx])) {
-        //if match found, continue exploring for complete match within
+    if (MCTransitionUniqueRep::
+        uniqueRepEqual(&ele, &pattern[nxt_pattern_elt_idx])) {
+        // if match found, continue exploring for complete match within
         // current cycle.
         nxt_pattern_elt_idx++;
         if (nxt_pattern_elt_idx == pattern_len) {
-            cycle++;                 //complete pattern matched, increment
-            nxt_pattern_elt_idx = 0; //no. of cycles and start with next
+            cycle++;                 // complete pattern matched, increment
+            nxt_pattern_elt_idx = 0; // no. of cycles and start with next
 
             if (cycle > LLOCK_MIN_PATTERN_REPEATS &&
                 i < trace_len - LLOCK_MIN_SCAN_DEPTH) {
-              //successfully found minimum number of cycles, print results
-              this->printRepeatingTransitions(pattern_len);
+              // successfully found minimum number of cycles, print results
+              firstCycleIndex =
+                this->KMPFindFirstLivelockCycle(trace, trace_len,
+                                                pattern, pattern_len);
+              this->printLivelockResults(firstCycleIndex, pattern_len);
               return true;
             }
         }
@@ -502,7 +618,8 @@ MCStack::hasRepetition(const MCTransitionUniqueRep* trace, int trace_len) const
         nxt_pattern_elt_idx = 0;
 
         //add the latest transition to pattern
-        if (pattern_len < LLOCK_MAX_PATTERN_SIZE && !MCTransitionUniqueRep::uniqueRepEqual(&ele, &pattern[0])) {
+        if (pattern_len < LLOCK_MAX_PATTERN_SIZE &&
+            !MCTransitionUniqueRep::uniqueRepEqual(&ele, &pattern[0])) {
             pattern[pattern_len] = ele;
             pattern_len++;
         }
@@ -515,6 +632,24 @@ MCStack::hasRepetition(const MCTransitionUniqueRep* trace, int trace_len) const
   return false;
 }
 
+// FUTURE EXTENSION: User declares progress; no livelock
+bool
+MCStack::isProgress(const MCTransitionUniqueRep* trace, int trace_len)
+{
+  for (int i = trace_len; i > trace_len - LLOCK_MAX_SCAN_DEPTH; i--) {
+    switch (trace[i].typeId) {
+      case MC_GLOBAL_VARIABLE_WRITE:
+      case MC_THREAD_JOIN:
+      case MC_THREAD_FINISH:
+      case MC_ABORT_TRANSITION:
+      case MC_EXIT_TRANSITION:
+      case MC_THREAD_CREATE:
+        return true;
+      default: continue;
+    }
+  }
+  return false;
+}
 
 bool
 MCStack::hasADataRaceWithNewTransition(
@@ -1114,6 +1249,27 @@ MCStack::printThreadSchedule() const
 }
 
 void
+MCStack::printLivelockResults(int firstCycleIndex, int pattern_len) const
+{
+  mcprintf("THREAD BACKTRACE\n");
+  int i;
+  for (i = 0; i < firstCycleIndex; i++) {
+    mcprintf("%s%d. ", (i+1 >= 10 ? "" : " "), i+1);
+    this->getTransitionAtIndex(i).print();
+  }
+
+  mcprintf("\nREPEATING THREAD OPERATIONS\n");
+  while (i < firstCycleIndex + pattern_len) {
+    mcprintf("%s%d. ", (i+1 >= 10 ? "" : " "), i+1);
+    this->getTransitionAtIndex(i).print();
+    i++;
+  }
+
+  mcprintf("END\n");
+  mcflush();
+}
+
+void
 MCStack::printRepeatingTransitions(int pattern_len) const
 {
   int n = this->transitionStackTop + 1;
@@ -1128,7 +1284,8 @@ MCStack::printRepeatingTransitions(int pattern_len) const
 }
 
 void
-MCStack::copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_len) const
+MCStack::copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr,
+                                 int& trace_len) const
 {
   int i;
   for (i = 0; i <= this->transitionStackTop; i++) {
@@ -1137,7 +1294,23 @@ MCStack::copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_le
   }
   trace_len = i;
 }
- 
+
+void
+MCStack::printDebugProgramState()
+{
+  uint64_t numThreads = this->getNumProgramThreads();
+  unordered_set<tid_t> enabledThreads = this->getCurrentlyEnabledThreads();
+  for (tid_t tid = 0; tid < numThreads; tid++) {
+    if (enabledThreads.count(tid)) {
+      mcprintf("E ");
+    }
+    else {
+      mcprintf("B ");
+    }
+  }
+  mcprintf("\n");
+}
+
 void
 MCStack::printTransitionStack() const
 {
