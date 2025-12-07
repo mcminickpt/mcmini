@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 
 extern typeof(&pthread_create) pthread_create_ptr;
@@ -52,6 +53,8 @@ extern typeof(&sleep) sleep_ptr;
 #define __real_pthread_rwlock_wrlock  (*pthread_rwlock_wrlock_ptr)
 #define __real_pthread_rwlock_unlock  (*pthread_rwlock_unlock_ptr)
 #define __real_sleep                  (*sleep_ptr)
+#define __real_nanosleep              (*nanosleep_ptr)
+#define __real_usleep                 (*usleep_ptr)
 
 // /**
 //  * @brief Retrieves the addresses of the symbols exposed by the

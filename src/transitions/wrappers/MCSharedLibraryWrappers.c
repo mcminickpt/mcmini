@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+
 #include "transitions/wrappers/MCSharedLibraryWrappers.h"
 #include "mcmini_wrappers.h"
 
@@ -24,6 +25,8 @@ typeof(&pthread_rwlock_rdlock) pthread_rwlock_rdlock_ptr;
 typeof(&pthread_rwlock_wrlock) pthread_rwlock_wrlock_ptr;
 typeof(&pthread_rwlock_unlock) pthread_rwlock_unlock_ptr;
 typeof(&sleep) sleep_ptr;
+typeof(&nanosleep) nanosleep_ptr;
+typeof(&usleep) usleep_ptr;
 
 void
 mc_load_intercepted_symbol_addresses()
@@ -55,6 +58,8 @@ mc_load_intercepted_symbol_addresses()
   pthread_cond_broadcast_ptr =
     dlsym(RTLD_NEXT, "pthread_cond_broadcast");
   sleep_ptr = dlsym(RTLD_NEXT, "sleep");
+  nanosleep_ptr = dlsym(RTLD_NEXT, "nanosleep");
+  usleep_ptr = dlsym(RTLD_NEXT, "usleep");
 #else
   pthread_create_ptr         = &pthread_create;
   pthread_join_ptr           = &pthread_join;
@@ -78,6 +83,8 @@ mc_load_intercepted_symbol_addresses()
   pthread_cond_signal_ptr    = &pthread_cond_signal;
   pthread_cond_broadcast_ptr = &pthread_cond_broadcast;
   sleep_ptr                  = &sleep;
+  nanosleep_ptr              = &nanosleep;
+  usleep_ptr                 = &usleep;
 #endif
 }
 
@@ -218,7 +225,22 @@ pthread_cond_broadcast(pthread_cond_t *cond)
 unsigned int
 sleep(unsigned int seconds)
 {
-  /* Treat it as if no  time passed */
+  /* Treat it as if no time passed */
+  return 0;
+}
+
+int
+nanosleep(const struct timespec *duration,
+          struct timespec *rem)
+{
+  /* Treat it as if no time passed */
+  return 0;
+}
+
+int
+usleep(useconds_t usec)
+{
+  /* Treat it as if no time passed */
   return 0;
 }
 
