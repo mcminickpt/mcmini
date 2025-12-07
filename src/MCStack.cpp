@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <unistd.h>
 #include "MCStack.h"
@@ -1335,7 +1336,7 @@ MCStack::printNextTransitions() const
     // In case output is to stdout (not redirect), capture it in a pipe.
     int fd_stdout_orig = dup(1);
     int pipefd[2];
-    pipe(pipefd);
+    assert(pipe(pipefd) == 0);
     dup2(pipefd[1], 1); // Set stdout to pieefd
     mcprintf(" %c ", static_cast<int>(i) == traceSeq[traceSeqIdx-1] ? '*' : ' ');
     this->getNextTransitionForThread(i).print();
@@ -1349,7 +1350,7 @@ MCStack::printNextTransitions() const
         char c = '\0';
         errno = EAGAIN;
         while (c != '\n' && (errno == EAGAIN || errno == EINTR)) {
-          read(pipefd[0], &c, 1);
+          assert(read(pipefd[0], &c, 1) == 1);
           // DEBUG: fprintf(stderr, "Character from pipe: %d (%d)\n", c, c);
           if (c == '\n') { break; }
           putc(c, stdout);
