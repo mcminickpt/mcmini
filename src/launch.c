@@ -40,32 +40,32 @@ main(int argc, char *argv[])
 
   // TODO: Use argp.h instead (more options, better descriptions, etc)
   while (cur_arg[0] != NULL && cur_arg[0][0] == '-') {
-    if (strcmp(cur_arg[0], "--max-transitions-depth-limit") == 0 ||
+    if (strcmp(cur_arg[0], "--max-transitions-total") == 0 ||
         strcmp(cur_arg[0], "-M") == 0) {
-      setenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT, cur_arg[1], 1);
+      setenv(ENV_MAX_TRANSITIONS_TOTAL, cur_arg[1], 1);
       char *endptr;
       if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
-        fprintf(stderr, "%s: illegal value\n", "--max-transitions-depth-limit");
+        fprintf(stderr, "%s: illegal value\n", "--max-transitions-total");
         exit(1);
       }
       cur_arg += 2;
     }
     else if (cur_arg[0][1] == 'M' && isdigit(cur_arg[0][2])) {
-      setenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT, cur_arg[0] + 2, 1);
+      setenv(ENV_MAX_TRANSITIONS_TOTAL, cur_arg[0] + 2, 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--max-depth-per-thread") == 0 ||
+    else if (strcmp(cur_arg[0], "--max-transitions-per-thread") == 0 ||
         strcmp(cur_arg[0], "-m") == 0) {
-      setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[1], 1);
+      setenv(ENV_MAX_TRANSITIONS_PER_THREAD, cur_arg[1], 1);
       char *endptr;
       if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
-        fprintf(stderr, "%s: illegal value\n", "--max-depth-per-thread");
+        fprintf(stderr, "%s: illegal value\n", "--max-transitions-per-thread");
         exit(1);
       }
       cur_arg += 2;
     }
     else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
-      setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[0] + 2, 1);
+      setenv(ENV_MAX_TRANSITIONS_PER_THREAD, cur_arg[0] + 2, 1);
       cur_arg++;
     }
     else if (cur_arg[0][1] == 'd' && isdigit(cur_arg[0][2])) {
@@ -160,8 +160,8 @@ main(int argc, char *argv[])
     }
     else if (strcmp(cur_arg[0], "--help") == 0 ||
              strcmp(cur_arg[0], "-h") == 0) {
-      fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
-                      "              [--max-transitions-depth-limit|-M <num>]\n"
+      fprintf(stderr, "Usage: mcmini [--max-transitions-per-thread|-m <num>]\n"
+                      "              [--max-transitions-total|-M <num>]\n"
                       "                               (default num = %d)\n"
                       "              [--first-deadlock|--first|-f] (default)\n"
                       "              [--all-deadlocks|--all|-a]\n"

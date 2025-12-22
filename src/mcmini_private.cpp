@@ -707,7 +707,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         nextTransition = nullptr;
       }
       if (getenv(ENV_CHECK_FOR_LIVELOCK) ||
-          getenv(ENV_CHECK_FOR_WEAK_LIVELOCK) && nextTransition == nullptr) {
+          (getenv(ENV_CHECK_FOR_WEAK_LIVELOCK) && nextTransition == nullptr)) {
         uint64_t increasedDepth = LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
         if (getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT)) {
 	  increasedDepth =
@@ -856,7 +856,8 @@ get_config_for_execution_environment()
   // single process that forks, exec()s w/LD_PRELOAD set, and then
   // remotely controls THAT process. We need to discuss this
   uint64_t maxThreadDepth = MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT;
-  uint64_t maxTotalDepth = MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT - 1;
+  uint64_t maxTotalDepth =
+                       MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT - 1;
   
   if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
     maxTotalDepth -= LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
@@ -867,13 +868,14 @@ get_config_for_execution_environment()
   bool expectForwardProgressOfThreads = false;
 
   // TODO: Sanitize arguments (check errors of strtoul)
-  if (getenv(ENV_MAX_DEPTH_PER_THREAD) != NULL) {
-    maxThreadDepth = strtoul(getenv(ENV_MAX_DEPTH_PER_THREAD), nullptr, 10);
+  if (getenv(ENV_MAX_TRANSITIONS_PER_THREAD) != NULL) {
+    maxThreadDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_PER_THREAD),
+                             nullptr, 10);
   }
 
-  if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
-    int limit = maxTotalDepth;
-    maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
+  if (getenv(ENV_MAX_TRANSITIONS_TOTAL) != NULL) {
+    uint64_t limit = maxTotalDepth;
+    maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_TOTAL), nullptr, 10);
     if (maxTotalDepth >= limit) {
       maxTotalDepth = limit;
       mcprintf("\nWarning: Value of -M set to a default maximum of %d.\n"
