@@ -1,3 +1,8 @@
+Version 1.2.0 release notes (DATE: TBD)
+==========================================
+* More meaningful command-line flag names:
+    -m is --max-transitions-per-thread and -M is --max-transitions-total
+
 Version 1.1.0 release notes (Oct. 7, 2025)
 ==========================================
 

@@ -345,7 +345,7 @@ const MCTransition *MCStack::getFirstEnabledTransition() {
   if (this->transitionStackTop >=
       this->configuration.maxTotalTransitionsDepthLimit) {
     // Return nullptr if the total number of transitions executed has reached
-    // the maximum limit set by user (ENV_MAX_TRANSITIONS_DEPTH_LIMIT)
+    // the maximum limit set by user (ENV_MAX_TRANSITIONS_TOTAL)
     return nullptr;
   }
 
@@ -378,7 +378,7 @@ const MCTransition *MCStack::getNextFairTransition(tid_t &tid) {
   if (this->transitionStackTop >=
       this->configuration.maxTotalTransitionsDepthLimit) {
     // Return nullptr if the total number of transitions executed has reached
-    // the maximum limit set by user (ENV_MAX_TRANSITIONS_DEPTH_LIMIT)
+    // the maximum limit set by user (ENV_MAX_TRANSITIONS_TOTAL)
     return nullptr;
   }
   uint64_t numThreads = this->getNumProgramThreads();
@@ -477,9 +477,9 @@ MCStack::resetMaxTransitionsDepthLimit()
   if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
     maxTotalDepth -= LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
   }
-  if (getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT) != NULL) {
+  if (getenv(ENV_MAX_TRANSITIONS_TOTAL) != NULL) {
     int limit = maxTotalDepth;
-    maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT), nullptr, 10);
+    maxTotalDepth = strtoul(getenv(ENV_MAX_TRANSITIONS_TOTAL), nullptr, 10);
     if (maxTotalDepth >= limit) {
       maxTotalDepth = limit;
     }
