@@ -135,6 +135,18 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
       "the first mutex.");
   }
 
+  // POSIX standard says that the dynamic binding of a condition variable
+  // to a mutex is removed when the last thread waiting on that cond var is
+  // unblocked (i.e., has re-acquired the associated mutex of the cond var).
+  if (condThatExists->hasWaiters() && condThatExists->mutex != nullptr) {
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
+      *condThatExists->mutex == *mutexThatExists,
+      "There were still threads waiting on a previous mutex associated\n"
+      "with this condition variable.  Attempting to associate more than one\n"
+      "mutex with a condition variable is undefined behavior. Ensure that\n"
+      "you're calling pthread_cond_wait() with the same mutex.");
+  }
+
   // NOTE: We have to associate the mutex with the condition
   // variable when the transition is encountered; otherwise,
   // we wouldn't be able to determine if, e.g., a pthread_cond_wait()

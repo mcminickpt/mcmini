@@ -1,3 +1,8 @@
+Version 1.2.0 release notes (DATE: TBD)
+==========================================
+* A long-standing bug affecting condition variables was removed.
+* The experimental livelock support was improved using a new heuristic.
+
 Version 1.1.0 release notes (Oct. 7, 2025)
 ==========================================
 
