@@ -79,12 +79,6 @@ MCCondWait::applyToState(MCStack *state)
   const tid_t threadId = this->getThreadId();
   this->conditionVariable->mutex->lock(threadId);
   this->conditionVariable->removeWaiter(threadId);
-  // POSIX standard says that the dynamic binding of a condition variable
-  // to a mutex is removed when the last thread waiting on that cond var is
-  // unblocked (i.e., has re-acquired the associated mutex of the cond var).
-  if (! this->conditionVariable->hasWaiters()) {
-    this->conditionVariable->mutex = nullptr;
-  }
 }
 
 bool
