@@ -829,6 +829,10 @@ mc_report_undefined_behavior(const char *msg)
           traceId, msg);
   programState->printTransitionStack();
   programState->printNextTransitions();
+  fprintf(stderr,
+        "*****************************************************************\n"
+        "*** SEE MESSAGE, ABOVE, FOR DESCRIPTION OF UNDEFINED BEHAVIOR ***\n"
+        "*****************************************************************\n");
   mc_exit(EXIT_FAILURE);
 }
 

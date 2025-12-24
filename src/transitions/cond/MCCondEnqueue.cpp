@@ -100,40 +100,81 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
          condThatExists -> shadow.state ==
            MCConditionVariable::Shadow::destroyed);
 
-  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-    mutexThatExists->isLocked(),
-    "Attempting to wait on a condition variable with a mutex that is unlocked.");
+  // 1. We've now computed condThatExists and mutexThatExists
+  //    (i.e., the state of the condvar and mutex arguments to
+  //    pthread_cond_wait()).  Compute the nextTransition.
+  const tid_t threadThatRanId  = shmTransition->executor;
+  auto threadThatRan           = state->getThreadWithId(threadThatRanId);
+  MCTransition *nextTransition =
+    new MCCondEnqueue(threadThatRan, condThatExists, mutexThatExists);
 
-  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-    !condThatExists->isDestroyed(),
-    "Attempting to wait on a destroyed condition variable.");
-
-  if (condThatExists->mutex != nullptr) {
-    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-      *condThatExists->mutex == *mutexThatExists,
-      "Attempting to associate more than one mutex with a condition\n"
-      "variable is undefined behavior. Ensure that you're calling\n"
-      "pthread_cond_wait() with the same mutex.");
+  // 2. Now test for undefined behavior or invalid arguments.
+  //    If fail, then call setNextTransition on nextTransition, in order to
+  //    display correct results for programState->printNextTransitions().
+  if (mutexThatExists->isUnlocked()) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to wait on a condition variable with a mutex that is unlocked.");
   }
 
-  const auto threadThatRanId = shmTransition->executor;
-  const auto mutexAssociatedWithConditionVariable =
-    condThatExists->mutex;
+  if (condThatExists->isDestroyed()) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to wait on a destroyed condition variable.");
+  }
 
+#if 1
   // NOTE: It's possible (and likely) for a condition variable
   // to NOT already be associated with a mutex at this point.
   // E.g., the first call to pthread_cond_wait() will have a
   // condition variable that isn't associated with a mutex.
   //    mutexThatExists->mutexShadow.systemIdentity
-  if (mutexAssociatedWithConditionVariable) {
+  if (condThatExists->mutex != nullptr &&
+      *condThatExists->mutex != *mutexThatExists) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to associate more than one mutex with a condition\n"
+      "variable is undefined behavior.\n"
+      "    NOTE: A different mutex was previously bound to this condition\n"
+      "ariable, and at least one thread is still blocked on that previous\n"
+      "mutex.  But pthread_cond_wait is attempting to bind a new mutex to\n"
+      "the condition variable, even while some thread is still blocked on\n"
+      "the first mutex.");
+  }
+#else
+  // FIXME: Remove this old code.  If fails to setNextTransitionForThread()
+  if (condThatExists->mutex != nullptr) {
     MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-      *mutexAssociatedWithConditionVariable == *mutexThatExists,
+      *condThatExists->mutex == *mutexThatExists,
+      "Attempting to associate more than one mutex with a condition\n"
+      "variable is undefined behavior.\n"
+      "    NOTE: A different mutex was previously bound to this condition\n"
+      "ariable, and at least one thread is still blocked on that previous\n"
+      "mutex.  But pthread_cond_wait is attempting to bind a new mutex to\n"
+      "the condition variable, even while some thread is still blocked on\n"
+      "the first mutex.");
+  }
+#endif
+
+#if 0
+  // FIXME:  Remove this old code.
+  //   This logic seems to be identical tothe previous MC_REPORT.
+  //   Originally, a temporary variable, CondAssociatedMutex was used
+  //   here instead of condThatExists->mutex.
+  if (condThatExists->mutex != nullptr) {
+    MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
+      *condThatExists->mutex == *mutexThatExists,
       "A different mutex was previously bound to this condition variable,\n"
       "and at least one thread is still blocked on that previous mutex.\n"
       "But pthread_cond_wait is attempting to bind a new mutex to the\n"
       "condition variable, even while some thread is still blocked on\n"
       "the first mutex.");
   }
+#endif
+
+  // 3. There are no undefined behaviors or invalid arguments.
+  //    So, we succeeded.  Associate the condThatExists with the new mutex.
+  //    and then return the previously computed nextTransition.
 
   // NOTE: We have to associate the mutex with the condition
   // variable when the transition is encountered; otherwise,
@@ -141,10 +182,10 @@ MCReadCondEnqueue(const MCSharedTransition *shmTransition,
   // enqueue call were dependent with a pthread_mutex_lock(). Note
   // that we ALSO must assign the mutex when the operation is APPLIED
   // to the condition variable
+  //    We don't associate the mutex earlier, because we needed to test
+  // the old condThatExists->mutex, in case of undefined behavior.
   condThatExists->mutex = mutexThatExists;
-  auto threadThatRan    = state->getThreadWithId(threadThatRanId);
-  return new MCCondEnqueue(threadThatRan, condThatExists,
-                           mutexThatExists);
+  return nextTransition;
 }
 
 std::shared_ptr<MCTransition>
