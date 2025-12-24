@@ -923,19 +923,36 @@ MCStack::simulateRunningTransition(
   const MCTransition &transition,
   MCSharedTransition *shmTransitionTypeInfo, void *shmTransitionData)
 {
-  // NOTE: You must grow the transition stack before
-  // the state stack for clock vector updates
-  // to occur properly
+  // The target process has just executed 'transition'.  Recall that a
+  // transition executes one visible operation (e.g., thread operation),
+  // followed by invisible operations, until the next visible operation.
+  // This function will update the model to reflect this transition.
+
+  // 1. Add this transition to the transition stack of the model.
+  // NOTE: You must grow the transition stack before the state stack for
+  //   clock vector updates to occur properly.
   this->growTransitionStackRunning(transition);
   this->growStateStackRunningTransition(transition);
 
-  // NOTE: After applying the transition, this `MCStack`
-  // object has moved into the NEXT state, meaning that
-  // e.g. asking the question "which threads are enabled
-  // now" would ultimate be being asked about the state
-  // that follows AFTER `transition` is executed
+  // 2. Add this transition to the transition stack of the model.
+  // NOTE: After applying the transition, this `MCStack` transition
+  //   object has moved into the NEXT state, meaning that, for example,
+  //   asking the question "which threads are enabled now" would ultimately
+  //   be asked about the state that follows AFTER `transition` is executed.
   this->virtuallyRunTransition(transition);
 
+  // 3. The next transition for tid must now be added to the model.
+  //    The target process had stopped before this next transition.
+  //    So, setNextTransition will look at the shared memory data
+  //    that communicates between  model and target process.
+  //    It will then call MCReadXXX, for XXX being the
+  //    next transition.  The model then saves this next transition,
+  //    so that later, the model checker can decide which threads
+  //    have a next transition that is enabled.
+  // NOTE: The function MCReadXXX may decide that the arguments
+  //   are invalid.  (See mc_report_undefined_behavior().)  If so,
+  //   MCReadXXX must itself call setNextTransitionForThread(), so that
+  //   "PENDING TRANSITIONS" will be displayed properly to the user.
   tid_t tid = transition.getThreadId();
   this->setNextTransitionForThread(tid, shmTransitionTypeInfo,
                                    shmTransitionData);
