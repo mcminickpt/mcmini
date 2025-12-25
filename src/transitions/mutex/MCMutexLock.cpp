@@ -80,17 +80,36 @@ MCReadMutexLock(const MCSharedTransition *shmTransition,
   assert(mutexThatExists -> mutexShadow.state == MCMutexShadow::unlocked ||
          mutexThatExists -> mutexShadow.state == MCMutexShadow::locked);
 
-  MC_REPORT_UNDEFINED_BEHAVIOR_ON_FAIL(
-    mutexThatExists != nullptr,
-    "Attempting to lock an uninitialized mutex");
+  // 1. We've now computed mutexThatExists (i.e., the state of the
+  //    mutex arguments to pthread_mutex_lock()).  Compute the nextTransition.
+  tid_t threadThatRanId = shmTransition->executor;
+  auto threadThatRan    = state->getThreadWithId(threadThatRanId);
+  MCTransition *nextTransition =
+    new MCMutexLock(threadThatRan, mutexThatExists);
+
+  // 2. Now test for undefined behaviors or invalid arguments.
+  //    If fail, then call setNextTransition on nextTransition, in order to
+  //    display correct results for programState->printNextTransitions().
+  if (mutexThatExists == nullptr) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to lock an uninitialized mutex");
+  }
   if (mutexThatExists->isDestroyed()) {
-    MC_REPORT_UNDEFINED_BEHAVIOR(
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
       "Attempting to lock a mutex that has been destroyed");
   }
 
-  tid_t threadThatRanId = shmTransition->executor;
-  auto threadThatRan    = state->getThreadWithId(threadThatRanId);
-  return new MCMutexLock(threadThatRan, mutexThatExists);
+  if (mutexThatExists->isLocked() &&
+      mutexThatExists->ownerTid() == threadThatRanId) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to recursively lock a mutex already owned by this thread.");
+  }
+
+  // 3. Success (no undefined behavior or invalid args).  Return nextTransition.
+  return nextTransition;
 }
 
 std::shared_ptr<MCTransition>

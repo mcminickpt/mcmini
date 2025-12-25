@@ -48,24 +48,33 @@ void
 MCMutex::lock(tid_t newOwner)
 {
   this->mutexShadow.state = MCMutexShadow::locked;
+  this->mutexShadow.owner = newOwner;
 }
 
 void
 MCMutex::unlock()
 {
   this->mutexShadow.state = MCMutexShadow::unlocked;
+  this->mutexShadow.owner = TID_INVALID;
 }
 
 void
 MCMutex::init()
 {
   this->mutexShadow.state = MCMutexShadow::unlocked;
+  this->mutexShadow.owner = TID_INVALID;
 }
 
 void
 MCMutex::deinit()
 {
   this->mutexShadow.state = MCMutexShadow::undefined;
+}
+
+tid_t
+MCMutex::ownerTid() const
+{
+  return this->mutexShadow.owner;
 }
 
 bool
