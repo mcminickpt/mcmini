@@ -1,3 +1,7 @@
+Version 1.2.0 release notes (DATE: TBD)
+==========================================
+* Improved error msg when there is an invalid argument used in a thread operation.  The last transition in the stack was previously being omitted.
+
 Version 1.1.0 release notes (Oct. 7, 2025)
 ==========================================
 
