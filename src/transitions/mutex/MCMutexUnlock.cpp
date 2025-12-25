@@ -14,17 +14,39 @@ MCReadMutexUnlock(const MCSharedTransition *shmTransition,
     mutexThatExists != nullptr,
     "Attempting to unlock an uninitialized mutex");
 
-  if (mutexThatExists->isUnlocked()) {
-    MC_REPORT_UNDEFINED_BEHAVIOR(
-      "Attempting to unlock a mutex that is already unlocked");
-  } else if (mutexThatExists->isDestroyed()) {
-    MC_REPORT_UNDEFINED_BEHAVIOR(
-      "Attempting to unlock a mutex that has been destroyed");
-  }
-
+  // 1. We've now computed mutexThatExists (i.e., the state of the
+  //    mutex arguments to pthread_mutex_lock()).  Compute the nextTransition.
   tid_t threadThatRanId = shmTransition->executor;
   auto threadThatRan    = state->getThreadWithId(threadThatRanId);
-  return new MCMutexUnlock(threadThatRan, mutexThatExists);
+  MCTransition *nextTransition =
+    new MCMutexUnlock(threadThatRan, mutexThatExists);
+
+  // 2. Now test for undefined behaviors or invalid arguments.
+  //    If fail, then call setNextTransition on nextTransition, in order to
+  //    display correct results for programState->printNextTransitions().
+  if (mutexThatExists == nullptr) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to unlock an uninitialized mutex");
+  }
+  if (mutexThatExists->isDestroyed()) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to unlock a mutex that has been destroyed");
+  }
+  if (mutexThatExists->isUnlocked()) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to unlock a mutex that is already unlocked");
+  }
+  if (mutexThatExists->ownerTid() != threadThatRanId) {
+    programState->setNextTransitionForThread(threadThatRanId, std::shared_ptr<MCTransition>(nextTransition));
+    mc_report_undefined_behavior(
+      "Attempting to unlock a mutex that was locked by a different thread.");
+  }
+
+  // 3. Success (no undefined behavior or invalid args).  Return nextTransition.
+  return nextTransition;
 }
 
 std::shared_ptr<MCTransition>

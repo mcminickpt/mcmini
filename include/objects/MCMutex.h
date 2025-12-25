@@ -7,6 +7,7 @@
 struct MCMutexShadow {
   pthread_mutex_t *systemIdentity;
   enum State { undefined, unlocked, locked, destroyed } state;
+  tid_t owner;
   explicit MCMutexShadow(pthread_mutex_t *systemIdentity)
     : systemIdentity(systemIdentity), state(undefined)
   {}
@@ -45,6 +46,7 @@ public:
   void unlock();
   void init();
   void deinit();
+  tid_t ownerTid() const;
 };
 
 #endif // INCLUDE_MCMINI_OBJECTS_MCMUTEX_HPP
