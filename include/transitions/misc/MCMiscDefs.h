@@ -5,5 +5,6 @@
 #include "transitions/misc/MCExitTransition.h"
 #include "transitions/misc/MCGlobalVariableRead.h"
 #include "transitions/misc/MCGlobalVariableWrite.h"
+#include "transitions/misc/MCProgressTransition.h"
 
 #endif // GMAL_GMALMISCDEFS_H

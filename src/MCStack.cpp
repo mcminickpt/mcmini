@@ -637,19 +637,18 @@ MCStack::hasRepetition(const MCTransitionUniqueRep* trace, int trace_len,
 bool
 MCStack::isProgress(const MCTransitionUniqueRep* trace, int trace_len)
 {
-  for (int i = trace_len; i > trace_len - LLOCK_MAX_SCAN_DEPTH; i--) {
-    switch (trace[i].typeId) {
-      case MC_GLOBAL_VARIABLE_WRITE:
-      case MC_THREAD_JOIN:
-      case MC_THREAD_FINISH:
-      case MC_ABORT_TRANSITION:
-      case MC_EXIT_TRANSITION:
-      case MC_THREAD_CREATE:
-        return true;
-      default: continue;
+  int numThreads = programState->getNumProgramThreads();
+  int noProgressThreshold = MAX_NO_PROGRESS_DEFAULT;
+  if (getenv(ENV_MAX_NO_PROGRESS)) {
+    noProgressThreshold = strtoul(getenv(ENV_MAX_NO_PROGRESS), nullptr, 10); 
+  }
+  for (int tid = 0; tid < numThreads; tid++) {
+    if (this->noProgressCount[tid] >= noProgressThreshold) {
+      return false;
     }
   }
-  return false;
+
+  return true;
 }
 
 bool
@@ -1250,6 +1249,24 @@ MCStack::printThreadSchedule() const
 }
 
 void
+MCStack::printThreadsWithoutProgress() const
+{
+  int numThreads = programState->getNumProgramThreads();
+  int noProgressThreshold = MAX_NO_PROGRESS_DEFAULT;
+  if (getenv(ENV_MAX_NO_PROGRESS)) {
+    noProgressThreshold = strtoul(getenv(ENV_MAX_NO_PROGRESS), nullptr, 10);
+  }
+
+  mcprintf("\nNO PROGRESS DETECTED IN THREAD(S): ");
+  for (int tid = 0; tid < numThreads; tid++) {
+    if (this->noProgressCount[tid] >= noProgressThreshold) {
+      mcprintf("%lu ", tid);
+    }
+  }
+  mcprintf("\n\n");
+}
+
+void
 MCStack::printLivelockResults(int firstCycleIndex, int pattern_len) const
 {
   mcprintf("THREAD BACKTRACE\n");
@@ -1265,6 +1282,7 @@ MCStack::printLivelockResults(int firstCycleIndex, int pattern_len) const
     this->getTransitionAtIndex(i).print();
     i++;
   }
+  this->printThreadsWithoutProgress();
 
   mcprintf("END\n");
   mcflush();
@@ -1294,6 +1312,19 @@ MCStack::copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr,
     trace_arr[i] = transition.toUniqueRep();
   }
   trace_len = i;
+}
+
+void
+MCStack::updateNoProgressCount(tid_t tid)
+{
+    this->noProgressCount[tid]++;
+}
+
+void
+MCStack::resetNoProgressCount(tid_t tid)
+{
+ // mcprintf("thread %lu: PROGRESS\n", tid);
+  this->noProgressCount[tid] = -1;
 }
 
 void

@@ -138,6 +138,12 @@ private:
    */
   MCSortedStack irreversibleStatesStack;
 
+  /**
+   * @brief Counts number of consecutive transitions per thread,
+   * which did not make any progress reports.
+   */
+  int noProgressCount[MAX_TOTAL_THREADS_IN_PROGRAM];
+
 private:
 
   /**
@@ -608,9 +614,12 @@ public:
   // TODO: De-couple priting from the state stack + transitions
   void printThreadSchedule() const;
   void copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_len) const;
+  void updateNoProgressCount(tid_t tid);
+  void resetNoProgressCount(tid_t tid);
   void printDebugProgramState();
   void printTransitionStack() const;
   void printNextTransitions() const;
+  void printThreadsWithoutProgress() const;
   void printLivelockResults(int firstCycleIndex, int pattern_len) const;
   void printRepeatingTransitions(int pattern_len) const;
 };

@@ -41,6 +41,13 @@ typedef uint64_t trid_t;
 #define MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT (UINT64_MAX)
 #define MC_STATE_CONFIG_PRINT_AT_TRACE  (UINT64_MAX)
 
+/**
+ * Default maximum number of transitions per thread, that may
+ * occur without making any progress before the system considers
+ * it a no-progress (livelock-like) situation.
+ */
+#define MAX_NO_PROGRESS_DEFAULT (10)
+
 /* The livelock algorithm for pattern detection uses the following constants:
  *   1. LLOCK_MAX_PATTERN_SIZE: Maximum size that a candidate pattern can grow
  *                              before returning no livelock
@@ -54,7 +61,7 @@ typedef uint64_t trid_t;
  */
 #define LLOCK_MAX_PATTERN_SIZE (20)
 #define LLOCK_MIN_PATTERN_REPEATS (3)
-#define LLOCK_MIN_SCAN_DEPTH (50)
+#define LLOCK_MIN_SCAN_DEPTH (10)
 #define LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH (LLOCK_MAX_PATTERN_SIZE * LLOCK_MIN_PATTERN_REPEATS)
 #define LLOCK_MAX_SCAN_DEPTH (LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH)
 

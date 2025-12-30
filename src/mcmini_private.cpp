@@ -237,6 +237,8 @@ mc_create_global_state_object()
     typeid(MCGlobalVariableRead), &MCReadGlobalRead);
   programState->registerVisibleOperationType(
     typeid(MCGlobalVariableWrite), &MCReadGlobalWrite);
+  programState->registerVisibleOperationType(typeid(MCProgressTransition),
+                                             &MCReadProgressTransition);
   programState->start();
 }
 
@@ -320,9 +322,15 @@ isInLivelock(uint64_t *increasedDepth)
 
   while (nextTransition != nullptr && transitionId <
          MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT) {
+    const int typeId = nextTransition->toUniqueRep().typeId;
     tid_t tid = nextTransition->getThreadId();
+
     mc_run_thread_to_next_visible_operation(tid);
 
+    programState->simulateRunningTransition(
+      *nextTransition, shmTransitionTypeInfo, shmTransitionData);
+
+    programState->updateNoProgressCount(tid);
 
     #ifdef DEBUG
       mcprintf("Program State: ");
@@ -330,10 +338,12 @@ isInLivelock(uint64_t *increasedDepth)
       nextTransition->print();
     #endif
 
-    programState->simulateRunningTransition(
-      *nextTransition, shmTransitionTypeInfo, shmTransitionData);
-
-    if (checkForWeakLivelock) {
+    if (typeId == MC_PROGRESS_TRANSITION) {
+      // Transition exists only to record progress; reschedule the same
+      // thread to execute its next actual visible operation.
+      nextTransition = &(programState->getNextTransitionForThread(tid));
+    }
+    else if (checkForWeakLivelock) {
       nextTransition = programState->getFirstEnabledTransition();
     }
     else {
@@ -345,22 +355,10 @@ isInLivelock(uint64_t *increasedDepth)
   if (nextTransition == nullptr && !programState->isInDeadlock()) {
     programState->copyCurrentTraceToArray(traceArr, traceLen);
     // FUTURE EXTENSION: User declares progress; no livelock 
-    // hasLivelock = !programState->isProgress(traceArr, traceLen);
-    hasLivelock = programState->hasRepetition(traceArr, traceLen, increasedDepth);
+    hasLivelock = !programState->isProgress(traceArr, traceLen) &&
+      programState->hasRepetition(traceArr, traceLen, increasedDepth);
   }
-  else if (transitionId >= MAX_TOTAL_TRANSITIONS_IN_PROGRAM) {
-    printResults();
-    mcprintf(
-      "*** IsInLivelock:  Execution Limit Reached! ***\n\n"
-      "McMini ran a trace with %lu transitions.  To increase this limit,\n"
-      "modify MAX_TOTAL_TRANSITIONS_IN_PROGRAM in MCConstants.h and"
-      " re-compile.\n"
-      "But first, try running mcmini with the \"--max-depth-per-thread\""
-      " flag (\"-m\")\n"
-      "to limit how far into a trace a McMini thread can go.\n",
-      transitionId);
-    mc_stop_model_checking(EXIT_FAILURE);
-  }
+
   programState->resetMaxTransitionsDepthLimit();
   return hasLivelock;
 }
@@ -666,7 +664,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
 
     depth++;
     transitionId++;
-
+    const int typeId = nextTransition->toUniqueRep().typeId;
     const tid_t tid = nextTransition->getThreadId();
     // Execute in target application
     mc_run_thread_to_next_visible_operation(tid);
@@ -696,7 +694,12 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       }
     }
 
-    nextTransition = programState->getFirstEnabledTransition();
+    if (typeId == MC_PROGRESS_TRANSITION) {
+      nextTransition = &(programState->getNextTransitionForThread(tid));
+    }
+    else {
+      nextTransition = programState->getFirstEnabledTransition();
+    }
 
     if (nextTransition == nullptr ||
         (traceSeqLength() > 0 && programState->isInDeadlock())) {
