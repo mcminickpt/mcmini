@@ -13,6 +13,13 @@ struct MCCondTransition : public MCTransition {
       : MCTransition(running),
         conditionVariable(conditionVariable),
         hadWaiters(conditionVariable->hasWaiters()) {}
+
+  std::unordered_set<objid_t> getObjectIds() const override {
+    std::unordered_set<objid_t> ids = { conditionVariable->getObjectId() };
+    if (conditionVariable->mutex != nullptr)
+      ids.insert(conditionVariable->mutex->getObjectId());
+    return ids;
+  }
 };
 
 #endif  // MC_MCCONDTRANSITION_H

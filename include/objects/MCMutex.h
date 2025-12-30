@@ -35,6 +35,7 @@ public:
 
   bool operator==(const MCMutex &) const;
   bool operator!=(const MCMutex &) const;
+  bool MCObjectEquals(const MCVisibleObject &other) const override;
 
   bool canAcquire(tid_t) const;
   bool isLocked() const;

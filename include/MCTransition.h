@@ -7,7 +7,7 @@
 #include "objects/MCThread.h"
 #include <memory>
 #include <utility>
-
+#include <unordered_set>
 struct MCStack;
 
 enum MCTransitionType {
@@ -48,7 +48,8 @@ enum MCTransitionType {
   MC_GLOBAL_VARIABLE_WRITE,
   MC_GLOBAL_VARIABLE_READ,
   MC_ABORT_TRANSITION,
-  MC_EXIT_TRANSITION
+  MC_EXIT_TRANSITION,
+  MC_PROGRESS_TRANSITION
 };
 
 /* A structure used to store the unique representation
@@ -592,6 +593,10 @@ public:
    */
   virtual MCTransitionUniqueRep
   toUniqueRep() const = 0;
+
+  virtual std::unordered_set<objid_t> getObjectIds() const {
+    return {};
+  }
 
   // FIXME: De-couple printing from the interface
   virtual void

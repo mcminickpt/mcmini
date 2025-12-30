@@ -12,6 +12,10 @@ public:
     : MCTransition(running), sem(sem)
   {
   }
+
+  std::unordered_set<objid_t> getObjectIds() const override {
+    return { sem->getObjectId() };
+  }
 };
 
 #endif // MC_MCSEMAPHORETRANSITION_H

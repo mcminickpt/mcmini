@@ -98,12 +98,6 @@ main(int argc, char *argv[])
       setenv(ENV_CHECK_FOR_LIVELOCK, "1", 1);
       cur_arg++;
     }
-    else if (strcmp(cur_arg[0], "--weak-livelock") == 0 ||
-             strcmp(cur_arg[0], "--wl") == 0 ||
-             strcmp(cur_arg[0], "-w") == 0) {
-      setenv(ENV_CHECK_FOR_WEAK_LIVELOCK, "1", 1);
-      cur_arg++;
-    }
     else if (strcmp(cur_arg[0], "--max-livelock-cycle-limit") == 0 ||
         strcmp(cur_arg[0], "--ML") == 0) {
       setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[1], 1);
@@ -163,13 +157,10 @@ main(int argc, char *argv[])
       fprintf(stderr, "Usage: mcmini [--max-transitions-per-thread|-m <num>]\n"
                       "              [--max-transitions-total|-M <num>]\n"
                       "                               (default num = %d)\n"
+                      "              [--explore-round-robin|-r]\n"
                       "              [--first-deadlock|--first|-f] (default)\n"
                       "              [--all-deadlocks|--all|-a]\n"
-                      "              [--check-for-livelock|-l] (livelock"
-		                       " using round-robin sched.)\n"
-                      "                               (experimental)\n"
-                      "              [--weak-livelock|--wl|-w]"
-                                         " (busy waiting with 1 thread)\n"
+                      "              [--check-for-livelock|-l]\n"
                       "              [--max-livelock-cycle-limit|--ML <num>]\n"
                       "                               (default num = %d)\n"
                       "              [--quiet|-q]\n"
@@ -182,7 +173,7 @@ main(int argc, char *argv[])
                       "       (To check data races in target, compile target as in\n" 
                       "        Makefile_llvm in the top level of the McMini source code.)\n",
               MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT,
-	      LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
+              LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
              );
       exit(1);
     }

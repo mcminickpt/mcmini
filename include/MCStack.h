@@ -27,6 +27,12 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <unordered_set>
 #include <vector>
 
+struct stateLlock {
+  std::vector<std::shared_ptr<MCVisibleObject>> objects;
+  std::unordered_set<tid_t> enabled;
+  std::vector<MCTransitionUniqueRep> nextTransitions;
+};
+
 /**
  * @brief Set 'lastEnedOfTraceId = traceId'.
  * getNextTraceSeqEntry(...) will now always return '-1'.
@@ -549,13 +555,13 @@ public:
   void dynamicallyUpdateBacktrackSets();
 
   bool isInDeadlock() const;
+  bool isInLivelock(int);
+  bool stateIsRevisited(MCObjectStore &store,
+                       int numThreads,
+                       const std::unordered_set<tid_t> &enabled,
+                       std::vector<stateLlock> &visitedStates);
   void increaseMaxTransitionsDepthLimit(int);
   void resetMaxTransitionsDepthLimit();
-  void KMPBuildLPS(const MCTransitionUniqueRep*, int, int *) const;
-  int KMPFindFirstLivelockCycle(const MCTransitionUniqueRep*,int,
-    const MCTransitionUniqueRep* pattern, int) const;
-  bool hasRepetition(const MCTransitionUniqueRep*, int, uint64_t *) const;
-  bool isProgress(const MCTransitionUniqueRep*, int);
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
   inline bool
@@ -607,11 +613,11 @@ public:
 
   // TODO: De-couple priting from the state stack + transitions
   void printThreadSchedule() const;
-  void copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_len) const;
   void printDebugProgramState();
   void printTransitionStack() const;
   void printNextTransitions() const;
-  void printLivelockResults(int firstCycleIndex, int pattern_len) const;
+  void printLivelockResults(int livelockStartIdx, int cycleStartIdx[],
+                           int numCycles) const;
   void printRepeatingTransitions(int pattern_len) const;
 };
 
