@@ -54,6 +54,20 @@ main(int argc, char *argv[])
       setenv(ENV_MAX_TRANSITIONS_DEPTH_LIMIT, cur_arg[0] + 2, 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--max-no-progress") == 0 ||
+        strcmp(cur_arg[0], "-P") == 0) {
+      setenv(ENV_MAX_NO_PROGRESS, cur_arg[1], 1);
+      char *endptr;
+      if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
+        fprintf(stderr, "%s: illegal value\n", "--max-no-progress");
+        exit(1);
+      }
+      cur_arg += 2;
+    }
+    else if (cur_arg[0][1] == 'P' && isdigit(cur_arg[0][2])) {
+      setenv(ENV_MAX_NO_PROGRESS, cur_arg[0] + 2, 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--max-depth-per-thread") == 0 ||
         strcmp(cur_arg[0], "-m") == 0) {
       setenv(ENV_MAX_DEPTH_PER_THREAD, cur_arg[1], 1);
@@ -163,10 +177,12 @@ main(int argc, char *argv[])
       fprintf(stderr, "Usage: mcmini [--max-depth-per-thread|-m <num>]\n"
                       "              [--max-transitions-depth-limit|-M <num>]\n"
                       "                               (default num = %d)\n"
+                      "              [--max-no-progress|-P <num>]\n"
+                      "                               (default num = %d)\n"
                       "              [--first-deadlock|--first|-f] (default)\n"
                       "              [--all-deadlocks|--all|-a]\n"
                       "              [--check-for-livelock|-l] (livelock"
-		                       " using round-robin sched.)\n"
+                                     " using round-robin sched.)\n"
                       "                               (experimental)\n"
                       "              [--weak-livelock|--wl|-w]"
                                          " (busy waiting with 1 thread)\n"
@@ -182,7 +198,8 @@ main(int argc, char *argv[])
                       "       (To check data races in target, compile target as in\n" 
                       "        Makefile_llvm in the top level of the McMini source code.)\n",
               MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT,
-	      LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
+              MAX_NO_PROGRESS_DEFAULT,
+              LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
              );
       exit(1);
     }
