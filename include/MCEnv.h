@@ -3,6 +3,8 @@
 
 #define ENV_MAX_TRANSITIONS_TOTAL         "MCMINI_MAX_TRANSITIONS_TOTAL"
 #define ENV_MAX_TRANSITIONS_PER_THREAD    "MCMINI_MAX_TRANSITIONS_PER_THREAD"
+// Set the scheduling policy to round-robin instead of lowest thread id first
+#define ENV_EXPLORE_ROUND_ROBIN           "MCMINI_EXPLORE_ROUND_ROBIN"
 #define ENV_DEBUG_AT_TRACE_ID             "MCMINI_DEBUG_AT_TRACE_ID"
 #define ENV_PRINT_AT_TRACE_ID             "MCMINI_PRINT_AT_TRACE_ID"
 #define ENV_PRINT_AT_TRACE_SEQ            "MCMINI_PRINT_AT_TRACE_SEQ"
