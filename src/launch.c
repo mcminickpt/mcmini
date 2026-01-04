@@ -64,6 +64,11 @@ main(int argc, char *argv[])
       }
       cur_arg += 2;
     }
+    else if (strcmp(cur_arg[0], "--explore-round-robin") == 0 ||
+             strcmp(cur_arg[0], "-r") == 0) {
+      setenv(ENV_EXPLORE_ROUND_ROBIN, "1", 1);
+      cur_arg++;
+    }
     else if (cur_arg[0][1] == 'm' && isdigit(cur_arg[0][2])) {
       setenv(ENV_MAX_TRANSITIONS_PER_THREAD, cur_arg[0] + 2, 1);
       cur_arg++;

@@ -588,7 +588,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
   const MCTransition &initialTransition =
     programState->getNextTransitionForThread(backtrackThread);
   const MCTransition *nextTransition = &initialTransition;
-
+  const bool exploreRoundRobin = getenv(ENV_EXPLORE_ROUND_ROBIN);
   // TODO: Assert whether or not nextTransition is enabled
   // TODO: Assert whether a trace process exists at this point
 
