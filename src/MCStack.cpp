@@ -374,7 +374,7 @@ const MCTransition *MCStack::getFirstEnabledTransition() {
 // Fairness: Next transition of a livelock cycle using 
 // round-robin for the next enabled transition;
 // This is not general fairness. It only checks for round-robin scheduling.
-const MCTransition *MCStack::getNextFairTransition(tid_t &tid) {
+const MCTransition *MCStack::getNextFairTransition(tid_t tid) {
   if (this->transitionStackTop >=
       this->configuration.maxTotalTransitionsDepthLimit) {
     // Return nullptr if the total number of transitions executed has reached

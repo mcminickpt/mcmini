@@ -489,7 +489,7 @@ public:
 
   MCTransition &getNextTransitionForThread(tid_t thread) const;
   const MCTransition *getFirstEnabledTransition();
-  const MCTransition *getNextFairTransition(tid_t &tid);
+  const MCTransition *getNextFairTransition(tid_t tid);
 
   void setNextTransitionForThread(MCThread *,
                                   std::shared_ptr<MCTransition>);
