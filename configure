@@ -652,6 +652,7 @@ ac_func_c_list=
 ac_subst_vars='LTLIBOBJS
 HAS_PROCESS_VM
 HAS_GDB
+EARLY_STOPPING
 DEBUG
 PWD
 LIBOBJS
@@ -717,6 +718,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_debug
+enable_early_stopping
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1354,6 +1356,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-debug          Use debugging flags "-Wall -g3 -O0" (default is -g
                           -O0)
+  --enable-early-stopping Enable early stopping optimization for livelock
+                          detection (default is disabled)
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -3403,11 +3407,11 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++11 features" >&5
 printf %s "checking for $CXX option to enable C++11 features... " >&6; }
-if test ${ac_cv_prog_cxx_cxx11+y}
+if test ${ac_cv_prog_cxx_11+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
-  ac_cv_prog_cxx_cxx11=no
+  ac_cv_prog_cxx_11=no
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -3449,11 +3453,11 @@ if test x$ac_prog_cxx_stdcxx = xno
 then :
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking for $CXX option to enable C++98 features" >&5
 printf %s "checking for $CXX option to enable C++98 features... " >&6; }
-if test ${ac_cv_prog_cxx_cxx98+y}
+if test ${ac_cv_prog_cxx_98+y}
 then :
   printf %s "(cached) " >&6
 else $as_nop
-  ac_cv_prog_cxx_cxx98=no
+  ac_cv_prog_cxx_98=no
 ac_save_CXX=$CXX
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
@@ -5275,6 +5279,29 @@ else
 
 fi
 
+# Check whether --enable-early-stopping was given.
+if test ${enable_early_stopping+y}
+then :
+  enableval=$enable_early_stopping; use_early_stopping=$enableval
+else $as_nop
+  use_early_stopping=no
+fi
+
+
+if test "$use_early_stopping" = "yes"; then
+  EARLY_STOPPING=yes
+
+
+printf "%s\n" "#define LIVELOCK_EARLY_STOPPING 1" >>confdefs.h
+
+  CFLAGS="$CFLAGS -DLIVELOCK_EARLY_STOPPING"
+  CPPFLAGS="$CPPFLAGS -DLIVELOCK_EARLY_STOPPING"
+  CXXFLAGS="$CXXFLAGS -DLIVELOCK_EARLY_STOPPING"
+else
+  EARLY_STOPPING=no
+
+fi
+
 { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if python3 is available" >&5
 printf %s "checking if python3 is available... " >&6; }
 # If Python returns True, that is converted to '1', which is Failure for shell:
@@ -6741,5 +6768,6 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { printf "%s\n" "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 printf "%s\n" "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
+
 
 

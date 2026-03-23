@@ -51,6 +51,23 @@ else
   AC_SUBST([DEBUG], [no])
 fi
 
+AC_ARG_ENABLE([early-stopping],
+            [AS_HELP_STRING([--enable-early-stopping],
+                            [Enable early stopping optimization for livelock
+                             detection (default is disabled)])],
+            [use_early_stopping=$enableval],
+            [use_early_stopping=no])
+
+if test "$use_early_stopping" = "yes"; then
+  AC_SUBST([EARLY_STOPPING], [yes])
+  AC_DEFINE([LIVELOCK_EARLY_STOPPING],[1],[Enable early stopping on state recurrence in livelock detection])
+  CFLAGS="$CFLAGS -DLIVELOCK_EARLY_STOPPING"
+  CPPFLAGS="$CPPFLAGS -DLIVELOCK_EARLY_STOPPING"
+  CXXFLAGS="$CXXFLAGS -DLIVELOCK_EARLY_STOPPING"
+else
+  AC_SUBST([EARLY_STOPPING], [no])
+fi
+
 AC_MSG_CHECKING([if python3 is available])
 # If Python returns True, that is converted to '1', which is Failure for shell:
 if [[ "$PYTHON3$PYTHON" = "" ]]; then
@@ -171,3 +188,4 @@ AC_MSG_RESULT([$has_cma])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([mcmini-gdb], [chmod a+x mcmini-gdb])
 AC_OUTPUT
+

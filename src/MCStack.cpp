@@ -490,6 +490,7 @@ bool transitionsAreRelated(MCTransition* a, MCTransition *b)
   return false;
 }
 
+#ifdef LIVELOCK_EARLY_STOPPING
 bool
 MCStack::stateIsRevisited(MCObjectStore &store,
                       int numThreads,
@@ -563,6 +564,7 @@ bool canStopSafely(const std::unordered_set<tid_t> &related,
   }
   return !unexploredExists;
 }
+#endif
 
 void
 MCStack::printLivelockResults(int livelockStartIdx, int cycleStartIdx[],
@@ -593,7 +595,11 @@ MCStack::isInLivelock(int increasedDepth)
 {
   std::unordered_set<tid_t> threadIsRelated;
   std::unordered_set<tid_t> threadIsExplored;
+
+#ifdef LIVELOCK_EARLY_STOPPING
   std::vector<stateLlock> visitedStates;
+#endif
+
   int livelockStartIdx = this->transitionStackTop;
   int cycleStartIdx[MAX_TOTAL_THREADS_IN_PROGRAM];
   int numCycles = 0;
@@ -604,16 +610,20 @@ MCStack::isInLivelock(int increasedDepth)
 
   while (start_tid != -1) {
     threadIsRelated.clear();
+#ifdef LIVELOCK_EARLY_STOPPING
     visitedStates.clear();
+#endif
     mc_run_thread_to_next_visible_operation(start_tid);
     this->simulateRunningTransition(
       *nextTransition, shmTransitionTypeInfo, shmTransitionData);
     threadIsRelated.insert(start_tid);
     threadIsExplored.insert(start_tid);
+#ifdef LIVELOCK_EARLY_STOPPING
     stateIsRevisited(this->objectStorage,
                      numThreads,
                      this->getCurrentlyEnabledThreads(),
                      visitedStates);
+#endif
     tid_t next_tid = start_tid;
     int cycleStart = this->transitionStackTop;
     numCycles++;
@@ -649,16 +659,18 @@ MCStack::isInLivelock(int increasedDepth)
         *nextTransition, shmTransitionTypeInfo, shmTransitionData);
       threadIsExplored.insert(next_tid);
 
+#ifdef LIVELOCK_EARLY_STOPPING
       bool stateRevisited = stateIsRevisited(this->objectStorage, numThreads,
                              this->getCurrentlyEnabledThreads(), visitedStates);
 
       if (stateRevisited && canStopSafely(threadIsRelated, threadIsExplored,
                                           this->getCurrentlyEnabledThreads())) {
-        hasLivelock = true;
         break;
       }
+#endif
     }
 
+    hasLivelock = true;
     int n;
     for (n = 0; n < numThreads; n++) {
       nextTransition = &(this->getNextTransitionForThread(n));

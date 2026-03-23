@@ -27,11 +27,13 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <unordered_set>
 #include <vector>
 
+#ifdef LIVELOCK_EARLY_STOPPING
 struct stateLlock {
   std::vector<std::shared_ptr<MCVisibleObject>> objects;
   std::unordered_set<tid_t> enabled;
   std::vector<MCTransitionUniqueRep> nextTransitions;
 };
+#endif
 
 /**
  * @brief Set 'lastEnedOfTraceId = traceId'.
@@ -556,10 +558,12 @@ public:
 
   bool isInDeadlock() const;
   bool isInLivelock(int);
+#ifdef LIVELOCK_EARLY_STOPPING
   bool stateIsRevisited(MCObjectStore &store,
                        int numThreads,
                        const std::unordered_set<tid_t> &enabled,
                        std::vector<stateLlock> &visitedStates);
+#endif
   void increaseMaxTransitionsDepthLimit(int);
   void resetMaxTransitionsDepthLimit();
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
