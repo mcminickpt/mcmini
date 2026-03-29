@@ -12,6 +12,10 @@ public:
                              std::shared_ptr<MCGlobalVariable> global)
     : MCTransition(running), global(global)
   {}
+
+  std::unordered_set<objid_t> getObjectsAccessedByTransition() const override {
+    return { global->getObjectId() };
+  }
 };
 
 #endif // MC_MCGLOBALVARIABLETRANSITION_H

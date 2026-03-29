@@ -7,6 +7,7 @@
 #include "objects/MCThread.h"
 #include <memory>
 #include <utility>
+#include <unordered_set>
 
 struct MCStack;
 
@@ -593,6 +594,10 @@ public:
    */
   virtual MCTransitionUniqueRep
   toUniqueRep() const = 0;
+
+  virtual std::unordered_set<objid_t> getObjectsAccessedByTransition() const {
+    return {};
+  }
 
   // FIXME: De-couple printing from the interface
   virtual void

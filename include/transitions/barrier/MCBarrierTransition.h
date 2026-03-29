@@ -12,6 +12,10 @@ public:
     : MCTransition(running), barrier(barrier)
   {
   }
+
+  std::unordered_set<objid_t> getObjectsAccessedByTransition() const override {
+    return { barrier->getObjectId() };
+  }
 };
 
 #endif // MC_MCBARRIERTRANSITION_H
