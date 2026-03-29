@@ -65,6 +65,7 @@ public:
 
   std::shared_ptr<MCVisibleObject> copy() override;
   MCSystemID getSystemId() override;
+  //  bool MCObjectEquals(const MCVisibleObject &other) const override;
 
   bool operator==(const MCRWLock &) const;
   bool operator!=(const MCRWLock &) const;

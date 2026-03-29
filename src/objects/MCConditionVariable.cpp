@@ -96,3 +96,15 @@ MCConditionVariable::destroy()
 {
   this->shadow.state = MCConditionVariableShadow::destroyed;
 }
+
+bool
+MCConditionVariable::MCObjectEquals(const MCVisibleObject &other) const
+{
+  const MCConditionVariable *b =
+    dynamic_cast<const MCConditionVariable *>(&other);
+  if (!b) {
+    return false;
+  }
+  return (this->shadow.state == b->shadow.state &&
+          this->numRemainingSpuriousWakeups == b->numRemainingSpuriousWakeups);
+}

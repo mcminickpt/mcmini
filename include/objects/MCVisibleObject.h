@@ -21,6 +21,10 @@ public:
   virtual ~MCVisibleObject()                      = default;
   virtual std::shared_ptr<MCVisibleObject> copy() = 0;
   virtual MCSystemID getSystemId()                = 0;
+  virtual bool MCObjectEquals(const MCVisibleObject &other) const
+  {
+    return true;
+  }
   objid_t getObjectId() const;
 };
 

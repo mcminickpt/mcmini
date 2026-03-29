@@ -116,6 +116,10 @@ public:
     }
   }
 
+  objid_t getStorageTop() const {
+    return storageTop;
+  }
+
   void resetObjectsToInitialStateInStore();
 };
 

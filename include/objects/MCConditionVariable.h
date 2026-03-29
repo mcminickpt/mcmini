@@ -83,6 +83,7 @@ public:
 
   std::shared_ptr<MCVisibleObject> copy() override;
   MCSystemID getSystemId() override;
+  bool MCObjectEquals(const MCVisibleObject &other) const override;
 
   bool operator==(const ConditionVariable &) const;
   bool operator!=(const ConditionVariable &) const;
