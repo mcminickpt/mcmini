@@ -27,6 +27,15 @@ typedef MCTransition *(*MCSharedMemoryHandler)(
 #include <unordered_set>
 #include <vector>
 
+
+#ifdef LIVELOCK_EARLY_STOPPING
+struct stateLlock {
+  std::vector<std::shared_ptr<MCVisibleObject>> objects;
+  std::unordered_set<tid_t> enabled;
+  std::vector<MCTransitionUniqueRep> nextTransitions;
+};
+#endif
+
 /**
  * @brief Set 'lastEnedOfTraceId = traceId'.
  * getNextTraceSeqEntry(...) will now always return '-1'.
@@ -549,7 +558,13 @@ public:
   void dynamicallyUpdateBacktrackSets();
 
   bool isInDeadlock() const;
-  bool isInLivelock(int); 
+  bool isInLivelock(int);
+#ifdef LIVELOCK_EARLY_STOPPING
+  bool stateIsRevisited(MCObjectStore &store,
+                       int numThreads,
+                       const std::unordered_set<tid_t> &enabled,
+                       std::vector<stateLlock> &visitedStates);
+#endif
   void increaseMaxTransitionsDepthLimit(int);
   void resetMaxTransitionsDepthLimit();
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
@@ -603,11 +618,11 @@ public:
 
   // TODO: De-couple priting from the state stack + transitions
   void printThreadSchedule() const;
-  void copyCurrentTraceToArray(MCTransitionUniqueRep* trace_arr, int& trace_len) const;
   void printDebugProgramState();
   void printTransitionStack() const;
   void printNextTransitions() const;
-  void printLivelockResults(int firstCycleIndex, int pattern_len) const;
+  void printLivelockResults(int livelockStartIdx, int cycleStartIdx[],
+                           int numCycles) const;
   void printRepeatingTransitions(int pattern_len) const;
 };
 
