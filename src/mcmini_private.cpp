@@ -237,6 +237,8 @@ mc_create_global_state_object()
     typeid(MCGlobalVariableRead), &MCReadGlobalRead);
   programState->registerVisibleOperationType(
     typeid(MCGlobalVariableWrite), &MCReadGlobalWrite);
+  programState->registerVisibleOperationType(typeid(MCProgressTransition),
+                                             &MCReadProgressTransition);
   programState->start();
 }
 
@@ -609,6 +611,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     depth++;
     transitionId++;
 
+    const int typeId = nextTransition->toUniqueRep().typeId;
     const tid_t tid = nextTransition->getThreadId();
     // Execute in target application
     mc_run_thread_to_next_visible_operation(tid);
@@ -638,7 +641,10 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
       }
     }
 
-    if (exploreRoundRobin) {
+    if (typeId == MC_PROGRESS_TRANSITION) {
+      nextTransition = &(programState->getNextTransitionForThread(tid));
+    }
+    else if (exploreRoundRobin) {
       nextTransition = programState->getNextFairTransition(tid);
     }
     else {
