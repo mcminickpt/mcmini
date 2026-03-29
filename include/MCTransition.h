@@ -48,7 +48,8 @@ enum MCTransitionType {
   MC_GLOBAL_VARIABLE_WRITE,
   MC_GLOBAL_VARIABLE_READ,
   MC_ABORT_TRANSITION,
-  MC_EXIT_TRANSITION
+  MC_EXIT_TRANSITION,
+  MC_PROGRESS_TRANSITION
 };
 
 /* A structure used to store the unique representation

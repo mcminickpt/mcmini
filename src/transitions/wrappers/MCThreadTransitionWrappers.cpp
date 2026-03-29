@@ -4,6 +4,7 @@
 #include "transitions/MCTransitionsShared.h"
 #include "transitions/misc/MCAbortTransition.h"
 #include "transitions/misc/MCExitTransition.h"
+#include "transitions/misc/MCProgressTransition.h"
 #include "transitions/threads/MCThreadCreate.h"
 #include "transitions/threads/MCThreadFinish.h"
 #include "transitions/threads/MCThreadJoin.h"
@@ -121,5 +122,14 @@ mc_pthread_reach_point()
 {
   tid_t thread = tid_self;
   thread_post_visible_operation_hit(typeid(T), &thread);
+  thread_await_scheduler();
+}
+
+extern "C"
+__attribute__((visibility("default")))
+void mc_report_progress()
+{
+  tid_t thread = tid_self;
+  thread_post_visible_operation_hit(typeid(MCProgressTransition), &thread);
   thread_await_scheduler();
 }
