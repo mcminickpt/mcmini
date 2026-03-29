@@ -74,3 +74,14 @@ MCMutex::canAcquire(tid_t thread) const
   return this->isUnlocked(); /* Eventually, more complicated logic
                                 with recursive mutexes */
 }
+
+bool
+MCMutex::MCObjectEquals(const MCVisibleObject &other) const
+{
+  const MCMutex* b = dynamic_cast<const MCMutex *>(&other);
+  if (!b) {
+    return false;
+  }
+
+  return this->mutexShadow.state == b->mutexShadow.state;
+}

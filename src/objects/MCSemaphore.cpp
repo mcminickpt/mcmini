@@ -130,3 +130,21 @@ MCSemaphore::getCount() const
 {
   return this->semShadow.count;
 }
+
+bool
+MCSemaphore::MCObjectEquals(const MCVisibleObject &other) const
+{
+  const MCSemaphore* b = dynamic_cast<const MCSemaphore *>(&other);
+  if (!b) {
+    return false;
+  }
+
+  if (this->semShadow.state == b->semShadow.state &&
+      this->semShadow.count == b->semShadow.count &&
+      this->spuriousWakeupCount == b->spuriousWakeupCount &&
+      this->waitingQueue.size() == b->waitingQueue.size()) {
+    return true;
+  }
+
+  return false;
+}
