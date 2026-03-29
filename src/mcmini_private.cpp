@@ -660,7 +660,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         nextTransition = nullptr;
       }
       if (getenv(ENV_CHECK_FOR_LIVELOCK) && nextTransition == nullptr) {
-        uint64_t increasedDepth = LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+        int increasedDepth = LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
         if (getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT)) {
           increasedDepth =
             strtoul(getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT), nullptr, 10);

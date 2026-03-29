@@ -375,6 +375,21 @@ const MCTransition *MCStack::getFirstEnabledTransition() {
 // round-robin for the next enabled transition;
 // This is not general fairness. It only checks for round-robin scheduling.
 const MCTransition *MCStack::getNextFairTransition(tid_t tid) {
+  int nextTraceEntry = getNextTraceSeqEntry(traceSeqIdx++);
+  if (nextTraceEntry >= 0) {
+    // FIXME: This is more C++ obfuscation.
+    //   We use '&' to convert from 'reference variable' to 'ptr'.
+    // This happens because we're using 'reference variables' instead of ptrs.
+    // The normal C++ rule is that if we can return nullptr, then the
+    //   type should be 'ptr', and _not_ 'reference variable'.
+    // We were forced to use a ptr return value for this function, because
+    //   this function can return nullptr.  But now, we're doing a dance
+    //   with reference variables in order to "pretend" that we will
+    //   never return 'nullptr', when in fact we can return 'nullptr'.
+    //   It would be better to use ptrs everywhere instead of a
+    //   mixture of ptr and reference variable, with little dances to convert.
+    return &(this->getNextTransitionForThread(nextTraceEntry));
+  }
   if (this->transitionStackTop >=
       this->configuration.maxTotalTransitionsDepthLimit) {
     // Return nullptr if the total number of transitions executed has reached
@@ -460,13 +475,228 @@ MCStack::isInDeadlock() const
   return true;
 }
 
+bool transitionsAreRelated(MCTransition* a, MCTransition *b)
+{
+  unordered_set<objid_t> objsA = a->getObjectsAccessedByTransition();
+  unordered_set<objid_t> objsB = b->getObjectsAccessedByTransition();
+  if (objsA.empty() || objsB.empty()) {
+    return false;
+  }
+  for (objid_t id : objsA) {
+    if (objsB.count(id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+#ifdef LIVELOCK_EARLY_STOPPING
+bool
+MCStack::stateIsRevisited(MCObjectStore &store,
+                      int numThreads,
+                      const std::unordered_set<tid_t> &enabled,
+                      std::vector<stateLlock> &visitedStates)
+{
+  stateLlock current;
+  for (objid_t id = 0; id <= store.getStorageTop(); id++) {
+    current.objects.push_back(store.getObjectWithId(id)->copy());
+  }
+
+  current.enabled = enabled;
+
+  for (int tid = 0; tid < numThreads; tid++) {
+    const MCTransition &t = this->getNextTransitionForThread(tid);
+    current.nextTransitions.push_back(t.toUniqueRep());
+  }
+
+  for (auto &oldState : visitedStates) {
+    if (oldState.enabled != current.enabled) {
+      continue;
+    }
+
+    bool transitionsEqual = true;
+    for (int i = 0; i < numThreads; i++) {
+      if (!MCTransitionUniqueRep::uniqueRepEqual(
+            &oldState.nextTransitions[i],
+            &current.nextTransitions[i])) {
+        transitionsEqual = false;
+        break;
+      }
+    }
+
+    if (!transitionsEqual) {
+      continue;
+    }
+
+    bool objectsEqual = true;
+    for (size_t i = 0; i < store.getStorageTop(); i++) {
+      if (!oldState.objects[i]->MCObjectEquals(
+            *current.objects[i])) {
+        objectsEqual = false;
+        break;
+      }
+    }
+
+    if (objectsEqual)
+      return true;
+  }
+  visitedStates.push_back(current);
+  return false;
+}
+
+bool canStopSafely(const std::unordered_set<tid_t> &related,
+                   const std::unordered_set<tid_t> &explored,
+                   const std::unordered_set<tid_t> &enabled)
+{
+  bool unexploredExists = false;
+
+  for (tid_t tid : related) {
+    bool isExplored = explored.count(tid);
+    bool isEnabled = enabled.count(tid);
+
+    if (!isExplored) {
+      unexploredExists = true;
+
+      if (isEnabled) {
+        return true;
+      }
+    }
+  }
+  return !unexploredExists;
+}
+#endif
+
+void
+MCStack::printLivelockResults(int livelockStartIdx, int cycleStartIdx[],
+                               int numCycles) const
+{
+  mcprintf("*** POTENTIAL LIVELOCK DETECTED ***\n");
+
+  mcprintf("THREAD BACKTRACE\n");
+  for (int i = 0; i <= livelockStartIdx; i++) {
+    mcprintf("  %d. ", i + 1);
+    this->getTransitionAtIndex(i).print();
+  }
+
+  for (int c = 0; c < numCycles; c++) {
+    int start = cycleStartIdx[c];
+    int end = (c + 1 < numCycles) ? cycleStartIdx[c + 1] - 1
+                                  : this->transitionStackTop;
+    mcprintf("\nCYCLE %d:\n", c + 1);
+    for (int i = start; i <= end; i++) {
+      mcprintf("  %d. ", i + 1);
+      this->getTransitionAtIndex(i).print();
+    }
+  }
+}
+
+bool
+MCStack::isInLivelock(int increasedDepth)
+{
+  std::unordered_set<tid_t> threadIsRelated;
+  std::unordered_set<tid_t> threadIsExplored;
+
+#ifdef LIVELOCK_EARLY_STOPPING
+  std::vector<stateLlock> visitedStates;
+#endif
+
+  int livelockStartIdx = this->transitionStackTop;
+  int cycleStartIdx[MAX_TOTAL_THREADS_IN_PROGRAM];
+  int numCycles = 0;
+  bool hasLivelock = false;
+  int numThreads = this->getNumProgramThreads();
+  const MCTransition *nextTransition = this->getFirstEnabledTransition();
+  int start_tid = nextTransition->getThreadId();
+
+  while (start_tid != -1) {
+    threadIsRelated.clear();
+#ifdef LIVELOCK_EARLY_STOPPING
+    visitedStates.clear();
+#endif
+    mc_run_thread_to_next_visible_operation(start_tid);
+    this->simulateRunningTransition(
+      *nextTransition, shmTransitionTypeInfo, shmTransitionData);
+    threadIsRelated.insert(start_tid);
+    threadIsExplored.insert(start_tid);
+#ifdef LIVELOCK_EARLY_STOPPING
+    stateIsRevisited(this->objectStorage,
+                     numThreads,
+                     this->getCurrentlyEnabledThreads(),
+                     visitedStates);
+#endif
+    tid_t next_tid = start_tid;
+    int cycleStart = this->transitionStackTop;
+    numCycles++;
+    cycleStartIdx[numCycles-1] = cycleStart;
+
+    for (int i = 1; i < increasedDepth; i++) {
+
+      for (int tid = 0; tid < numThreads; tid++) {
+        if (threadIsRelated.count(tid) == 0 &&
+         //   threadIsExplored.count(tid) == 0 &&
+            transitionsAreRelated(&getNextTransitionForThread(tid),
+                                  &this->getTransitionStackTop())) {
+          threadIsRelated.insert(tid);
+        }
+      }
+
+      if (!this->transitionIsEnabled(this->getNextTransitionForThread(next_tid))) {
+        for (int j = 0; j < numThreads; j++) {
+          if (threadIsRelated.count(j) &&
+              this->transitionIsEnabled(this->getNextTransitionForThread(j))) {
+            next_tid = j;
+            break;
+          }
+        }
+      }
+
+      nextTransition = &(this->getNextTransitionForThread(next_tid));
+      if ((nextTransition->toUniqueRep()).typeId == MC_PROGRESS_TRANSITION) {
+        return false;
+      }
+      mc_run_thread_to_next_visible_operation(next_tid);
+      this->simulateRunningTransition(
+        *nextTransition, shmTransitionTypeInfo, shmTransitionData);
+      threadIsExplored.insert(next_tid);
+
+#ifdef LIVELOCK_EARLY_STOPPING
+      bool stateRevisited = stateIsRevisited(this->objectStorage, numThreads,
+                             this->getCurrentlyEnabledThreads(), visitedStates);
+
+      if (stateRevisited && canStopSafely(threadIsRelated, threadIsExplored,
+                                          this->getCurrentlyEnabledThreads())) {
+        break;
+      }
+#endif
+    }
+
+    hasLivelock = true;
+    int n;
+    for (n = 0; n < numThreads; n++) {
+      nextTransition = &(this->getNextTransitionForThread(n));
+      if (threadIsExplored.count(n) == 0 &&
+          this->transitionIsEnabled(*nextTransition)) {
+        start_tid = n;
+        break;
+      }
+    }
+
+    if (n == numThreads) start_tid = -1;
+  }
+  if (hasLivelock) {
+    this->printLivelockResults(livelockStartIdx, cycleStartIdx, numCycles);
+  }
+  this->resetMaxTransitionsDepthLimit();
+  return hasLivelock;
+}
 
 // increaseMaxTransitionsDepthLimit() and resetMaxTransitionsDepthLimit() used
 // within the livelock logic.
 void
 MCStack::increaseMaxTransitionsDepthLimit(int n)
 {
-  this->configuration.maxTotalTransitionsDepthLimit += n;
+  int numThreads = this->getNumProgramThreads();
+  this->configuration.maxTotalTransitionsDepthLimit += (n * (numThreads + 1));
 }
 
 void
@@ -485,13 +715,6 @@ MCStack::resetMaxTransitionsDepthLimit()
     }
   }
   this->configuration.maxTotalTransitionsDepthLimit = maxTotalDepth;
-}
-
-// Placeholder
-bool
-MCStack::isInLivelock(int increasedDepth)
-{
-  return false;
 }
 
 bool
