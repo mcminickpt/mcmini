@@ -12,6 +12,10 @@ public:
                       std::shared_ptr<MCRWWLock> rwwlock)
     : MCTransition(runner), rwwlock(rwwlock)
   {}
+
+  std::unordered_set<objid_t> getObjectsAccessedByTransition() const override {
+    return { rwwlock->getObjectId() };
+  }
 };
 
 #endif // INCLUDE_MCMINI_TRANSITIONS_RWWLOCK_MCRWWLOCKTRANSITION_HPP

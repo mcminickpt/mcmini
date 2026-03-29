@@ -12,6 +12,10 @@ public:
                     std::shared_ptr<MCMutex> mutex)
     : MCTransition(running), mutex(mutex)
   {}
+
+  std::unordered_set<objid_t> getObjectsAccessedByTransition() const override {
+    return { mutex->getObjectId() };
+  }
 };
 
 #endif // MC_MCMUTEXTRANSITION_H
