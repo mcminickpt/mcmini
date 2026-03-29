@@ -549,13 +549,9 @@ public:
   void dynamicallyUpdateBacktrackSets();
 
   bool isInDeadlock() const;
+  bool isInLivelock(int); 
   void increaseMaxTransitionsDepthLimit(int);
   void resetMaxTransitionsDepthLimit();
-  void KMPBuildLPS(const MCTransitionUniqueRep*, int, int *) const;
-  int KMPFindFirstLivelockCycle(const MCTransitionUniqueRep*,int,
-    const MCTransitionUniqueRep* pattern, int) const;
-  bool hasRepetition(const MCTransitionUniqueRep*, int, uint64_t *) const;
-  bool isProgress(const MCTransitionUniqueRep*, int);
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
 
   inline bool
