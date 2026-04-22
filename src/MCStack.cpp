@@ -402,7 +402,9 @@ const MCTransition *MCStack::getNextFairTransition(tid_t tid) {
     MCTransition &nextTransition =
       programState->getNextTransitionForThread(tid);
 
-    if (programState->transitionIsEnabled(nextTransition)) {
+    const MCStackItem &sTop = getStateStackTop();
+    const bool transitionIsInSleepSet = sTop.threadIsInSleepSet(i);
+    if (programState->transitionIsEnabled(nextTransition) && !transitionIsInSleepSet) {
       return &nextTransition;
     }
   }
