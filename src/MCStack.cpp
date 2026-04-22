@@ -475,7 +475,7 @@ MCStack::isInDeadlock() const
   return true;
 }
 
-bool transitionsAreRelated(MCTransition* a, MCTransition *b)
+bool transitionsAreCausallyRelated(MCTransition* a, MCTransition *b)
 {
   unordered_set<objid_t> objsA = a->getObjectsAccessedByTransition();
   unordered_set<objid_t> objsB = b->getObjectsAccessedByTransition();
@@ -613,6 +613,9 @@ MCStack::isInLivelock(int increasedDepth)
 #ifdef LIVELOCK_EARLY_STOPPING
     visitedStates.clear();
 #endif
+    if (nextTransition->toUniqueRep().typeId == MC_PROGRESS_TRANSITION) {
+      return false;
+    }
     mc_run_thread_to_next_visible_operation(start_tid);
     this->simulateRunningTransition(
       *nextTransition, shmTransitionTypeInfo, shmTransitionData);
@@ -633,8 +636,11 @@ MCStack::isInLivelock(int increasedDepth)
 
       for (int tid = 0; tid < numThreads; tid++) {
         if (threadIsRelated.count(tid) == 0 &&
-         //   threadIsExplored.count(tid) == 0 &&
-            transitionsAreRelated(&getNextTransitionForThread(tid),
+            // For example, if a semaphore has count 1, and one thread calls
+            // sem_post() on that semaphore, then a second thread that may
+            // call sem_wait() multiple times in the future is said to be
+            // causally related with the first thread.
+            transitionsAreCausallyRelated(&getNextTransitionForThread(tid),
                                   &this->getTransitionStackTop())) {
           threadIsRelated.insert(tid);
         }
@@ -651,9 +657,18 @@ MCStack::isInLivelock(int increasedDepth)
       }
 
       nextTransition = &(this->getNextTransitionForThread(next_tid));
+
+      // There may exist a case where the current cycle cannot continue
+      // to execute, since the relatedThreads set is empty, and the next
+      // transition of the seed thread is blocked. In that case, we terminate
+      // the current cycle and continue to the next.
+      if (!this->transitionIsEnabled(*nextTransition)) {
+        continue;
+      }
       if ((nextTransition->toUniqueRep()).typeId == MC_PROGRESS_TRANSITION) {
         return false;
       }
+
       mc_run_thread_to_next_visible_operation(next_tid);
       this->simulateRunningTransition(
         *nextTransition, shmTransitionTypeInfo, shmTransitionData);
@@ -683,11 +698,8 @@ MCStack::isInLivelock(int increasedDepth)
 
     if (n == numThreads) start_tid = -1;
   }
-  if (hasLivelock) {
-    this->printLivelockResults(livelockStartIdx, cycleStartIdx, numCycles);
-  }
-  this->resetMaxTransitionsDepthLimit();
-  return hasLivelock;
+  this->printLivelockResults(livelockStartIdx, cycleStartIdx, numCycles);
+  return true;
 }
 
 // increaseMaxTransitionsDepthLimit() and resetMaxTransitionsDepthLimit() used
