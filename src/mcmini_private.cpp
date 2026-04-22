@@ -667,6 +667,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
         }
         programState->increaseMaxTransitionsDepthLimit(increasedDepth);
         hasLivelock = programState->isInLivelock(increasedDepth);
+        programState->resetMaxTransitionsDepthLimit();
         /*
          * isInLivelock() exits before reaching
          * LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH
@@ -810,9 +811,17 @@ get_config_for_execution_environment()
   uint64_t maxThreadDepth = MC_STATE_CONFIG_MAX_DEPTH_PER_THREAD_DEFAULT;
   uint64_t maxTotalDepth =
                        MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT - 1;
-  
+
+
+  // The default value of maxTotalDepth needs to be lower when checking for
+  // livelock, since the livelock detection algorithm extends a branch beyond
+  // this limit. If the default were to be set to the maximum size of the stack
+  // in this case, then it would result in a segfault.
+  // The lower default value is calculated for the worst case, which is when
+  // a program consists of threads equal to the maximum allowed number and
+  // every thread decomposes into an individual cycle.
   if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
-    maxTotalDepth -= LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+    maxTotalDepth -= (MAX_TOTAL_THREADS_IN_PROGRAM * LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH);
   }  
 
   trid_t printBacktraceAtTraceNumber = MC_STATE_CONFIG_PRINT_AT_TRACE;
