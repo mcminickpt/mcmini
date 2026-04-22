@@ -546,26 +546,49 @@ MCStack::stateIsRevisited(MCObjectStore &store,
   return false;
 }
 
-bool canStopSafely(const std::unordered_set<tid_t> &related,
-                   const std::unordered_set<tid_t> &explored,
-                   const std::unordered_set<tid_t> &enabled)
+bool
+MCStack::canStopSafely(const std::unordered_set<tid_t> &related,
+                       const std::unordered_set<tid_t> &explored,
+                       const std::unordered_set<tid_t> &enabled,
+                       int cycleStartIdx)
 {
-  bool unexploredExists = false;
+  int top = this->transitionStackTop;
 
   for (tid_t tid : related) {
-    bool isExplored = explored.count(tid);
-    bool isEnabled = enabled.count(tid);
 
-    if (!isExplored) {
-      unexploredExists = true;
+    // Skip threads that don't need checking
+    if (explored.count(tid) || enabled.count(tid)) {
+      continue;
+    }
 
-      if (isEnabled) {
-        return true;
+    // Blocked thread case
+    MCTransition &nextTransition =
+        this->getNextTransitionForThread(tid);
+
+    const std::unordered_set<objid_t> &nextTransitionObjs =
+        nextTransition.getObjectsAccessedByTransition();
+
+    // Scan only current cycle
+    for (int i = top; i >= cycleStartIdx; i--) {
+
+      MCTransition &cycleTransition =
+          this->getTransitionAtIndex(i);
+
+      const std::unordered_set<objid_t> &cycleObjects =
+          cycleTransition.getObjectsAccessedByTransition();
+
+      for (objid_t obj : nextTransitionObjs) {
+        if (cycleObjects.count(obj)) {
+          // Blocking depends on cycle → not safe to stop
+          return false;
+        }
       }
     }
   }
-  return !unexploredExists;
+
+  return true;
 }
+
 #endif
 
 void
@@ -681,7 +704,7 @@ MCStack::isInLivelock(int increasedDepth)
                              this->getCurrentlyEnabledThreads(), visitedStates);
 
       if (stateRevisited && canStopSafely(threadIsRelated, threadIsExplored,
-                                          this->getCurrentlyEnabledThreads())) {
+                                          this->getCurrentlyEnabledThreads(), cycleStart)) {
         break;
       }
 #endif

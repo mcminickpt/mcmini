@@ -565,6 +565,10 @@ public:
                        const std::unordered_set<tid_t> &enabled,
                        std::vector<stateLlock> &visitedStates);
 #endif
+  bool canStopSafely(const std::unordered_set<tid_t> &related,
+                     const std::unordered_set<tid_t> &explored,
+                     const std::unordered_set<tid_t> &enabled,
+                     int cycleStartIdx);
   void increaseMaxTransitionsDepthLimit(int);
   void resetMaxTransitionsDepthLimit();
   bool hasADataRaceWithNewTransition(const MCTransition &) const;
