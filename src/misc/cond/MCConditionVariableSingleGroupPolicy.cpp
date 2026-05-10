@@ -14,7 +14,7 @@ ConditionVariableSingleGroupPolicy::receive_broadcast_message()
   for (const tid_t waiting_thread : this->wait_queue) {
     this->broadcast_eligible_threads.insert(waiting_thread);
   }
-  this->wait_queue.clear();
+  this->wake_groups.clear();
 }
 
 void
