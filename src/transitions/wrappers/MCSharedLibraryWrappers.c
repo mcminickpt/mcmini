@@ -7,6 +7,7 @@ typeof(&pthread_create) pthread_create_ptr;
 typeof(&pthread_join) pthread_join_ptr;
 typeof(&pthread_mutex_init) pthread_mutex_init_ptr;
 typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
+typeof(&pthread_mutex_trylock) pthread_mutex_trylock_ptr;
 typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 typeof(&sem_wait) sem_wait_ptr;
 typeof(&sem_post) sem_post_ptr;
@@ -36,6 +37,7 @@ mc_load_intercepted_symbol_addresses()
   pthread_join_ptr         = dlsym(RTLD_NEXT, "pthread_join");
   pthread_mutex_init_ptr   = dlsym(RTLD_NEXT, "pthread_mutex_init");
   pthread_mutex_lock_ptr   = dlsym(RTLD_NEXT, "pthread_mutex_lock");
+  pthread_mutex_trylock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_trylock");
   pthread_mutex_unlock_ptr = dlsym(RTLD_NEXT, "pthread_mutex_unlock");
   sem_wait_ptr             = dlsym(RTLD_NEXT, "sem_wait");
   sem_post_ptr             = dlsym(RTLD_NEXT, "sem_post");
@@ -65,6 +67,7 @@ mc_load_intercepted_symbol_addresses()
   pthread_join_ptr           = &pthread_join;
   pthread_mutex_init_ptr     = &pthread_mutex_init;
   pthread_mutex_lock_ptr     = &pthread_mutex_lock;
+  pthread_mutex_trylock_ptr  = &pthread_mutex_trylock;
   pthread_mutex_unlock_ptr   = &pthread_mutex_unlock;
   sem_post_ptr               = &sem_post;
   sem_wait_ptr               = &sem_wait;
@@ -114,6 +117,12 @@ int
 pthread_mutex_lock(pthread_mutex_t *mutex)
 {
   return mc_pthread_mutex_lock(mutex);
+}
+
+int
+pthread_mutex_trylock(pthread_mutex_t *mutex)
+{
+  return mc_pthread_mutex_trylock(mutex);
 }
 
 int

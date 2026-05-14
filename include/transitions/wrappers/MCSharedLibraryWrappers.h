@@ -11,6 +11,7 @@ extern typeof(&pthread_create) pthread_create_ptr;
 extern typeof(&pthread_join) pthread_join_ptr;
 extern typeof(&pthread_mutex_init) pthread_mutex_init_ptr;
 extern typeof(&pthread_mutex_lock) pthread_mutex_lock_ptr;
+extern typeof(&pthread_mutex_trylock) pthread_mutex_trylock_ptr;
 extern typeof(&pthread_mutex_unlock) pthread_mutex_unlock_ptr;
 extern typeof(&sem_wait) sem_wait_ptr;
 extern typeof(&sem_post) sem_post_ptr;
@@ -34,6 +35,7 @@ extern typeof(&sleep) sleep_ptr;
 #define __real_pthread_join           (*pthread_join_ptr)
 #define __real_pthread_mutex_init     (*pthread_mutex_init_ptr)
 #define __real_pthread_mutex_lock     (*pthread_mutex_lock_ptr)
+#define __real_pthread_mutex_trylock  (*pthread_mutex_trylock_ptr)
 #define __real_pthread_mutex_unlock   (*pthread_mutex_unlock_ptr)
 #define __real_sem_wait               (*sem_wait_ptr)
 #define __real_sem_post               (*sem_post_ptr)
