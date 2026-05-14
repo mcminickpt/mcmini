@@ -176,6 +176,8 @@ mc_create_global_state_object()
                                              &MCReadMutexUnlock);
   programState->registerVisibleOperationType(typeid(MCMutexLock),
                                              &MCReadMutexLock);
+  programState->registerVisibleOperationType(typeid(MCMutexTrylock),
+                                             &MCReadMutexTrylock);
   programState->registerVisibleOperationType(typeid(MCSemInit),
                                              &MCReadSemInit);
   programState->registerVisibleOperationType(typeid(MCSemPost),

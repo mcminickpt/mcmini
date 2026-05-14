@@ -4,5 +4,6 @@
 #include "transitions/mutex/MCMutexInit.h"
 #include "transitions/mutex/MCMutexLock.h"
 #include "transitions/mutex/MCMutexUnlock.h"
+#include "transitions/mutex/MCMutexTrylock.h"
 
 #endif // MC_MCMUTEXDEFS_H
