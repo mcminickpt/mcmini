@@ -558,7 +558,7 @@ public:
   void dynamicallyUpdateBacktrackSets();
 
   bool isInDeadlock() const;
-  bool isInLivelock(int);
+  bool isInLivelock(int, trid_t &);
 #ifdef LIVELOCK_EARLY_STOPPING
   bool stateIsRevisited(MCObjectStore &store,
                        int numThreads,

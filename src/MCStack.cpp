@@ -616,7 +616,7 @@ MCStack::printLivelockResults(int livelockStartIdx, int cycleStartIdx[],
 }
 
 bool
-MCStack::isInLivelock(int increasedDepth)
+MCStack::isInLivelock(int increasedDepth, trid_t &transitionId)
 {
   std::unordered_set<tid_t> threadIsRelated;
   std::unordered_set<tid_t> threadIsExplored;
@@ -627,10 +627,20 @@ MCStack::isInLivelock(int increasedDepth)
 
   int livelockStartIdx = this->transitionStackTop;
   int cycleStartIdx[MAX_TOTAL_THREADS_IN_PROGRAM];
+  const MCTransition *nextTransition;
   int numCycles = 0;
   bool hasLivelock = false;
   int numThreads = this->getNumProgramThreads();
-  const MCTransition *nextTransition = this->getFirstEnabledTransition();
+
+  for (int i = 0; i < numThreads; i++) {
+    if (MCTransition::transitionEnabledInState(this,
+          this->getNextTransitionForThread(i))) {
+      nextTransition = &(this->getNextTransitionForThread(i));
+    }
+  }
+  if (nextTransition == nullptr) {
+    return false;
+  }
   int start_tid = nextTransition->getThreadId();
 
   while (start_tid != -1) {
@@ -644,6 +654,7 @@ MCStack::isInLivelock(int increasedDepth)
     mc_run_thread_to_next_visible_operation(start_tid);
     this->simulateRunningTransition(
       *nextTransition, shmTransitionTypeInfo, shmTransitionData);
+    transitionId++;
     threadIsRelated.insert(start_tid);
     threadIsExplored.insert(start_tid);
 #ifdef LIVELOCK_EARLY_STOPPING
@@ -671,10 +682,12 @@ MCStack::isInLivelock(int increasedDepth)
         }
       }
 
-      if (!this->transitionIsEnabled(this->getNextTransitionForThread(next_tid))) {
+      if (!MCTransition::transitionEnabledInState(this,
+            this->getNextTransitionForThread(next_tid))) {
         for (int j = 0; j < numThreads; j++) {
           if (threadIsRelated.count(j) &&
-              this->transitionIsEnabled(this->getNextTransitionForThread(j))) {
+              MCTransition::transitionEnabledInState(this,
+                this->getNextTransitionForThread(j))) {
             next_tid = j;
             break;
           }
@@ -687,7 +700,8 @@ MCStack::isInLivelock(int increasedDepth)
       // to execute, since the relatedThreads set is empty, and the next
       // transition of the seed thread is blocked. In that case, we terminate
       // the current cycle and continue to the next.
-      if (!this->transitionIsEnabled(*nextTransition)) {
+
+      if (!MCTransition::transitionEnabledInState(this, *nextTransition)) {
         continue;
       }
       if ((nextTransition->toUniqueRep()).typeId == MC_PROGRESS_TRANSITION) {
@@ -715,13 +729,15 @@ MCStack::isInLivelock(int increasedDepth)
     for (n = 0; n < numThreads; n++) {
       nextTransition = &(this->getNextTransitionForThread(n));
       if (threadIsExplored.count(n) == 0 &&
-          this->transitionIsEnabled(*nextTransition)) {
+          MCTransition::transitionEnabledInState(this, *nextTransition)) {
         start_tid = n;
         break;
       }
     }
 
-    if (n == numThreads) start_tid = -1;
+    if (n == numThreads) {
+      start_tid = -1;
+    }
   }
   this->printLivelockResults(livelockStartIdx, cycleStartIdx, numCycles);
   return true;
@@ -742,7 +758,8 @@ MCStack::resetMaxTransitionsDepthLimit()
   uint64_t maxTotalDepth =
     MC_STATE_CONFIG_MAX_TRANSITIONS_DEPTH_LIMIT_DEFAULT - 1;
   if (getenv(ENV_CHECK_FOR_LIVELOCK)) {
-    maxTotalDepth -= LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH;
+    maxTotalDepth -= (MAX_TOTAL_THREADS_IN_PROGRAM *
+        LLOCK_INCREASED_MAX_TRANSITIONS_DEPTH);
   }
   if (getenv(ENV_MAX_TRANSITIONS_TOTAL) != NULL) {
     int limit = maxTotalDepth;

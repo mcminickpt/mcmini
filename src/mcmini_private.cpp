@@ -644,7 +644,16 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
     }
 
     if (typeId == MC_PROGRESS_TRANSITION) {
-      nextTransition = &(programState->getNextTransitionForThread(tid));
+      // The progress transition is a simple bookkeeping transition that does
+      // not do anything except registering progress. So we would want to
+      // execute further the same thread that executed the progress transition.
+      // But, executing the next transition for same thread blindly after a 
+      // progress transition may result in McMini trying to execute a blocked
+      // transition. So instead, select the first enabled transition in a
+      // round-robin order, starting from (current tid - 1). This ensures
+      // that the thread that executed the progress transition is selected
+      // if and only if it is enabled in the state.
+      nextTransition = programState->getNextFairTransition(tid-1);
     }
     else if (exploreRoundRobin) {
       nextTransition = programState->getNextFairTransition(tid);
@@ -668,7 +677,7 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
             strtoul(getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT), nullptr, 10);
         }
         programState->increaseMaxTransitionsDepthLimit(increasedDepth);
-        hasLivelock = programState->isInLivelock(increasedDepth);
+        hasLivelock = programState->isInLivelock(increasedDepth, transitionId);
         programState->resetMaxTransitionsDepthLimit();
         /*
          * isInLivelock() exits before reaching
