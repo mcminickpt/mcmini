@@ -103,6 +103,10 @@ main(int argc, char *argv[])
       setenv(ENV_CHECK_FOR_LIVELOCK, "1", 1);
       cur_arg++;
     }
+    else if (strcmp(cur_arg[0], "--continue-after-data-race") == 0) {
+      setenv(ENV_CONTINUE_AFTER_DATA_RACE, "1", 1);
+      cur_arg++;
+    }
     else if (strcmp(cur_arg[0], "--max-livelock-cycle-limit") == 0 ||
         strcmp(cur_arg[0], "--ML") == 0) {
       setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[1], 1);
@@ -168,6 +172,8 @@ main(int argc, char *argv[])
                       "              [--check-for-livelock|-l] (experimental)\n"
                       "              [--max-livelock-cycle-limit|--ML <num>]\n"
                       "                               (default num = %d)\n"
+                      "              [--continue-after-data-race] (Use with -q\n"
+                      "                  to suppress data race detection logs\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"
