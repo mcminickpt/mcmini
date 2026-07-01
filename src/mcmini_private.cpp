@@ -8,6 +8,7 @@
 #include <errno.h>    // For errno
 #include <cstring>    // For strerror
 #include <iostream>   // For std::cerr
+#include <chrono>     // For high-resolution timing
 
 extern "C" {
 #include "mc_shared_sem.h"
@@ -33,6 +34,8 @@ trid_t traceId      = 0;
 trid_t transitionId = 0;
 
 time_t mcmini_start_time = 0;
+chrono::steady_clock::time_point mcmini_start_hires;
+uint64_t total_livelock_elapsed_ns = 0;
 volatile bool mc_reset = false;
 
 /**
@@ -67,7 +70,13 @@ static void printResults() {
   mcprintf(resultString);
   mcprintf("Number of traces: %lu\n", traceId);
   mcprintf("Total number of transitions: %lu\n", transitionId);
-  mcprintf("Elapsed time: %lu seconds\n", time(NULL) - mcmini_start_time);
+  auto elapsed_ms = chrono::duration_cast<chrono::milliseconds>(
+    chrono::steady_clock::now() - mcmini_start_hires).count();
+  mcprintf("Elapsed time: %lu ms\n", (unsigned long)elapsed_ms);
+  if (total_livelock_elapsed_ns > 0) {
+    mcprintf("Livelock detection overhead: %lu ms\n",
+             (unsigned long)(total_livelock_elapsed_ns / 1000000));
+  }
   if ((int)traceId < programState->traceIdForPrintBacktrace() &&
       getenv(ENV_FIRST_DEADLOCK) == NULL) { // and no --first-deadlock
     mcprintf("*** NOTE: --trace (-t) requested up to trace %d,\n"
@@ -125,6 +134,7 @@ MC_CONSTRUCTOR void
 mcmini_main()
 {
   mcmini_start_time = time(NULL);
+  mcmini_start_hires = chrono::steady_clock::now();
 
   getcontext(&mcmini_scheduler_main_context);
 
@@ -297,7 +307,7 @@ mc_explore_branch(int curBranchPoint)
   }
   resetTraceSeqArray();
 
-  static time_t last_time_reported = mcmini_start_time;
+  static time_t last_time_reported = time(NULL);
   static int interval = 1000;
   if (traceId == 100 && time(NULL) - last_time_reported > 10) {
     interval = 100;
@@ -679,7 +689,11 @@ mc_search_dpor_branch_with_thread(const tid_t backtrackThread)
             strtoul(getenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT), nullptr, 10);
         }
         programState->increaseMaxTransitionsDepthLimit(increasedDepth);
+        auto livelock_start = chrono::steady_clock::now();
         hasLivelock = programState->isInLivelock(increasedDepth, transitionId);
+        total_livelock_elapsed_ns +=
+          chrono::duration_cast<chrono::nanoseconds>(
+            chrono::steady_clock::now() - livelock_start).count();
         programState->resetMaxTransitionsDepthLimit();
         /*
          * isInLivelock() exits before reaching
