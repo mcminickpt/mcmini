@@ -531,7 +531,7 @@ MCStack::stateIsRevisited(MCObjectStore &store,
     }
 
     bool objectsEqual = true;
-    for (size_t i = 0; i < store.getStorageTop(); i++) {
+    for (size_t i = 0; i <= store.getStorageTop(); i++) {
       if (!oldState.objects[i]->MCObjectEquals(
             *current.objects[i])) {
         objectsEqual = false;

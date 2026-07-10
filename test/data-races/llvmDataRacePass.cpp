@@ -4,7 +4,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/IR/InstIterator.h"
+
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/IRBuilder.h"
@@ -33,7 +33,7 @@ public:
         "mcmini_read", Type::getVoidTy(Ctx), PtrTy, PtrTy);
 
     FunctionCallee checkWriteFn = M.getOrInsertFunction(
-        "mcmini_write", Type::getVoidTy(Ctx), PtrTy, PtrTy);
+        "mcmini_write", Type::getVoidTy(Ctx), PtrTy, PtrTy, Type::getInt64Ty(Ctx));
 
     bool Changed = false;
     SmallVector<GlobalVariable *, 16> Globals;
@@ -48,43 +48,89 @@ public:
         continue;
 
       AliasAnalysis &AA = FAM.getResult<AAManager>(F);
-      for (Instruction &I : instructions(F)) {
-        IRBuilder<> Builder(&I);
-        if (auto *LI = dyn_cast<LoadInst>(&I)) {
-          Value *Ptr = LI->getPointerOperand();
-          GlobalVariable *GlobalFound = findAliasedGlobal(Ptr, Globals, AA);
-          if (GlobalFound) {
-            Builder.SetInsertPoint(LI);
-            Constant *varName = Builder.CreateGlobalStringPtr(GlobalFound->getName());
-	    Value *ptrCast = Builder.CreateBitCast(Ptr, PtrTy);
-            Builder.CreateCall(checkReadFn, {ptrCast, varName});
-            Changed = true;
-          }
-        } else if (auto *SI = dyn_cast<StoreInst>(&I)) {
-          Value *Ptr = SI->getPointerOperand();
-          GlobalVariable *GlobalFound = findAliasedGlobal(Ptr, Globals, AA);
-          if (GlobalFound) {
-            Builder.SetInsertPoint(SI);
-            Constant *varName = Builder.CreateGlobalStringPtr(GlobalFound->getName());
-            Value *ptrCast = Builder.CreateBitCast(Ptr, PtrTy);
-            Builder.CreateCall(checkWriteFn, {ptrCast, varName});
-            Changed = true;
+
+      for (BasicBlock &BB : F) {
+        for (Instruction &I : BB) {
+          if (auto *LI = dyn_cast<LoadInst>(&I)) {
+            Value *ptr = LI->getPointerOperand();
+            GlobalVariable *GV = findTrackedGlobal(ptr, Globals, AA);
+            if (GV)
+              Changed |= instrumentGlobalRead(LI, GV, checkReadFn, PtrTy);
+          } else if (auto *SI = dyn_cast<StoreInst>(&I)) {
+            Value *ptr = SI->getPointerOperand();
+            GlobalVariable *GV = findTrackedGlobal(ptr, Globals, AA);
+            if (GV)
+              Changed |= instrumentGlobalWrite(SI, GV, checkWriteFn, PtrTy);
           }
         }
       }
     }
+
     return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
   }
 
 private:
-  GlobalVariable *findAliasedGlobal(Value *Ptr, ArrayRef<GlobalVariable *> Globals, AliasAnalysis &AA) {
+  static GlobalVariable *findTrackedGlobal(
+      Value *ptr, ArrayRef<GlobalVariable *> Globals, AliasAnalysis &AA) {
+    Value *base = ptr->stripPointerCasts();
+    while (auto *GEP = dyn_cast<GEPOperator>(base)) {
+      base = GEP->getPointerOperand()->stripPointerCasts();
+    }
+    if (auto *GV = dyn_cast<GlobalVariable>(base)) {
+      for (GlobalVariable *Candidate : Globals) {
+        if (GV == Candidate)
+          return GV;
+      }
+    }
+
     for (GlobalVariable *GV : Globals) {
-      AliasResult AR = AA.alias(Ptr, GV);
+      AliasResult AR = AA.alias(ptr, GV);
       if (AR != AliasResult::NoAlias) {
         return GV;
       }
     }
     return nullptr;
+  }
+
+  static Value *normalizeIntegerValue(IRBuilder<> &Builder, Value *value) {
+    Type *ty = value->getType();
+    if (!ty->isIntegerTy())
+      return nullptr;
+    return Builder.CreateZExtOrTrunc(value, Builder.getInt64Ty());
+  }
+
+  static bool instrumentGlobalWrite(
+      StoreInst *SI, GlobalVariable *GV,
+      FunctionCallee writeFn, Type *PtrTy) {
+    IRBuilder<> Builder(SI);
+
+    Value *storeValue = SI->getValueOperand();
+    Value *normalizedValue = normalizeIntegerValue(Builder, storeValue);
+    if (!normalizedValue)
+      return false;
+
+    Value *ptrCast = Builder.CreateBitCast(
+        SI->getPointerOperand(), PtrTy);
+    Value *name = Builder.CreateGlobalStringPtr(GV->getName());
+
+    Builder.CreateCall(writeFn, {ptrCast, name, normalizedValue});
+    return true;
+  }
+
+  static bool instrumentGlobalRead(
+      LoadInst *LI, GlobalVariable *GV,
+      FunctionCallee readFn, Type *PtrTy) {
+    Instruction *insertPt = LI->getNextNode();
+    if (!insertPt)
+      insertPt = LI->getParent()->getTerminator();
+    IRBuilder<> Builder(insertPt);
+
+    Value *ptrCast = Builder.CreateBitCast(
+        LI->getPointerOperand(), PtrTy);
+    Value *name = Builder.CreateGlobalStringPtr(GV->getName());
+
+    Builder.CreateCall(readFn, {ptrCast, name});
+    return true;
   }
 };
 } // namespace
