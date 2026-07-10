@@ -9,26 +9,29 @@ MCTransition *MCReadGlobalWrite(const MCSharedTransition *, void *,
 struct MCGlobalVariableWriteData {
   void *addr;
   char *varName;
+  uint64_t value;
 
-  MCGlobalVariableWriteData(void *addr, char *varName)
-    : addr(addr), varName(varName)
+  MCGlobalVariableWriteData(void *addr, char *varName, uint64_t value)
+    : addr(addr), varName(varName), value(value)
   {
   }
 };
 
 struct MCGlobalVariableWrite : public MCGlobalVariableTransition {
 public:
-  const void *newValue;
+  uint64_t writeValue;
   MCGlobalVariableWrite(std::shared_ptr<MCThread> running,
-                        std::shared_ptr<MCGlobalVariable> global)
-    : MCGlobalVariableTransition(running, global)
+                        std::shared_ptr<MCGlobalVariable> global,
+                        uint64_t writeValue = 0)
+    : MCGlobalVariableTransition(running, global),
+      writeValue(writeValue)
   {
   }
 
   std::shared_ptr<MCTransition> staticCopy() const override;
   std::shared_ptr<MCTransition>
   dynamicCopyInState(const MCStack *) const override;
-  void applyToState(MCStack *) override {}
+  void applyToState(MCStack *) override;
   bool coenabledWith(const MCTransition *) const override;
   bool dependentWith(const MCTransition *) const override;
   bool isRacingWith(const MCTransition *) const override;

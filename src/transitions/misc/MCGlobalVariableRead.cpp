@@ -88,6 +88,6 @@ MCGlobalVariableRead::toUniqueRep() const
 void
 MCGlobalVariableRead::print() const
 {
-  mcprintf("thread %lu: READ (%s)\n", this->thread->tid,
-           this->global->varName);
+  mcprintf("thread %lu: READ (%s) [val=%lu]\n", this->thread->tid,
+           this->global->varName, this->global->val);
 }

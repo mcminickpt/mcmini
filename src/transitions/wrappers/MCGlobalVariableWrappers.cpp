@@ -18,16 +18,15 @@ mcmini_read(void *addr, char *varName)
 }
 
 void
-mcmini_write(void *addr, char *varName)
+mcmini_write(void *addr, char *varName, uint64_t value)
 {
-  auto writeData = MCGlobalVariableWriteData(addr, varName);
+  auto writeData = MCGlobalVariableWriteData(addr, varName, value);
   thread_post_visible_operation_hit<MCGlobalVariableWriteData>(
     typeid(MCGlobalVariableWrite), &writeData);
   thread_await_scheduler();
 
-  // FIXME: We don't really support writes in general. We'd
-  // need to define a template here that defined the write in
-  // general terms. What's tricky is on the side of the scheduler:
-  // each template specialization would need its own "read" handler,
-  // ideally itself defined as a template
+  // FIXME: Write-value tracking currently supports values represented as
+  // uint64_t. The LLVM instrumentation pass currently normalizes integer
+  // stores to this representation. Supporting arbitrary value types would
+  // require a generic representation & corresponding scheduler-side handling.
 }

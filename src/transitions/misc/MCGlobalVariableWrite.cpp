@@ -19,7 +19,8 @@ MCReadGlobalWrite(const MCSharedTransition *shmTransition,
                                                    globalVariable);
   }
 
-  return new MCGlobalVariableWrite(threadThatRan, globalVariable);
+  return new MCGlobalVariableWrite(threadThatRan, globalVariable,
+                                   data.value);
 }
 
 std::shared_ptr<MCTransition>
@@ -31,8 +32,8 @@ MCGlobalVariableWrite::staticCopy() const
   auto globalCpy =
     std::static_pointer_cast<MCGlobalVariable, MCVisibleObject>(
       this->global->copy());
-  auto newValueCpy = (void *)this->newValue;
-  return std::make_shared<MCGlobalVariableWrite>(threadCpy, globalCpy);
+  return std::make_shared<MCGlobalVariableWrite>(threadCpy, globalCpy,
+                                                 this->writeValue);
 }
 
 std::shared_ptr<MCTransition>
@@ -42,12 +43,16 @@ MCGlobalVariableWrite::dynamicCopyInState(const MCStack *state) const
     state->getThreadWithId(thread->tid);
   auto globalInState =
     state->getObjectWithId<MCGlobalVariable>(global->getObjectId());
-
   // TODO: Verify if copying the value directly instead of storing
   // with the associated object is correct
-  auto newValueCpy = (void *)this->newValue;
   return std::make_shared<MCGlobalVariableWrite>(
-    threadInState, globalInState);
+    threadInState, globalInState, this->writeValue);
+}
+
+void
+MCGlobalVariableWrite::applyToState(MCStack *)
+{
+  this->global->val = this->writeValue;
 }
 
 bool
@@ -93,6 +98,6 @@ MCGlobalVariableWrite::toUniqueRep() const
 void
 MCGlobalVariableWrite::print() const
 {
-  mcprintf("thread %lu: WRITE (%s)\n", this->thread->tid,
-           this->global->varName);
+  mcprintf("thread %lu: WRITE (%s = %lu)\n", this->thread->tid,
+           this->global->varName, this->writeValue);
 }
