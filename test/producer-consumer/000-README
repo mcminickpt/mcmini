@@ -1,0 +1,48 @@
+The code for this producer-consumer example was derived from a homework
+from an earlier year.
+The rest of this note describes how this code was constructed.
+
+[ NOTE:  If you use McMini with this, please replace 'sem_' by 'mysem_' in
+  partial_solution.c and producer-consumer.c.  Otherwise, McMini will
+  think that 'sem_' is the real thing, and debug on that.  This code
+  has already replaced 'sem_' with 'mysem_'.
+    I've found that 'mcmini-gdb -m 30 ./producer-consumer'
+  suffices to show the bug. ]
+
+    Take the code from hw6 (producer-consumer.c and partial-solution.c),
+    and in partial-solution.c, replace the original 'block()' function by
+    the variation below:
+
+void block(sem_t *sem, int blocking_count) {
+  while (1) {
+    pthread_mutex_lock( &(sem->mutex) );
+    // if someone just posted and the count is back to what it was
+    //   before I called sem_wait and blocked:
+    if (sem->count == blocking_count + 1) {
+      pthread_mutex_unlock( &(sem->mutex) );
+      return;
+    }
+    pthread_mutex_unlock( &(sem->mutex) );
+    sleep(1); // sleep for a second, and check later if count >= 0.
+  }
+}
+
+Finally, you need to set the blocking_count somewhere in your code.
+We will add it to sem_wait.  In the original partial_solution.c:sem_wait()
+WE HAD:
+  if (sem->count < 0) {
+    // We must release lock, or no one can ever call sem_post() for us.
+    pthread_mutex_unlock( &(sem->mutex) );
+    block(sem);
+
+YOU MUST CHANGE IT TO:
+  if (sem->count < 0) {
+    // We must release lock, or no one can ever call sem_post() for us.
+    int blocking_count = sem->count;  // This is why we will block.
+    pthread_mutex_unlock( &(sem->mutex) );
+    block(sem, blocking_count); 
+
+ALSO CHANGE:
+void block(sem_t *sem); // Used by sem_wait()
+TO:
+void block(sem_t *sem, int blocking_count); // Used by sem_wait()
