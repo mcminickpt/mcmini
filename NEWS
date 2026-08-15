@@ -1,7 +1,18 @@
-Version 1.2.0 release notes (DATE: TBD)
+Version 1.2.0 release notes (Aug. 15, 2026)
 ==========================================
 * More meaningful command-line flag names:
     -m is --max-transitions-per-thread and -M is --max-transitions-total
+* Bug fix:  pthread_cond_signal could fail even when a thread was waiting
+* Added support for pthread_mutex_trylock
+* Data race logic now tests if a new new value written to a global variable
+* Experimental support for livelock added, using mc_progress_report()
+    annotation (The McMini documentation wll soon be updated
+    to document this new feature.)
+  NEW FLAGS:
+    --check-for-livelock|-l] (experimental)
+    --max-livelock-cycle-limit|--ML <num>
+* New flag:  --continue-after-data-race (and use -q to not report it)
+    (This is useful in combination with the livelock flags.)
 
 Version 1.1.0 release notes (Oct. 7, 2025)
 ==========================================

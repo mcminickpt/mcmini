@@ -173,7 +173,7 @@ main(int argc, char *argv[])
                       "              [--max-livelock-cycle-limit|--ML <num>]\n"
                       "                               (default num = %d)\n"
                       "              [--continue-after-data-race] (Use with -q\n"
-                      "                  to suppress data race detection logs\n"
+                      "                  to suppress reporting data races)\n"
                       "              [--quiet|-q]\n"
                       "              [--trace|-t <num>|<traceSeq>]\n"
                       "              [--verbose|-v] [-v -v]\n"
