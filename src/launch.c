@@ -108,7 +108,7 @@ main(int argc, char *argv[])
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--max-livelock-cycle-limit") == 0 ||
-        strcmp(cur_arg[0], "--ML") == 0) {
+        strcmp(cur_arg[0], "-lc") == 0) {
       setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[1], 1);
       char *endptr;
       if (strtol(cur_arg[1], &endptr, 10) == 0 && endptr[0] != '\0') {
@@ -117,9 +117,9 @@ main(int argc, char *argv[])
       }
       cur_arg += 2;
     }
-    else if (cur_arg[0][2] == 'M' && cur_arg[0][3] == 'L' &&
-      isdigit(cur_arg[0][4])) {
-      setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[0] + 4, 1);
+    else if (cur_arg[0][1] == 'l' && cur_arg[0][2] == 'c' &&
+      isdigit(cur_arg[0][3])) {
+      setenv(ENV_MAX_LIVELOCK_CYCLE_LIMIT, cur_arg[0] + 3, 1);
       cur_arg++;
     }
     else if (strcmp(cur_arg[0], "--check-forward-progress") == 0 ||
@@ -170,7 +170,7 @@ main(int argc, char *argv[])
                       "              [--first-deadlock|--first|-f] (default)\n"
                       "              [--all-deadlocks|--all|-a]\n"
                       "              [--check-for-livelock|-l] (experimental)\n"
-                      "              [--max-livelock-cycle-limit|--ML <num>]\n"
+                      "              [--max-livelock-cycle-limit|-lc <num>]\n"
                       "                               (default num = %d)\n"
                       "              [--continue-after-data-race] (Use with -q\n"
                       "                  to suppress data race detection logs\n"
