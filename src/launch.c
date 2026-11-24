@@ -202,11 +202,14 @@ main(int argc, char *argv[])
   }
 
   assert(cur_arg[0][strlen(cur_arg[0])] == '\0');
-  char idx = strlen(cur_arg[0]) - strlen("mcmini") - 1 >= 0 ?
-             strlen(cur_arg[0]) - strlen("mcmini") - 1 :
-             strlen(cur_arg[0]);
-  // idx points to 'X' when cur_arg[0] == "...Xmcmini"
-  if (strcmp(cur_arg[0], "mcmini") == 0 ||  strcmp(cur_arg[0] + idx, "/mcmini") == 0) {
+  // Reject the target "mcmini" or ".../mcmini".  Compare lengths before
+  // subtracting: strlen() is unsigned, so a target shorter than "/mcmini"
+  // would otherwise wrap around and index before the start of the string.
+  size_t target_len = strlen(cur_arg[0]);
+  size_t suffix_len = strlen("/mcmini");
+  if (strcmp(cur_arg[0], "mcmini") == 0 ||
+      (target_len >= suffix_len &&
+       strcmp(cur_arg[0] + target_len - suffix_len, "/mcmini") == 0)) {
     fprintf(stderr,
             "\n*** McMini being called on 'mcmini'.  This doesn't work.\n");
     exit(1);
