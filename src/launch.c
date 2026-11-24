@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <libgen.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -212,12 +213,35 @@ main(int argc, char *argv[])
     exit(1);
   }
 
+  // libmcmini.so lives next to the mcmini binary.  Locate the binary via
+  // /proc/self/exe: argv[0] is only the name as typed, which is "mcmini"
+  // when found through $PATH, or the symlink's directory when invoked
+  // through a symlink.  Fall back to argv[0] if /proc is unavailable.
+  char self_path[PATH_MAX];
+  ssize_t self_len =
+    readlink("/proc/self/exe", self_path, sizeof(self_path) - 1);
+  if (self_len > 0) {
+    self_path[self_len] = '\0';
+  } else {
+    snprintf(self_path, sizeof self_path, "%s", argv[0]);
+  }
+  char libmcmini_path[PATH_MAX];
+  snprintf(libmcmini_path, sizeof libmcmini_path, "%s/libmcmini.so",
+           dirname(self_path));
+  // If the preload fails, ld.so only warns and the target runs natively,
+  // without model checking.  Fail loudly instead.
+  if (access(libmcmini_path, R_OK) != 0) {
+    fprintf(stderr, "*** Cannot find %s\n", libmcmini_path);
+    perror("mcmini");
+    exit(1);
+  }
+
   char buf[1000];
   buf[sizeof(buf) - 1] = '\0';
   // We add ours to the end of any PRELOAD of the target application.
-  snprintf(buf, sizeof buf, "%s:%s/libmcmini.so",
+  snprintf(buf, sizeof buf, "%s:%s",
            (getenv("LD_PRELOAD") ? getenv("LD_PRELOAD") : ""),
-           dirname(argv[0]));
+           libmcmini_path);
   // Guard against buffer overrun:
   assert(buf[sizeof(buf) - 1] == '\0');
   setenv("LD_PRELOAD", buf, 1);
